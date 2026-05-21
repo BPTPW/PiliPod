@@ -13,11 +13,22 @@ class BiliAPI {
 
     private init() {}
 
-    func fetchRecommendVideos() async throws -> [VideoItem] {
+    func fetchRecommendVideos(
+        freshIdx: Int,
+        freshType: Int,
+        brush: Int
+    ) async throws -> [VideoItem] {
 
-        guard let url = URL(
+        var components = URLComponents(
             string: "https://api.bilibili.com/x/web-interface/index/top/feed/rcmd"
-        ) else {
+        )
+        components?.queryItems = [
+            URLQueryItem(name: "fresh_idx", value: String(freshIdx)),
+            URLQueryItem(name: "fresh_type", value: String(freshType)),
+            URLQueryItem(name: "brush", value: String(brush))
+        ]
+
+        guard let url = components?.url else {
             return []
         }
 

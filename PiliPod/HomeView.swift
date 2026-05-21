@@ -136,20 +136,37 @@ struct HomeView: View {
 
                 // 视频流
                 ScrollView {
-                    LazyVGrid(columns: columns, spacing: 18) {
-                        ForEach(viewModel.videos) { video in
-                            VideoCardView(video: video)
+                    VStack(spacing: 0) {
+                        ForEach(viewModel.sections) { section in
+                            if let title = section.title {
+                                DividerWithText(title: title)
+                            }
+                            LazyVGrid(columns: columns, spacing: 18) {
+                                ForEach(section.videos) { video in
+                                    VideoCardView(video: video)
+                                        .onAppear {
+                                            if video.id == section.videos.last?.id {
+                                                Task {
+                                                    await viewModel.loadMoreVideos()
+                                                }
+                                            }
+                                        }
+                                }
+                            }
+                            .padding(.horizontal, 12)
                         }
                     }
-                    .padding(.horizontal, 12)
                     .padding(.top, 14)
                     .padding(.bottom, 30)
+                }
+                .refreshable {
+                    await viewModel.refreshVideos()
                 }
             }
             .navigationBarHidden(true)
         }
         .task {
-            await viewModel.loadVideos()
+            await viewModel.loadInitialVideos()
         }
     }
 }

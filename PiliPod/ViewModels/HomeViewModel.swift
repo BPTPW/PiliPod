@@ -11,29 +11,23 @@ import Observation
 @Observable
 @MainActor
 class HomeViewModel {
-
-    var videos: [VideoItem] = []
-
+    var sections: [VideoSection] = []
     var isLoading = false
+    // 推荐流状态
+    private var freshIdx: Int = 1
+    private var brush: Int = 0
 
-    func loadVideos() async {
-
-        isLoading = true
-
-        do {
-
-            videos = try await BiliAPI.shared.fetchRecommendVideos()
-
-        } catch {
-
-            print(error)
-        }
-
-        isLoading = false
-    }
     func loadInitialVideos() async {
+
+        freshIdx = 1
+        brush = 0
+
         do {
-            let videos = try await BiliAPI.shared.fetchRecommendVideos()
+            let videos = try await BiliAPI.shared.fetchRecommendVideos(
+                freshIdx: freshIdx,
+                freshType: 4,
+                brush: brush
+            )
 
             sections = [
                 VideoSection(
@@ -43,46 +37,49 @@ class HomeViewModel {
             ]
 
         } catch {
-
             print(error)
         }
     }
-    func refreshVideos() async {
-        do {
-            let newVideos = try await BiliAPI.shared.fetchRecommendVideos()
 
-            sections.insert(
-                VideoSection(
-                    title: "刚刚更新",
-                    videos: newVideos
-                ),
-                at: 0
+    func refreshVideos() async {
+        freshIdx += 1
+        brush += 1
+
+        do {
+            let newVideos = try await BiliAPI.shared.fetchRecommendVideos(
+                freshIdx: freshIdx,
+                freshType: 3,
+                brush: brush
             )
 
-            // 防止无限增长
-            if sections.count > 5 {
-
-                sections.removeLast()
-            }
+            // 下拉刷新：直接替换当前列表
+            sections = [
+                VideoSection(
+                    title: nil,
+                    videos: newVideos
+                )
+            ]
 
         } catch {
-
             print(error)
         }
     }
+
     func loadMoreVideos() async {
+        freshIdx += 1
 
         do {
-
-            let moreVideos = try await BiliAPI.shared.fetchRecommendVideos()
+            let moreVideos = try await BiliAPI.shared.fetchRecommendVideos(
+                freshIdx: freshIdx,
+                freshType: 4,
+                brush: brush
+            )
 
             if let lastIndex = sections.indices.last {
-
                 sections[lastIndex].videos.append(contentsOf: moreVideos)
             }
 
         } catch {
-
             print(error)
         }
     }
