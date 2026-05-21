@@ -72,31 +72,71 @@ struct HomeView: View {
                         .padding(.horizontal, 14)
                         .frame(height: 40)
                         .background(
-                            RoundedRectangle(cornerRadius: 20)
-                                .fill(Color(.systemGray6))
+                            RoundedRectangle(cornerRadius: 22)
+                                .fill(.ultraThinMaterial)
+                                .overlay {
+                                    RoundedRectangle(cornerRadius: 22)
+                                        .stroke(
+                                            Color.white.opacity(0.18),
+                                            lineWidth: 1
+                                        )
+                                }
+                        )
+                        .shadow(
+                            color: .black.opacity(0.06),
+                            radius: 10,
+                            y: 4
                         )
 
                         // 消息按钮
                         Button {
 
                         } label: {
-                            Image(systemName: "message.fill")
+                            Image(systemName: "bell.fill")
                                 .font(.system(size: 18))
-                                .foregroundStyle(.primary)
+                                .foregroundStyle(.black.opacity(0.8))
                                 .frame(width: 40, height: 40)
                                 .background(
                                     Circle()
-                                        .fill(Color(.systemGray6))
+                                        .fill(.ultraThinMaterial)
+                                        .overlay {
+                                            Circle()
+                                                .stroke(
+                                                    Color.white.opacity(0.18),
+                                                    lineWidth: 1
+                                                )
+                                        }
+                                )
+                                .shadow(
+                                    color: .black.opacity(0.06),
+                                    radius: 8,
+                                    y: 4
                                 )
                         }
 
                         // 用户头像
                         Circle()
-                            .fill(Color.pink.opacity(0.3))
+                            .fill(.ultraThinMaterial)
+                            .overlay {
+                                Circle()
+                                    .stroke(
+                                        Color.white.opacity(0.18),
+                                        lineWidth: 1
+                                    )
+                            }
+                            .overlay {
+                                Image(systemName: "person.fill")
+                                    .foregroundStyle(.black.opacity(0.8))
+                            }
+                            .shadow(
+                                color: .black.opacity(0.06),
+                                radius: 8,
+                                y: 4
+                            )
                             .frame(width: 40, height: 40)
                             .overlay {
                                 Image(systemName: "person.fill")
-                                    .foregroundStyle(.white)
+                                    .foregroundStyle(.black.opacity(0.8))
                             }
                     }
                     .padding(.horizontal, 16)
@@ -127,7 +167,7 @@ struct HomeView: View {
                     }
                 }
                 .padding(.bottom, 10)
-                .background(Color(.systemBackground))
+                .background(.regularMaterial)
 
                 Divider()
 
