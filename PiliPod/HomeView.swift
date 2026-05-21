@@ -9,39 +9,9 @@ import SwiftUI
 
 struct HomeView: View {
     @State private var selectedTab: String = "推荐"
+    @State private var viewModel = HomeViewModel()
 
     let tabs = ["直播", "推荐", "热门", "分区"]
-
-    let videos: [VideoItem] = [
-        VideoItem(
-            cover: "https://picsum.photos/400/250?1",
-            title: "iOS 26 LiquidGlass 动效实战",
-            playCount: "12.3万",
-            danmakuCount: "2456",
-            uploader: "PiliPod"
-        ),
-        VideoItem(
-            cover: "https://picsum.photos/400/250?2",
-            title: "SwiftUI 高性能信息流实现",
-            playCount: "8.8万",
-            danmakuCount: "1145",
-            uploader: "SwiftCat"
-        ),
-        VideoItem(
-            cover: "https://picsum.photos/400/250?3",
-            title: "Bilibili 第三方客户端开发记录",
-            playCount: "6.4万",
-            danmakuCount: "876",
-            uploader: "OpenSource"
-        ),
-        VideoItem(
-            cover: "https://picsum.photos/400/250?4",
-            title: "Apple Design Award UI 分析",
-            playCount: "4.2万",
-            danmakuCount: "567",
-            uploader: "DesignLab"
-        )
-    ]
 
     private let columns = [
         GridItem(.flexible(), spacing: 12),
@@ -167,7 +137,7 @@ struct HomeView: View {
                 // 视频流
                 ScrollView {
                     LazyVGrid(columns: columns, spacing: 18) {
-                        ForEach(videos) { video in
+                        ForEach(viewModel.videos) { video in
                             VideoCardView(video: video)
                         }
                     }
@@ -177,6 +147,9 @@ struct HomeView: View {
                 }
             }
             .navigationBarHidden(true)
+        }
+        .task {
+            await viewModel.loadVideos()
         }
     }
 }

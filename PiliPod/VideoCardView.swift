@@ -49,6 +49,7 @@ struct VideoCardView: View {
 #Preview {
     VideoCardView(
         video: VideoItem(
+            bvid:"BV1234567890",
             cover: "https://picsum.photos/400/250",
             title: "测试视频标题",
             playCount: "12万",
