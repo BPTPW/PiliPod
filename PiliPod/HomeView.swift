@@ -8,7 +8,6 @@
 import SwiftUI
 
 struct HomeView: View {
-
     @State private var selectedTab: String = "推荐"
 
     let tabs = ["直播", "推荐", "热门", "分区"]
@@ -52,13 +51,10 @@ struct HomeView: View {
     var body: some View {
         NavigationStack {
             VStack(spacing: 0) {
-
                 // 顶部区域
                 VStack(spacing: 14) {
-
                     // 第一行
                     HStack(spacing: 12) {
-
                         // 搜索框
                         HStack(spacing: 8) {
                             Image(systemName: "magnifyingglass")
@@ -89,9 +85,7 @@ struct HomeView: View {
                         )
 
                         // 消息按钮
-                        Button {
-
-                        } label: {
+                        Button {} label: {
                             Image(systemName: "bell.fill")
                                 .font(.system(size: 18))
                                 .foregroundStyle(.black.opacity(0.8))
@@ -146,7 +140,6 @@ struct HomeView: View {
                     ScrollView(.horizontal, showsIndicators: false) {
                         HStack(spacing: 24) {
                             ForEach(tabs, id: \.self) { tab in
-
                                 VStack(spacing: 6) {
                                     Text(tab)
                                         .font(.system(size: 16, weight: selectedTab == tab ? .semibold : .regular))

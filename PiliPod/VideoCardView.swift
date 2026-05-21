@@ -8,12 +8,10 @@
 import SwiftUI
 
 struct VideoCardView: View {
-
     let video: VideoItem
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-
             // 封面
             AsyncImage(url: URL(string: video.cover)) { image in
                 image
