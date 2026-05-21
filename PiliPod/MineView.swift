@@ -9,10 +9,7 @@ import SwiftUI
 
 struct MineView: View {
     var body: some View {
-        NavigationStack {
-            Text("TODO: 我的页面")
-                .font(.title)
-        }
+        MyView()
     }
 }
 

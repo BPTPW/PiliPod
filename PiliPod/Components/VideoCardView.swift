@@ -27,7 +27,7 @@ struct VideoCardView: View {
             // 标题
             Text(video.title)
                 .font(.system(size: 14, weight: .medium))
-                .lineLimit(2)
+                .lineLimit(2...2)
                 .multilineTextAlignment(.leading)
 
             // 播放量 + 弹幕

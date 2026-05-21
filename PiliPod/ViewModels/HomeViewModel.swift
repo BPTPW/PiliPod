@@ -13,11 +13,18 @@ import Observation
 class HomeViewModel {
     var sections: [VideoSection] = []
     var isLoading = false
+    private var hasLoaded = false
     // 推荐流状态
     private var freshIdx: Int = 1
     private var brush: Int = 0
 
     func loadInitialVideos() async {
+        if isLoading || hasLoaded {
+            return
+        }
+
+        isLoading = true
+        defer { isLoading = false }
 
         freshIdx = 1
         brush = 0
@@ -35,6 +42,7 @@ class HomeViewModel {
                     videos: videos
                 )
             ]
+            hasLoaded = true
 
         } catch {
             print(error)
@@ -42,6 +50,13 @@ class HomeViewModel {
     }
 
     func refreshVideos() async {
+        if isLoading {
+            return
+        }
+
+        isLoading = true
+        defer { isLoading = false }
+
         freshIdx += 1
         brush += 1
 
@@ -66,6 +81,13 @@ class HomeViewModel {
     }
 
     func loadMoreVideos() async {
+        if isLoading {
+            return
+        }
+
+        isLoading = true
+        defer { isLoading = false }
+
         freshIdx += 1
 
         do {

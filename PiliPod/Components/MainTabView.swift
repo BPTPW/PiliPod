@@ -8,9 +8,11 @@
 import SwiftUI
 
 struct MainTabView: View {
+    @State private var homeViewModel = HomeViewModel()
+
     var body: some View {
         TabView {
-            HomeView()
+            HomeView(viewModel: homeViewModel)
                 .tabItem {
                     Image(systemName: "house.fill")
                     Text("首页")

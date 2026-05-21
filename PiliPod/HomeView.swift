@@ -6,10 +6,11 @@
 //
 
 import SwiftUI
+import Observation
 
 struct HomeView: View {
     @State private var selectedTab: String = "推荐"
-    @State private var viewModel = HomeViewModel()
+    @Bindable var viewModel: HomeViewModel
 
     let tabs = ["直播", "推荐", "热门", "分区"]
 
@@ -17,6 +18,10 @@ struct HomeView: View {
         GridItem(.flexible(), spacing: 12),
         GridItem(.flexible(), spacing: 12)
     ]
+
+    init(viewModel: HomeViewModel) {
+        self.viewModel = viewModel
+    }
 
     var body: some View {
         NavigationStack {
@@ -172,5 +177,6 @@ struct HomeView: View {
 }
 
 #Preview {
-    HomeView()
+    @MainActor in
+    HomeView(viewModel: HomeViewModel())
 }

@@ -9,6 +9,10 @@ import SwiftUI
 
 @main
 struct PiliPodApp: App {
+    init() {
+        LoginImportService.restore()
+    }
+
     var body: some Scene {
         WindowGroup {
             MainTabView()
