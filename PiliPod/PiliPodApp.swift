@@ -11,7 +11,7 @@ import SwiftUI
 struct PiliPodApp: App {
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            MainTabView()
         }
     }
 }
