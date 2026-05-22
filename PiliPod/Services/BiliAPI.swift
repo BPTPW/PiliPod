@@ -25,7 +25,7 @@ class BiliAPI {
         return request
     }
 
-    // MARK: - 获取推荐视频
+    // MARK: - 获取网页版推荐视频
 
     func fetchRecommendVideos(
         freshIdx: Int,
@@ -57,6 +57,14 @@ class BiliAPI {
             VideoItem(from: $0)
         }
     }
+    
+    // MARK: - 获取App版推荐视频
+    
+    func fetchAppRecommendVideos(){
+        // TODO: app版推荐
+    }
+    
+    // MARK: - 获取用户数据
 
     func fetchMyInfo() async throws -> UserCard {
         let url = URL(string: "https://api.bilibili.com/x/web-interface/nav")!

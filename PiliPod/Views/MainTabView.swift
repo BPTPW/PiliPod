@@ -18,7 +18,7 @@ struct MainTabView: View {
                     Text("首页")
                 }
 
-            MineView()
+            MyView()
                 .tabItem {
                     Image(systemName: "person.fill")
                     Text("我的")
