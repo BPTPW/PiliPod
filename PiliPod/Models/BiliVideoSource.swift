@@ -16,10 +16,10 @@ struct BiliVideoSource: Equatable {
 
     let videoCodecs: String
     let audioCodecs: String
-    
+
     let videoBandwidth: Int
     let audioBandwidth: Int
-    
+
     let fps: Int
 
     var aspectRatio: CGFloat {

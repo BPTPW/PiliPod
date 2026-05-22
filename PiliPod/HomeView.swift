@@ -5,8 +5,8 @@
 //  Created by co on 2026/5/21.
 //
 
-import SwiftUI
 import Observation
+import SwiftUI
 
 struct HomeView: View {
     @State private var selectedTab: String = "推荐"

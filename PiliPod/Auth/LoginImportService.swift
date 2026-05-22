@@ -4,11 +4,10 @@
 //
 //  Created by co on 2026/5/21.
 //
- 
+
 import Foundation
 
-final class LoginImportService {
-
+enum LoginImportService {
     static func importFrom(url: URL) throws {
         let didAccess = url.startAccessingSecurityScopedResource()
         defer {

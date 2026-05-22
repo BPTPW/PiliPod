@@ -29,7 +29,7 @@ struct VideoCardView: View {
                 // 标题
                 Text(video.title)
                     .font(.system(size: 14, weight: .medium))
-                    .lineLimit(2...2)
+                    .lineLimit(2 ... 2)
                     .multilineTextAlignment(.leading)
                     .foregroundStyle(.primary)
 
@@ -57,7 +57,7 @@ struct VideoCardView: View {
 #Preview {
     VideoCardView(
         video: VideoItem(
-            bvid:"BV1234567890",
+            bvid: "BV1234567890",
             cid: nil,
             cover: "https://picsum.photos/400/250",
             title: "测试视频标题",

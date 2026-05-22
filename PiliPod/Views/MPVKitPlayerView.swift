@@ -16,8 +16,7 @@ struct MPVKitPlayerView: UIViewControllerRepresentable {
         return controller
     }
 
-    func updateUIViewController(_ uiViewController: MPVKitMetalViewController, context: Context) {
-    }
+    func updateUIViewController(_ uiViewController: MPVKitMetalViewController, context: Context) {}
 }
 
 #Preview {

@@ -19,11 +19,9 @@ struct VideoItem: Identifiable {
 }
 
 extension VideoItem {
-
     init(from video: RecommendVideo) {
-
         self.bvid = video.bvid
-        
+
         self.cid = nil
 
         self.cover = video.pic.replacingOccurrences(
@@ -41,9 +39,7 @@ extension VideoItem {
     }
 
     static func formatCount(_ count: Int) -> String {
-
         if count >= 10000 {
-
             return String(
                 format: "%.1f万",
                 Double(count) / 10000

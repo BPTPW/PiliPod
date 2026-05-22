@@ -67,7 +67,7 @@ class VideoDetailViewModel {
             await MainActor.run {
                 self.dashStream = stream
                 self.isLoading = false
-                
+
                 // 加载到播放器
                 if let player = self.player {
                     player.play(stream: stream)

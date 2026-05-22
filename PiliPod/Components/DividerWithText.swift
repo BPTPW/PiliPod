@@ -8,13 +8,10 @@
 import SwiftUI
 
 struct DividerWithText: View {
-
     let title: String
 
     var body: some View {
-
         HStack(spacing: 12) {
-
             Rectangle()
                 .fill(.secondary.opacity(0.3))
                 .frame(height: 1)

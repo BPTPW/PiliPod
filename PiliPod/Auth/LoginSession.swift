@@ -4,12 +4,11 @@
 //
 //  Created by co on 2026/5/21.
 //
- 
-import Foundation
+
 import Combine
+import Foundation
 
 final class LoginSession: ObservableObject {
-
     static let shared = LoginSession()
 
     @Published var cookies: BiliCookie?

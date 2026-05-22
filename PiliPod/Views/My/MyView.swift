@@ -5,12 +5,9 @@
 //  Created by co on 2026/5/21.
 //
 
-
-
 import SwiftUI
 
 struct MyView: View {
-
     @StateObject private var viewModel = MyViewModel()
     @ObservedObject private var loginSession = LoginSession.shared
 

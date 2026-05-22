@@ -28,11 +28,10 @@ struct DashStream {
 // MARK: - 流选择器
 
 class DashStreamSelector {
-    
     enum CodecPriority: Int {
-        case hevc = 0      // hev1 / hvc1
-        case avc = 1       // avc1
-        case av1 = 2       // av01
+        case hevc = 0 // hev1 / hvc1
+        case avc = 1 // avc1
+        case av1 = 2 // av01
         case unknown = 999
     }
 
@@ -80,7 +79,8 @@ class DashStreamSelector {
         guard let video = selectBestVideoStream(from: data.data.dash.video),
               let audio = selectBestAudioStream(from: data.data.dash.audio),
               let videoURL = URL(string: video.baseUrl),
-              let audioURL = URL(string: audio.baseUrl) else {
+              let audioURL = URL(string: audio.baseUrl)
+        else {
             return nil
         }
 

@@ -4,12 +4,11 @@
 //
 //  Created by co on 2026/5/21.
 //
- 
+
 import SwiftUI
 import UniformTypeIdentifiers
 
 struct LoginImportView: View {
-
     let title: String
     let onImported: () -> Void
 

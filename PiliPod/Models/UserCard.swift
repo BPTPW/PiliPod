@@ -8,7 +8,6 @@
 import Foundation
 
 struct UserCard: Codable {
-
     let mid: Int
     let name: String
     let face: String

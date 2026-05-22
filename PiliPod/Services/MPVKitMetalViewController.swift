@@ -6,8 +6,8 @@
 //
 
 import Foundation
-import UIKit
 import Libmpv
+import UIKit
 
 final class MPVKitMetalViewController: UIViewController {
     private var metalLayer = MPVKitMetalLayer()

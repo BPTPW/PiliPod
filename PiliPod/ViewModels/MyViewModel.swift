@@ -4,17 +4,15 @@
 //
 //  Created by co on 2026/5/21.
 //
- 
-import Foundation
+
 import Combine
+import Foundation
 
 @MainActor
 final class MyViewModel: ObservableObject {
-
     @Published var user: UserCard?
 
     func loadUser() async {
-
         guard LoginSession.shared.isLogin else {
             user = nil
             return

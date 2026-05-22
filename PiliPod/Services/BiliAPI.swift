@@ -8,13 +8,12 @@
 import Foundation
 
 class BiliAPI {
-
     static let shared = BiliAPI()
 
     private init() {}
 
     // MARK: - 创建带登录状态的http请求
-    
+
     private func makeRequest(url: URL) -> URLRequest {
         var request = URLRequest(url: url)
 
@@ -25,7 +24,7 @@ class BiliAPI {
 
         return request
     }
-    
+
     // MARK: - 获取推荐视频
 
     func fetchRecommendVideos(
@@ -33,7 +32,6 @@ class BiliAPI {
         freshType: Int,
         brush: Int
     ) async throws -> [VideoItem] {
-
         var components = URLComponents(
             string: "https://api.bilibili.com/x/web-interface/index/top/feed/rcmd"
         )
@@ -169,7 +167,8 @@ class BiliAPI {
         let (_, response) = try await URLSession.shared.data(for: request)
 
         guard let httpResponse = response as? HTTPURLResponse,
-              (200...299).contains(httpResponse.statusCode) else {
+              (200 ... 299).contains(httpResponse.statusCode)
+        else {
             throw APIError.requestFailed
         }
     }
