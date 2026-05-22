@@ -10,6 +10,7 @@ import Foundation
 struct VideoItem: Identifiable {
     let id = UUID()
     let bvid: String
+    let cid: Int?
     let cover: String
     let title: String
     let playCount: String
@@ -22,6 +23,8 @@ extension VideoItem {
     init(from video: RecommendVideo) {
 
         self.bvid = video.bvid
+        
+        self.cid = nil
 
         self.cover = video.pic.replacingOccurrences(
             of: "http://",
