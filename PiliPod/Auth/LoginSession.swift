@@ -12,6 +12,9 @@ final class LoginSession: ObservableObject {
     static let shared = LoginSession()
 
     @Published var cookies: BiliCookie?
+    @Published var accessKey: String?
+    @Published var refresh: String?
+    @Published var type: [Int]?
     @Published var isLogin = false
 
     private init() {}

@@ -35,6 +35,9 @@ enum LoginImportService {
         )
 
         LoginSession.shared.cookies = biliCookie
+        LoginSession.shared.accessKey = firstUser["accessKey"] as? String
+        LoginSession.shared.refresh = firstUser["refresh"] as? String
+        LoginSession.shared.type = firstUser["type"] as? [Int]
         LoginSession.shared.isLogin = true
 
         saveToLocal(biliCookie)
@@ -43,6 +46,9 @@ enum LoginImportService {
     static func saveToLocal(_ cookie: BiliCookie) {
         let data = try? JSONEncoder().encode(cookie)
         UserDefaults.standard.set(data, forKey: "bili_cookie")
+        UserDefaults.standard.set(LoginSession.shared.accessKey, forKey: "bili_accessKey")
+        UserDefaults.standard.set(LoginSession.shared.refresh, forKey: "bili_refresh")
+        UserDefaults.standard.set(LoginSession.shared.type, forKey: "bili_type")
     }
 
     static func restore() {
@@ -54,6 +60,9 @@ enum LoginImportService {
         }
 
         LoginSession.shared.cookies = cookie
+        LoginSession.shared.accessKey = UserDefaults.standard.string(forKey: "bili_accessKey")
+        LoginSession.shared.refresh = UserDefaults.standard.string(forKey: "bili_refresh")
+        LoginSession.shared.type = UserDefaults.standard.array(forKey: "bili_type") as? [Int]
         LoginSession.shared.isLogin = true
     }
 }
