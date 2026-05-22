@@ -15,6 +15,7 @@ final class MPVKitMetalViewController: UIViewController {
     private var pendingHeaders: [String: String] = [:]
     private var pendingVideoURL: URL?
     private var pendingAudioURL: URL?
+    private var audioAdded = false
     private let eventQueue = DispatchQueue(label: "mpv.event", qos: .userInitiated)
 
     override func viewDidLoad() {
@@ -47,10 +48,14 @@ final class MPVKitMetalViewController: UIViewController {
             mpv_set_option_string(mpv, "user-agent", userAgent)
         }
 
+        if let referer = headers["Referer"], !referer.isEmpty {
+            mpv_set_option_string(mpv, "referrer", referer)
+        }
+
         let headerPairs = headers
-            .filter { key, _ in key != "User-Agent" }
+            .filter { key, _ in key != "User-Agent" && key != "Referer" }
             .map { "\($0.key): \($0.value)" }
-            .joined(separator: "|")
+            .joined(separator: "\r\n")
 
         if !headerPairs.isEmpty {
             mpv_set_option_string(mpv, "http-header-fields", headerPairs)
@@ -58,6 +63,7 @@ final class MPVKitMetalViewController: UIViewController {
     }
 
     func loadFile(_ url: URL) {
+        audioAdded = false
         pendingVideoURL = url
         guard mpv != nil else { return }
         print("[mpv] loadfile \(url.absoluteString)")
@@ -66,7 +72,11 @@ final class MPVKitMetalViewController: UIViewController {
 
     func addAudio(_ url: URL) {
         pendingAudioURL = url
-        guard mpv != nil else { return }
+    }
+
+    private func addAudioIfLoaded(_ url: URL) {
+        guard mpv != nil, !audioAdded else { return }
+        audioAdded = true
         print("[mpv] audio-add \(url.absoluteString)")
         command("audio-add", args: [url.absoluteString])
     }
@@ -186,6 +196,9 @@ final class MPVKitMetalViewController: UIViewController {
                 case MPV_EVENT_FILE_LOADED:
                     print("[mpv] file loaded")
                     DispatchQueue.main.async { self.dumpState() }
+                    if let audio = self.pendingAudioURL {
+                        DispatchQueue.main.async { self.addAudioIfLoaded(audio) }
+                    }
                 case MPV_EVENT_VIDEO_RECONFIG:
                     print("[mpv] video reconfig")
                 case MPV_EVENT_AUDIO_RECONFIG:
