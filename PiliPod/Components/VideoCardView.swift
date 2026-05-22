@@ -25,6 +25,18 @@ struct VideoCardView: View {
                 }
                 .frame(height: 110)
                 .clipShape(RoundedRectangle(cornerRadius: 14))
+                .overlay(alignment: .bottomTrailing) {
+                    Text(video.durationFormatted)
+                        .font(.system(size: 11, weight: .medium))
+                        .foregroundStyle(.white)
+                        .padding(.horizontal, 4)
+                        .padding(.vertical, 4)
+                        .background(
+                            RoundedRectangle(cornerRadius: 10)
+                                .fill(Color.black.opacity(0.65))
+                        )
+                        .padding(4)
+                }
 
                 // 标题
                 Text(video.title)
@@ -63,7 +75,8 @@ struct VideoCardView: View {
             title: "测试视频标题",
             playCount: "12万",
             danmakuCount: "345",
-            uploader: "测试UP主"
+            uploader: "测试UP主",
+            duration: 325
         )
     )
     .padding()

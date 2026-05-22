@@ -5,8 +5,8 @@
 //  Created by co on 2026/5/21.
 //
 
-import Observation
 import SwiftUI
+import Observation
 
 struct VideoDetailPage: View {
     @State var viewModel: VideoDetailViewModel
@@ -44,7 +44,7 @@ struct VideoDetailPage: View {
                                 // 顶部控制按钮
                                 HStack(spacing: 12) {
                                     // 返回按钮
-                                    Button(action: { self.isPresented = false }) {
+                                    Button(action: { isPresented = false }) {
                                         Image(systemName: "chevron.left")
                                             .font(.system(size: 16, weight: .semibold))
                                             .foregroundColor(.white)
@@ -57,7 +57,7 @@ struct VideoDetailPage: View {
                                     Spacer()
 
                                     // 流详情按钮
-                                    Button(action: { self.showDebugPanel.toggle() }) {
+                                    Button(action: { showDebugPanel.toggle() }) {
                                         Image(systemName: "ellipsis")
                                             .font(.system(size: 16, weight: .semibold))
                                             .foregroundColor(.white)
@@ -73,7 +73,7 @@ struct VideoDetailPage: View {
                 } else {
                     // 加载状态
                     VStack(spacing: 12) {
-                        if self.viewModel.isLoading {
+                        if viewModel.isLoading {
                             ProgressView()
                                 .tint(.white)
                         } else if let error = viewModel.error {
@@ -100,7 +100,7 @@ struct VideoDetailPage: View {
 
                 // 视频信息
                 VStack(alignment: .leading, spacing: 12) {
-                    Text(self.video.title)
+                    Text(video.title)
                         .font(.headline)
                         .lineLimit(2)
                         .foregroundColor(.primary)
@@ -122,7 +122,7 @@ struct VideoDetailPage: View {
                                 Text(detail.owner.name)
                                     .font(.subheadline)
                                     .foregroundColor(.primary)
-                                Text(self.formatDuration(detail.duration))
+                                Text(formatDuration(detail.duration))
                                     .font(.caption)
                                     .foregroundColor(.secondary)
                             }
@@ -136,26 +136,26 @@ struct VideoDetailPage: View {
             }
 
             // 调试信息面板
-            if self.showDebugPanel, let stream = viewModel.dashStream {
+            if showDebugPanel, let stream = viewModel.dashStream {
                 DashStreamDebugPanel(
                     stream: stream,
-                    player: self.viewModel.player,
-                    onDismiss: { self.showDebugPanel = false }
+                    player: viewModel.player,
+                    onDismiss: { showDebugPanel = false }
                 )
             }
         }
         .task {
-            await self.viewModel.loadVideoData()
-
+            await viewModel.loadVideoData()
+            
             // 加载完成后启动历史上报
-            if self.viewModel.dashStream != nil {
-                self.viewModel.startHistoryReporting()
+            if viewModel.dashStream != nil {
+                viewModel.startHistoryReporting()
             }
         }
         .onDisappear {
             if let player = viewModel.player {
                 player.pause()
-                self.viewModel.stopHistoryReporting(with: player)
+                viewModel.stopHistoryReporting(with: player)
             }
         }
     }
@@ -185,7 +185,7 @@ struct DashStreamDebugPanel: View {
             Color.black.opacity(0.7)
                 .ignoresSafeArea()
                 .onTapGesture {
-                    self.onDismiss()
+                    onDismiss()
                 }
 
             VStack(alignment: .leading, spacing: 12) {
@@ -193,7 +193,7 @@ struct DashStreamDebugPanel: View {
                     Text("DASH 流详情")
                         .font(.headline)
                     Spacer()
-                    Button(action: self.onDismiss) {
+                    Button(action: onDismiss) {
                         Image(systemName: "xmark")
                             .foregroundColor(.secondary)
                     }
@@ -205,35 +205,35 @@ struct DashStreamDebugPanel: View {
                     VStack(alignment: .leading, spacing: 12) {
                         VStack(alignment: .leading, spacing: 8) {
                             Text("视频参数").font(.subheadline).fontWeight(.semibold).foregroundColor(.secondary)
-                            InfoRow("分辨率", "\(self.stream.width)×\(self.stream.height)")
-                            InfoRow("宽高比", String(format: "%.2f:1", self.stream.aspectRatio))
-                            InfoRow("帧率", "\(self.stream.fps) fps")
+                            InfoRow("分辨率", "\(stream.width)×\(stream.height)")
+                            InfoRow("宽高比", String(format: "%.2f:1", stream.aspectRatio))
+                            InfoRow("帧率", "\(stream.fps) fps")
                         }
-
+                        
                         Divider()
-
+                        
                         VStack(alignment: .leading, spacing: 8) {
                             Text("编码信息").font(.subheadline).fontWeight(.semibold).foregroundColor(.secondary)
-                            InfoRow("视频编码", self.stream.videoCodec)
-                            InfoRow("音频编码", self.stream.audioCodec)
+                            InfoRow("视频编码", stream.videoCodec)
+                            InfoRow("音频编码", stream.audioCodec)
                         }
-
+                        
                         Divider()
-
+                        
                         VStack(alignment: .leading, spacing: 8) {
                             Text("码率").font(.subheadline).fontWeight(.semibold).foregroundColor(.secondary)
-                            InfoRow("视频码率", self.formatBitrate(self.stream.videoBitrate))
-                            InfoRow("音频码率", self.formatBitrate(self.stream.audioBitrate))
+                            InfoRow("视频码率", formatBitrate(stream.videoBitrate))
+                            InfoRow("音频码率", formatBitrate(stream.audioBitrate))
                         }
-
+                        
                         if let player = player {
                             Divider()
-
+                            
                             VStack(alignment: .leading, spacing: 8) {
                                 Text("播放器状态").font(.subheadline).fontWeight(.semibold).foregroundColor(.secondary)
                                 InfoRow("播放状态", player.isPlaying ? "播放中" : "已暂停")
-                                InfoRow("当前时间", self.formatTime(player.currentTime))
-                                InfoRow("总时长", self.formatTime(player.duration))
+                                InfoRow("当前时间", formatTime(player.currentTime))
+                                InfoRow("总时长", formatTime(player.duration))
                             }
                         }
                     }
@@ -247,7 +247,7 @@ struct DashStreamDebugPanel: View {
     }
 
     private func formatBitrate(_ bitrate: Int) -> String {
-        let mbps = Double(bitrate) / 1000000
+        let mbps = Double(bitrate) / 1_000_000
         return String(format: "%.2f Mbps", mbps)
     }
 
@@ -269,10 +269,10 @@ struct InfoRow: View {
 
     var body: some View {
         HStack {
-            Text(self.label)
+            Text(label)
                 .foregroundColor(.secondary)
                 .frame(maxWidth: .infinity, alignment: .leading)
-            Text(self.value)
+            Text(value)
                 .font(.system(.caption, design: .monospaced))
                 .foregroundColor(.primary)
         }
@@ -292,7 +292,7 @@ extension View {
 
 #Preview {
     @Previewable @State var isPresented = true
-
+    
     VideoDetailPage(
         video: VideoItem(
             bvid: "BV1234567890",
@@ -301,7 +301,8 @@ extension View {
             title: "测试视频标题测试视频标题",
             playCount: "12万",
             danmakuCount: "345",
-            uploader: "测试UP主"
+            uploader: "测试UP主",
+            duration: 325
         ),
         isPresented: $isPresented
     )

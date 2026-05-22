@@ -20,6 +20,7 @@ struct RecommendVideo: Codable {
     let pic: String
     let owner: Owner
     let stat: Stat
+    let duration: Int
     let bvid: String
 }
 
