@@ -6,16 +6,11 @@
 //
 
 import SwiftUI
-import AVFoundation
-import AVKit
 import Observation
 
 struct VideoDetailPage: View {
-    @Environment(\.dismiss) var dismiss
     @State var viewModel: VideoDetailViewModel
-    @State private var player: AVPlayer?
     @State private var showDebugPanel = false
-    @State private var playerTimeObserver: Any?
     @Binding var isPresented: Bool
 
     let video: VideoItem
@@ -37,13 +32,14 @@ struct VideoDetailPage: View {
                 .ignoresSafeArea()
 
             VStack(spacing: 0) {
-                // 播放器
-                if let source = viewModel.videoSource, let player = player {
+                // DASH 播放器
+                if let stream = viewModel.dashStream, let player = viewModel.player {
                     ZStack(alignment: .topLeading) {
-                        // AVPlayer 容器
-                        VideoPlayerContainer(player: player)
-                            .aspectRatio(source.aspectRatio, contentMode: .fit)
+                        // DASH 播放器容器
+                        MPVKitPlayerView(player: player)
+                            .aspectRatio(stream.aspectRatio, contentMode: .fit)
                             .frame(maxWidth: .infinity)
+                            .background(Color.black)
                             .overlay(alignment: .topLeading) {
                                 // 顶部控制按钮
                                 HStack(spacing: 12) {
@@ -140,126 +136,28 @@ struct VideoDetailPage: View {
             }
 
             // 调试信息面板
-            if showDebugPanel, let source = viewModel.videoSource {
-                DebugInfoPanel(
-                    source: source,
+            if showDebugPanel, let stream = viewModel.dashStream {
+                DashStreamDebugPanel(
+                    stream: stream,
+                    player: viewModel.player,
                     onDismiss: { showDebugPanel = false }
                 )
             }
         }
         .task {
             await viewModel.loadVideoData()
-        }
-        .onChange(of: viewModel.videoSource) { oldValue, newValue in
-            if oldValue != newValue && newValue != nil {
-                setupPlayer()
+            
+            // 加载完成后启动历史上报
+            if viewModel.dashStream != nil {
+                viewModel.startHistoryReporting()
             }
         }
         .onDisappear {
-            cleanupPlayer()
-        }
-    }
-
-    private func setupPlayer() {
-        guard let source = viewModel.videoSource else { return }
-
-        // 配置视频请求头（B站需要 Referer 和 Cookie）
-        let videoHeaders: [String: String] = [
-            "Cookie": LoginSession.shared.cookieString,
-            "User-Agent": "Mozilla/5.0 BiliIOS/1.0",
-            "Referer": "https://www.bilibili.com/"
-        ]
-
-        let audioHeaders: [String: String] = [
-            "Cookie": LoginSession.shared.cookieString,
-            "User-Agent": "Mozilla/5.0 BiliIOS/1.0",
-            "Referer": "https://www.bilibili.com/"
-        ]
-
-        // 使用带 HTTP 头的方式创建 AVURLAsset
-        let videoAsset = AVURLAsset(
-            url: source.videoURL,
-            options: [
-                "AVURLAssetHTTPHeaderFieldsKey": videoHeaders
-            ]
-        )
-        let audioAsset = AVURLAsset(
-            url: source.audioURL,
-            options: [
-                "AVURLAssetHTTPHeaderFieldsKey": audioHeaders
-            ]
-        )
-
-        // 创建 composition
-        let composition = AVMutableComposition()
-
-        Task {
-            do {
-                // 获取 video track
-                let videoTracks = try await videoAsset.loadTracks(withMediaType: .video)
-                if let videoTrack = videoTracks.first,
-                   let compositionVideoTrack = composition.addMutableTrack(
-                       withMediaType: .video,
-                       preferredTrackID: kCMPersistentTrackID_Invalid
-                   ) {
-                    let timeRange = CMTimeRange(
-                        start: .zero,
-                        duration: videoAsset.duration
-                    )
-                    try compositionVideoTrack.insertTimeRange(
-                        timeRange,
-                        of: videoTrack,
-                        at: .zero
-                    )
-                    // 设置偏好变换以保持宽高比
-                    compositionVideoTrack.preferredTransform = videoTrack.preferredTransform
-                }
-
-                // 获取 audio track
-                let audioTracks = try await audioAsset.loadTracks(withMediaType: .audio)
-                if let audioTrack = audioTracks.first,
-                   let compositionAudioTrack = composition.addMutableTrack(
-                       withMediaType: .audio,
-                       preferredTrackID: kCMPersistentTrackID_Invalid
-                   ) {
-                    let timeRange = CMTimeRange(
-                        start: .zero,
-                        duration: audioAsset.duration
-                    )
-                    try compositionAudioTrack.insertTimeRange(
-                        timeRange,
-                        of: audioTrack,
-                        at: .zero
-                    )
-                }
-
-                // 创建 playerItem 和 player
-                let playerItem = AVPlayerItem(asset: composition)
-                let newPlayer = AVPlayer(playerItem: playerItem)
-
-                await MainActor.run {
-                    self.player = newPlayer
-                    // 开始播放
-                    newPlayer.play()
-                    // 启动历史上报
-                    viewModel.startHistoryReporting(with: newPlayer)
-                }
-            } catch {
-                print("Failed to setup player: \(error)")
+            if let player = viewModel.player {
+                player.pause()
+                viewModel.stopHistoryReporting(with: player)
             }
         }
-    }
-
-    private func cleanupPlayer() {
-        if let player = player {
-            player.pause()
-            viewModel.stopHistoryReporting(with: player)
-            player.replaceCurrentItem(with: nil)
-        }
-        if let observer = playerTimeObserver {
-            player?.removeTimeObserver(observer)
-        }
-        player = nil
     }
 
     private func formatDuration(_ seconds: Int) -> String {
@@ -275,27 +173,11 @@ struct VideoDetailPage: View {
     }
 }
 
-// MARK: - VideoPlayerContainer
+// MARK: - Debug Info Panel for DASH Stream
 
-struct VideoPlayerContainer: UIViewControllerRepresentable {
-    let player: AVPlayer
-
-    func makeUIViewController(context: Context) -> AVPlayerViewController {
-        let controller = AVPlayerViewController()
-        controller.player = player
-        controller.showsPlaybackControls = true
-        return controller
-    }
-
-    func updateUIViewController(_ uiViewController: AVPlayerViewController, context: Context) {
-        uiViewController.player = player
-    }
-}
-
-// MARK: - Debug Info Panel
-
-struct DebugInfoPanel: View {
-    let source: BiliVideoSource
+struct DashStreamDebugPanel: View {
+    let stream: DashStream
+    let player: MPVKitPlayer?
     let onDismiss: () -> Void
 
     var body: some View {
@@ -308,7 +190,7 @@ struct DebugInfoPanel: View {
 
             VStack(alignment: .leading, spacing: 12) {
                 HStack {
-                    Text("流详情")
+                    Text("DASH 流详情")
                         .font(.headline)
                     Spacer()
                     Button(action: onDismiss) {
@@ -320,14 +202,40 @@ struct DebugInfoPanel: View {
                 Divider()
 
                 ScrollView {
-                    VStack(alignment: .leading, spacing: 8) {
-                        InfoRow("视频分辨率", "\(source.width)×\(source.height)")
-                        InfoRow("视频编码", source.videoCodecs)
-                        InfoRow("音频编码", source.audioCodecs)
-                        InfoRow("帧率", "\(source.fps) fps")
-                        InfoRow("视频码率", formatBitrate(source.videoBandwidth))
-                        InfoRow("音频码率", formatBitrate(source.audioBandwidth))
-                        InfoRow("宽高比", String(format: "%.2f:1", source.aspectRatio))
+                    VStack(alignment: .leading, spacing: 12) {
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("视频参数").font(.subheadline).fontWeight(.semibold).foregroundColor(.secondary)
+                            InfoRow("分辨率", "\(stream.width)×\(stream.height)")
+                            InfoRow("宽高比", String(format: "%.2f:1", stream.aspectRatio))
+                            InfoRow("帧率", "\(stream.fps) fps")
+                        }
+                        
+                        Divider()
+                        
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("编码信息").font(.subheadline).fontWeight(.semibold).foregroundColor(.secondary)
+                            InfoRow("视频编码", stream.videoCodec)
+                            InfoRow("音频编码", stream.audioCodec)
+                        }
+                        
+                        Divider()
+                        
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("码率").font(.subheadline).fontWeight(.semibold).foregroundColor(.secondary)
+                            InfoRow("视频码率", formatBitrate(stream.videoBitrate))
+                            InfoRow("音频码率", formatBitrate(stream.audioBitrate))
+                        }
+                        
+                        if let player = player {
+                            Divider()
+                            
+                            VStack(alignment: .leading, spacing: 8) {
+                                Text("播放器状态").font(.subheadline).fontWeight(.semibold).foregroundColor(.secondary)
+                                InfoRow("播放状态", player.isPlaying ? "播放中" : "已暂停")
+                                InfoRow("当前时间", formatTime(player.currentTime))
+                                InfoRow("总时长", formatTime(player.duration))
+                            }
+                        }
                     }
                 }
             }
@@ -341,6 +249,12 @@ struct DebugInfoPanel: View {
     private func formatBitrate(_ bitrate: Int) -> String {
         let mbps = Double(bitrate) / 1_000_000
         return String(format: "%.2f Mbps", mbps)
+    }
+
+    private func formatTime(_ seconds: TimeInterval) -> String {
+        let mins = Int(seconds) / 60
+        let secs = Int(seconds) % 60
+        return String(format: "%d:%02d", mins, secs)
     }
 }
 
@@ -357,7 +271,7 @@ struct InfoRow: View {
         HStack {
             Text(label)
                 .foregroundColor(.secondary)
-            Spacer()
+                .frame(maxWidth: .infinity, alignment: .leading)
             Text(value)
                 .font(.system(.caption, design: .monospaced))
                 .foregroundColor(.primary)

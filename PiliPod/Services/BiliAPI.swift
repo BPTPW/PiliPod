@@ -108,9 +108,9 @@ class BiliAPI {
     func fetchPlayUrl(
         bvid: String,
         cid: Int,
-        fnval: Int = 0,
+        fnval: Int = 4048,
         qn: Int = 127
-    ) async throws -> BiliVideoSource {
+    ) async throws -> PlayUrlResponse {
         var components = URLComponents(
             string: "https://api.bilibili.com/x/player/wbi/playurl"
         )
@@ -118,7 +118,7 @@ class BiliAPI {
             URLQueryItem(name: "bvid", value: bvid),
             URLQueryItem(name: "cid", value: String(cid)),
             URLQueryItem(name: "fnval", value: String(fnval)),
-            URLQueryItem(name: "fourk", value: "1"),
+            URLQueryItem(name: "fourk", value: "4048"),
             URLQueryItem(name: "qn", value: String(qn))
         ]
 
@@ -138,32 +138,7 @@ class BiliAPI {
             throw APIError.responseError(response.code)
         }
 
-        // 选择最高质量的视频和音频
-        guard let video = response.data.dash.video.first,
-              let audio = response.data.dash.audio.first else {
-            throw APIError.noVideoOrAudio
-        }
-
-        guard let videoURL = URL(string: video.baseUrl),
-              let audioURL = URL(string: audio.baseUrl) else {
-            throw APIError.invalidURL
-        }
-
-        let frameRateParts = video.frameRate.split(separator: "/")
-        let fps = frameRateParts.count == 2 ?
-            Int(frameRateParts[0]) ?? 30 : Int(video.frameRate) ?? 30
-
-        return BiliVideoSource(
-            videoURL: videoURL,
-            audioURL: audioURL,
-            width: video.width,
-            height: video.height,
-            videoCodecs: video.codecs,
-            audioCodecs: audio.codecs,
-            videoBandwidth: video.bandwidth,
-            audioBandwidth: audio.bandwidth,
-            fps: fps
-        )
+        return response
     }
 
     // MARK: - 上报播放记录

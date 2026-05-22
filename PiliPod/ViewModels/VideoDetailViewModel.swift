@@ -7,12 +7,12 @@
 
 import Foundation
 import Observation
-import AVFoundation
 
 @Observable
 class VideoDetailViewModel {
     var videoDetail: VideoDetailData?
-    var videoSource: BiliVideoSource?
+    var dashStream: DashStream?
+    var player: MPVKitPlayer?
     var isLoading = false
     var error: String?
 
@@ -35,6 +35,7 @@ class VideoDetailViewModel {
         self.cid = cid
         self.title = title
         self.cover = cover
+        self.player = MPVKitPlayer()
     }
 
     // MARK: - Load Video Data
@@ -44,7 +45,7 @@ class VideoDetailViewModel {
         error = nil
 
         do {
-            // 获取视频详情（包含 cid 和 aid）
+            // 获取视频详情
             let detail = try await BiliAPI.shared.fetchVideoDetail(bvid: bvid)
             await MainActor.run {
                 self.videoDetail = detail
@@ -53,10 +54,24 @@ class VideoDetailViewModel {
             }
 
             // 获取播放地址
-            let source = try await BiliAPI.shared.fetchPlayUrl(bvid: bvid, cid: detail.cid)
+            let playUrlResponse = try await BiliAPI.shared.fetchPlayUrl(
+                bvid: bvid,
+                cid: detail.cid
+            )
+
+            // 选择最优 DASH 流（HEVC 优先）
+            guard let stream = DashStreamSelector.selectOptimalStream(from: playUrlResponse) else {
+                throw APIError.noVideoOrAudio
+            }
+
             await MainActor.run {
-                self.videoSource = source
+                self.dashStream = stream
                 self.isLoading = false
+                
+                // 加载到播放器
+                if let player = self.player {
+                    player.play(stream: stream)
+                }
             }
 
             // 上报播放历史（进入时）
@@ -77,7 +92,9 @@ class VideoDetailViewModel {
 
     // MARK: - History Report
 
-    func startHistoryReporting(with player: AVPlayer) {
+    func startHistoryReporting() {
+        guard let player = player else { return }
+
         // 先上报一次
         reportHistoryIfNeeded(with: player)
 
@@ -90,10 +107,8 @@ class VideoDetailViewModel {
         }
     }
 
-    private func reportHistoryIfNeeded(with player: AVPlayer) {
-        guard let item = player.currentItem else { return }
-
-        let currentProgress = Int(item.currentTime().seconds)
+    private func reportHistoryIfNeeded(with player: MPVKitPlayer) {
+        let currentProgress = Int(player.currentTime)
 
         // 如果进度有改变，才上报
         if currentProgress != lastReportedProgress {
@@ -109,13 +124,12 @@ class VideoDetailViewModel {
         }
     }
 
-    func stopHistoryReporting(with player: AVPlayer) {
+    func stopHistoryReporting(with player: MPVKitPlayer) {
         historyReportTimer?.invalidate()
         historyReportTimer = nil
 
         // 退出时最后上报一次
-        guard let item = player.currentItem else { return }
-        let finalProgress = Int(item.currentTime().seconds)
+        let finalProgress = Int(player.currentTime)
 
         Task {
             try? await BiliAPI.shared.reportHistory(
@@ -130,5 +144,6 @@ class VideoDetailViewModel {
 
     deinit {
         historyReportTimer?.invalidate()
+        player?.stop()
     }
 }
