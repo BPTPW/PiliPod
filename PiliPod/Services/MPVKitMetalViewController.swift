@@ -13,6 +13,9 @@ final class MPVKitMetalViewController: UIViewController {
     private var metalLayer = MPVKitMetalLayer()
     private var mpv: OpaquePointer?
     private var pendingHeaders: [String: String] = [:]
+    private var pendingVideoURL: URL?
+    private var pendingAudioURL: URL?
+    private let eventQueue = DispatchQueue(label: "mpv.event", qos: .userInitiated)
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -55,10 +58,16 @@ final class MPVKitMetalViewController: UIViewController {
     }
 
     func loadFile(_ url: URL) {
+        pendingVideoURL = url
+        guard mpv != nil else { return }
+        print("[mpv] loadfile \(url.absoluteString)")
         command("loadfile", args: [url.absoluteString, "replace"])
     }
 
     func addAudio(_ url: URL) {
+        pendingAudioURL = url
+        guard mpv != nil else { return }
+        print("[mpv] audio-add \(url.absoluteString)")
         command("audio-add", args: [url.absoluteString])
     }
 
@@ -122,6 +131,85 @@ final class MPVKitMetalViewController: UIViewController {
         }
 
         checkError(mpv_initialize(mpv), context: "mpv_initialize")
+
+        mpv_observe_property(mpv, 0, "time-pos", MPV_FORMAT_DOUBLE)
+        mpv_observe_property(mpv, 0, "duration", MPV_FORMAT_DOUBLE)
+        mpv_observe_property(mpv, 0, "video-params/w", MPV_FORMAT_INT64)
+        mpv_observe_property(mpv, 0, "video-params/h", MPV_FORMAT_INT64)
+        mpv_observe_property(mpv, 0, "video-params/codec", MPV_FORMAT_STRING)
+        mpv_observe_property(mpv, 0, "audio-params/codec", MPV_FORMAT_STRING)
+        mpv_observe_property(mpv, 0, "paused-for-cache", MPV_FORMAT_FLAG)
+
+        setupWakeupCallback(mpv)
+
+        if let video = pendingVideoURL {
+            loadFile(video)
+        }
+        if let audio = pendingAudioURL {
+            addAudio(audio)
+        }
+    }
+
+    private func setupWakeupCallback(_ mpv: OpaquePointer) {
+        mpv_set_wakeup_callback(mpv, { ctx in
+            guard let ctx = ctx else { return }
+
+            let controller = Unmanaged<MPVKitMetalViewController>
+                .fromOpaque(ctx)
+                .takeUnretainedValue()
+
+            DispatchQueue.main.async {
+                controller.readEvents()
+            }
+
+        }, UnsafeMutableRawPointer(Unmanaged.passUnretained(self).toOpaque()))
+    }
+
+    private func readEvents() {
+        eventQueue.async { [weak self] in
+            guard let self, let mpv = self.mpv else { return }
+
+            while true {
+                guard let event = mpv_wait_event(mpv, 0) else { break }
+                let eventId = event.pointee.event_id
+
+                if eventId == MPV_EVENT_NONE { break }
+
+                switch eventId {
+                case MPV_EVENT_LOG_MESSAGE:
+                    let msg = UnsafeMutablePointer<mpv_event_log_message>(OpaquePointer(event.pointee.data))
+                    if let msg {
+                        print("[mpv][\(String(cString: msg.pointee.level))] \(String(cString: msg.pointee.text))", terminator: "")
+                    }
+                case MPV_EVENT_START_FILE:
+                    print("[mpv] start file")
+                case MPV_EVENT_FILE_LOADED:
+                    print("[mpv] file loaded")
+                    DispatchQueue.main.async { self.dumpState() }
+                case MPV_EVENT_VIDEO_RECONFIG:
+                    print("[mpv] video reconfig")
+                case MPV_EVENT_AUDIO_RECONFIG:
+                    print("[mpv] audio reconfig")
+                case MPV_EVENT_END_FILE:
+                    let end = UnsafeMutablePointer<mpv_event_end_file>(OpaquePointer(event.pointee.data))
+                    if let end {
+                        print("[mpv] end file reason=\(end.pointee.reason) error=\(end.pointee.error)")
+                    }
+                default:
+                    break
+                }
+            }
+        }
+    }
+
+    private func dumpState() {
+        guard let mpv else { return }
+        let path = mpv_get_property_string(mpv, "path").flatMap { String(cString: $0) } ?? "(nil)"
+        let vo = mpv_get_property_string(mpv, "vo").flatMap { String(cString: $0) } ?? "(nil)"
+        let hwdec = mpv_get_property_string(mpv, "hwdec-current").flatMap { String(cString: $0) } ?? "(nil)"
+        let vid = mpv_get_property_string(mpv, "vid").flatMap { String(cString: $0) } ?? "(nil)"
+        let aid = mpv_get_property_string(mpv, "aid").flatMap { String(cString: $0) } ?? "(nil)"
+        print("[mpv] state path=\(path) vo=\(vo) hwdec=\(hwdec) vid=\(vid) aid=\(aid)")
     }
 
     private func setupNotification() {
