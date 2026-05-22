@@ -158,23 +158,68 @@ struct HomeView: View {
                 // 视频流
                 ScrollView {
                     VStack(spacing: 0) {
-                        ForEach(viewModel.sections) { section in
-                            if let title = section.title {
-                                DividerWithText(title: title)
-                            }
-                            LazyVGrid(columns: columns, spacing: 18) {
-                                ForEach(section.videos) { video in
-                                    VideoCardView(video: video)
-                                        .onAppear {
-                                            if video.id == section.videos.last?.id {
-                                                Task {
-                                                    await viewModel.loadMoreVideos()
+                        // App 版推荐 Feed（优先使用 feedCards）
+                        if !viewModel.feedCards.isEmpty {
+                            let cards = viewModel.feedCards
+                            let marker = viewModel.refreshMarkerIndex
+
+                            if let marker = marker, marker > 0, marker < cards.count {
+                                // 下拉刷新：新内容在上，旧内容在下，中间分隔线
+                                let newCards = Array(cards.prefix(marker))
+                                let oldCards = Array(cards.suffix(from: marker))
+
+                                LazyVGrid(columns: columns, spacing: 18) {
+                                    ForEach(newCards) { card in
+                                        feedCardView(for: card)
+                                    }
+                                }
+                                .padding(.horizontal, 12)
+
+                                DividerWithText(title: "下拉刷新了")
+                                    .padding(.vertical, 6)
+
+                                LazyVGrid(columns: columns, spacing: 18) {
+                                    ForEach(oldCards) { card in
+                                        feedCardView(for: card)
+                                            .onAppear {
+                                                if card.id == oldCards.last?.id {
+                                                    Task { await viewModel.loadMoreVideos() }
                                                 }
                                             }
-                                        }
+                                    }
                                 }
+                                .padding(.horizontal, 12)
+                            } else {
+                                LazyVGrid(columns: columns, spacing: 18) {
+                                    ForEach(cards) { card in
+                                        feedCardView(for: card)
+                                            .onAppear {
+                                                if card.id == cards.last?.id {
+                                                    Task { await viewModel.loadMoreVideos() }
+                                                }
+                                            }
+                                    }
+                                }
+                                .padding(.horizontal, 12)
                             }
-                            .padding(.horizontal, 12)
+                        } else {
+                            // Web 版推荐（兜底）
+                            ForEach(viewModel.sections) { section in
+                                if let title = section.title {
+                                    DividerWithText(title: title)
+                                }
+                                LazyVGrid(columns: columns, spacing: 18) {
+                                    ForEach(section.videos) { video in
+                                        VideoCardView(video: video)
+                                            .onAppear {
+                                                if video.id == section.videos.last?.id {
+                                                    Task { await viewModel.loadMoreVideos() }
+                                                }
+                                            }
+                                    }
+                                }
+                                .padding(.horizontal, 12)
+                            }
                         }
                     }
                     .padding(.top, 14)
@@ -196,6 +241,18 @@ struct HomeView: View {
             } else {
                 viewModel.userFace = nil
             }
+        }
+    }
+
+    // MARK: - Feed 卡片分发
+
+    @ViewBuilder
+    private func feedCardView(for card: FeedCardItem) -> some View {
+        switch card {
+        case .video(let videoItem):
+            VideoCardView(video: videoItem)
+        case .live(let liveModel):
+            LiveCardView(model: liveModel)
         }
     }
 }

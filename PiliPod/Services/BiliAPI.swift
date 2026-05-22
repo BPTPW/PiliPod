@@ -138,7 +138,7 @@ class BiliAPI {
     }
     
     // MARK: - 获取App版推荐视频
-    
+
     func fetchAppRecommendVideos(idx: Int, flush: Int) async throws -> Data {
             // App 推荐数据的基准接口地址
             let appRcmdHost = "https://app.bilibili.com/x/v2/feed/index"
@@ -151,6 +151,8 @@ class BiliAPI {
                 "device": "phone",
                 "login_event": "1"
             ]
+        
+        
             
             // 使用新封装的加签构造器创建请求
             guard let request = makeAppRequest(baseURLString: appRcmdHost, method: "GET", parameters: businessParams) else {
@@ -167,6 +169,91 @@ class BiliAPI {
             
             return data
         }
+
+    /// 获取并解析 App 版推荐 Feed，返回多态卡片数组 + 下次分页用的 idx
+    func fetchAppRecommendFeed(idx: Int, flush: Int) async throws -> (cards: [FeedCardItem], nextIdx: Int) {
+        let data = try await fetchAppRecommendVideos(idx: idx, flush: flush)
+        let parsed = try parseAppRecommendFeed(from: data)
+        return parsed
+    }
+
+    /// 将 App 推荐接口的原始 JSON 解析为 FeedCardItem 数组
+    private func parseAppRecommendFeed(from data: Data) throws -> (cards: [FeedCardItem], nextIdx: Int) {
+        let response = try JSONDecoder().decode(AppFeedResponse.self, from: data)
+
+        guard response.code == 0, let items = response.data?.items else {
+            throw APIError.responseError(response.code)
+        }
+
+        let nextIdx = response.data?.config?.idx ?? 0
+        var result: [FeedCardItem] = []
+
+        for item in items {
+            guard let gotoType = item.goto else { continue }
+
+            // 过滤广告、游戏推广、横幅
+            if gotoType == "ad" || gotoType == "game" || gotoType == "banner" {
+                continue
+            }
+
+            switch gotoType {
+            case "av":
+                let rawParam = item.param ?? ""
+                let title = item.title ?? ""
+                let cover = (item.cover ?? "")
+                    .replacingOccurrences(of: "http://", with: "https://")
+                let playCount = item.coverLeftText1 ?? ""
+                let danmakuCount = item.coverLeftText2 ?? ""
+                let upName = item.args?.upName ?? ""
+                let duration = item.playerArgs?.duration ?? 0
+                let cid = item.playerArgs?.cid
+
+                // App 接口 param 可能是 aid（纯数字），统一转为 bvid
+                let bvid: String
+                if rawParam.hasPrefix("BV") {
+                    bvid = rawParam
+                } else if let aid = Int64(rawParam) {
+                    bvid = BiliIdConverter.av2bv(aid: aid)
+                } else {
+                    bvid = rawParam
+                }
+
+                let videoItem = VideoItem(
+                    bvid: bvid,
+                    cid: cid,
+                    cover: cover,
+                    title: title,
+                    playCount: playCount,
+                    danmakuCount: danmakuCount,
+                    uploader: upName,
+                    duration: duration
+                )
+                result.append(.video(videoItem))
+
+            case "live":
+                let roomId = item.param ?? ""
+                let title = item.title ?? ""
+                let cover = (item.cover ?? "")
+                    .replacingOccurrences(of: "http://", with: "https://")
+                let online = item.coverLeftText1 ?? ""
+                let anchorName = item.args?.upName ?? ""
+
+                let liveModel = LiveCardModel(
+                    roomId: roomId,
+                    title: title,
+                    coverURL: cover,
+                    onlineCount: online,
+                    anchorName: anchorName
+                )
+                result.append(.live(liveModel))
+
+            default:
+                break
+            }
+        }
+
+        return (result, nextIdx)
+    }
     
     // MARK: - 获取用户数据
 
