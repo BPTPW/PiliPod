@@ -11,6 +11,7 @@ import SwiftUI
 struct HomeView: View {
     @State private var selectedTab: String = "推荐"
     @Bindable var viewModel: HomeViewModel
+    @ObservedObject private var loginSession = LoginSession.shared
 
     let tabs = ["直播", "推荐", "热门", "分区"]
 
@@ -84,29 +85,44 @@ struct HomeView: View {
                         }
 
                         // 用户头像
-                        Circle()
-                            .fill(.ultraThinMaterial)
-                            .overlay {
+                        Group {
+                            if let face = viewModel.userFace, let url = URL(string: face) {
+                                AsyncImage(url: url) { image in
+                                    image
+                                        .resizable()
+                                        .scaledToFill()
+                                } placeholder: {
+                                    Circle()
+                                        .fill(.ultraThinMaterial)
+                                        .overlay {
+                                            Image(systemName: "person.fill")
+                                                .foregroundStyle(.black.opacity(0.5))
+                                        }
+                                }
+                                .frame(width: 40, height: 40)
+                                .clipShape(Circle())
+                            } else {
                                 Circle()
-                                    .stroke(
-                                        Color.white.opacity(0.18),
-                                        lineWidth: 1
-                                    )
+                                    .fill(.ultraThinMaterial)
+                                    .overlay {
+                                        Image(systemName: "person.fill")
+                                            .foregroundStyle(.black.opacity(0.8))
+                                    }
+                                    .frame(width: 40, height: 40)
                             }
-                            .overlay {
-                                Image(systemName: "person.fill")
-                                    .foregroundStyle(.black.opacity(0.8))
-                            }
-                            .shadow(
-                                color: .black.opacity(0.06),
-                                radius: 8,
-                                y: 4
-                            )
-                            .frame(width: 40, height: 40)
-                            .overlay {
-                                Image(systemName: "person.fill")
-                                    .foregroundStyle(.black.opacity(0.8))
-                            }
+                        }
+                        .overlay {
+                            Circle()
+                                .stroke(
+                                    Color.white.opacity(0.18),
+                                    lineWidth: 1
+                                )
+                        }
+                        .shadow(
+                            color: .black.opacity(0.06),
+                            radius: 8,
+                            y: 4
+                        )
                     }
                     .padding(.horizontal, 16)
                     .padding(.top, 8)
@@ -171,7 +187,15 @@ struct HomeView: View {
             .navigationBarHidden(true)
         }
         .task {
+            await viewModel.loadUserIfNeeded()
             await viewModel.loadInitialVideos()
+        }
+        .onReceive(loginSession.$isLogin) { isLogin in
+            if isLogin {
+                Task { await viewModel.loadUserIfNeeded() }
+            } else {
+                viewModel.userFace = nil
+            }
         }
     }
 }

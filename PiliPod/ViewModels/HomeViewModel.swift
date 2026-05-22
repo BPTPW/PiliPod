@@ -13,10 +13,22 @@ import Observation
 class HomeViewModel {
     var sections: [VideoSection] = []
     var isLoading = false
+    var userFace: String? = nil
     private var hasLoaded = false
     // 推荐流状态
     private var freshIdx: Int = 1
     private var brush: Int = 0
+
+    func loadUserIfNeeded() async {
+        guard LoginSession.shared.isLogin else { return }
+
+        do {
+            let user = try await BiliAPI.shared.fetchMyInfo()
+            userFace = user.face
+        } catch {
+            print(error)
+        }
+    }
 
     func loadInitialVideos() async {
         if isLoading || hasLoaded {
