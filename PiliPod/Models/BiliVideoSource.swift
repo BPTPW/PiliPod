@@ -127,6 +127,11 @@ struct VideoDetailData: Codable {
     let owner: VideoOwner
     let pages: [VideoPage]
     let pic: String
+    let videos: Int
+    let copyright: Int
+    let pubdate: Int
+    let descV2: [DescV2Item]
+    let stat: VideoStat
 
     enum CodingKeys: String, CodingKey {
         case aid
@@ -138,6 +143,11 @@ struct VideoDetailData: Codable {
         case owner
         case pages
         case pic
+        case videos
+        case copyright
+        case pubdate
+        case descV2 = "desc_v2"
+        case stat
     }
 }
 
@@ -152,6 +162,32 @@ struct VideoPage: Codable {
     let page: Int
     let part: String
     let duration: Int
+}
+
+struct DescV2Item: Codable, Identifiable {
+    let rawText: String
+    let type: Int
+    let bizId: Int64
+
+    var id: String {
+        "\(type)-\(bizId)-\(rawText)"
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case rawText = "raw_text"
+        case type
+        case bizId = "biz_id"
+    }
+}
+
+struct VideoStat: Codable {
+    let view: Int
+    let danmaku: Int
+    let reply: Int
+    let favorite: Int
+    let coin: Int
+    let share: Int
+    let like: Int
 }
 
 // MARK: - History Report Response

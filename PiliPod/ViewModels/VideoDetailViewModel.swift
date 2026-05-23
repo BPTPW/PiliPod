@@ -47,6 +47,7 @@ class VideoDetailViewModel {
         do {
             // 获取视频详情
             let detail = try await BiliAPI.shared.fetchVideoDetail(bvid: bvid)
+            print(detail)
             await MainActor.run {
                 self.videoDetail = detail
                 self.aid = detail.aid
@@ -83,6 +84,8 @@ class VideoDetailViewModel {
                 )
             }
         } catch {
+            print("视频加载出现错误: ")
+            print(error)
             await MainActor.run {
                 self.error = error.localizedDescription
                 self.isLoading = false

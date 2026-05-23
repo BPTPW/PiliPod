@@ -100,10 +100,6 @@ struct VideoDetailPage: View {
 
                 // 视频信息
                 VStack(alignment: .leading, spacing: 12) {
-                    Text(video.title)
-                        .font(.headline)
-                        .lineLimit(2)
-                        .foregroundColor(.primary)
 
                     if let detail = viewModel.videoDetail {
                         HStack(spacing: 12) {
@@ -122,14 +118,29 @@ struct VideoDetailPage: View {
                                 Text(detail.owner.name)
                                     .font(.subheadline)
                                     .foregroundColor(.primary)
-                                Text(formatDuration(detail.duration))
+                                Text("1.2万粉丝")
                                     .font(.caption)
                                     .foregroundColor(.secondary)
                             }
 
                             Spacer()
                         }
+                        // 视频标题
+                        Text(video.title)
+                            .font(.headline)
+                            .lineLimit(2)
+                            .foregroundColor(.primary)
+                        
+                        // 视频数据
+                        HStack(spacing: 10){
+                            Label(formatCount(detail.stat.view), systemImage: "play.fill")
+                            Label(formatCount(detail.stat.danmaku), systemImage: "text.bubble.fill")
+                            Text(formatTimestamp(TimeInterval(detail.pubdate)))
+                        }
+                        .font(.system(size: 11))
+                        .foregroundStyle(.secondary)
                     }
+                    
                 }
                 .padding(16)
                 .background(Color(.systemBackground))
@@ -170,6 +181,26 @@ struct VideoDetailPage: View {
         } else {
             return String(format: "%d:%02d", minutes, secs)
         }
+    }
+    private func formatCount(_ count: Int) -> String {
+        if count >= 10000 {
+            return String(
+                format: "%.1f万",
+                Double(count) / 10000
+            )
+        }
+
+        return "\(count)"
+    }
+    private func formatTimestamp(_ timestamp: TimeInterval) -> String {
+        let date = Date(timeIntervalSince1970: timestamp)
+
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd HH:mm:ss"
+        formatter.locale = Locale(identifier: "zh_CN")
+        formatter.timeZone = TimeZone.current
+
+        return formatter.string(from: date)
     }
 }
 
@@ -295,13 +326,13 @@ extension View {
     
     VideoDetailPage(
         video: VideoItem(
-            bvid: "BV1234567890",
-            cid: nil,
-            cover: "https://picsum.photos/400/250",
-            title: "测试视频标题测试视频标题",
-            playCount: "12万",
+            bvid: "BV1WsD1BhEvt",
+            cid: 37424204720,
+            cover: "",
+            title: "七里香 格温",
+            playCount: "12.9万",
             danmakuCount: "345",
-            uploader: "测试UP主",
+            uploader: "还有下次的叭",
             duration: 325
         ),
         isPresented: $isPresented
