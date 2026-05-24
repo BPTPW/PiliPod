@@ -58,6 +58,7 @@ struct VideoDetailPage: View {
                                         isVisible: controlsVisible,
                                         currentTime: player.currentTime,
                                         duration: player.duration,
+                                        bufferedUntil: player.bufferedUntil,
                                         isPlaying: player.isPlaying,
                                         segments: [],
                                         onBack: onBack,
@@ -280,6 +281,7 @@ private struct PlayerControlsOverlay: View {
     let isVisible: Bool
     let currentTime: TimeInterval
     let duration: TimeInterval
+    let bufferedUntil: TimeInterval
     let isPlaying: Bool
     let segments: [ProgressSegment]
     let onBack: () -> Void
@@ -357,6 +359,7 @@ private struct PlayerControlsOverlay: View {
             VideoProgressBar(
                 currentTime: currentTime,
                 duration: duration,
+                bufferedUntil: bufferedUntil,
                 segments: segments,
                 onSeek: { t in onSeek(t) },
                 onUserInteracted: onUserInteracted
@@ -422,6 +425,7 @@ private struct ProgressSegment: Identifiable, Equatable {
 private struct VideoProgressBar: View {
     let currentTime: TimeInterval
     let duration: TimeInterval
+    let bufferedUntil: TimeInterval
     let segments: [ProgressSegment]
     let onSeek: (TimeInterval) -> Void
     let onUserInteracted: () -> Void
@@ -432,6 +436,11 @@ private struct VideoProgressBar: View {
     private var clampedProgress: Double {
         guard duration > 0 else { return 0 }
         return min(max(currentTime / duration, 0), 1)
+    }
+
+    private var clampedBufferedProgress: Double {
+        guard duration > 0 else { return 0 }
+        return min(max(bufferedUntil / duration, 0), 1)
     }
 
     private var effectiveProgress: Double {
@@ -446,8 +455,13 @@ private struct VideoProgressBar: View {
 
             ZStack(alignment: .leading) {
                 Capsule(style: .continuous)
-                    .fill(Color.white.opacity(0.22))
+                    .fill(Color.white.opacity(0.2))
                     .frame(height: h)
+
+                // 缓冲层：介于已播放/未播放之间的亮度
+                Capsule(style: .continuous)
+                    .fill(Color.white.opacity(0.5))
+                    .frame(width: w * max(clampedBufferedProgress, 0), height: h)
 
                 // 分段底色层（后续你可以把章节/高光片段塞进 segments）
                 ForEach(segments) { seg in
@@ -462,7 +476,7 @@ private struct VideoProgressBar: View {
                 }
 
                 Capsule(style: .continuous)
-                    .fill(Color.white.opacity(0.92))
+                    .fill(Color.white.opacity(0.95))
                     .frame(width: w * effectiveProgress, height: h)
 
                 // 小圆点，接近 iOS 的轻量样式（显隐跟随 controls）

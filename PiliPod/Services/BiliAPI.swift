@@ -12,8 +12,8 @@ class BiliAPI {
     static let shared = BiliAPI()
 
     // PiliPlus 中通用的 Bilibili 移动端 AppKey 和 Secret
-    private static let appKey = "27eb53fc9058fad3"
-    private static let appSecret = "c2ed53a74eeefe3cf99fbd01d8c9c375"
+    private static let appKey = "dfca71928277209b"
+    private static let appSecret = "b5475a8825547a4fc26c7d518eaaa02e"
 
     private init() {}
 
@@ -42,8 +42,8 @@ class BiliAPI {
         // 1. 合并业务参数与系统公共移动端参数
         var allParams = parameters
         allParams["appkey"] = Self.appKey
-        allParams["mobi_app"] = "iphone"
-        allParams["platform"] = "ios"
+        allParams["mobi_app"] = "android_hd"
+        allParams["platform"] = "android"
         allParams["ts"] = String(Int(Date().timeIntervalSince1970))
 
         // 2. 注入通过 LoginSession 导入的移动端特有凭证 accessKey
@@ -136,39 +136,39 @@ class BiliAPI {
             VideoItem(from: $0)
         }
     }
-    
+
     // MARK: - 获取App版推荐视频
 
     func fetchAppRecommendVideos(idx: Int, flush: Int) async throws -> Data {
-            // App 推荐数据的基准接口地址
-            let appRcmdHost = "https://app.bilibili.com/x/v2/feed/index"
-            
-            // 组装所需的特定业务参数
-            let businessParams: [String: String] = [
-                "idx": String(idx),
-                "flush": String(flush),
-                "pull": flush == 1 ? "true" : "false",
-                "device": "phone",
-                "login_event": "1"
-            ]
-        
-        
-            
-            // 使用新封装的加签构造器创建请求
-            guard let request = makeAppRequest(baseURLString: appRcmdHost, method: "GET", parameters: businessParams) else {
-                throw APIError.invalidURL
-            }
-            
-            let (data, response) = try await URLSession.shared.data(for: request)
-            
-            guard let httpResponse = response as? HTTPURLResponse,
-                  (200 ... 299).contains(httpResponse.statusCode)
-            else {
-                throw APIError.requestFailed
-            }
-            
-            return data
+        // App 推荐数据的基准接口地址
+        let appRcmdHost = "https://app.bilibili.com/x/v2/feed/index"
+
+        // 组装所需的特定业务参数
+        let businessParams: [String: String] = [
+            "idx": String(idx),
+            "flush": String(flush),
+            "pull": flush == 1 ? "true" : "false",
+            "device": "phone",
+            "login_event": "1"
+        ]
+
+        // 使用新封装的加签构造器创建请求
+        guard let request = makeAppRequest(baseURLString: appRcmdHost, method: "GET", parameters: businessParams) else {
+            throw APIError.invalidURL
         }
+
+        print(request)
+
+        let (data, response) = try await URLSession.shared.data(for: request)
+
+        guard let httpResponse = response as? HTTPURLResponse,
+              (200 ... 299).contains(httpResponse.statusCode)
+        else {
+            throw APIError.requestFailed
+        }
+
+        return data
+    }
 
     /// 获取并解析 App 版推荐 Feed，返回多态卡片数组 + 下次分页用的 idx
     func fetchAppRecommendFeed(idx: Int, flush: Int) async throws -> (cards: [FeedCardItem], nextIdx: Int) {
@@ -202,8 +202,10 @@ class BiliAPI {
                 let title = item.title ?? ""
                 let cover = (item.cover ?? "")
                     .replacingOccurrences(of: "http://", with: "https://")
-                let playCount = item.coverLeftText1 ?? ""
-                let danmakuCount = item.coverLeftText2 ?? ""
+                let playCount = (item.coverLeftText2 ?? "")
+                    .replacingOccurrences(of: "观看", with: "")
+                let danmakuCount = (item.coverLeftText3 ?? "")
+                    .replacingOccurrences(of: "弹幕", with: "")
                 let upName = item.args?.upName ?? ""
                 let duration = item.playerArgs?.duration ?? 0
                 let cid = item.playerArgs?.cid
@@ -254,7 +256,7 @@ class BiliAPI {
 
         return (result, nextIdx)
     }
-    
+
     // MARK: - 获取用户数据
 
     func fetchMyInfo() async throws -> UserCard {

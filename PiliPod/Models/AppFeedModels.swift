@@ -36,6 +36,7 @@ struct AppFeedRawItem: Codable {
     let uri: String?
     let coverLeftText1: String?
     let coverLeftText2: String?
+    let coverLeftText3: String?
     let coverRightText: String?
     let args: AppFeedArgs?
     let playerArgs: AppFeedPlayerArgs?
@@ -50,6 +51,7 @@ struct AppFeedRawItem: Codable {
         case uri
         case coverLeftText1  = "cover_left_text_1"
         case coverLeftText2  = "cover_left_text_2"
+        case coverLeftText3  = "cover_left_text_3"
         case coverRightText  = "cover_right_text"
         case args
         case playerArgs = "player_args"

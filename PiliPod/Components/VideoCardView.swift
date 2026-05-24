@@ -36,10 +36,6 @@ struct VideoCardView: View {
                         .foregroundStyle(.primary)
                         .padding(.horizontal, 6)
                         .padding(.vertical, 4)
-                        //.background(
-                        //    RoundedRectangle(cornerRadius: 10, style: .continuous)
-                        //        .fill(Color.black.opacity(0.65))
-                        //)
                         .glassEffect(
                             .regular,
                             in: .capsule

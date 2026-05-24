@@ -18,6 +18,7 @@ class MPVKitPlayer: NSObject {
     private(set) var isPlaying = false
     private(set) var currentTime: TimeInterval = 0
     private(set) var duration: TimeInterval = 0
+    private(set) var bufferedUntil: TimeInterval = 0
 
     var videoCodec: String { controller?.videoCodec() ?? "" }
     var audioCodec: String { controller?.audioCodec() ?? "" }
@@ -97,6 +98,13 @@ class MPVKitPlayer: NSObject {
         let total = controller.durationValue()
         if total > 0 {
             duration = total
+        }
+
+        let cacheAhead = controller.demuxerCacheTime()
+        if duration > 0 {
+            bufferedUntil = min(max(currentTime + max(cacheAhead, 0), 0), duration)
+        } else {
+            bufferedUntil = 0
         }
 
         isPlaying = !controller.isPaused()

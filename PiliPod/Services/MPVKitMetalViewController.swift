@@ -109,6 +109,10 @@ final class MPVKitMetalViewController: UIViewController {
         getDouble("duration")
     }
 
+    func demuxerCacheTime() -> TimeInterval {
+        getDouble("demuxer-cache-time")
+    }
+
     func isPaused() -> Bool {
         getFlag(MPVKitProperty.pause)
     }
