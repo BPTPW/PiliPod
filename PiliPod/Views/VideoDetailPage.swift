@@ -221,6 +221,43 @@ struct VideoDetailPage: View {
                                 .padding(.top, 4)
                                 .transition(.opacity.combined(with: .move(edge: .top)))
                             }
+
+                            // 操作栏（点赞/点踩/投币/收藏/转发/稍后再看）
+                            VideoActionBar(
+                                isLiked: bindableViewModel.isLiked,
+                                isDisliked: bindableViewModel.isDisliked,
+                                isCoined: bindableViewModel.isCoined,
+                                isFavorited: bindableViewModel.isFavorited,
+                                likeCount: detail.stat.like,
+                                coinCount: detail.stat.coin,
+                                favoriteCount: detail.stat.favorite,
+                                shareCount: detail.stat.share,
+                                onToggleLike: {
+                                    withAnimation(.easeInOut(duration: 0.15)) {
+                                        bindableViewModel.toggleLike()
+                                    }
+                                },
+                                onToggleDislike: {
+                                    withAnimation(.easeInOut(duration: 0.15)) {
+                                        bindableViewModel.toggleDislike()
+                                    }
+                                },
+                                onToggleCoin: {
+                                    withAnimation(.easeInOut(duration: 0.15)) {
+                                        bindableViewModel.toggleCoin()
+                                    }
+                                },
+                                onToggleFavorite: {
+                                    withAnimation(.easeInOut(duration: 0.15)) {
+                                        bindableViewModel.toggleFavorite()
+                                    }
+                                },
+                                onShare: {
+                                    // TODO: add share logic later
+                                },
+                                onLaterWatch: {}
+                            )
+                            .padding(.top, 4)
                         }
                     }
                     .padding(16)
@@ -322,6 +359,154 @@ struct VideoDetailPage: View {
         formatter.timeZone = TimeZone.current
 
         return formatter.string(from: date)
+    }
+}
+
+// MARK: - Video Action Bar
+
+private struct VideoActionBar: View {
+    let isLiked: Bool
+    let isDisliked: Bool
+    let isCoined: Bool
+    let isFavorited: Bool
+
+    let likeCount: Int
+    let coinCount: Int
+    let favoriteCount: Int
+    let shareCount: Int
+
+    let onToggleLike: () -> Void
+    let onToggleDislike: () -> Void
+    let onToggleCoin: () -> Void
+    let onToggleFavorite: () -> Void
+    let onShare: () -> Void
+    let onLaterWatch: () -> Void
+
+    var body: some View {
+        HStack(spacing: 12) {
+            VideoActionButton(
+                title: formatCount(likeCount),
+                systemImage: "hand.thumbsup.fill",
+                isActive: isLiked,
+                onTap: onToggleLike
+            )
+
+            VideoActionButton(
+                title: "点踩",
+                systemImage: "hand.thumbsdown.fill",
+                isActive: isDisliked,
+                onTap: onToggleDislike
+            )
+
+            VideoActionButton(
+                title: formatCount(coinCount),
+                assetImage: "BiliCoin",
+                isActive: isCoined,
+                onTap: onToggleCoin
+            )
+
+            VideoActionButton(
+                title: formatCount(favoriteCount),
+                systemImage: "star.fill",
+                isActive: isFavorited,
+                onTap: onToggleFavorite
+            )
+
+            VideoActionButton(
+                title: formatCount(shareCount),
+                systemImage: "square.and.arrow.up.fill",
+                isActive: false,
+                onTap: onShare
+            )
+
+            VideoActionButton(
+                title: "稍后再看",
+                systemImage: "clock.badge",
+                isActive: false,
+                onTap: onLaterWatch
+            )
+        }
+        .frame(maxWidth: .infinity)
+    }
+
+    private func formatCount(_ count: Int) -> String {
+        if count >= 10000 {
+            return String(
+                format: "%.1f万",
+                Double(count) / 10000
+            )
+        }
+
+        return "\(count)"
+    }
+}
+
+private struct VideoActionButton: View {
+    let title: String
+    let systemImage: String?
+    let assetImage: String?
+    let isActive: Bool
+    let onTap: () -> Void
+
+    init(
+        title: String,
+        systemImage: String,
+        isActive: Bool,
+        onTap: @escaping () -> Void
+    ) {
+        self.title = title
+        self.systemImage = systemImage
+        self.assetImage = nil
+        self.isActive = isActive
+        self.onTap = onTap
+    }
+
+    init(
+        title: String,
+        assetImage: String,
+        isActive: Bool,
+        onTap: @escaping () -> Void
+    ) {
+        self.title = title
+        self.systemImage = nil
+        self.assetImage = assetImage
+        self.isActive = isActive
+        self.onTap = onTap
+    }
+
+    var body: some View {
+        Button(action: onTap) {
+            VStack(spacing: 6) {
+                ZStack {
+                    Group {
+                        if let systemImage {
+                            Image(systemName: systemImage)
+                                .font(.system(size: 16, weight: .semibold))
+                        } else if let assetImage {
+                            Image(assetImage)
+                                .renderingMode(.template)
+                                .resizable()
+                                .scaledToFit()
+                                .frame(width: 18, height: 18)
+                        }
+                    }
+                    .foregroundStyle(isActive ? .white : .black.opacity(0.85))
+                }
+                .frame(width: 44, height: 44)
+                .glassEffect(
+                    .regular.tint(isActive ? .pink : .clear).interactive(),
+                    in: .circle
+                )
+
+                Text(title)
+                    .font(.system(size: 11, weight: .regular))
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
+            }
+            .frame(maxWidth: .infinity)
+        }
+        .buttonStyle(.plain)
     }
 }
 

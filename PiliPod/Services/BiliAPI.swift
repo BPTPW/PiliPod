@@ -331,6 +331,39 @@ class BiliAPI {
         return response.data
     }
 
+    // MARK: - 视频关系（点赞/点踩/投币/收藏状态）
+
+    func fetchArchiveRelation(bvid: String) async throws -> ArchiveRelationData {
+        var components = URLComponents(
+            string: "https://api.bilibili.com/x/web-interface/archive/relation"
+        )
+        components?.queryItems = [
+            URLQueryItem(name: "bvid", value: bvid)
+        ]
+
+        guard let url = components?.url else {
+            throw APIError.invalidURL
+        }
+
+        let request = makeRequest(url: url)
+        let (data, _) = try await URLSession.shared.data(for: request)
+
+        let response = try JSONDecoder().decode(
+            ArchiveRelationResponse.self,
+            from: data
+        )
+
+        if response.code != 0 {
+            throw APIError.responseError(response.code)
+        }
+
+        guard let relation = response.data else {
+            throw APIError.requestFailed
+        }
+
+        return relation
+    }
+
     // MARK: - 播放链接
 
     func fetchPlayUrl(

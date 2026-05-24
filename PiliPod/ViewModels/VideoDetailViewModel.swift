@@ -19,6 +19,11 @@ class VideoDetailViewModel {
     var ownerFollowerCount: Int?
     var ownerArchiveCount: Int?
 
+    var isLiked = false
+    var isDisliked = false
+    var isCoined = false
+    var isFavorited = false
+
     let bvid: String
     var aid: Int = 0
     var cid: Int = 0
@@ -48,6 +53,10 @@ class VideoDetailViewModel {
         error = nil
         ownerFollowerCount = nil
         ownerArchiveCount = nil
+        isLiked = false
+        isDisliked = false
+        isCoined = false
+        isFavorited = false
 
         do {
             // 获取视频详情
@@ -57,6 +66,22 @@ class VideoDetailViewModel {
                 self.videoDetail = detail
                 self.aid = detail.aid
                 self.cid = detail.cid
+            }
+
+            // 获取用户对该视频的操作状态（点赞/点踩/投币/收藏）
+            Task {
+                do {
+                    let relation = try await BiliAPI.shared.fetchArchiveRelation(bvid: bvid)
+                    await MainActor.run {
+                        self.isLiked = relation.like
+                        self.isDisliked = relation.dislike
+                        self.isCoined = relation.coin > 0
+                        self.isFavorited = relation.favorite
+                    }
+                } catch {
+                    // 可能未登录/风控等；不影响播放与详情展示
+                    print("获取视频关系失败: \(error)")
+                }
             }
 
             // 获取 UP 主粉丝/视频数（用于详情页展示；后续主页复用）
@@ -110,6 +135,34 @@ class VideoDetailViewModel {
                 self.isLoading = false
             }
         }
+    }
+
+    // MARK: - Actions (UI Only)
+
+    func toggleLike() {
+        if isLiked {
+            isLiked = false
+        } else {
+            isLiked = true
+            isDisliked = false
+        }
+    }
+
+    func toggleDislike() {
+        if isDisliked {
+            isDisliked = false
+        } else {
+            isDisliked = true
+            isLiked = false
+        }
+    }
+
+    func toggleCoin() {
+        isCoined.toggle()
+    }
+
+    func toggleFavorite() {
+        isFavorited.toggle()
     }
 
     // MARK: - History Report
