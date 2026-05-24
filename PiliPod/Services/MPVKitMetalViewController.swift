@@ -16,10 +16,14 @@ final class MPVKitMetalViewController: UIViewController {
     private var pendingVideoURL: URL?
     private var pendingAudioURL: URL?
     private var audioAdded = false
+    private var isShuttingDown = false
     private let eventQueue = DispatchQueue(label: "mpv.event", qos: .userInitiated)
+    private let eventQueueKey = DispatchSpecificKey<Void>()
 
     override func viewDidLoad() {
         super.viewDidLoad()
+
+        eventQueue.setSpecific(key: eventQueueKey, value: ())
 
         metalLayer.frame = view.frame
         metalLayer.contentsScale = UIScreen.main.nativeScale
@@ -177,7 +181,7 @@ final class MPVKitMetalViewController: UIViewController {
 
     private func readEvents() {
         eventQueue.async { [weak self] in
-            guard let self, let mpv = self.mpv else { return }
+            guard let self, !self.isShuttingDown, let mpv = self.mpv else { return }
 
             while true {
                 guard let event = mpv_wait_event(mpv, 0) else { break }
@@ -312,11 +316,29 @@ final class MPVKitMetalViewController: UIViewController {
         }
     }
 
+    private func shutdownMpvIfNeeded() {
+        guard let mpv else { return }
+
+        isShuttingDown = true
+
+        // Ensure no more wakeups can call back into this instance.
+        mpv_set_wakeup_callback(mpv, nil, nil)
+        mpv_wakeup(mpv)
+
+        // Drain any in-flight event processing before destroying the context.
+        if DispatchQueue.getSpecific(key: eventQueueKey) == nil {
+            eventQueue.sync {
+                // Intentionally empty; `sync` waits for queued work to finish.
+            }
+        }
+
+        self.mpv = nil
+        mpv_terminate_destroy(mpv)
+    }
+
     deinit {
         NotificationCenter.default.removeObserver(self)
-        if let mpv {
-            mpv_terminate_destroy(mpv)
-        }
+        shutdownMpvIfNeeded()
     }
 }
 
