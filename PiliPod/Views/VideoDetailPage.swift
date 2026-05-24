@@ -13,13 +13,17 @@ struct VideoDetailPage: View {
     @State private var showDebugPanel = false
     @State private var controlsVisible = true
     @State private var hideControlsTask: Task<Void, Never>?
-    @Binding var isPresented: Bool
 
     let video: VideoItem
+    let namespace: Namespace.ID
+    let onBack: () -> Void
 
-    init(video: VideoItem, isPresented: Binding<Bool>) {
+    private var heroID: String { "videoHero.\(video.bvid)" }
+
+    init(video: VideoItem, namespace: Namespace.ID, onBack: @escaping () -> Void) {
         self.video = video
-        self._isPresented = isPresented
+        self.namespace = namespace
+        self.onBack = onBack
         _viewModel = State(initialValue: VideoDetailViewModel(
             bvid: video.bvid,
             cid: video.cid ?? 0,
@@ -43,19 +47,20 @@ struct VideoDetailPage: View {
                                 .aspectRatio(stream.aspectRatio, contentMode: .fit)
                                 .frame(maxWidth: .infinity)
                                 .background(Color.black)
+                                .matchedGeometryEffect(id: heroID, in: namespace)
                                 .contentShape(Rectangle())
                                 .onTapGesture {
                                     showControlsAndAutoHideIfNeeded(player: player)
                                 }
                                 .overlay {
                                     PlayerControlsOverlay(
-                                        isPresented: $isPresented,
                                         showDebugPanel: $showDebugPanel,
                                         isVisible: controlsVisible,
                                         currentTime: player.currentTime,
                                         duration: player.duration,
                                         isPlaying: player.isPlaying,
                                         segments: [],
+                                        onBack: onBack,
                                         onUserInteracted: {
                                             showControlsAndAutoHideIfNeeded(player: player, forceShow: true)
                                         },
@@ -92,31 +97,35 @@ struct VideoDetailPage: View {
                                 }
                         }
                     } else {
-                        // 加载状态
-                        VStack(spacing: 12) {
-                            if viewModel.isLoading {
-                                ProgressView()
-                                    .tint(.white)
-                            } else if let error = viewModel.error {
-                                VStack(spacing: 8) {
+                        // 加载状态：先展示封面，保证卡片→详情的 Hero 动画有目标视图
+                        ZStack {
+                            AsyncImage(url: URL(string: video.cover)) { image in
+                                image
+                                    .resizable()
+                                    .scaledToFill()
+                            } placeholder: {
+                                Rectangle()
+                                    .fill(Color(.systemGray5))
+                            }
+                            .frame(maxWidth: .infinity)
+                            .aspectRatio(16.0 / 9.0, contentMode: .fit)
+                            .background(Color.black)
+                            .matchedGeometryEffect(id: heroID, in: namespace)
+
+                            VStack(spacing: 12) {
+                                if viewModel.isLoading {
+                                    ProgressView()
+                                        .tint(.white)
+                                } else if viewModel.error != nil {
                                     Image(systemName: "exclamationmark.triangle")
                                         .font(.system(size: 32))
                                         .foregroundColor(.white)
-                                    Text("加载失败")
-                                        .font(.headline)
-                                        .foregroundColor(.white)
-                                    Text(error)
-                                        .font(.caption)
-                                        .foregroundColor(.gray)
-                                        .multilineTextAlignment(.center)
+                                } else {
+                                    ProgressView()
+                                        .tint(.white)
                                 }
-                            } else {
-                                ProgressView()
-                                    .tint(.white)
                             }
                         }
-                        .frame(maxWidth: .infinity, minHeight: 220)
-                        .background(Color.black)
                     }
 
                     // 视频信息
@@ -192,6 +201,9 @@ struct VideoDetailPage: View {
                 viewModel.stopHistoryReporting(with: player)
             }
         }
+        .navigationBarBackButtonHidden(true)
+        .toolbar(.hidden, for: .navigationBar)
+        .toolbar(.hidden, for: .tabBar)
     }
 
     private func showControlsAndAutoHideIfNeeded(player: MPVKitPlayer, forceShow: Bool = false) {
@@ -263,7 +275,6 @@ struct VideoDetailPage: View {
 // MARK: - Player Controls Overlay
 
 private struct PlayerControlsOverlay: View {
-    @Binding var isPresented: Bool
     @Binding var showDebugPanel: Bool
 
     let isVisible: Bool
@@ -271,6 +282,7 @@ private struct PlayerControlsOverlay: View {
     let duration: TimeInterval
     let isPlaying: Bool
     let segments: [ProgressSegment]
+    let onBack: () -> Void
     let onUserInteracted: () -> Void
     let onTogglePlayPause: () -> Void
     let onSeek: (TimeInterval) -> Void
@@ -295,15 +307,15 @@ private struct PlayerControlsOverlay: View {
         HStack(spacing: 12) {
             Button(action: {
                 onUserInteracted()
-                isPresented = false
+                onBack()
             }) {
                 Image(systemName: "chevron.left")
                     .font(.system(size: 16, weight: .semibold))
-                    .foregroundColor(.white)
+                    .foregroundColor(.primary)
                     .frame(width: 40, height: 40)
             }
             .glassEffect(
-                .clear.interactive(),
+                .regular.interactive(),
                 in: .circle
             )
 
@@ -315,11 +327,11 @@ private struct PlayerControlsOverlay: View {
             }) {
                 Image(systemName: "ellipsis")
                     .font(.system(size: 16, weight: .semibold))
-                    .foregroundColor(.white)
+                    .foregroundColor(.primary)
                     .frame(width: 40, height: 40)
             }
             .glassEffect(
-                .clear.interactive(),
+                .regular.interactive(),
                 in: .circle
             )
         }
@@ -334,11 +346,11 @@ private struct PlayerControlsOverlay: View {
             }) {
                 Image(systemName: isPlaying ? "pause.fill" : "play.fill")
                     .font(.system(size: 13, weight: .semibold))
-                    .foregroundColor(.white)
+                    .foregroundColor(.primary)
                     .frame(width: 32, height: 32)
             }
             .glassEffect(
-                .clear.interactive(),
+                .regular.interactive(),
                 in: .circle
             )
 
@@ -352,11 +364,11 @@ private struct PlayerControlsOverlay: View {
 
             Text("\(formatMMSS(currentTime))/\(formatMMSS(duration))")
                 .font(.system(size: 12, weight: .semibold, design: .monospaced))
-                .foregroundStyle(.white)
+                .foregroundStyle(.primary)
                 .padding(.horizontal, 10)
                 .padding(.vertical, 7)
                 .glassEffect(
-                    .clear.interactive(),
+                    .regular,
                     in: .capsule
                 )
 
@@ -366,11 +378,11 @@ private struct PlayerControlsOverlay: View {
             }) {
                 Image(systemName: "arrow.up.left.and.arrow.down.right")
                     .font(.system(size: 13, weight: .semibold))
-                    .foregroundColor(.white)
+                    .foregroundColor(.primary)
                     .frame(width: 32, height: 32)
             }
             .glassEffect(
-                .clear.interactive(),
+                .regular.interactive(),
                 in: .circle
             )
             .accessibilityLabel("全屏")
@@ -616,19 +628,26 @@ extension View {
 }
 
 #Preview {
-    @Previewable @State var isPresented = true
+    struct PreviewWrapper: View {
+        @Namespace private var ns
 
-    VideoDetailPage(
-        video: VideoItem(
-            bvid: "BV1WsD1BhEvt",
-            cid: 37424204720,
-            cover: "",
-            title: "七里香 格温",
-            playCount: "12.9万",
-            danmakuCount: "345",
-            uploader: "还有下次的叭",
-            duration: 325
-        ),
-        isPresented: $isPresented
-    )
+        var body: some View {
+            VideoDetailPage(
+                video: VideoItem(
+                    bvid: "BV1WsD1BhEvt",
+                    cid: 37424204720,
+                    cover: "https://picsum.photos/800/450",
+                    title: "七里香 格温",
+                    playCount: "12.9万",
+                    danmakuCount: "345",
+                    uploader: "还有下次的叭",
+                    duration: 325
+                ),
+                namespace: ns,
+                onBack: {}
+            )
+        }
+    }
+
+    return PreviewWrapper()
 }

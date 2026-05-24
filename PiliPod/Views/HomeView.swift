@@ -10,6 +10,9 @@ import SwiftUI
 
 struct HomeView: View {
     @State private var selectedTab: String = "推荐"
+    @State private var selectedVideo: VideoItem?
+    @State private var serchQuery = ""
+    @Namespace private var videoHeroNamespace
     @Bindable var viewModel: HomeViewModel
     @ObservedObject private var loginSession = LoginSession.shared
 
@@ -36,27 +39,18 @@ struct HomeView: View {
                             Image(systemName: "magnifyingglass")
                                 .foregroundStyle(.secondary)
 
-                            Text("搜索视频")
-                                .foregroundStyle(.secondary)
+                            TextField("搜索视频", text: $serchQuery)
+                                .textInputAutocapitalization(.never)
+                                .autocorrectionDisabled()
+                                .submitLabel(.search)
 
-                            Spacer()
+                            Spacer(minLength: 0)
                         }
                         .padding(.horizontal, 14)
                         .frame(height: 40)
-                        .background(
-                            RoundedRectangle(cornerRadius: 22)
-                                .fill(.ultraThinMaterial)
-                                .overlay {
-                                    RoundedRectangle(cornerRadius: 22)
-                                        .stroke(
-                                            Color.white.opacity(0.18),
-                                            lineWidth: 1
-                                        )
-                                }
-                        )
                         .glassEffect(
-                            .clear.interactive(),
-                            in: .circle
+                            .regular.interactive(),
+                            in: RoundedRectangle(cornerRadius: 22, style: .continuous)
                         )
 
                         // 消息按钮
@@ -65,19 +59,8 @@ struct HomeView: View {
                                 .font(.system(size: 18))
                                 .foregroundStyle(.black.opacity(0.8))
                                 .frame(width: 40, height: 40)
-                                .background(
-                                    Circle()
-                                        .fill(.ultraThinMaterial)
-                                        .overlay {
-                                            Circle()
-                                                .stroke(
-                                                    Color.white.opacity(0.18),
-                                                    lineWidth: 1
-                                                )
-                                        }
-                                )
                                 .glassEffect(
-                                    .clear.interactive(),
+                                    .regular.interactive(),
                                     in: .circle
                                 )
                         }
@@ -94,13 +77,13 @@ struct HomeView: View {
                                         .fill(.ultraThinMaterial)
                                         .overlay {
                                             Image(systemName: "person.fill")
-                                                .foregroundStyle(.black.opacity(0.5))
+                                                .foregroundStyle(.primary)
                                         }
                                 }
                                 .frame(width: 40, height: 40)
                                 .clipShape(Circle())
                                 .glassEffect(
-                                    .clear.interactive(),
+                                    .regular.interactive(),
                                     in: .circle
                                 )
                             } else {
@@ -216,12 +199,16 @@ struct HomeView: View {
                                 }
                                 LazyVGrid(columns: columns, spacing: 18) {
                                     ForEach(section.videos) { video in
-                                        VideoCardView(video: video)
-                                            .onAppear {
-                                                if video.id == section.videos.last?.id {
-                                                    Task { await viewModel.loadMoreVideos() }
-                                                }
+                                        VideoCardView(
+                                            video: video,
+                                            namespace: videoHeroNamespace,
+                                            onTap: { selectedVideo = video }
+                                        )
+                                        .onAppear {
+                                            if video.id == section.videos.last?.id {
+                                                Task { await viewModel.loadMoreVideos() }
                                             }
+                                        }
                                     }
                                 }
                                 .padding(.horizontal, 12)
@@ -236,6 +223,24 @@ struct HomeView: View {
                 }
             }
             .navigationBarHidden(true)
+            .navigationDestination(item: $selectedVideo) { video in
+                if #available(iOS 18.0, *) {
+                    VideoDetailPage(
+                        video: video,
+                        namespace: videoHeroNamespace,
+                        onBack: { selectedVideo = nil }
+                    )
+                    .navigationTransition(
+                        .zoom(sourceID: "videoHero.\(video.bvid)", in: videoHeroNamespace)
+                    )
+                } else {
+                    VideoDetailPage(
+                        video: video,
+                        namespace: videoHeroNamespace,
+                        onBack: { selectedVideo = nil }
+                    )
+                }
+            }
         }
         .task {
             await viewModel.loadUserIfNeeded()
@@ -256,7 +261,11 @@ struct HomeView: View {
     private func feedCardView(for card: FeedCardItem) -> some View {
         switch card {
         case .video(let videoItem):
-            VideoCardView(video: videoItem)
+            VideoCardView(
+                video: videoItem,
+                namespace: videoHeroNamespace,
+                onTap: { selectedVideo = videoItem }
+            )
         case .live(let liveModel):
             LiveCardView(model: liveModel)
         }

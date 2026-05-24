@@ -7,8 +7,8 @@
 
 import Foundation
 
-struct VideoItem: Identifiable {
-    let id = UUID()
+struct VideoItem: Identifiable, Hashable {
+    var id: String { bvid }
     let bvid: String
     let cid: Int?
     let cover: String
