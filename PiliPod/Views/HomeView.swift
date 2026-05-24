@@ -57,13 +57,14 @@ struct HomeView: View {
                         Button {} label: {
                             Image(systemName: "bell.fill")
                                 .font(.system(size: 18))
-                                .foregroundStyle(.black.opacity(0.8))
                                 .frame(width: 40, height: 40)
-                                .glassEffect(
-                                    .regular.interactive(),
-                                    in: .circle
-                                )
+                                
                         }
+                        .foregroundStyle(.primary)
+                        .glassEffect(
+                            .regular.interactive(),
+                            in: .circle
+                        )
 
                         // 用户头像
                         Group {
@@ -77,27 +78,17 @@ struct HomeView: View {
                                         .fill(.ultraThinMaterial)
                                         .overlay {
                                             Image(systemName: "person.fill")
-                                                .foregroundStyle(.primary)
                                         }
                                 }
                                 .frame(width: 40, height: 40)
                                 .clipShape(Circle())
-                                .glassEffect(
-                                    .regular.interactive(),
-                                    in: .circle
-                                )
                             } else {
                                 Circle()
                                     .fill(.ultraThinMaterial)
                                     .overlay {
                                         Image(systemName: "person.fill")
-                                            .foregroundStyle(.black.opacity(0.8))
                                     }
                                     .frame(width: 40, height: 40)
-                                    .glassEffect(
-                                        .clear.interactive(),
-                                        in: .circle
-                                    )
                             }
                         }
                         .overlay {
@@ -111,6 +102,11 @@ struct HomeView: View {
                             color: .black.opacity(0.06),
                             radius: 8,
                             y: 4
+                        )
+                        .foregroundStyle(.primary)
+                        .glassEffect(
+                            .clear.interactive(),
+                            in: .circle
                         )
                     }
                     .padding(.horizontal, 16)

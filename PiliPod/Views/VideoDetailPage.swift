@@ -478,6 +478,9 @@ private struct VideoActionButton: View {
         Button(action: onTap) {
             VStack(spacing: 6) {
                 ZStack {
+                    RoundedRectangle(cornerRadius: 18, style: .continuous)
+                        .fill(isActive ? Color("BiliPink") : Color.white.opacity(0))
+                        .animation(.smooth(duration: 0.25), value: isActive)
                     Group {
                         if let systemImage {
                             Image(systemName: systemImage)
@@ -490,11 +493,11 @@ private struct VideoActionButton: View {
                                 .frame(width: 18, height: 18)
                         }
                     }
-                    .foregroundStyle(isActive ? .white : .black.opacity(0.85))
+                    .foregroundStyle(isActive ? .white : .primary)
                 }
                 .frame(width: 44, height: 44)
                 .glassEffect(
-                    .regular.tint(isActive ? .pink : .clear).interactive(),
+                    .regular.interactive(),
                     in: .circle
                 )
 
