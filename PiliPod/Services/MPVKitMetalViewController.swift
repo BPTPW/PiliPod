@@ -20,6 +20,16 @@ final class MPVKitMetalViewController: UIViewController {
     private var isInBackground = false
     private let eventQueue = DispatchQueue(label: "mpv.event", qos: .userInitiated)
     private let eventQueueKey = DispatchSpecificKey<Void>()
+    private var wakeupContextPtr: UnsafeMutableRawPointer?
+
+    /// Wraps a weak reference to the controller so the wakeup callback
+    /// can safely detect deallocation without crashing.
+    private final class WakeupContext {
+        weak var controller: MPVKitMetalViewController?
+        init(controller: MPVKitMetalViewController) {
+            self.controller = controller
+        }
+    }
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -170,21 +180,22 @@ final class MPVKitMetalViewController: UIViewController {
     }
 
     private func setupWakeupCallback(_ mpv: OpaquePointer) {
-        mpv_set_wakeup_callback(mpv, { ctx in
-            guard let ctx = ctx else { return }
+        let ctx = WakeupContext(controller: self)
+        let ptr = Unmanaged.passRetained(ctx).toOpaque()
+        wakeupContextPtr = ptr
 
-            let controller = Unmanaged<MPVKitMetalViewController>
-                .fromOpaque(ctx)
-                .takeUnretainedValue()
-
+        mpv_set_wakeup_callback(mpv, { rawPtr in
+            guard let rawPtr = rawPtr else { return }
+            let ctx = Unmanaged<WakeupContext>.fromOpaque(rawPtr).takeUnretainedValue()
+            guard let controller = ctx.controller else { return }
             DispatchQueue.main.async {
                 controller.readEvents()
             }
-
-        }, UnsafeMutableRawPointer(Unmanaged.passUnretained(self).toOpaque()))
+        }, ptr)
     }
 
     private func readEvents() {
+        guard !isShuttingDown else { return }
         eventQueue.async { [weak self] in
             guard let self, !self.isShuttingDown, !self.isInBackground, let mpv = self.mpv else { return }
 
@@ -340,13 +351,13 @@ final class MPVKitMetalViewController: UIViewController {
         isInBackground = true
 
         // 1) Stop playback immediately — this tells the VO to stop rendering.
-        //    Use the low-level command string so it's synchronous.
         mpv_command_string(mpv, "stop")
 
         // 2) Drain any queued event processing before touching the context.
         eventQueue.sync {}
 
         // 3) Detach wakeup callback so no future callbacks can fire.
+        //    In-flight callbacks are safe because WakeupContext.controller is weak.
         mpv_set_wakeup_callback(mpv, nil, nil)
 
         // 4) Drain again — a wakeup might already be in-flight on the main
@@ -361,6 +372,13 @@ final class MPVKitMetalViewController: UIViewController {
 
         self.mpv = nil
         mpv_terminate_destroy(mpv)
+
+        // 6) Release retained WakeupContext — safe now because
+        //    mpv_terminate_destroy blocks until all internal threads exit.
+        if let ptr = wakeupContextPtr {
+            Unmanaged<WakeupContext>.fromOpaque(ptr).release()
+            wakeupContextPtr = nil
+        }
     }
 
     deinit {
