@@ -389,7 +389,6 @@ private struct PlayerControlsOverlay: View {
         }
         .padding(.horizontal, 12)
         .padding(.bottom, 10)
-        // 贴近播放器底部覆盖，留一点呼吸感
     }
 
     private func formatMMSS(_ seconds: TimeInterval) -> String {
@@ -554,6 +553,14 @@ struct DashStreamDebugPanel: View {
                             InfoRow("音频码率", formatBitrate(stream.audioBitrate))
                         }
 
+                        Divider()
+
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("流地址").font(.subheadline).fontWeight(.semibold).foregroundColor(.secondary)
+                            URIRow("视频", stream.videoURL.absoluteString)
+                            URIRow("音频", stream.audioURL.absoluteString)
+                        }
+
                         if let player = player {
                             Divider()
 
@@ -584,8 +591,8 @@ struct DashStreamDebugPanel: View {
     }
 
     private func formatBitrate(_ bitrate: Int) -> String {
-        let mbps = Double(bitrate) / 1000000
-        return String(format: "%.2f Mbps", mbps)
+        let kbps = Double(bitrate) / 1000
+        return String(format: "%.2f Kbps", kbps)
     }
 
     private func formatTime(_ seconds: TimeInterval) -> String {
@@ -612,6 +619,28 @@ struct InfoRow: View {
             Text(value)
                 .font(.system(.caption, design: .monospaced))
                 .foregroundColor(.primary)
+        }
+    }
+}
+
+struct URIRow: View {
+    let label: String
+    let url: String
+
+    init(_ label: String, _ url: String) {
+        self.label = label
+        self.url = url
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text(label)
+                .font(.caption)
+                .foregroundColor(.secondary)
+            Text(url)
+                .font(.system(size: 9, design: .monospaced))
+                .foregroundColor(.primary)
+                .textSelection(.enabled)
         }
     }
 }
