@@ -273,6 +273,35 @@ class BiliAPI {
         return response.data
     }
 
+    func fetchUserCardStats(mid: Int) async throws -> UserCardStats {
+        var components = URLComponents(string: "https://api.bilibili.com/x/web-interface/card")
+        components?.queryItems = [
+            URLQueryItem(name: "mid", value: String(mid))
+        ]
+
+        guard let url = components?.url else {
+            throw APIError.invalidURL
+        }
+
+        let request = makeRequest(url: url)
+        let (data, _) = try await URLSession.shared.data(for: request)
+
+        let response = try JSONDecoder().decode(
+            UserCardStatsResponse.self,
+            from: data
+        )
+
+        if response.code != 0 {
+            throw APIError.responseError(response.code)
+        }
+
+        guard let stats = response.data else {
+            throw APIError.requestFailed
+        }
+
+        return stats
+    }
+
     // MARK: - 视频详情
 
     func fetchVideoDetail(bvid: String) async throws -> VideoDetailData {

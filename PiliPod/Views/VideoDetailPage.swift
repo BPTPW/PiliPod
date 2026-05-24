@@ -33,6 +33,8 @@ struct VideoDetailPage: View {
     }
 
     var body: some View {
+        @Bindable var bindableViewModel = viewModel
+
         ZStack {
             Color.black
                 .ignoresSafeArea()
@@ -40,7 +42,7 @@ struct VideoDetailPage: View {
             ScrollView {
                 VStack(spacing: 0) {
                     // DASH 播放器
-                    if let stream = viewModel.dashStream, let player = viewModel.player {
+                    if let stream = bindableViewModel.dashStream, let player = bindableViewModel.player {
                         ZStack(alignment: .topLeading) {
                             // DASH 播放器容器
                             MPVKitPlayerView(player: player)
@@ -114,10 +116,10 @@ struct VideoDetailPage: View {
                             .matchedGeometryEffect(id: heroID, in: namespace)
 
                             VStack(spacing: 12) {
-                                if viewModel.isLoading {
+                                if bindableViewModel.isLoading {
                                     ProgressView()
                                         .tint(.white)
-                                } else if viewModel.error != nil {
+                                } else if bindableViewModel.error != nil {
                                     Image(systemName: "exclamationmark.triangle")
                                         .font(.system(size: 32))
                                         .foregroundColor(.white)
@@ -131,7 +133,7 @@ struct VideoDetailPage: View {
 
                     // 视频信息
                     VStack(alignment: .leading, spacing: 12) {
-                        if let detail = viewModel.videoDetail {
+                        if let detail = bindableViewModel.videoDetail {
                             HStack(spacing: 12) {
                                 AsyncImage(url: URL(string: detail.owner.face)) { image in
                                     image
@@ -148,9 +150,17 @@ struct VideoDetailPage: View {
                                     Text(detail.owner.name)
                                         .font(.subheadline)
                                         .foregroundColor(.primary)
-                                    Text("1.2万粉丝")
-                                        .font(.caption)
-                                        .foregroundColor(.secondary)
+                                    if let follower = bindableViewModel.ownerFollowerCount,
+                                       let archiveCount = bindableViewModel.ownerArchiveCount
+                                    {
+                                        Text("\(formatCount(follower))粉丝 \(archiveCount)视频")
+                                            .font(.caption)
+                                            .foregroundColor(.secondary)
+                                    } else {
+                                        Text("—粉丝 —视频")
+                                            .font(.caption)
+                                            .foregroundColor(.secondary)
+                                    }
                                 }
 
                                 Spacer()
@@ -179,27 +189,27 @@ struct VideoDetailPage: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
 
             // 调试信息面板
-            if showDebugPanel, let stream = viewModel.dashStream {
+            if showDebugPanel, let stream = bindableViewModel.dashStream {
                 DashStreamDebugPanel(
                     stream: stream,
-                    player: viewModel.player,
+                    player: bindableViewModel.player,
                     onDismiss: { showDebugPanel = false }
                 )
             }
         }
         .task {
-            await viewModel.loadVideoData()
+            await bindableViewModel.loadVideoData()
 
             // 加载完成后启动历史上报
-            if viewModel.dashStream != nil {
-                viewModel.startHistoryReporting()
+            if bindableViewModel.dashStream != nil {
+                bindableViewModel.startHistoryReporting()
             }
         }
         .onDisappear {
             hideControlsTask?.cancel()
-            if let player = viewModel.player {
+            if let player = bindableViewModel.player {
                 player.pause()
-                viewModel.stopHistoryReporting(with: player)
+                bindableViewModel.stopHistoryReporting(with: player)
             }
         }
         .navigationBarBackButtonHidden(true)

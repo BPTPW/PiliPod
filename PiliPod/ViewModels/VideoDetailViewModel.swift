@@ -16,6 +16,9 @@ class VideoDetailViewModel {
     var isLoading = false
     var error: String?
 
+    var ownerFollowerCount: Int?
+    var ownerArchiveCount: Int?
+
     let bvid: String
     var aid: Int = 0
     var cid: Int = 0
@@ -43,6 +46,8 @@ class VideoDetailViewModel {
     func loadVideoData() async {
         isLoading = true
         error = nil
+        ownerFollowerCount = nil
+        ownerArchiveCount = nil
 
         do {
             // 获取视频详情
@@ -52,6 +57,20 @@ class VideoDetailViewModel {
                 self.videoDetail = detail
                 self.aid = detail.aid
                 self.cid = detail.cid
+            }
+
+            // 获取 UP 主粉丝/视频数（用于详情页展示；后续主页复用）
+            Task {
+                do {
+                    let stats = try await BiliAPI.shared.fetchUserCardStats(mid: detail.owner.mid)
+                    await MainActor.run {
+                        self.ownerFollowerCount = stats.follower
+                        self.ownerArchiveCount = stats.archiveCount
+                    }
+                } catch {
+                    // 忽略错误，避免影响播放；UI 保留占位
+                    print("获取 UP 主信息失败: \(error)")
+                }
             }
 
             // 获取播放地址
