@@ -54,10 +54,9 @@ struct HomeView: View {
                                         )
                                 }
                         )
-                        .shadow(
-                            color: .black.opacity(0.06),
-                            radius: 10,
-                            y: 4
+                        .glassEffect(
+                            .clear.interactive(),
+                            in: .circle
                         )
 
                         // 消息按钮
@@ -77,10 +76,9 @@ struct HomeView: View {
                                                 )
                                         }
                                 )
-                                .shadow(
-                                    color: .black.opacity(0.06),
-                                    radius: 8,
-                                    y: 4
+                                .glassEffect(
+                                    .clear.interactive(),
+                                    in: .circle
                                 )
                         }
 
@@ -101,6 +99,10 @@ struct HomeView: View {
                                 }
                                 .frame(width: 40, height: 40)
                                 .clipShape(Circle())
+                                .glassEffect(
+                                    .clear.interactive(),
+                                    in: .circle
+                                )
                             } else {
                                 Circle()
                                     .fill(.ultraThinMaterial)
@@ -109,6 +111,10 @@ struct HomeView: View {
                                             .foregroundStyle(.black.opacity(0.8))
                                     }
                                     .frame(width: 40, height: 40)
+                                    .glassEffect(
+                                        .clear.interactive(),
+                                        in: .circle
+                                    )
                             }
                         }
                         .overlay {
