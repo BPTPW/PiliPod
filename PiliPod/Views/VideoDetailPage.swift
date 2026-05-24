@@ -324,7 +324,7 @@ private struct PlayerControlsOverlay: View {
                 Image(systemName: "chevron.left")
                     .font(.system(size: 16, weight: .semibold))
                     .foregroundColor(.primary)
-                    .frame(width: 40, height: 40)
+                    .frame(width: 32, height: 32)
             }
             .glassEffect(
                 .regular.interactive(),
@@ -340,7 +340,7 @@ private struct PlayerControlsOverlay: View {
                 Image(systemName: "ellipsis")
                     .font(.system(size: 16, weight: .semibold))
                     .foregroundColor(.primary)
-                    .frame(width: 40, height: 40)
+                    .frame(width: 32, height: 32)
             }
             .glassEffect(
                 .regular.interactive(),
