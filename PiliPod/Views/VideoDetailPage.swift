@@ -5,12 +5,14 @@
 //  Created by co on 2026/5/21.
 //
 
-import SwiftUI
 import Observation
+import SwiftUI
 
 struct VideoDetailPage: View {
     @State var viewModel: VideoDetailViewModel
     @State private var showDebugPanel = false
+    @State private var controlsVisible = true
+    @State private var hideControlsTask: Task<Void, Never>?
     @Binding var isPresented: Bool
 
     let video: VideoItem
@@ -33,118 +35,134 @@ struct VideoDetailPage: View {
 
             ScrollView {
                 VStack(spacing: 0) {
-                // DASH 播放器
-                if let stream = viewModel.dashStream, let player = viewModel.player {
-                    ZStack(alignment: .topLeading) {
-                        // DASH 播放器容器
-                        MPVKitPlayerView(player: player)
-                            .aspectRatio(stream.aspectRatio, contentMode: .fit)
-                            .frame(maxWidth: .infinity)
-                            .background(Color.black)
-                            .overlay(alignment: .topLeading) {
-                                // 顶部控制按钮
-                                HStack(spacing: 12) {
-                                    // 返回按钮
-                                    Button(action: { isPresented = false }) {
-                                        Image(systemName: "chevron.left")
-                                            .font(.system(size: 16, weight: .semibold))
-                                            .foregroundColor(.white)
-                                            .frame(width: 40, height: 40)
-                                            .background(Color.black.opacity(0.4))
-                                            .clipShape(Circle())
-                                            .backdrop()
-                                    }
-
-                                    Spacer()
-
-                                    // 流详情按钮
-                                    Button(action: { showDebugPanel.toggle() }) {
-                                        Image(systemName: "ellipsis")
-                                            .font(.system(size: 16, weight: .semibold))
-                                            .foregroundColor(.white)
-                                            .frame(width: 40, height: 40)
-                                            .background(Color.black.opacity(0.4))
-                                            .clipShape(Circle())
-                                            .backdrop()
+                    // DASH 播放器
+                    if let stream = viewModel.dashStream, let player = viewModel.player {
+                        ZStack(alignment: .topLeading) {
+                            // DASH 播放器容器
+                            MPVKitPlayerView(player: player)
+                                .aspectRatio(stream.aspectRatio, contentMode: .fit)
+                                .frame(maxWidth: .infinity)
+                                .background(Color.black)
+                                .contentShape(Rectangle())
+                                .onTapGesture {
+                                    showControlsAndAutoHideIfNeeded(player: player)
+                                }
+                                .overlay {
+                                    PlayerControlsOverlay(
+                                        isPresented: $isPresented,
+                                        showDebugPanel: $showDebugPanel,
+                                        isVisible: controlsVisible,
+                                        currentTime: player.currentTime,
+                                        duration: player.duration,
+                                        isPlaying: player.isPlaying,
+                                        segments: [],
+                                        onUserInteracted: {
+                                            showControlsAndAutoHideIfNeeded(player: player, forceShow: true)
+                                        },
+                                        onTogglePlayPause: {
+                                            if player.isPlaying {
+                                                player.pause()
+                                            } else {
+                                                player.resume()
+                                            }
+                                        },
+                                        onSeek: { time in
+                                            player.seek(to: time)
+                                            showControlsAndAutoHideIfNeeded(player: player, forceShow: true)
+                                        },
+                                        onFullscreen: {
+                                            // TODO: implement fullscreen logic later
+                                        }
+                                    )
+                                }
+                                .onAppear {
+                                    // 初次进入时给用户一个可发现的控制层
+                                    showControlsAndAutoHideIfNeeded(player: player, forceShow: true)
+                                }
+                                .onChange(of: player.isPlaying) { _, _ in
+                                    showControlsAndAutoHideIfNeeded(player: player)
+                                }
+                                .onChange(of: showDebugPanel) { _, newValue in
+                                    if !newValue {
+                                        showControlsAndAutoHideIfNeeded(player: player, forceShow: true)
+                                    } else {
+                                        controlsVisible = true
+                                        hideControlsTask?.cancel()
                                     }
                                 }
-                                .padding(12)
+                        }
+                    } else {
+                        // 加载状态
+                        VStack(spacing: 12) {
+                            if viewModel.isLoading {
+                                ProgressView()
+                                    .tint(.white)
+                            } else if let error = viewModel.error {
+                                VStack(spacing: 8) {
+                                    Image(systemName: "exclamationmark.triangle")
+                                        .font(.system(size: 32))
+                                        .foregroundColor(.white)
+                                    Text("加载失败")
+                                        .font(.headline)
+                                        .foregroundColor(.white)
+                                    Text(error)
+                                        .font(.caption)
+                                        .foregroundColor(.gray)
+                                        .multilineTextAlignment(.center)
+                                }
+                            } else {
+                                ProgressView()
+                                    .tint(.white)
                             }
+                        }
+                        .frame(maxWidth: .infinity, minHeight: 220)
+                        .background(Color.black)
                     }
-                } else {
-                    // 加载状态
-                    VStack(spacing: 12) {
-                        if viewModel.isLoading {
-                            ProgressView()
-                                .tint(.white)
-                        } else if let error = viewModel.error {
-                            VStack(spacing: 8) {
-                                Image(systemName: "exclamationmark.triangle")
-                                    .font(.system(size: 32))
-                                    .foregroundColor(.white)
-                                Text("加载失败")
-                                    .font(.headline)
-                                    .foregroundColor(.white)
-                                Text(error)
-                                    .font(.caption)
-                                    .foregroundColor(.gray)
-                                    .multilineTextAlignment(.center)
+
+                    // 视频信息
+                    VStack(alignment: .leading, spacing: 12) {
+                        if let detail = viewModel.videoDetail {
+                            HStack(spacing: 12) {
+                                AsyncImage(url: URL(string: detail.owner.face)) { image in
+                                    image
+                                        .resizable()
+                                        .scaledToFill()
+                                } placeholder: {
+                                    Circle()
+                                        .fill(Color.gray)
+                                }
+                                .frame(width: 40, height: 40)
+                                .clipShape(Circle())
+
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(detail.owner.name)
+                                        .font(.subheadline)
+                                        .foregroundColor(.primary)
+                                    Text("1.2万粉丝")
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
+                                }
+
+                                Spacer()
                             }
-                        } else {
-                            ProgressView()
-                                .tint(.white)
+                            // 视频标题
+                            Text(video.title)
+                                .font(.headline)
+                                .lineLimit(2)
+                                .foregroundColor(.primary)
+
+                            // 视频数据
+                            HStack(spacing: 10) {
+                                Label(formatCount(detail.stat.view), systemImage: "play.fill")
+                                Label(formatCount(detail.stat.danmaku), systemImage: "text.bubble.fill")
+                                Text(formatTimestamp(TimeInterval(detail.pubdate)))
+                            }
+                            .font(.system(size: 11))
+                            .foregroundStyle(.secondary)
                         }
                     }
-                    .frame(maxWidth: .infinity, minHeight: 220)
-                    .background(Color.black)
-                }
-
-                // 视频信息
-                VStack(alignment: .leading, spacing: 12) {
-
-                    if let detail = viewModel.videoDetail {
-                        HStack(spacing: 12) {
-                            AsyncImage(url: URL(string: detail.owner.face)) { image in
-                                image
-                                    .resizable()
-                                    .scaledToFill()
-                            } placeholder: {
-                                Circle()
-                                    .fill(Color.gray)
-                            }
-                            .frame(width: 40, height: 40)
-                            .clipShape(Circle())
-
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text(detail.owner.name)
-                                    .font(.subheadline)
-                                    .foregroundColor(.primary)
-                                Text("1.2万粉丝")
-                                    .font(.caption)
-                                    .foregroundColor(.secondary)
-                            }
-
-                            Spacer()
-                        }
-                        // 视频标题
-                        Text(video.title)
-                            .font(.headline)
-                            .lineLimit(2)
-                            .foregroundColor(.primary)
-                        
-                        // 视频数据
-                        HStack(spacing: 10){
-                            Label(formatCount(detail.stat.view), systemImage: "play.fill")
-                            Label(formatCount(detail.stat.danmaku), systemImage: "text.bubble.fill")
-                            Text(formatTimestamp(TimeInterval(detail.pubdate)))
-                        }
-                        .font(.system(size: 11))
-                        .foregroundStyle(.secondary)
-                    }
-                    
-                }
-                .padding(16)
-                .background(Color(.systemBackground))
+                    .padding(16)
+                    .background(Color(.systemBackground))
                 }
                 .frame(maxWidth: .infinity, alignment: .top)
             }
@@ -161,16 +179,48 @@ struct VideoDetailPage: View {
         }
         .task {
             await viewModel.loadVideoData()
-            
+
             // 加载完成后启动历史上报
             if viewModel.dashStream != nil {
                 viewModel.startHistoryReporting()
             }
         }
         .onDisappear {
+            hideControlsTask?.cancel()
             if let player = viewModel.player {
                 player.pause()
                 viewModel.stopHistoryReporting(with: player)
+            }
+        }
+    }
+
+    private func showControlsAndAutoHideIfNeeded(player: MPVKitPlayer, forceShow: Bool = false) {
+        guard !showDebugPanel else {
+            controlsVisible = true
+            hideControlsTask?.cancel()
+            return
+        }
+
+        if forceShow {
+            controlsVisible = true
+        } else {
+            // 点一下就显示；如果已显示，也会刷新自动隐藏计时
+            controlsVisible = true
+        }
+
+        hideControlsTask?.cancel()
+        guard player.isPlaying else { return }
+
+        hideControlsTask = Task { @MainActor in
+            do {
+                try await Task.sleep(nanoseconds: 3000000000)
+            } catch {
+                // Important: if cancelled, do not continue to hide controls.
+                return
+            }
+            if Task.isCancelled { return }
+            withAnimation(.easeOut(duration: 0.22)) {
+                controlsVisible = false
             }
         }
     }
@@ -186,6 +236,7 @@ struct VideoDetailPage: View {
             return String(format: "%d:%02d", minutes, secs)
         }
     }
+
     private func formatCount(_ count: Int) -> String {
         if count >= 10000 {
             return String(
@@ -196,6 +247,7 @@ struct VideoDetailPage: View {
 
         return "\(count)"
     }
+
     private func formatTimestamp(_ timestamp: TimeInterval) -> String {
         let date = Date(timeIntervalSince1970: timestamp)
 
@@ -205,6 +257,235 @@ struct VideoDetailPage: View {
         formatter.timeZone = TimeZone.current
 
         return formatter.string(from: date)
+    }
+}
+
+// MARK: - Player Controls Overlay
+
+private struct PlayerControlsOverlay: View {
+    @Binding var isPresented: Bool
+    @Binding var showDebugPanel: Bool
+
+    let isVisible: Bool
+    let currentTime: TimeInterval
+    let duration: TimeInterval
+    let isPlaying: Bool
+    let segments: [ProgressSegment]
+    let onUserInteracted: () -> Void
+    let onTogglePlayPause: () -> Void
+    let onSeek: (TimeInterval) -> Void
+    let onFullscreen: () -> Void
+
+    var body: some View {
+        ZStack {
+            if isVisible {
+                VStack(spacing: 0) {
+                    topBar
+                    Spacer(minLength: 0)
+                    bottomBar
+                }
+                .transition(.opacity)
+                .animation(.easeOut(duration: 0.18), value: isVisible)
+            }
+        }
+        .allowsHitTesting(isVisible)
+    }
+
+    private var topBar: some View {
+        HStack(spacing: 12) {
+            Button(action: {
+                onUserInteracted()
+                isPresented = false
+            }) {
+                Image(systemName: "chevron.left")
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundColor(.white)
+                    .frame(width: 40, height: 40)
+            }
+            .glassEffect(
+                .clear.interactive(),
+                in: .circle
+            )
+
+            Spacer()
+
+            Button(action: {
+                onUserInteracted()
+                showDebugPanel.toggle()
+            }) {
+                Image(systemName: "ellipsis")
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundColor(.white)
+                    .frame(width: 40, height: 40)
+            }
+            .glassEffect(
+                .clear.interactive(),
+                in: .circle
+            )
+        }
+        .padding(12)
+    }
+
+    private var bottomBar: some View {
+        HStack(spacing: 10) {
+            Button(action: {
+                onUserInteracted()
+                onTogglePlayPause()
+            }) {
+                Image(systemName: isPlaying ? "pause.fill" : "play.fill")
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundColor(.white)
+                    .frame(width: 32, height: 32)
+            }
+            .glassEffect(
+                .clear.interactive(),
+                in: .circle
+            )
+
+            VideoProgressBar(
+                currentTime: currentTime,
+                duration: duration,
+                segments: segments,
+                onSeek: { t in onSeek(t) },
+                onUserInteracted: onUserInteracted
+            )
+
+            Text("\(formatMMSS(currentTime))/\(formatMMSS(duration))")
+                .font(.system(size: 12, weight: .semibold, design: .monospaced))
+                .foregroundStyle(.white)
+                .padding(.horizontal, 10)
+                .padding(.vertical, 7)
+                .glassEffect(
+                    .clear.interactive(),
+                    in: .capsule
+                )
+
+            Button(action: {
+                onUserInteracted()
+                onFullscreen()
+            }) {
+                Image(systemName: "arrow.up.left.and.arrow.down.right")
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundColor(.white)
+                    .frame(width: 32, height: 32)
+            }
+            .glassEffect(
+                .clear.interactive(),
+                in: .circle
+            )
+            .accessibilityLabel("全屏")
+        }
+        .padding(.horizontal, 12)
+        .padding(.bottom, 10)
+        // 贴近播放器底部覆盖，留一点呼吸感
+    }
+
+    private func formatMMSS(_ seconds: TimeInterval) -> String {
+        guard seconds.isFinite, seconds > 0 else { return "00:00" }
+        let s = Int(seconds.rounded(.down))
+        let m = s / 60
+        let r = s % 60
+        return String(format: "%02d:%02d", m, r)
+    }
+}
+
+// MARK: - Progress Bar (Segment-Friendly)
+
+private struct ProgressSegment: Identifiable, Equatable {
+    let id = UUID()
+    /// 0...1
+    let start: Double
+    /// 0...1, must be >= start
+    let end: Double
+    let color: Color
+    let opacity: Double
+
+    init(start: Double, end: Double, color: Color, opacity: Double = 0.45) {
+        self.start = start
+        self.end = end
+        self.color = color
+        self.opacity = opacity
+    }
+}
+
+private struct VideoProgressBar: View {
+    let currentTime: TimeInterval
+    let duration: TimeInterval
+    let segments: [ProgressSegment]
+    let onSeek: (TimeInterval) -> Void
+    let onUserInteracted: () -> Void
+
+    @GestureState private var isDragging = false
+    @State private var dragProgress: Double? = nil
+
+    private var clampedProgress: Double {
+        guard duration > 0 else { return 0 }
+        return min(max(currentTime / duration, 0), 1)
+    }
+
+    private var effectiveProgress: Double {
+        dragProgress ?? clampedProgress
+    }
+
+    var body: some View {
+        GeometryReader { geo in
+            let w = max(1, geo.size.width)
+            let h: CGFloat = 4
+            let knobSize: CGFloat = 10
+
+            ZStack(alignment: .leading) {
+                Capsule(style: .continuous)
+                    .fill(Color.white.opacity(0.22))
+                    .frame(height: h)
+
+                // 分段底色层（后续你可以把章节/高光片段塞进 segments）
+                ForEach(segments) { seg in
+                    let s = min(max(seg.start, 0), 1)
+                    let e = min(max(seg.end, 0), 1)
+                    if e > s {
+                        Capsule(style: .continuous)
+                            .fill(seg.color.opacity(seg.opacity))
+                            .frame(width: w * (e - s), height: h)
+                            .offset(x: w * s)
+                    }
+                }
+
+                Capsule(style: .continuous)
+                    .fill(Color.white.opacity(0.92))
+                    .frame(width: w * effectiveProgress, height: h)
+
+                // 小圆点，接近 iOS 的轻量样式（显隐跟随 controls）
+                Circle()
+                    .fill(Color.white)
+                    .frame(width: knobSize, height: knobSize)
+                    .shadow(color: .black.opacity(0.35), radius: 6, x: 0, y: 2)
+                    .offset(x: w * effectiveProgress - knobSize / 2)
+                    .opacity(isDragging ? 1 : 0.9)
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
+            .contentShape(Rectangle())
+            .gesture(
+                DragGesture(minimumDistance: 0)
+                    .updating($isDragging) { _, state, _ in
+                        state = true
+                    }
+                    .onChanged { value in
+                        onUserInteracted()
+                        let p = min(max(value.location.x / w, 0), 1)
+                        dragProgress = p
+                    }
+                    .onEnded { value in
+                        onUserInteracted()
+                        let p = min(max(value.location.x / w, 0), 1)
+                        dragProgress = nil
+                        guard duration > 0 else { return }
+                        onSeek(duration * p)
+                    }
+            )
+        }
+        .frame(height: 22)
+        .padding(.vertical, 6)
+        .frame(maxWidth: .infinity)
     }
 }
 
@@ -244,31 +525,40 @@ struct DashStreamDebugPanel: View {
                             InfoRow("宽高比", String(format: "%.2f:1", stream.aspectRatio))
                             InfoRow("帧率", "\(stream.fps) fps")
                         }
-                        
+
                         Divider()
-                        
+
                         VStack(alignment: .leading, spacing: 8) {
                             Text("编码信息").font(.subheadline).fontWeight(.semibold).foregroundColor(.secondary)
                             InfoRow("视频编码", stream.videoCodec)
                             InfoRow("音频编码", stream.audioCodec)
                         }
-                        
+
                         Divider()
-                        
+
                         VStack(alignment: .leading, spacing: 8) {
                             Text("码率").font(.subheadline).fontWeight(.semibold).foregroundColor(.secondary)
                             InfoRow("视频码率", formatBitrate(stream.videoBitrate))
                             InfoRow("音频码率", formatBitrate(stream.audioBitrate))
                         }
-                        
+
                         if let player = player {
                             Divider()
-                            
+
                             VStack(alignment: .leading, spacing: 8) {
                                 Text("播放器状态").font(.subheadline).fontWeight(.semibold).foregroundColor(.secondary)
                                 InfoRow("播放状态", player.isPlaying ? "播放中" : "已暂停")
                                 InfoRow("当前时间", formatTime(player.currentTime))
                                 InfoRow("总时长", formatTime(player.duration))
+                            }
+
+                            Divider()
+
+                            VStack(alignment: .leading, spacing: 8) {
+                                Text("解码器").font(.subheadline).fontWeight(.semibold).foregroundColor(.secondary)
+                                InfoRow("硬件解码", player.hwdecCurrent.isEmpty ? "—" : player.hwdecCurrent)
+                                InfoRow("视频解码器", player.videoCodec.isEmpty ? "—" : player.videoCodec)
+                                InfoRow("音频解码器", player.audioCodec.isEmpty ? "—" : player.audioCodec)
                             }
                         }
                     }
@@ -282,7 +572,7 @@ struct DashStreamDebugPanel: View {
     }
 
     private func formatBitrate(_ bitrate: Int) -> String {
-        let mbps = Double(bitrate) / 1_000_000
+        let mbps = Double(bitrate) / 1000000
         return String(format: "%.2f Mbps", mbps)
     }
 
@@ -318,7 +608,7 @@ struct InfoRow: View {
 
 extension View {
     func backdrop() -> some View {
-        self.background(
+        background(
             .ultraThinMaterial,
             in: RoundedRectangle(cornerRadius: 8)
         )
@@ -327,7 +617,7 @@ extension View {
 
 #Preview {
     @Previewable @State var isPresented = true
-    
+
     VideoDetailPage(
         video: VideoItem(
             bvid: "BV1WsD1BhEvt",

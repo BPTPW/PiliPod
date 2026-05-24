@@ -261,6 +261,15 @@ final class MPVKitMetalViewController: UIViewController {
         return data
     }
 
+    private func getString(_ name: String) -> String {
+        guard let mpv else { return "" }
+        return mpv_get_property_string(mpv, name).flatMap { String(cString: $0) } ?? ""
+    }
+
+    func videoCodec() -> String { getString("video-codec") }
+    func audioCodec() -> String { getString("audio-codec") }
+    func hwdecCurrent() -> String { getString("hwdec-current") }
+
     private func getFlag(_ name: String) -> Bool {
         guard let mpv else { return false }
         var data = Int64()

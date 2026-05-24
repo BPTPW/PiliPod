@@ -19,6 +19,10 @@ class MPVKitPlayer: NSObject {
     private(set) var currentTime: TimeInterval = 0
     private(set) var duration: TimeInterval = 0
 
+    var videoCodec: String { controller?.videoCodec() ?? "" }
+    var audioCodec: String { controller?.audioCodec() ?? "" }
+    var hwdecCurrent: String { controller?.hwdecCurrent() ?? "" }
+
     private let httpHeaders: [String: String]
 
     override init() {
