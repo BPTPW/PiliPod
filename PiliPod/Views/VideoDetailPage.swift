@@ -17,6 +17,12 @@ struct VideoDetailPage: View {
     @State private var controlsVisible = true
     @State private var hideControlsTask: Task<Void, Never>?
     @State private var isVideoDetailExpanded = false
+    @State private var isCoinPickerPresented = false
+    @State private var isFavoriteSheetPresented = false
+    @State private var favoriteFolders: [FavoriteFolderItem] = []
+    @State private var favoriteSelectedIds: Set<Int64> = []
+    @State private var favoriteInitiallySelectedIds: Set<Int64> = []
+    @State private var favoriteIsLoading = false
 
     let video: VideoItem
     let namespace: Namespace.ID
@@ -232,6 +238,10 @@ struct VideoDetailPage: View {
                                 coinCount: detail.stat.coin,
                                 favoriteCount: detail.stat.favorite,
                                 shareCount: detail.stat.share,
+                                isLikeRequesting: bindableViewModel.isLikeRequesting,
+                                isDislikeRequesting: bindableViewModel.isDislikeRequesting,
+                                isCoinRequesting: bindableViewModel.isCoinRequesting,
+                                isFavoriteRequesting: bindableViewModel.isFavoriteRequesting,
                                 onToggleLike: {
                                     withAnimation(.easeInOut(duration: 0.15)) {
                                         bindableViewModel.toggleLike()
@@ -243,14 +253,11 @@ struct VideoDetailPage: View {
                                     }
                                 },
                                 onToggleCoin: {
-                                    withAnimation(.easeInOut(duration: 0.15)) {
-                                        bindableViewModel.toggleCoin()
-                                    }
+                                    guard !bindableViewModel.isCoined else { return }
+                                    isCoinPickerPresented = true
                                 },
                                 onToggleFavorite: {
-                                    withAnimation(.easeInOut(duration: 0.15)) {
-                                        bindableViewModel.toggleFavorite()
-                                    }
+                                    isFavoriteSheetPresented = true
                                 },
                                 onShare: {
                                     // TODO: add share logic later
@@ -266,6 +273,67 @@ struct VideoDetailPage: View {
                 .frame(maxWidth: .infinity, alignment: .top)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+            .confirmationDialog(
+                "投币",
+                isPresented: $isCoinPickerPresented,
+                titleVisibility: .visible
+            ) {
+                Button("投 1 枚") {
+                    Task { await bindableViewModel.coin(multiply: 1) }
+                }
+                Button("投 2 枚") {
+                    Task { await bindableViewModel.coin(multiply: 2) }
+                }
+                Button("取消", role: .cancel) {}
+            }
+            .sheet(isPresented: $isFavoriteSheetPresented) {
+                FavoriteFolderSheet(
+                    folders: $favoriteFolders,
+                    selectedIds: $favoriteSelectedIds,
+                    initiallySelectedIds: $favoriteInitiallySelectedIds,
+                    isLoading: $favoriteIsLoading,
+                    onDismiss: { isFavoriteSheetPresented = false },
+                    onConfirm: {
+                        let addIds = favoriteSelectedIds.subtracting(favoriteInitiallySelectedIds)
+                        let delIds = favoriteInitiallySelectedIds.subtracting(favoriteSelectedIds)
+
+                        Task {
+                            await bindableViewModel.applyFavoriteSelection(
+                                addMediaIds: Array(addIds),
+                                delMediaIds: Array(delIds),
+                                finalSelectedIds: favoriteSelectedIds
+                            )
+                            isFavoriteSheetPresented = false
+                        }
+                    },
+                    onLoad: {
+                        guard !favoriteIsLoading else { return }
+                        favoriteIsLoading = true
+                        Task {
+                            do {
+                                let folders = try await bindableViewModel.fetchFavoriteFoldersForCurrentUser()
+                                await MainActor.run {
+                                    favoriteFolders = folders
+                                    let preselected = Set(
+                                        folders.filter { $0.isSelectedInitially }.map(\.id)
+                                    )
+                                    favoriteInitiallySelectedIds = preselected
+                                    favoriteSelectedIds = preselected
+                                    favoriteIsLoading = false
+                                }
+                            } catch {
+                                await MainActor.run {
+                                    favoriteFolders = []
+                                    favoriteInitiallySelectedIds = []
+                                    favoriteSelectedIds = []
+                                    favoriteIsLoading = false
+                                }
+                            }
+                        }
+                    }
+                )
+                .presentationDetents([.medium, .large])
+            }
 
             // 调试信息面板
             if showDebugPanel, let stream = bindableViewModel.dashStream {
@@ -375,6 +443,11 @@ private struct VideoActionBar: View {
     let favoriteCount: Int
     let shareCount: Int
 
+    let isLikeRequesting: Bool
+    let isDislikeRequesting: Bool
+    let isCoinRequesting: Bool
+    let isFavoriteRequesting: Bool
+
     let onToggleLike: () -> Void
     let onToggleDislike: () -> Void
     let onToggleCoin: () -> Void
@@ -388,6 +461,7 @@ private struct VideoActionBar: View {
                 title: formatCount(likeCount),
                 systemImage: "hand.thumbsup.fill",
                 isActive: isLiked,
+                isDisabled: isLikeRequesting,
                 onTap: onToggleLike
             )
 
@@ -395,6 +469,7 @@ private struct VideoActionBar: View {
                 title: "点踩",
                 systemImage: "hand.thumbsdown.fill",
                 isActive: isDisliked,
+                isDisabled: isDislikeRequesting,
                 onTap: onToggleDislike
             )
 
@@ -402,6 +477,7 @@ private struct VideoActionBar: View {
                 title: formatCount(coinCount),
                 assetImage: "BiliCoin",
                 isActive: isCoined,
+                isDisabled: isCoinRequesting,
                 onTap: onToggleCoin
             )
 
@@ -409,6 +485,7 @@ private struct VideoActionBar: View {
                 title: formatCount(favoriteCount),
                 systemImage: "star.fill",
                 isActive: isFavorited,
+                isDisabled: isFavoriteRequesting,
                 onTap: onToggleFavorite
             )
 
@@ -416,6 +493,7 @@ private struct VideoActionBar: View {
                 title: formatCount(shareCount),
                 systemImage: "square.and.arrow.up.fill",
                 isActive: false,
+                isDisabled: false,
                 onTap: onShare
             )
 
@@ -423,6 +501,7 @@ private struct VideoActionBar: View {
                 title: "稍后再看",
                 systemImage: "clock.badge",
                 isActive: false,
+                isDisabled: false,
                 onTap: onLaterWatch
             )
         }
@@ -446,18 +525,21 @@ private struct VideoActionButton: View {
     let systemImage: String?
     let assetImage: String?
     let isActive: Bool
+    let isDisabled: Bool
     let onTap: () -> Void
 
     init(
         title: String,
         systemImage: String,
         isActive: Bool,
+        isDisabled: Bool,
         onTap: @escaping () -> Void
     ) {
         self.title = title
         self.systemImage = systemImage
         self.assetImage = nil
         self.isActive = isActive
+        self.isDisabled = isDisabled
         self.onTap = onTap
     }
 
@@ -465,22 +547,25 @@ private struct VideoActionButton: View {
         title: String,
         assetImage: String,
         isActive: Bool,
+        isDisabled: Bool,
         onTap: @escaping () -> Void
     ) {
         self.title = title
         self.systemImage = nil
         self.assetImage = assetImage
         self.isActive = isActive
+        self.isDisabled = isDisabled
         self.onTap = onTap
     }
 
+    // 点赞/投币/收藏等按钮
     var body: some View {
         Button(action: onTap) {
             VStack(spacing: 6) {
                 ZStack {
-                    RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    RoundedRectangle(cornerRadius: 22, style: .continuous)
                         .fill(isActive ? Color("BiliPink") : Color.white.opacity(0))
-                        .animation(.smooth(duration: 0.25), value: isActive)
+                        //.animation(.smooth(duration: 0.25), value: isActive)
                     Group {
                         if let systemImage {
                             Image(systemName: systemImage)
@@ -508,6 +593,118 @@ private struct VideoActionButton: View {
                     .minimumScaleFactor(0.8)
             }
             .frame(maxWidth: .infinity)
+        }
+        .buttonStyle(.plain)
+        .disabled(isDisabled)
+        .opacity(isDisabled ? 0.6 : 1.0)
+    }
+}
+
+// MARK: - Favorite Folder Sheet
+
+private struct FavoriteFolderSheet: View {
+    @Binding var folders: [FavoriteFolderItem]
+    @Binding var selectedIds: Set<Int64>
+    @Binding var initiallySelectedIds: Set<Int64>
+    @Binding var isLoading: Bool
+
+    let onDismiss: () -> Void
+    let onConfirm: () -> Void
+    let onLoad: () -> Void
+
+    var body: some View {
+        NavigationStack {
+            Group {
+                if isLoading {
+                    VStack(spacing: 12) {
+                        ProgressView()
+                        Text("加载收藏夹中…")
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
+                    }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                } else if folders.isEmpty {
+                    VStack(spacing: 12) {
+                        Image(systemName: "folder")
+                            .font(.system(size: 28))
+                            .foregroundStyle(.secondary)
+                        Text("暂无收藏夹")
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
+                    }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                } else {
+                    List {
+                        ForEach(folders) { folder in
+                            FavoriteFolderRow(
+                                folder: folder,
+                                isSelected: selectedIds.contains(folder.id),
+                                onToggle: {
+                                    if selectedIds.contains(folder.id) {
+                                        selectedIds.remove(folder.id)
+                                    } else {
+                                        selectedIds.insert(folder.id)
+                                    }
+                                }
+                            )
+                        }
+                    }
+                    .listStyle(.plain)
+                }
+            }
+            .navigationTitle("选择收藏夹")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button(action: onDismiss) {
+                        Image(systemName: "xmark")
+                            .font(.system(size: 14, weight: .semibold))
+                    }
+                }
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button(action: onConfirm) {
+                        Image(systemName: "checkmark")
+                            .font(.system(size: 14, weight: .semibold))
+                    }
+                    .disabled(selectedIds == initiallySelectedIds)
+                }
+            }
+            .task {
+                onLoad()
+            }
+        }
+    }
+}
+
+private struct FavoriteFolderRow: View {
+    let folder: FavoriteFolderItem
+    let isSelected: Bool
+    let onToggle: () -> Void
+
+    var body: some View {
+        Button(action: onToggle) {
+            HStack(spacing: 12) {
+                Image(systemName: folder.isPrivate ? "folder.fill.badge.person.crop" : "folder.fill")
+                    .foregroundStyle(.primary)
+                    .frame(width: 22)
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(folder.title)
+                        .font(.subheadline)
+                        .foregroundStyle(.primary)
+
+                    Text("\(folder.mediaCount)个内容 \(folder.isPrivate ? "私密" : "公开")")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+
+                Spacer()
+
+                Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
+                    .foregroundStyle(isSelected ? .pink : .secondary)
+                    .imageScale(.large)
+            }
+            .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
     }

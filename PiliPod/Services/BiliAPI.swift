@@ -30,6 +30,40 @@ class BiliAPI {
         return request
     }
 
+    // MARK: - 轻量表单 POST（不加签）
+
+    private func makePostFormRequest(
+        urlString: String,
+        parameters: [String: String]
+    ) -> URLRequest? {
+        guard let url = URL(string: urlString) else { return nil }
+
+        var request = makeRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue(
+            "application/x-www-form-urlencoded",
+            forHTTPHeaderField: "Content-Type"
+        )
+        request.setValue(
+            "bili-universal/103300 (iPhone; iOS 18.2; Scale/3.00)",
+            forHTTPHeaderField: "User-Agent"
+        )
+        request.setValue("https://www.bilibili.com", forHTTPHeaderField: "Referer")
+        
+        // cookie登录状态
+        let cookie = LoginSession.shared.cookieString
+        if !cookie.isEmpty {
+            request.setValue(cookie, forHTTPHeaderField: "Cookie")
+        }
+
+        var components = URLComponents()
+        components.queryItems = parameters.map {
+            URLQueryItem(name: $0.key, value: $0.value)
+        }
+        request.httpBody = components.percentEncodedQuery?.data(using: .utf8)
+        return request
+    }
+
     // MARK: - 构建移动端 App 请求（加签 + 公共参数）
 
     private func makeAppRequest(
@@ -364,6 +398,175 @@ class BiliAPI {
         return relation
     }
 
+    // MARK: - 点赞
+
+    func likeVideo(aid: Int, isCancel: Bool) async throws {
+        guard let accessKey = LoginSession.shared.accessKey, !accessKey.isEmpty else {
+            throw APIError.responseError(-101)
+        }
+
+        let params: [String: String] = [
+            "access_key": accessKey,
+            "aid": String(aid),
+            "like": isCancel ? "1" : "0"
+        ]
+
+        guard let request = makePostFormRequest(
+            urlString: "https://app.bilibili.com/x/v2/view/like",
+            parameters: params
+        ) else {
+            throw APIError.invalidURL
+        }
+
+        let (data, _) = try await URLSession.shared.data(for: request)
+        let response = try JSONDecoder().decode(
+            SimpleAPIResponse<LikeToastData>.self,
+            from: data
+        )
+        if response.code != 0 {
+            throw APIError.responseError(response.code)
+        }
+    }
+
+    // MARK: - 点踩
+
+    func dislikeVideo(aid: Int, isCancel: Bool) async throws {
+        guard let accessKey = LoginSession.shared.accessKey, !accessKey.isEmpty else {
+            throw APIError.responseError(-101)
+        }
+
+        let params: [String: String] = [
+            "access_key": accessKey,
+            "aid": String(aid),
+            "dislike": isCancel ? "1" : "0"
+        ]
+
+        guard let request = makePostFormRequest(
+            urlString: "https://app.biliapi.net/x/v2/view/dislike",
+            parameters: params
+        ) else {
+            throw APIError.invalidURL
+        }
+
+        let (data, _) = try await URLSession.shared.data(for: request)
+        let response = try JSONDecoder().decode(
+            SimpleAPIResponse<EmptyCodable>.self,
+            from: data
+        )
+        if response.code != 0 {
+            throw APIError.responseError(response.code)
+        }
+    }
+
+    // MARK: - 投币
+
+    func coinVideo(aid: Int, multiply: Int) async throws {
+        guard let accessKey = LoginSession.shared.accessKey, !accessKey.isEmpty else {
+            throw APIError.responseError(-101)
+        }
+
+        let params: [String: String] = [
+            "access_key": accessKey,
+            "aid": String(aid),
+            "multiply": String(multiply),
+            "select_like": "0"
+        ]
+
+        guard let request = makePostFormRequest(
+            urlString: "https://app.bilibili.com/x/v2/view/coin/add",
+            parameters: params
+        ) else {
+            throw APIError.invalidURL
+        }
+
+        let (data, _) = try await URLSession.shared.data(for: request)
+        let response = try JSONDecoder().decode(
+            SimpleAPIResponse<CoinAddData>.self,
+            from: data
+        )
+        if response.code != 0 {
+            throw APIError.responseError(response.code)
+        }
+    }
+
+    // MARK: - 收藏夹列表（含目标是否已收藏）
+
+    func fetchCreatedFavoriteFolders(
+        upMid: Int64,
+        rid: Int64
+    ) async throws -> [FavoriteFolderItem] {
+        var components = URLComponents(
+            string: "https://api.bilibili.com/x/v3/fav/folder/created/list-all"
+        )
+        components?.queryItems = [
+            URLQueryItem(name: "up_mid", value: String(upMid)),
+            URLQueryItem(name: "rid", value: String(rid))
+        ]
+
+        guard let url = components?.url else {
+            throw APIError.invalidURL
+        }
+
+        let request = makeRequest(url: url)
+        let (data, _) = try await URLSession.shared.data(for: request)
+
+        let response = try JSONDecoder().decode(
+            FavoriteFolderListResponse.self,
+            from: data
+        )
+
+        if response.code != 0 {
+            throw APIError.responseError(response.code)
+        }
+
+        return response.data?.list ?? []
+    }
+
+    // MARK: - 收藏资源变更
+
+    func dealFavoriteResource(
+        rid: Int64,
+        addMediaIds: [Int64],
+        delMediaIds: [Int64]
+    ) async throws {
+        guard let accessKey = LoginSession.shared.accessKey, !accessKey.isEmpty else {
+            throw APIError.responseError(-101)
+        }
+        guard let csrf = LoginSession.shared.cookies?.bili_jct, !csrf.isEmpty else {
+            throw APIError.responseError(-111)
+        }
+
+        var params: [String: String] = [
+            "rid": String(rid),
+            "type": "2",
+            "csrf": csrf
+        ]
+
+        if !addMediaIds.isEmpty {
+            params["add_media_ids"] = addMediaIds.map(String.init).joined(separator: ",")
+        }
+        if !delMediaIds.isEmpty {
+            params["del_media_ids"] = delMediaIds.map(String.init).joined(separator: ",")
+        }
+
+        guard let request = makePostFormRequest(
+            urlString: "https://api.bilibili.com/medialist/gateway/coll/resource/deal",
+            parameters: params
+        ) else {
+            throw APIError.invalidURL
+        }
+
+        let (data, _) = try await URLSession.shared.data(for: request)
+        print(String(bytes: data, encoding: .utf8))
+        let response = try JSONDecoder().decode(
+            SimpleAPIResponse<FavoriteDealData>.self,
+            from: data
+        )
+        if response.code != 0 {
+            throw APIError.responseError(response.code)
+        }
+    }
+
     // MARK: - 播放链接
 
     func fetchPlayUrl(
@@ -462,3 +665,5 @@ enum APIError: LocalizedError {
 struct NavResponse: Codable {
     let data: UserCard
 }
+
+private struct EmptyCodable: Codable {}

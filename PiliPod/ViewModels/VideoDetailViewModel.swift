@@ -24,6 +24,11 @@ class VideoDetailViewModel {
     var isCoined = false
     var isFavorited = false
 
+    var isLikeRequesting = false
+    var isDislikeRequesting = false
+    var isCoinRequesting = false
+    var isFavoriteRequesting = false
+
     let bvid: String
     var aid: Int = 0
     var cid: Int = 0
@@ -140,29 +145,127 @@ class VideoDetailViewModel {
     // MARK: - Actions (UI Only)
 
     func toggleLike() {
-        if isLiked {
-            isLiked = false
-        } else {
-            isLiked = true
-            isDisliked = false
-        }
+        Task { await toggleLikeAsync() }
     }
 
     func toggleDislike() {
-        if isDisliked {
-            isDisliked = false
-        } else {
-            isDisliked = true
-            isLiked = false
-        }
+        Task { await toggleDislikeAsync() }
     }
 
     func toggleCoin() {
-        isCoined.toggle()
+        // coin 的具体投币数量由 UI 选择，这里不做 toggle
     }
 
     func toggleFavorite() {
-        isFavorited.toggle()
+        // 收藏需要弹出收藏夹选择 UI，这里不做 toggle
+    }
+
+    @MainActor
+    private func toggleLikeAsync() async {
+        guard !isLikeRequesting else { return }
+        guard aid != 0 else { return }
+
+        isLikeRequesting = true
+        let wasLiked = isLiked
+
+        do {
+            try await BiliAPI.shared.likeVideo(
+                aid: aid,
+                isCancel: wasLiked
+            )
+            if wasLiked {
+                isLiked = false
+            } else {
+                isLiked = true
+                isDisliked = false
+            }
+        } catch {
+            self.error = error.localizedDescription
+        }
+
+        isLikeRequesting = false
+    }
+
+    @MainActor
+    private func toggleDislikeAsync() async {
+        guard !isDislikeRequesting else { return }
+        guard aid != 0 else { return }
+
+        isDislikeRequesting = true
+        let wasDisliked = isDisliked
+
+        do {
+            try await BiliAPI.shared.dislikeVideo(
+                aid: aid,
+                isCancel: wasDisliked
+            )
+            if wasDisliked {
+                isDisliked = false
+            } else {
+                isDisliked = true
+                isLiked = false
+            }
+        } catch {
+            self.error = error.localizedDescription
+        }
+
+        isDislikeRequesting = false
+    }
+
+    @MainActor
+    func coin(multiply: Int) async {
+        guard !isCoinRequesting else { return }
+        guard aid != 0 else { return }
+        guard multiply == 1 || multiply == 2 else { return }
+
+        isCoinRequesting = true
+        do {
+            try await BiliAPI.shared.coinVideo(
+                aid: aid,
+                multiply: multiply
+            )
+            isCoined = true
+        } catch {
+            self.error = error.localizedDescription
+        }
+        isCoinRequesting = false
+    }
+
+    func fetchFavoriteFoldersForCurrentUser() async throws -> [FavoriteFolderItem] {
+        guard let uidString = LoginSession.shared.cookies?.DedeUserID,
+              let uid = Int64(uidString)
+        else {
+            throw APIError.responseError(-101)
+        }
+        guard aid != 0 else { return [] }
+
+        return try await BiliAPI.shared.fetchCreatedFavoriteFolders(
+            upMid: uid,
+            rid: Int64(aid)
+        )
+    }
+
+    @MainActor
+    func applyFavoriteSelection(
+        addMediaIds: [Int64],
+        delMediaIds: [Int64],
+        finalSelectedIds: Set<Int64>
+    ) async {
+        guard !isFavoriteRequesting else { return }
+        guard aid != 0 else { return }
+
+        isFavoriteRequesting = true
+        do {
+            try await BiliAPI.shared.dealFavoriteResource(
+                rid: Int64(aid),
+                addMediaIds: addMediaIds,
+                delMediaIds: delMediaIds
+            )
+            isFavorited = !finalSelectedIds.isEmpty
+        } catch {
+            self.error = error.localizedDescription
+        }
+        isFavoriteRequesting = false
     }
 
     // MARK: - History Report
