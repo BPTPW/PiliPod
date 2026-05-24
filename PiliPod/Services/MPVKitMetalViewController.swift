@@ -17,6 +17,7 @@ final class MPVKitMetalViewController: UIViewController {
     private var pendingAudioURL: URL?
     private var audioAdded = false
     private var isShuttingDown = false
+    private var isInBackground = false
     private let eventQueue = DispatchQueue(label: "mpv.event", qos: .userInitiated)
     private let eventQueueKey = DispatchSpecificKey<Void>()
 
@@ -185,7 +186,7 @@ final class MPVKitMetalViewController: UIViewController {
 
     private func readEvents() {
         eventQueue.async { [weak self] in
-            guard let self, !self.isShuttingDown, let mpv = self.mpv else { return }
+            guard let self, !self.isShuttingDown, !self.isInBackground, let mpv = self.mpv else { return }
 
             while true {
                 guard let event = mpv_wait_event(mpv, 0) else { break }
@@ -249,17 +250,29 @@ final class MPVKitMetalViewController: UIViewController {
     }
 
     @objc private func enterBackground() {
-        pause()
-        if let mpv {
-            checkError(mpv_set_option_string(mpv, "vid", "no"), context: "vid")
-        }
+        guard !isShuttingDown, let mpv else { return }
+        isInBackground = true
+        print("[mpv] entering background, disabling video output")
+
+        // 1) pause so the VO stops submitting new frames
+        setFlag(MPVKitProperty.pause, true)
+
+        // 2) disable video track — prevents VO from touching GPU resources
+        //    while Metal / MoltenVK surfaces may be invalid in background
+        checkError(mpv_set_option_string(mpv, "vid", "no"), context: "vid")
     }
 
     @objc private func enterForeground() {
-        if let mpv {
-            checkError(mpv_set_option_string(mpv, "vid", "auto"), context: "vid")
-        }
-        play()
+        guard !isShuttingDown, let mpv else { return }
+        print("[mpv] entering foreground, restoring video")
+
+        // 1) re-enable video track
+        checkError(mpv_set_option_string(mpv, "vid", "auto"), context: "vid")
+
+        // 2) resume playback
+        setFlag(MPVKitProperty.pause, false)
+
+        isInBackground = false
     }
 
     private func getDouble(_ name: String) -> Double {
@@ -324,16 +337,26 @@ final class MPVKitMetalViewController: UIViewController {
         guard let mpv else { return }
 
         isShuttingDown = true
+        isInBackground = true
 
-        // Ensure no more wakeups can call back into this instance.
+        // 1) Stop playback immediately — this tells the VO to stop rendering.
+        //    Use the low-level command string so it's synchronous.
+        mpv_command_string(mpv, "stop")
+
+        // 2) Drain any queued event processing before touching the context.
+        eventQueue.sync {}
+
+        // 3) Detach wakeup callback so no future callbacks can fire.
         mpv_set_wakeup_callback(mpv, nil, nil)
-        mpv_wakeup(mpv)
 
-        // Drain any in-flight event processing before destroying the context.
-        if DispatchQueue.getSpecific(key: eventQueueKey) == nil {
-            eventQueue.sync {
-                // Intentionally empty; `sync` waits for queued work to finish.
-            }
+        // 4) Drain again — a wakeup might already be in-flight on the main
+        //    dispatch queue, so this gives it a chance to land harmlessly.
+        eventQueue.sync {}
+
+        // 5) One more sync on main to ensure any DispatchQueue.main.async
+        //    from readEvents() or setupWakeupCallback has finished.
+        if !Thread.isMainThread {
+            DispatchQueue.main.sync {}
         }
 
         self.mpv = nil
