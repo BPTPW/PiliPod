@@ -130,7 +130,7 @@ struct VideoDetailData: Codable {
     let videos: Int
     let copyright: Int
     let pubdate: Int
-    let descV2: [DescV2Item]
+    let descV2: [DescV2Item]?
     let stat: VideoStat
 
     enum CodingKeys: String, CodingKey {

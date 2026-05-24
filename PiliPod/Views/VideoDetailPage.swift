@@ -31,7 +31,8 @@ struct VideoDetailPage: View {
             Color.black
                 .ignoresSafeArea()
 
-            VStack(spacing: 0) {
+            ScrollView {
+                VStack(spacing: 0) {
                 // DASH 播放器
                 if let stream = viewModel.dashStream, let player = viewModel.player {
                     ZStack(alignment: .topLeading) {
@@ -94,7 +95,7 @@ struct VideoDetailPage: View {
                                 .tint(.white)
                         }
                     }
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .frame(maxWidth: .infinity, minHeight: 220)
                     .background(Color.black)
                 }
 
@@ -144,7 +145,10 @@ struct VideoDetailPage: View {
                 }
                 .padding(16)
                 .background(Color(.systemBackground))
+                }
+                .frame(maxWidth: .infinity, alignment: .top)
             }
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
 
             // 调试信息面板
             if showDebugPanel, let stream = viewModel.dashStream {
