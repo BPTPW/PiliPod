@@ -7,12 +7,16 @@
 
 import Observation
 import SwiftUI
+#if canImport(UIKit)
+import UIKit
+#endif
 
 struct VideoDetailPage: View {
     @State var viewModel: VideoDetailViewModel
     @State private var showDebugPanel = false
     @State private var controlsVisible = true
     @State private var hideControlsTask: Task<Void, Never>?
+    @State private var isVideoDetailExpanded = false
 
     let video: VideoItem
     let namespace: Namespace.ID
@@ -170,6 +174,12 @@ struct VideoDetailPage: View {
                                 .font(.headline)
                                 .lineLimit(2)
                                 .foregroundColor(.primary)
+                                .contentShape(Rectangle())
+                                .onTapGesture {
+                                    withAnimation(.easeInOut(duration: 0.18)) {
+                                        isVideoDetailExpanded.toggle()
+                                    }
+                                }
 
                             // 视频数据
                             HStack(spacing: 10) {
@@ -179,6 +189,38 @@ struct VideoDetailPage: View {
                             }
                             .font(.system(size: 11))
                             .foregroundStyle(.secondary)
+                            .contentShape(Rectangle())
+                            .onTapGesture {
+                                withAnimation(.easeInOut(duration: 0.18)) {
+                                    isVideoDetailExpanded.toggle()
+                                }
+                            }
+
+                            // 视频详情（默认折叠；点击标题或视频数据展开/收起）
+                            if isVideoDetailExpanded {
+                                VStack(alignment: .leading, spacing: 12) {
+                                    Text(detail.bvid)
+                                        .font(.system(.subheadline, design: .monospaced))
+                                        .foregroundStyle(.secondary)
+                                        .frame(maxWidth: .infinity, alignment: .leading)
+                                        .contentShape(Rectangle())
+                                        .onLongPressGesture {
+#if canImport(UIKit)
+                                            UIPasteboard.general.string = detail.bvid
+#endif
+                                        }
+
+                                    if !detail.desc.isEmpty {
+                                        Text(detail.desc)
+                                            .font(.footnote)
+                                            .foregroundStyle(.secondary)
+                                            .frame(maxWidth: .infinity, alignment: .leading)
+                                            .fixedSize(horizontal: false, vertical: true)
+                                    }
+                                }
+                                .padding(.top, 4)
+                                .transition(.opacity.combined(with: .move(edge: .top)))
+                            }
                         }
                     }
                     .padding(16)
