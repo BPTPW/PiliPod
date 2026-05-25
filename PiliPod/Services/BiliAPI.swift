@@ -171,6 +171,36 @@ class BiliAPI {
         }
     }
 
+    // MARK: - 获取视频相关推荐
+
+    func fetchRelatedVideos(bvid: String, limit: Int = 40) async throws -> [VideoItem] {
+        var components = URLComponents(
+            string: "https://api.bilibili.com/x/web-interface/archive/related"
+        )
+        components?.queryItems = [
+            URLQueryItem(name: "bvid", value: bvid)
+        ]
+
+        guard let url = components?.url else {
+            throw APIError.invalidURL
+        }
+
+        let request = makeRequest(url: url)
+        let (data, _) = try await URLSession.shared.data(for: request)
+
+        let response = try JSONDecoder().decode(RelatedVideosResponse.self, from: data)
+
+        guard response.code == 0 else {
+            throw APIError.responseError(response.code)
+        }
+
+        let videos = response.data ?? []
+        return videos
+            .filter { $0.bvid != bvid }
+            .prefix(max(0, min(limit, 40)))
+            .map { VideoItem(from: $0) }
+    }
+
     // MARK: - 获取App版推荐视频
 
     func fetchAppRecommendVideos(idx: Int, flush: Int) async throws -> Data {
@@ -243,6 +273,7 @@ class BiliAPI {
                 let upName = item.args?.upName ?? ""
                 let duration = item.playerArgs?.duration ?? 0
                 let cid = item.playerArgs?.cid
+                let publishTimeText = item.coverRightText ?? "--"
 
                 // App 接口 param 可能是 aid（纯数字），统一转为 bvid
                 let bvid: String
@@ -262,7 +293,8 @@ class BiliAPI {
                     playCount: playCount,
                     danmakuCount: danmakuCount,
                     uploader: upName,
-                    duration: duration
+                    duration: duration,
+                    publishTimeText: publishTimeText
                 )
                 result.append(.video(videoItem))
 

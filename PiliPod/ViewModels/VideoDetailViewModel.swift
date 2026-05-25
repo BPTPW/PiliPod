@@ -16,6 +16,10 @@ class VideoDetailViewModel {
     var isLoading = false
     var error: String?
 
+    var relatedVideos: [VideoItem] = []
+    var relatedIsLoading = false
+    var relatedError: String?
+
     var ownerFollowerCount: Int?
     var ownerArchiveCount: Int?
 
@@ -60,6 +64,9 @@ class VideoDetailViewModel {
     func loadVideoData() async {
         isLoading = true
         error = nil
+        relatedVideos = []
+        relatedIsLoading = false
+        relatedError = nil
         ownerFollowerCount = nil
         ownerArchiveCount = nil
         isLiked = false
@@ -97,6 +104,11 @@ class VideoDetailViewModel {
                     // 可能未登录/风控等；不影响播放与详情展示
                     print("获取视频关系失败: \(error)")
                 }
+            }
+
+            // 获取相关推荐（最多 40 条；失败不影响播放）
+            Task {
+                await loadRelatedVideos()
             }
 
             // 获取 UP 主粉丝/视频数（用于详情页展示；后续主页复用）
@@ -150,6 +162,23 @@ class VideoDetailViewModel {
                 self.isLoading = false
             }
         }
+    }
+
+    @MainActor
+    func loadRelatedVideos() async {
+        guard !relatedIsLoading else { return }
+        relatedIsLoading = true
+        relatedError = nil
+
+        do {
+            let videos = try await BiliAPI.shared.fetchRelatedVideos(bvid: bvid, limit: 40)
+            relatedVideos = videos
+        } catch {
+            relatedError = error.localizedDescription
+            relatedVideos = []
+        }
+
+        relatedIsLoading = false
     }
 
     // MARK: - Actions (UI Only)

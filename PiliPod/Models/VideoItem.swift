@@ -17,6 +17,7 @@ struct VideoItem: Identifiable, Hashable {
     let danmakuCount: String
     let uploader: String
     let duration: Int
+    let publishTimeText: String
 
     var durationFormatted: String {
         let h = duration / 3600
@@ -50,6 +51,31 @@ extension VideoItem {
         self.uploader = video.owner.name
 
         self.duration = video.duration
+
+        self.publishTimeText = Self.formatTimestamp(video.pubdate)
+    }
+
+    init(from video: RelatedVideo) {
+        self.bvid = video.bvid
+
+        self.cid = nil
+
+        self.cover = video.pic.replacingOccurrences(
+            of: "http://",
+            with: "https://"
+        )
+
+        self.title = video.title
+
+        self.playCount = Self.formatCount(video.stat.view)
+
+        self.danmakuCount = Self.formatCount(video.stat.danmaku)
+
+        self.uploader = video.owner.name
+
+        self.duration = video.duration
+
+        self.publishTimeText = Self.formatTimestamp(video.pubdate)
     }
 
     static func formatCount(_ count: Int) -> String {
@@ -61,5 +87,18 @@ extension VideoItem {
         }
 
         return "\(count)"
+    }
+
+    static func formatTimestamp(_ timestamp: Int?) -> String {
+        guard let timestamp else {
+            return "--"
+        }
+
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd"
+        formatter.locale = Locale(identifier: "zh_CN")
+        formatter.timeZone = TimeZone.current
+
+        return formatter.string(from: Date(timeIntervalSince1970: TimeInterval(timestamp)))
     }
 }

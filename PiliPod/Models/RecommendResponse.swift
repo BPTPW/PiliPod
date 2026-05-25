@@ -22,6 +22,7 @@ struct RecommendVideo: Codable {
     let stat: Stat
     let duration: Int
     let bvid: String
+    let pubdate: Int?
 }
 
 struct Owner: Codable {

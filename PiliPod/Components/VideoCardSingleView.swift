@@ -1,13 +1,13 @@
 //
-//  VideoCardView.swift
+//  VideoCardSingleView.swift
 //  PiliPod
 //
-//  Created by co on 2026/5/21.
+//  Created by co on 2026/5/25.
 //
 
 import SwiftUI
 
-struct VideoCardView: View {
+struct VideoCardSingleView: View {
     let video: VideoItem
     let namespace: Namespace.ID
     let onTap: () -> Void
@@ -17,8 +17,8 @@ struct VideoCardView: View {
 
     var body: some View {
         Button(action: onTap) {
-            VStack(alignment: .leading, spacing: 8) {
-                // 封面（用于卡片→详情页的 Hero 动画）
+            HStack(alignment: .top, spacing: 12) {
+                // 左侧封面（用于卡片→详情页的 Hero 动画）
                 ZStack(alignment: .bottomTrailing) {
                     AsyncImage(url: URL(string: video.cover)) { image in
                         image
@@ -28,7 +28,7 @@ struct VideoCardView: View {
                         Rectangle()
                             .fill(Color(.systemGray5))
                     }
-                    .frame(height: 112)
+                    .frame(width: 140, height: 88)
                     .clipped()
 
                     Text(video.durationFormatted)
@@ -42,32 +42,43 @@ struct VideoCardView: View {
                         )
                         .padding(6)
                 }
-                .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
+                .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
                 .heroTransitionSource(id: heroID, in: namespace)
 
                 VStack(alignment: .leading, spacing: 8) {
-                    // 标题
+                    // 右侧顶部：标题（允许多行）
                     Text(video.title)
                         .font(.system(size: 14, weight: .medium))
-                        .lineLimit(2 ... 2)
+                        .lineLimit(nil)
                         .multilineTextAlignment(.leading)
                         .foregroundStyle(.primary)
 
-                    // 播放量 + 弹幕
-                    HStack(spacing: 10) {
-                        Label(video.playCount, systemImage: "play.fill")
-                        Label(video.danmakuCount, systemImage: "text.bubble.fill")
-                    }
-                    .font(.system(size: 11))
-                    .foregroundStyle(.secondary)
+                    Spacer(minLength: 0)
 
-                    // UP主
-                    Text(video.uploader)
-                        .font(.system(size: 12))
+                    // 右侧底部：从下往上 = 播放弹幕 / 发布时间 UP主
+                    VStack(alignment: .leading, spacing: 4) {
+                        HStack(spacing: 10) {
+                            Text(video.uploader)
+                                .font(.system(size: 12))
+                                .foregroundStyle(.secondary)
+                            
+                            Text(video.publishTimeText)
+                                .font(.system(size: 11))
+                                .foregroundStyle(.secondary)
+                        }
+
+                        HStack(spacing: 10) {
+                            Label(video.playCount, systemImage: "play.fill")
+                            Label(video.danmakuCount, systemImage: "text.bubble.fill")
+                        }
+                        .font(.system(size: 11))
                         .foregroundStyle(.secondary)
+                    }
                 }
-                .padding(10)
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
             }
+            .padding(10)
+            .frame(height: 108)
             .background(
                 RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
                     .fill(.ultraThinMaterial)
@@ -76,7 +87,6 @@ struct VideoCardView: View {
                             .stroke(Color.white.opacity(0.14), lineWidth: 1)
                     }
             )
-            // iOS26-ish：更柔和的环境阴影 + 更集中的投影
             .shadow(color: .black.opacity(0.10), radius: 18, y: 10)
             .shadow(color: .black.opacity(0.06), radius: 6, y: 2)
         }
@@ -89,12 +99,12 @@ struct VideoCardView: View {
         @Namespace private var ns
 
         var body: some View {
-            VideoCardView(
+            VideoCardSingleView(
                 video: VideoItem(
                     bvid: "BV1234567890",
                     cid: nil,
                     cover: "https://i2.hdslb.com/bfs/archive/e8eaf7459a5d008e9142e75b5798798f10dfbc16.jpg@672w_378h_1c.webp",
-                    title: "测试视频标题",
+                    title: "测试视频标题测试视频标题测试视频标题测试视频标题",
                     playCount: "12万",
                     danmakuCount: "345",
                     uploader: "测试UP主",

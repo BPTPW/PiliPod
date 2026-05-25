@@ -23,6 +23,7 @@ struct VideoDetailPage: View {
     @State private var favoriteSelectedIds: Set<Int64> = []
     @State private var favoriteInitiallySelectedIds: Set<Int64> = []
     @State private var favoriteIsLoading = false
+    @State private var selectedRelatedVideo: VideoItem?
 
     let video: VideoItem
     let namespace: Namespace.ID
@@ -265,6 +266,50 @@ struct VideoDetailPage: View {
                                 onLaterWatch: {}
                             )
                             .padding(.top, 4)
+
+                            // 推荐视频
+                            if bindableViewModel.relatedIsLoading
+                                || bindableViewModel.relatedError != nil
+                                || !bindableViewModel.relatedVideos.isEmpty
+                            {
+                                Divider()
+                                    .padding(.top, 10)
+
+                                HStack(spacing: 10) {
+                                    Text("推荐视频")
+                                        .font(.headline)
+                                        .foregroundStyle(.primary)
+
+                                    if bindableViewModel.relatedIsLoading {
+                                        ProgressView()
+                                            .controlSize(.small)
+                                    }
+
+                                    Spacer()
+                                }
+                                .padding(.top, 6)
+
+                                if let error = bindableViewModel.relatedError,
+                                   !bindableViewModel.relatedIsLoading,
+                                   bindableViewModel.relatedVideos.isEmpty
+                                {
+                                    Text(error)
+                                        .font(.footnote)
+                                        .foregroundStyle(.secondary)
+                                        .padding(.top, 4)
+                                } else {
+                                    LazyVStack(spacing: 12) {
+                                        ForEach(bindableViewModel.relatedVideos.prefix(40)) { item in
+                                            VideoCardSingleView(
+                                                video: item,
+                                                namespace: namespace,
+                                                onTap: { selectedRelatedVideo = item }
+                                            )
+                                        }
+                                    }
+                                    .padding(.top, 8)
+                                }
+                            }
                         }
                     }
                     .padding(16)
@@ -272,6 +317,7 @@ struct VideoDetailPage: View {
                 }
                 .frame(maxWidth: .infinity, alignment: .top)
             }
+            .background(Color(.systemBackground))
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
             .confirmationDialog(
                 "投币",
@@ -362,6 +408,24 @@ struct VideoDetailPage: View {
         .navigationBarBackButtonHidden(true)
         .toolbar(.hidden, for: .navigationBar)
         .toolbar(.hidden, for: .tabBar)
+        .navigationDestination(item: $selectedRelatedVideo) { relatedVideo in
+            if #available(iOS 18.0, *) {
+                VideoDetailPage(
+                    video: relatedVideo,
+                    namespace: namespace,
+                    onBack: { selectedRelatedVideo = nil }
+                )
+                .navigationTransition(
+                    .zoom(sourceID: "videoHero.\(relatedVideo.bvid)", in: namespace)
+                )
+            } else {
+                VideoDetailPage(
+                    video: relatedVideo,
+                    namespace: namespace,
+                    onBack: { selectedRelatedVideo = nil }
+                )
+            }
+        }
     }
 
     private func showControlsAndAutoHideIfNeeded(player: MPVKitPlayer, forceShow: Bool = false) {
@@ -1121,7 +1185,8 @@ extension View {
                     playCount: "12.9万",
                     danmakuCount: "345",
                     uploader: "还有下次的叭",
-                    duration: 325
+                    duration: 325,
+                    publishTimeText: "2026-05-25"
                 ),
                 namespace: ns,
                 onBack: {}
