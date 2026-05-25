@@ -49,196 +49,214 @@ struct VideoDetailPage: View {
 
     var body: some View {
         @Bindable var bindableViewModel = viewModel
-
-        ZStack {
-            Color.black
-                .ignoresSafeArea()
-
-            ScrollView {
-                VStack(spacing: 0) {
-                    // DASH 播放器
-                    if let stream = bindableViewModel.dashStream, let player = bindableViewModel.player {
-                        ZStack(alignment: .topLeading) {
-                            // DASH 播放器容器
-                            MPVKitPlayerView(player: player)
-                                .aspectRatio(stream.aspectRatio, contentMode: .fit)
-                                .frame(maxWidth: .infinity)
-                                .background(Color.black)
-                                .matchedGeometryEffect(id: heroID, in: namespace)
-                                .contentShape(Rectangle())
-                                .onTapGesture {
-                                    showControlsAndAutoHideIfNeeded(player: player)
-                                }
-                                .highPriorityGesture(
-                                    TapGesture(count: 2)
-                                        .onEnded {
-                                            if player.isPlaying {
-                                                player.pause()
-                                            } else {
-                                                player.resume()
+        GeometryReader { geo in
+            ZStack {
+                ScrollView {
+                    VStack(spacing: 0) {
+                        // DASH 播放器
+                        if let stream = bindableViewModel.dashStream, let player = bindableViewModel.player {
+                            ZStack(alignment: .topLeading) {
+                                // DASH 播放器容器
+                                MPVKitPlayerView(player: player)
+                                    .aspectRatio(stream.aspectRatio, contentMode: .fit)
+                                    .frame(maxWidth: .infinity)
+                                    .background(Color.black)
+                                    .matchedGeometryEffect(id: heroID, in: namespace)
+                                    .contentShape(Rectangle())
+                                    .onTapGesture {
+                                        showControlsAndAutoHideIfNeeded(player: player)
+                                    }
+                                    .highPriorityGesture(
+                                        TapGesture(count: 2)
+                                            .onEnded {
+                                                if player.isPlaying {
+                                                    player.pause()
+                                                } else {
+                                                    player.resume()
+                                                }
+                                                showControlsAndAutoHideIfNeeded(player: player, forceShow: true)
                                             }
-                                            showControlsAndAutoHideIfNeeded(player: player, forceShow: true)
-                                        }
-                                )
-                                .simultaneousGesture(
-                                    DragGesture(minimumDistance: 0)
-                                        .onChanged { _ in
-                                            if !isSpeedBoostPressing {
-                                                isSpeedBoostPressing = true
-                                                speedBoostTriggerTask?.cancel()
-                                                speedBoostTriggerTask = Task { @MainActor in
-                                                    do {
-                                                        try await Task.sleep(nanoseconds: 200_000_000)
-                                                    } catch {
-                                                        return
-                                                    }
-                                                    if isSpeedBoostPressing {
-                                                        beginSpeedBoostIfNeeded(player: player)
+                                    )
+                                    .simultaneousGesture(
+                                        DragGesture(minimumDistance: 0)
+                                            .onChanged { _ in
+                                                if !isSpeedBoostPressing {
+                                                    isSpeedBoostPressing = true
+                                                    speedBoostTriggerTask?.cancel()
+                                                    speedBoostTriggerTask = Task { @MainActor in
+                                                        do {
+                                                            try await Task.sleep(nanoseconds: 200000000)
+                                                        } catch {
+                                                            return
+                                                        }
+                                                        if isSpeedBoostPressing {
+                                                            beginSpeedBoostIfNeeded(player: player)
+                                                        }
                                                     }
                                                 }
                                             }
-                                        }
-                                        .onEnded { _ in
-                                            isSpeedBoostPressing = false
-                                            speedBoostTriggerTask?.cancel()
-                                            speedBoostTriggerTask = nil
-                                            endSpeedBoostIfNeeded(player: player)
-                                        }
-                                )
-                                .overlay {
-                                    PlayerControlsOverlay(
-                                        showDebugPanel: $showDebugPanel,
-                                        isVisible: controlsVisible,
-                                        currentTime: player.currentTime,
-                                        duration: player.duration,
-                                        bufferedUntil: player.bufferedUntil,
-                                        isPlaying: player.isPlaying,
-                                        segments: [],
-                                        onBack: onBack,
-                                        onUserInteracted: {
-                                            showControlsAndAutoHideIfNeeded(player: player, forceShow: true)
-                                        },
-                                        onTogglePlayPause: {
-                                            if player.isPlaying {
-                                                player.pause()
-                                            } else {
-                                                player.resume()
+                                            .onEnded { _ in
+                                                isSpeedBoostPressing = false
+                                                speedBoostTriggerTask?.cancel()
+                                                speedBoostTriggerTask = nil
+                                                endSpeedBoostIfNeeded(player: player)
                                             }
-                                        },
-                                        onSeek: { time in
-                                            player.seek(to: time)
-                                            showControlsAndAutoHideIfNeeded(player: player, forceShow: true)
-                                        },
-                                        onFullscreen: {
-                                            // TODO: implement fullscreen logic later
-                                        }
                                     )
-                                }
-                                .overlay(alignment: .top) {
-                                    if isSpeedBoostActive {
-                                        Text(formatSpeedBoostLabel(speedBoostMultiplier))
-                                            .font(.system(size: 12, weight: .semibold, design: .rounded))
-                                            .foregroundStyle(.primary)
-                                            .padding(.horizontal, 12)
-                                            .padding(.vertical, 6)
-                                            .glassEffect(.regular, in: .capsule)
-                                            .padding(.top, 12)
-                                            .transition(.opacity)
+                                    .overlay {
+                                        PlayerControlsOverlay(
+                                            showDebugPanel: $showDebugPanel,
+                                            isVisible: controlsVisible,
+                                            currentTime: player.currentTime,
+                                            duration: player.duration,
+                                            bufferedUntil: player.bufferedUntil,
+                                            isPlaying: player.isPlaying,
+                                            segments: [],
+                                            onBack: onBack,
+                                            onUserInteracted: {
+                                                showControlsAndAutoHideIfNeeded(player: player, forceShow: true)
+                                            },
+                                            onTogglePlayPause: {
+                                                if player.isPlaying {
+                                                    player.pause()
+                                                } else {
+                                                    player.resume()
+                                                }
+                                            },
+                                            onSeek: { time in
+                                                player.seek(to: time)
+                                                showControlsAndAutoHideIfNeeded(player: player, forceShow: true)
+                                            },
+                                            onFullscreen: {
+                                                // TODO: implement fullscreen logic later
+                                            }
+                                        )
                                     }
-                                }
-                                .onAppear {
-                                    // 初次进入时给用户一个可发现的控制层
-                                    showControlsAndAutoHideIfNeeded(player: player, forceShow: true)
-                                }
-                                .onChange(of: player.isPlaying) { _, isPlaying in
-                                    showControlsAndAutoHideIfNeeded(player: player)
-#if canImport(UIKit)
-                                    setIdleTimerDisabled(isPlaying)
-#endif
-                                    if !isPlaying, isPlaybackEnded(player: player) {
-                                        player.pause()
+                                    .overlay(alignment: .top) {
+                                        if isSpeedBoostActive {
+                                            Text(formatSpeedBoostLabel(speedBoostMultiplier))
+                                                .font(.system(size: 12, weight: .semibold, design: .rounded))
+                                                .foregroundStyle(.primary)
+                                                .padding(.horizontal, 12)
+                                                .padding(.vertical, 6)
+                                                .glassEffect(.regular, in: .capsule)
+                                                .padding(.top, 12)
+                                                .transition(.opacity)
+                                        }
                                     }
-                                }
-                                .onChange(of: showDebugPanel) { _, newValue in
-                                    if !newValue {
+                                    .onAppear {
+                                        // 初次进入时给用户一个可发现的控制层
                                         showControlsAndAutoHideIfNeeded(player: player, forceShow: true)
-                                    } else {
-                                        controlsVisible = true
-                                        hideControlsTask?.cancel()
                                     }
-                                }
-                        }
-                    } else {
-                        // 加载状态：先展示封面，保证卡片→详情的 Hero 动画有目标视图
-                        ZStack {
-                            AsyncImage(url: URL(string: video.cover)) { image in
-                                image
-                                    .resizable()
-                                    .scaledToFill()
-                            } placeholder: {
-                                Rectangle()
-                                    .fill(Color(.systemGray5))
+                                    .onChange(of: player.isPlaying) { _, isPlaying in
+                                        showControlsAndAutoHideIfNeeded(player: player)
+#if canImport(UIKit)
+                                        setIdleTimerDisabled(isPlaying)
+#endif
+                                        if !isPlaying, isPlaybackEnded(player: player) {
+                                            player.pause()
+                                        }
+                                    }
+                                    .onChange(of: showDebugPanel) { _, newValue in
+                                        if !newValue {
+                                            showControlsAndAutoHideIfNeeded(player: player, forceShow: true)
+                                        } else {
+                                            controlsVisible = true
+                                            hideControlsTask?.cancel()
+                                        }
+                                    }
                             }
-                            .frame(maxWidth: .infinity)
-                            .aspectRatio(16.0 / 9.0, contentMode: .fit)
-                            .background(Color.black)
-                            .matchedGeometryEffect(id: heroID, in: namespace)
-
-                            VStack(spacing: 12) {
-                                if bindableViewModel.isLoading {
-                                    ProgressView()
-                                        .tint(.white)
-                                } else if bindableViewModel.error != nil {
-                                    Image(systemName: "exclamationmark.triangle")
-                                        .font(.system(size: 32))
-                                        .foregroundColor(.white)
-                                } else {
-                                    ProgressView()
-                                        .tint(.white)
-                                }
-                            }
-                        }
-                    }
-
-                    // 视频信息
-                    VStack(alignment: .leading, spacing: 12) {
-                        if let detail = bindableViewModel.videoDetail {
-                            HStack(spacing: 12) {
-                                AsyncImage(url: URL(string: detail.owner.face)) { image in
+                        } else {
+                            // 加载状态：先展示封面，保证卡片→详情的 Hero 动画有目标视图
+                            ZStack {
+                                AsyncImage(url: URL(string: video.cover)) { image in
                                     image
                                         .resizable()
                                         .scaledToFill()
                                 } placeholder: {
-                                    Circle()
-                                        .fill(Color.gray)
+                                    Rectangle()
+                                        .fill(Color(.systemGray5))
                                 }
-                                .frame(width: 40, height: 40)
-                                .clipShape(Circle())
+                                .frame(maxWidth: .infinity)
+                                .aspectRatio(16.0 / 9.0, contentMode: .fit)
+                                .background(Color.black)
+                                .matchedGeometryEffect(id: heroID, in: namespace)
 
-                                VStack(alignment: .leading, spacing: 2) {
-                                    Text(detail.owner.name)
-                                        .font(.subheadline)
-                                        .foregroundColor(.primary)
-                                    if let follower = bindableViewModel.ownerFollowerCount,
-                                       let archiveCount = bindableViewModel.ownerArchiveCount
-                                    {
-                                        Text("\(formatCount(follower))粉丝 \(archiveCount)视频")
-                                            .font(.caption)
-                                            .foregroundColor(.secondary)
+                                VStack(spacing: 12) {
+                                    if bindableViewModel.isLoading {
+                                        ProgressView()
+                                            .tint(.white)
+                                    } else if bindableViewModel.error != nil {
+                                        Image(systemName: "exclamationmark.triangle")
+                                            .font(.system(size: 32))
+                                            .foregroundColor(.white)
                                     } else {
-                                        Text("—粉丝 —视频")
-                                            .font(.caption)
-                                            .foregroundColor(.secondary)
+                                        ProgressView()
+                                            .tint(.white)
                                     }
                                 }
-
-                                Spacer()
                             }
-                            // 视频标题
-                            Text(video.title)
-                                .font(.headline)
-                                .lineLimit(2)
-                                .foregroundColor(.primary)
+                        }
+
+                        // 视频信息
+                        VStack(alignment: .leading, spacing: 12) {
+                            if let detail = bindableViewModel.videoDetail {
+                                HStack(spacing: 12) {
+                                    AsyncImage(url: URL(string: detail.owner.face)) { image in
+                                        image
+                                            .resizable()
+                                            .scaledToFill()
+                                    } placeholder: {
+                                        Circle()
+                                            .fill(Color.gray)
+                                    }
+                                    .frame(width: 40, height: 40)
+                                    .clipShape(Circle())
+
+                                    VStack(alignment: .leading, spacing: 2) {
+                                        Text(detail.owner.name)
+                                            .font(.subheadline)
+                                            .foregroundColor(.primary)
+                                        if let follower = bindableViewModel.ownerFollowerCount,
+                                           let archiveCount = bindableViewModel.ownerArchiveCount
+                                        {
+                                            Text("\(formatCount(follower))粉丝 \(archiveCount)视频")
+                                                .font(.caption)
+                                                .foregroundColor(.secondary)
+                                        } else {
+                                            Text("—粉丝 —视频")
+                                                .font(.caption)
+                                                .foregroundColor(.secondary)
+                                        }
+                                    }
+
+                                    Spacer()
+                                }
+                                // 视频标题
+                                Text(video.title)
+                                    .font(.headline)
+                                    .lineLimit(2)
+                                    .foregroundColor(.primary)
+                                    .contentShape(Rectangle())
+                                    .onTapGesture {
+                                        withAnimation(.easeInOut(duration: 0.18)) {
+                                            isVideoDetailExpanded.toggle()
+                                        }
+                                    }
+
+                                // 视频数据
+                                HStack(spacing: 10) {
+                                    Label(formatCount(detail.stat.view), systemImage: "play.fill")
+                                    Label(formatCount(detail.stat.danmaku), systemImage: "text.bubble.fill")
+                                    Text(formatTimestamp(TimeInterval(detail.pubdate)))
+                                    if let online = bindableViewModel.playerInfo?.onlineCount,
+                                       online > 0,
+                                       Date().timeIntervalSince1970 >= TimeInterval(detail.pubdate)
+                                    {
+                                        Label("\(formatCount(online))人在看", systemImage: "person.2.fill")
+                                    }
+                                }
+                                .font(.system(size: 11))
+                                .foregroundStyle(.secondary)
                                 .contentShape(Rectangle())
                                 .onTapGesture {
                                     withAnimation(.easeInOut(duration: 0.18)) {
@@ -246,218 +264,205 @@ struct VideoDetailPage: View {
                                     }
                                 }
 
-                            // 视频数据
-                            HStack(spacing: 10) {
-                                Label(formatCount(detail.stat.view), systemImage: "play.fill")
-                                Label(formatCount(detail.stat.danmaku), systemImage: "text.bubble.fill")
-                                Text(formatTimestamp(TimeInterval(detail.pubdate)))
-                                if let online = bindableViewModel.playerInfo?.onlineCount,
-                                   online > 0,
-                                   Date().timeIntervalSince1970 >= TimeInterval(detail.pubdate)
-                                {
-                                    Label("\(formatCount(online))人在看", systemImage: "person.2.fill")
-                                }
-                            }
-                            .font(.system(size: 11))
-                            .foregroundStyle(.secondary)
-                            .contentShape(Rectangle())
-                            .onTapGesture {
-                                withAnimation(.easeInOut(duration: 0.18)) {
-                                    isVideoDetailExpanded.toggle()
-                                }
-                            }
-
-                            // 视频详情（默认折叠；点击标题或视频数据展开/收起）
-                            if isVideoDetailExpanded {
-                                VStack(alignment: .leading, spacing: 12) {
-                                    Text(detail.bvid)
-                                        .font(.system(.subheadline, design: .monospaced))
-                                        .foregroundStyle(.secondary)
-                                        .frame(maxWidth: .infinity, alignment: .leading)
-                                        .contentShape(Rectangle())
-                                        .onLongPressGesture {
-#if canImport(UIKit)
-                                            UIPasteboard.general.string = detail.bvid
-#endif
-                                        }
-
-                                    if !detail.desc.isEmpty {
-                                        Text(detail.desc)
-                                            .font(.footnote)
+                                // 视频详情（默认折叠；点击标题或视频数据展开/收起）
+                                if isVideoDetailExpanded {
+                                    VStack(alignment: .leading, spacing: 12) {
+                                        Text(detail.bvid)
+                                            .font(.system(.subheadline, design: .monospaced))
                                             .foregroundStyle(.secondary)
                                             .frame(maxWidth: .infinity, alignment: .leading)
-                                            .fixedSize(horizontal: false, vertical: true)
-                                    }
-                                }
-                                .padding(.top, 4)
-                                .transition(.opacity.combined(with: .move(edge: .top)))
-                            }
+                                            .contentShape(Rectangle())
+                                            .onLongPressGesture {
+#if canImport(UIKit)
+                                                UIPasteboard.general.string = detail.bvid
+#endif
+                                            }
 
-                            // 操作栏（点赞/点踩/投币/收藏/转发/稍后再看）
-                            VideoActionBar(
-                                isLiked: bindableViewModel.isLiked,
-                                isDisliked: bindableViewModel.isDisliked,
-                                isCoined: bindableViewModel.isCoined,
-                                isFavorited: bindableViewModel.isFavorited,
-                                likeCount: bindableViewModel.likeCount,
-                                coinCount: bindableViewModel.coinCount,
-                                favoriteCount: bindableViewModel.favoriteCount,
-                                shareCount: detail.stat.share,
-                                isLikeRequesting: bindableViewModel.isLikeRequesting,
-                                isDislikeRequesting: bindableViewModel.isDislikeRequesting,
-                                isCoinRequesting: bindableViewModel.isCoinRequesting,
-                                isFavoriteRequesting: bindableViewModel.isFavoriteRequesting,
-                                onToggleLike: {
-                                    withAnimation(.easeInOut(duration: 0.15)) {
-                                        bindableViewModel.toggleLike()
-                                    }
-                                },
-                                onToggleDislike: {
-                                    withAnimation(.easeInOut(duration: 0.15)) {
-                                        bindableViewModel.toggleDislike()
-                                    }
-                                },
-                                onToggleCoin: {
-                                    guard !bindableViewModel.isCoined else { return }
-                                    isCoinPickerPresented = true
-                                },
-                                onToggleFavorite: {
-                                    isFavoriteSheetPresented = true
-                                },
-                                onShare: {
-                                    // TODO: add share logic later
-                                },
-                                onLaterWatch: {}
-                            )
-                            .padding(.top, 4)
-
-                            // 推荐视频
-                            if bindableViewModel.relatedIsLoading
-                                || bindableViewModel.relatedError != nil
-                                || !bindableViewModel.relatedVideos.isEmpty
-                            {
-                                Divider()
-                                    .padding(.top, 10)
-
-                                HStack(spacing: 10) {
-                                    Text("推荐视频")
-                                        .font(.headline)
-                                        .foregroundStyle(.primary)
-
-                                    if bindableViewModel.relatedIsLoading {
-                                        ProgressView()
-                                            .controlSize(.small)
-                                    }
-
-                                    Spacer()
-                                }
-                                .padding(.top, 6)
-
-                                if let error = bindableViewModel.relatedError,
-                                   !bindableViewModel.relatedIsLoading,
-                                   bindableViewModel.relatedVideos.isEmpty
-                                {
-                                    Text(error)
-                                        .font(.footnote)
-                                        .foregroundStyle(.secondary)
-                                        .padding(.top, 4)
-                                } else {
-                                    LazyVStack(spacing: 12) {
-                                        ForEach(bindableViewModel.relatedVideos.prefix(40)) { item in
-                                            VideoCardSingleView(
-                                                video: item,
-                                                namespace: namespace,
-                                                onTap: { selectedRelatedVideo = item }
-                                            )
+                                        if !detail.desc.isEmpty {
+                                            Text(detail.desc)
+                                                .font(.footnote)
+                                                .foregroundStyle(.secondary)
+                                                .frame(maxWidth: .infinity, alignment: .leading)
+                                                .fixedSize(horizontal: false, vertical: true)
                                         }
                                     }
-                                    .padding(.top, 8)
+                                    .padding(.top, 4)
+                                    .transition(.opacity.combined(with: .move(edge: .top)))
+                                }
+
+                                // 操作栏（点赞/点踩/投币/收藏/转发/稍后再看）
+                                VideoActionBar(
+                                    isLiked: bindableViewModel.isLiked,
+                                    isDisliked: bindableViewModel.isDisliked,
+                                    isCoined: bindableViewModel.isCoined,
+                                    isFavorited: bindableViewModel.isFavorited,
+                                    likeCount: bindableViewModel.likeCount,
+                                    coinCount: bindableViewModel.coinCount,
+                                    favoriteCount: bindableViewModel.favoriteCount,
+                                    shareCount: detail.stat.share,
+                                    isLikeRequesting: bindableViewModel.isLikeRequesting,
+                                    isDislikeRequesting: bindableViewModel.isDislikeRequesting,
+                                    isCoinRequesting: bindableViewModel.isCoinRequesting,
+                                    isFavoriteRequesting: bindableViewModel.isFavoriteRequesting,
+                                    onToggleLike: {
+                                        withAnimation(.easeInOut(duration: 0.15)) {
+                                            bindableViewModel.toggleLike()
+                                        }
+                                    },
+                                    onToggleDislike: {
+                                        withAnimation(.easeInOut(duration: 0.15)) {
+                                            bindableViewModel.toggleDislike()
+                                        }
+                                    },
+                                    onToggleCoin: {
+                                        guard !bindableViewModel.isCoined else { return }
+                                        isCoinPickerPresented = true
+                                    },
+                                    onToggleFavorite: {
+                                        isFavoriteSheetPresented = true
+                                    },
+                                    onShare: {
+                                        // TODO: add share logic later
+                                    },
+                                    onLaterWatch: {}
+                                )
+                                .padding(.top, 4)
+
+                                // 推荐视频
+                                if bindableViewModel.relatedIsLoading
+                                    || bindableViewModel.relatedError != nil
+                                    || !bindableViewModel.relatedVideos.isEmpty
+                                {
+                                    Divider()
+                                        .padding(.top, 10)
+
+                                    HStack(spacing: 10) {
+                                        Text("推荐视频")
+                                            .font(.headline)
+                                            .foregroundStyle(.primary)
+
+                                        if bindableViewModel.relatedIsLoading {
+                                            ProgressView()
+                                                .controlSize(.small)
+                                        }
+
+                                        Spacer()
+                                    }
+                                    .padding(.top, 6)
+
+                                    if let error = bindableViewModel.relatedError,
+                                       !bindableViewModel.relatedIsLoading,
+                                       bindableViewModel.relatedVideos.isEmpty
+                                    {
+                                        Text(error)
+                                            .font(.footnote)
+                                            .foregroundStyle(.secondary)
+                                            .padding(.top, 4)
+                                    } else {
+                                        LazyVStack(spacing: 12) {
+                                            ForEach(bindableViewModel.relatedVideos.prefix(40)) { item in
+                                                VideoCardSingleView(
+                                                    video: item,
+                                                    namespace: namespace,
+                                                    onTap: { selectedRelatedVideo = item }
+                                                )
+                                            }
+                                        }
+                                        .padding(.top, 8)
+                                    }
                                 }
                             }
                         }
+                        .padding(16)
+                        .background(Color(.systemBackground))
                     }
-                    .padding(16)
-                    .background(Color(.systemBackground))
+                    .frame(maxWidth: .infinity, alignment: .top)
                 }
-                .frame(maxWidth: .infinity, alignment: .top)
-            }
-            .background(Color(.systemBackground))
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-            .confirmationDialog(
-                "投币",
-                isPresented: $isCoinPickerPresented,
-                titleVisibility: .visible
-            ) {
-                Button("投 1 枚") {
-                    Task { await bindableViewModel.coin(multiply: 1) }
+                // .background(Color(.systemBackground))
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+                .confirmationDialog(
+                    "投币",
+                    isPresented: $isCoinPickerPresented,
+                    titleVisibility: .visible
+                ) {
+                    Button("投 1 枚") {
+                        Task { await bindableViewModel.coin(multiply: 1) }
+                    }
+                    Button("投 2 枚") {
+                        Task { await bindableViewModel.coin(multiply: 2) }
+                    }
+                    Button("取消", role: .cancel) {}
                 }
-                Button("投 2 枚") {
-                    Task { await bindableViewModel.coin(multiply: 2) }
-                }
-                Button("取消", role: .cancel) {}
-            }
-            .sheet(isPresented: $isFavoriteSheetPresented) {
-                FavoriteFolderSheet(
-                    folders: $favoriteFolders,
-                    selectedIds: $favoriteSelectedIds,
-                    initiallySelectedIds: $favoriteInitiallySelectedIds,
-                    isLoading: $favoriteIsLoading,
-                    onDismiss: { isFavoriteSheetPresented = false },
-                    onConfirm: {
-                        let addIds = favoriteSelectedIds.subtracting(favoriteInitiallySelectedIds)
-                        let delIds = favoriteInitiallySelectedIds.subtracting(favoriteSelectedIds)
+                .sheet(isPresented: $isFavoriteSheetPresented) {
+                    FavoriteFolderSheet(
+                        folders: $favoriteFolders,
+                        selectedIds: $favoriteSelectedIds,
+                        initiallySelectedIds: $favoriteInitiallySelectedIds,
+                        isLoading: $favoriteIsLoading,
+                        onDismiss: { isFavoriteSheetPresented = false },
+                        onConfirm: {
+                            let addIds = favoriteSelectedIds.subtracting(favoriteInitiallySelectedIds)
+                            let delIds = favoriteInitiallySelectedIds.subtracting(favoriteSelectedIds)
 
-                        Task {
-                            await bindableViewModel.applyFavoriteSelection(
-                                addMediaIds: Array(addIds),
-                                delMediaIds: Array(delIds),
-                                finalSelectedIds: favoriteSelectedIds
-                            )
-                            isFavoriteSheetPresented = false
-                        }
-                    },
-                    onLoad: {
-                        guard !favoriteIsLoading else { return }
-                        favoriteIsLoading = true
-                        Task {
-                            do {
-                                let folders = try await bindableViewModel.fetchFavoriteFoldersForCurrentUser()
-                                await MainActor.run {
-                                    favoriteFolders = folders
-                                    let preselected = Set(
-                                        folders.filter { $0.isSelectedInitially }.map(\.id)
-                                    )
-                                    favoriteInitiallySelectedIds = preselected
-                                    favoriteSelectedIds = preselected
-                                    favoriteIsLoading = false
-                                }
-                            } catch {
-                                await MainActor.run {
-                                    favoriteFolders = []
-                                    favoriteInitiallySelectedIds = []
-                                    favoriteSelectedIds = []
-                                    favoriteIsLoading = false
+                            Task {
+                                await bindableViewModel.applyFavoriteSelection(
+                                    addMediaIds: Array(addIds),
+                                    delMediaIds: Array(delIds),
+                                    finalSelectedIds: favoriteSelectedIds
+                                )
+                                isFavoriteSheetPresented = false
+                            }
+                        },
+                        onLoad: {
+                            guard !favoriteIsLoading else { return }
+                            favoriteIsLoading = true
+                            Task {
+                                do {
+                                    let folders = try await bindableViewModel.fetchFavoriteFoldersForCurrentUser()
+                                    await MainActor.run {
+                                        favoriteFolders = folders
+                                        let preselected = Set(
+                                            folders.filter { $0.isSelectedInitially }.map(\.id)
+                                        )
+                                        favoriteInitiallySelectedIds = preselected
+                                        favoriteSelectedIds = preselected
+                                        favoriteIsLoading = false
+                                    }
+                                } catch {
+                                    await MainActor.run {
+                                        favoriteFolders = []
+                                        favoriteInitiallySelectedIds = []
+                                        favoriteSelectedIds = []
+                                        favoriteIsLoading = false
+                                    }
                                 }
                             }
                         }
-                    }
-                )
-                .presentationDetents([.medium, .large])
-            }
+                    )
+                    .presentationDetents([.medium, .large])
+                }
 
-            // 调试信息面板
-            if showDebugPanel, let stream = bindableViewModel.dashStream {
-                DashStreamDebugPanel(
-                    stream: stream,
-                    player: bindableViewModel.player,
-                    onDismiss: { showDebugPanel = false }
-                )
+                // 调试信息面板
+                if showDebugPanel, let stream = bindableViewModel.dashStream {
+                    DashStreamDebugPanel(
+                        stream: stream,
+                        player: bindableViewModel.player,
+                        onDismiss: { showDebugPanel = false }
+                    )
+                }
+            }
+            .overlay(alignment: .top) {
+                Color.black
+                    .frame(height: geo.safeAreaInsets.top)
+                    .frame(maxWidth: .infinity)
+                    .ignoresSafeArea(edges: .top)
+                    .allowsHitTesting(false)
             }
         }
         .onAppear {
-    #if canImport(UIKit)
+#if canImport(UIKit)
             setIdleTimerDisabled(bindableViewModel.player?.isPlaying == true)
-    #endif
+#endif
         }
         .task {
             await bindableViewModel.loadVideoData()
