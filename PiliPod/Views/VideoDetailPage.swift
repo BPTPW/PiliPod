@@ -565,7 +565,7 @@ private struct VideoActionButton: View {
                 ZStack {
                     RoundedRectangle(cornerRadius: 22, style: .continuous)
                         .fill(isActive ? Color("BiliPink") : Color.white.opacity(0))
-                        //.animation(.smooth(duration: 0.25), value: isActive)
+                        .animation(.smooth(duration: 0.1), value: isActive)
                     Group {
                         if let systemImage {
                             Image(systemName: systemImage)
