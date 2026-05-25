@@ -510,6 +510,8 @@ struct VideoDetailPage: View {
         }
     }
 
+    // MARK: - 显示控制条并在需要时自动隐藏
+
     private func showControlsAndAutoHideIfNeeded(player: MPVKitPlayer, forceShow: Bool = false) {
         guard !showDebugPanel else {
             controlsVisible = true
@@ -531,7 +533,7 @@ struct VideoDetailPage: View {
             do {
                 try await Task.sleep(nanoseconds: 3000000000)
             } catch {
-                // Important: if cancelled, do not continue to hide controls.
+                // 重要：若被取消，请勿继续隐藏控制条
                 return
             }
             if Task.isCancelled { return }
@@ -541,10 +543,14 @@ struct VideoDetailPage: View {
         }
     }
 
+    // MARK: - 检查播放是否结束
+
     private func isPlaybackEnded(player: MPVKitPlayer) -> Bool {
         guard player.duration > 0 else { return false }
         return player.currentTime >= player.duration - 0.05
     }
+
+    // MARK: - 开始倍速播放
 
     private func beginSpeedBoostIfNeeded(player: MPVKitPlayer) {
         guard !isSpeedBoostActive else { return }
@@ -557,11 +563,15 @@ struct VideoDetailPage: View {
 #endif
     }
 
+    // MARK: - 结束倍速播放
+
     private func endSpeedBoostIfNeeded(player: MPVKitPlayer) {
         guard isSpeedBoostActive else { return }
         isSpeedBoostActive = false
         player.setPlaybackRate(1.0)
     }
+
+    // MARK: - 格式化倍速标签
 
     private func formatSpeedBoostLabel(_ rate: Double) -> String {
         if rate.rounded() == rate {
@@ -571,11 +581,15 @@ struct VideoDetailPage: View {
         return String(format: "%.1fx倍速中", rate)
     }
 
+    // MARK: - 设置空闲计时器
+
 #if canImport(UIKit)
     private func setIdleTimerDisabled(_ isDisabled: Bool) {
         UIApplication.shared.isIdleTimerDisabled = isDisabled
     }
 #endif
+
+    // MARK: - 格式化时长
 
     private func formatDuration(_ seconds: Int) -> String {
         let hours = seconds / 3600
@@ -589,6 +603,8 @@ struct VideoDetailPage: View {
         }
     }
 
+    // MARK: - 格式化计数
+
     private func formatCount(_ count: Int) -> String {
         if count >= 10000 {
             return String(
@@ -599,6 +615,8 @@ struct VideoDetailPage: View {
 
         return "\(count)"
     }
+
+    // MARK: - 格式化时间戳
 
     private func formatTimestamp(_ timestamp: TimeInterval) -> String {
         let date = Date(timeIntervalSince1970: timestamp)
@@ -689,6 +707,8 @@ private struct VideoActionBar: View {
         }
         .frame(maxWidth: .infinity)
     }
+
+    // MARK: - 格式化计数（VideoActionBar中的辅助函数）
 
     private func formatCount(_ count: Int) -> String {
         if count >= 10000 {
@@ -1013,6 +1033,8 @@ private struct PlayerControlsOverlay: View {
         .padding(.bottom, 10)
     }
 
+    // MARK: - 格式化时间（分钟:秒）
+
     private func formatMMSS(_ seconds: TimeInterval) -> String {
         guard seconds.isFinite, seconds > 0 else { return "00:00" }
         let s = Int(seconds.rounded(.down))
@@ -1223,10 +1245,14 @@ struct DashStreamDebugPanel: View {
         }
     }
 
+    // MARK: - 格式化比特率
+
     private func formatBitrate(_ bitrate: Int) -> String {
         let kbps = Double(bitrate) / 1000
         return String(format: "%.2f Kbps", kbps)
     }
+
+    // MARK: - 格式化时间
 
     private func formatTime(_ seconds: TimeInterval) -> String {
         let mins = Int(seconds) / 60
@@ -1278,9 +1304,11 @@ struct URIRow: View {
     }
 }
 
-// MARK: - Backdrop Extension
+// MARK: - 背景模糊效果扩展
 
 extension View {
+    // MARK: - 应用背景模糊效果
+    
     func backdrop() -> some View {
         background(
             .ultraThinMaterial,
