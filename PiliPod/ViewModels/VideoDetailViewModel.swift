@@ -15,6 +15,7 @@ class VideoDetailViewModel {
     var player: MPVKitPlayer?
     var isLoading = false
     var error: String?
+    var playerInfo: PlayerWbiV2Data?
 
     var relatedVideos: [VideoItem] = []
     var relatedIsLoading = false
@@ -42,6 +43,7 @@ class VideoDetailViewModel {
     var cid: Int = 0
     let title: String
     let cover: String
+    var initialSeekTime: Double?
 
     private var historyReportTimer: Timer?
     private var lastReportedProgress = 0
@@ -64,6 +66,8 @@ class VideoDetailViewModel {
     func loadVideoData() async {
         isLoading = true
         error = nil
+        playerInfo = nil
+        initialSeekTime = nil
         relatedVideos = []
         relatedIsLoading = false
         relatedError = nil
@@ -88,6 +92,37 @@ class VideoDetailViewModel {
                 self.likeCount = detail.stat.like
                 self.coinCount = detail.stat.coin
                 self.favoriteCount = detail.stat.favorite
+            }
+
+            // 获取播放器信息（用于历史记录跳转播放/在线人数等；失败不阻塞播放）
+            var playbackCid = detail.cid
+            var playerInitialSeekTime: Double?
+            do {
+                let playerInfoResponse = try await BiliAPI.shared.fetchPlayerWbiV2(
+                    bvid: bvid,
+                    cid: detail.cid
+                )
+                await MainActor.run {
+                    self.playerInfo = playerInfoResponse.data
+                    if let lastMs = playerInfoResponse.data?.lastPlayTime, lastMs > 0 {
+                        self.initialSeekTime = Double(lastMs) / 1000.0
+                    } else {
+                        self.initialSeekTime = nil
+                    }
+                }
+                if let lastCid = playerInfoResponse.data?.lastPlayCid, lastCid > 0 {
+                    playbackCid = lastCid
+                }
+                if let lastMs = playerInfoResponse.data?.lastPlayTime, lastMs > 0 {
+                    playerInitialSeekTime = Double(lastMs) / 1000.0
+                }
+            } catch {
+                print("获取播放器信息失败: \(error)")
+            }
+
+            await MainActor.run {
+                self.cid = playbackCid
+                self.initialSeekTime = playerInitialSeekTime
             }
 
             // 获取用户对该视频的操作状态（点赞/点踩/投币/收藏）
@@ -128,7 +163,7 @@ class VideoDetailViewModel {
             // 获取播放地址
             let playUrlResponse = try await BiliAPI.shared.fetchPlayUrl(
                 bvid: bvid,
-                cid: detail.cid
+                cid: playbackCid
             )
 
             // 选择最优 DASH 流（HEVC 优先）
@@ -146,12 +181,22 @@ class VideoDetailViewModel {
                 }
             }
 
+            let seekTime = await MainActor.run { self.initialSeekTime }
+
+            // 历史记录跳转播放：在播放器加载后 seek；避免未 ready 时 seek 无效
+                if let seekTo = seekTime, seekTo > 0 {
+                    try? await Task.sleep(nanoseconds: 300_000_000)
+                    await MainActor.run {
+                        self.player?.seek(to: seekTo)
+                    }
+                }
+
             // 上报播放历史（进入时）
             Task {
                 try? await BiliAPI.shared.reportHistory(
                     aid: detail.aid,
-                    cid: detail.cid,
-                    progress: 0
+                    cid: playbackCid,
+                    progress: Int(seekTime ?? 0)
                 )
             }
         } catch {

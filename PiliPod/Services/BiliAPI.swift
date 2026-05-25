@@ -589,7 +589,6 @@ class BiliAPI {
         }
 
         let (data, _) = try await URLSession.shared.data(for: request)
-        print(String(bytes: data, encoding: .utf8))
         let response = try JSONDecoder().decode(
             SimpleAPIResponse<FavoriteDealData>.self,
             from: data
@@ -627,6 +626,39 @@ class BiliAPI {
 
         let response = try JSONDecoder().decode(
             PlayUrlResponse.self,
+            from: data
+        )
+
+        if response.code != 0 {
+            throw APIError.responseError(response.code)
+        }
+
+        return response
+    }
+
+    // MARK: - 播放器信息（含历史记录与在线人数）
+
+    func fetchPlayerWbiV2(
+        bvid: String,
+        cid: Int
+    ) async throws -> PlayerWbiV2Response {
+        var components = URLComponents(
+            string: "https://api.bilibili.com/x/player/wbi/v2"
+        )
+        components?.queryItems = [
+            URLQueryItem(name: "bvid", value: bvid),
+            URLQueryItem(name: "cid", value: String(cid))
+        ]
+
+        guard let url = components?.url else {
+            throw APIError.invalidURL
+        }
+
+        let request = makeRequest(url: url)
+        let (data, _) = try await URLSession.shared.data(for: request)
+
+        let response = try JSONDecoder().decode(
+            PlayerWbiV2Response.self,
             from: data
         )
 

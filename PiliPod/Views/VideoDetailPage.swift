@@ -193,6 +193,12 @@ struct VideoDetailPage: View {
                                 Label(formatCount(detail.stat.view), systemImage: "play.fill")
                                 Label(formatCount(detail.stat.danmaku), systemImage: "text.bubble.fill")
                                 Text(formatTimestamp(TimeInterval(detail.pubdate)))
+                                if let online = bindableViewModel.playerInfo?.onlineCount,
+                                   online > 0,
+                                   Date().timeIntervalSince1970 >= TimeInterval(detail.pubdate)
+                                {
+                                    Label("\(formatCount(online))人在看", systemImage: "person.2.fill")
+                                }
                             }
                             .font(.system(size: 11))
                             .foregroundStyle(.secondary)
