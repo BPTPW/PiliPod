@@ -98,8 +98,11 @@ struct VideoDetailPage: View {
                                     // 初次进入时给用户一个可发现的控制层
                                     showControlsAndAutoHideIfNeeded(player: player, forceShow: true)
                                 }
-                                .onChange(of: player.isPlaying) { _, _ in
+                                .onChange(of: player.isPlaying) { _, isPlaying in
                                     showControlsAndAutoHideIfNeeded(player: player)
+#if canImport(UIKit)
+                                    setIdleTimerDisabled(isPlaying)
+#endif
                                 }
                                 .onChange(of: showDebugPanel) { _, newValue in
                                     if !newValue {
@@ -396,6 +399,11 @@ struct VideoDetailPage: View {
                 )
             }
         }
+        .onAppear {
+    #if canImport(UIKit)
+            setIdleTimerDisabled(bindableViewModel.player?.isPlaying == true)
+    #endif
+        }
         .task {
             await bindableViewModel.loadVideoData()
 
@@ -410,6 +418,9 @@ struct VideoDetailPage: View {
                 player.pause()
                 bindableViewModel.stopHistoryReporting(with: player)
             }
+#if canImport(UIKit)
+            setIdleTimerDisabled(false)
+#endif
         }
         .navigationBarBackButtonHidden(true)
         .toolbar(.hidden, for: .navigationBar)
@@ -464,6 +475,12 @@ struct VideoDetailPage: View {
             }
         }
     }
+
+#if canImport(UIKit)
+    private func setIdleTimerDisabled(_ isDisabled: Bool) {
+        UIApplication.shared.isIdleTimerDisabled = isDisabled
+    }
+#endif
 
     private func formatDuration(_ seconds: Int) -> String {
         let hours = seconds / 3600
