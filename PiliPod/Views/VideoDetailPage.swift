@@ -1189,7 +1189,7 @@ private struct DanmakuSettingsSheet: View {
                 .padding(.horizontal, 10)
                 .padding(.vertical, 6)
                 .background(
-                    RoundedRectangle(cornerRadius: 8, style: .continuous)
+                    RoundedRectangle(cornerRadius: 16, style: .continuous)
                         .fill(isOn.wrappedValue ? Color("BiliPink") : Color(.systemGray5))
                 )
         }
