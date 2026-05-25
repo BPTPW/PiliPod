@@ -49,7 +49,7 @@ class BiliAPI {
             forHTTPHeaderField: "User-Agent"
         )
         request.setValue("https://www.bilibili.com", forHTTPHeaderField: "Referer")
-        
+
         // cookie登录状态
         let cookie = LoginSession.shared.cookieString
         if !cookie.isEmpty {

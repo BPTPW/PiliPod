@@ -41,7 +41,6 @@ struct VideoCardView: View {
                             in: .capsule
                         )
                         .padding(6)
-                        
                 }
                 .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
                 .heroTransitionSource(id: heroID, in: namespace)

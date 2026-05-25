@@ -42,17 +42,17 @@ struct AppFeedRawItem: Codable {
     let playerArgs: AppFeedPlayerArgs?
 
     enum CodingKeys: String, CodingKey {
-        case cardType  = "card_type"
-        case cardGoto  = "card_goto"
+        case cardType = "card_type"
+        case cardGoto = "card_goto"
         case goto
         case param
         case title
         case cover
         case uri
-        case coverLeftText1  = "cover_left_text_1"
-        case coverLeftText2  = "cover_left_text_2"
-        case coverLeftText3  = "cover_left_text_3"
-        case coverRightText  = "cover_right_text"
+        case coverLeftText1 = "cover_left_text_1"
+        case coverLeftText2 = "cover_left_text_2"
+        case coverLeftText3 = "cover_left_text_3"
+        case coverRightText = "cover_right_text"
         case args
         case playerArgs = "player_args"
     }
@@ -64,7 +64,7 @@ struct AppFeedArgs: Codable {
     let aid: Int?
 
     enum CodingKeys: String, CodingKey {
-        case upId   = "up_id"
+        case upId = "up_id"
         case upName = "up_name"
         case aid
     }
@@ -85,7 +85,7 @@ enum FeedCardItem: Identifiable {
     var id: String {
         switch self {
         case .video(let model): return "video_\(model.bvid)"
-        case .live(let model):  return "live_\(model.roomId)"
+        case .live(let model): return "live_\(model.roomId)"
         }
     }
 }

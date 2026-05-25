@@ -42,4 +42,3 @@ struct FavoriteFolderItem: Codable, Identifiable, Hashable {
         case mediaCount = "media_count"
     }
 }
-

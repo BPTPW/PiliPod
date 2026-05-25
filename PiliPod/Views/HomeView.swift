@@ -58,7 +58,6 @@ struct HomeView: View {
                             Image(systemName: "bell.fill")
                                 .font(.system(size: 18))
                                 .frame(width: 40, height: 40)
-                                
                         }
                         .foregroundStyle(.primary)
                         .glassEffect(

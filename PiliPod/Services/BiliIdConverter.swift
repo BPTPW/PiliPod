@@ -7,7 +7,7 @@
 
 import Foundation
 
-final class BiliIdConverter {
+enum BiliIdConverter {
     private static let xorCode: Int64 = 23_442_827_791_579
     private static let maskCode: Int64 = 2_251_799_813_685_247
     private static let maxAid: Int64 = 1 << 51

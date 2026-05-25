@@ -20,12 +20,12 @@ class HomeViewModel {
     var sections: [VideoSection] = []
     var feedCards: [FeedCardItem] = []
     var isLoading = false
-    var userFace: String? = nil
+    var userFace: String?
     private var hasLoaded = false
 
     /// 下拉刷新时，新内容插入顶部后，此值标记了新卡片数量；
     /// HomeView 据此在"新 / 旧"内容之间绘制 DividerWithText
-    var refreshMarkerIndex: Int? = nil
+    var refreshMarkerIndex: Int?
 
     /// 当前使用的推荐 API 模式（后续由设置控制，现固定为 App 版）
     private var apiMode: RecommendAPIMode = .app

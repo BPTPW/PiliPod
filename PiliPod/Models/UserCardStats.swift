@@ -23,4 +23,3 @@ struct UserCardStatsResponse: Codable, Sendable {
     let ttl: Int?
     let data: UserCardStats?
 }
-

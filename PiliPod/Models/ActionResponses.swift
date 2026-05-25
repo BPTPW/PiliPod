@@ -25,4 +25,3 @@ struct CoinAddData: Codable {
 struct FavoriteDealData: Codable {
     let prompt: Bool?
 }
-
