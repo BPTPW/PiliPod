@@ -441,50 +441,27 @@ struct DanmakuOverlayView: View {
     private func danmakuText(_ item: DanmakuActiveItem) -> some View {
         ZStack {
             if config.strokeWidth > 0 {
-                Text(item.text)
-                    .font(
-                        .system(
-                            size: item.fontSize,
-                            weight: Font.Weight(config.uiFontWeight),
-                            design: .default
+                let s = config.strokeWidth
+                let diagonal = s * 0.70710678
+                let outlineOffsets: [(Double, Double)] = [
+                    (s, 0), (-s, 0), (0, s), (0, -s),
+                    (diagonal, diagonal), (-diagonal, diagonal),
+                    (diagonal, -diagonal), (-diagonal, -diagonal)
+                ]
+
+                ForEach(0 ..< outlineOffsets.count, id: \.self) { idx in
+                    Text(item.text)
+                        .font(
+                            .system(
+                                size: item.fontSize,
+                                weight: Font.Weight(config.uiFontWeight),
+                                design: .default
+                            )
                         )
-                    )
-                    .lineLimit(1)
-                    .foregroundStyle(.black.opacity(config.opacity))
-                    .offset(x: config.strokeWidth, y: 0)
-                Text(item.text)
-                    .font(
-                        .system(
-                            size: item.fontSize,
-                            weight: Font.Weight(config.uiFontWeight),
-                            design: .default
-                        )
-                    )
-                    .lineLimit(1)
-                    .foregroundStyle(.black.opacity(config.opacity))
-                    .offset(x: -config.strokeWidth, y: 0)
-                Text(item.text)
-                    .font(
-                        .system(
-                            size: item.fontSize,
-                            weight: Font.Weight(config.uiFontWeight),
-                            design: .default
-                        )
-                    )
-                    .lineLimit(1)
-                    .foregroundStyle(.black.opacity(config.opacity))
-                    .offset(x: 0, y: config.strokeWidth)
-                Text(item.text)
-                    .font(
-                        .system(
-                            size: item.fontSize,
-                            weight: Font.Weight(config.uiFontWeight),
-                            design: .default
-                        )
-                    )
-                    .lineLimit(1)
-                    .foregroundStyle(.black.opacity(config.opacity))
-                    .offset(x: 0, y: -config.strokeWidth)
+                        .lineLimit(1)
+                        .foregroundStyle(.black.opacity(config.opacity))
+                        .offset(x: outlineOffsets[idx].0, y: outlineOffsets[idx].1)
+                }
             }
 
             Text(item.text)
