@@ -24,6 +24,10 @@ class VideoDetailViewModel {
     var isCoined = false
     var isFavorited = false
 
+    var likeCount = 0
+    var coinCount = 0
+    var favoriteCount = 0
+
     var isLikeRequesting = false
     var isDislikeRequesting = false
     var isCoinRequesting = false
@@ -62,6 +66,9 @@ class VideoDetailViewModel {
         isDisliked = false
         isCoined = false
         isFavorited = false
+        likeCount = 0
+        coinCount = 0
+        favoriteCount = 0
 
         do {
             // 获取视频详情
@@ -71,6 +78,9 @@ class VideoDetailViewModel {
                 self.videoDetail = detail
                 self.aid = detail.aid
                 self.cid = detail.cid
+                self.likeCount = detail.stat.like
+                self.coinCount = detail.stat.coin
+                self.favoriteCount = detail.stat.favorite
             }
 
             // 获取用户对该视频的操作状态（点赞/点踩/投币/收藏）
@@ -175,9 +185,11 @@ class VideoDetailViewModel {
             )
             if wasLiked {
                 isLiked = false
+                if likeCount > 0 { likeCount -= 1 }
             } else {
                 isLiked = true
                 isDisliked = false
+                likeCount += 1
             }
         } catch {
             self.error = error.localizedDescription
@@ -217,6 +229,7 @@ class VideoDetailViewModel {
         guard !isCoinRequesting else { return }
         guard aid != 0 else { return }
         guard multiply == 1 || multiply == 2 else { return }
+        guard !isCoined else { return }
 
         isCoinRequesting = true
         do {
@@ -225,6 +238,7 @@ class VideoDetailViewModel {
                 multiply: multiply
             )
             isCoined = true
+            coinCount += multiply
         } catch {
             self.error = error.localizedDescription
         }
@@ -255,13 +269,20 @@ class VideoDetailViewModel {
         guard aid != 0 else { return }
 
         isFavoriteRequesting = true
+        let wasFavorited = isFavorited
         do {
             try await BiliAPI.shared.dealFavoriteResource(
                 rid: Int64(aid),
                 addMediaIds: addMediaIds,
                 delMediaIds: delMediaIds
             )
-            isFavorited = !finalSelectedIds.isEmpty
+            let nowFavorited = !finalSelectedIds.isEmpty
+            isFavorited = nowFavorited
+            if !wasFavorited, nowFavorited {
+                favoriteCount += 1
+            } else if wasFavorited, !nowFavorited {
+                if favoriteCount > 0 { favoriteCount -= 1 }
+            }
         } catch {
             self.error = error.localizedDescription
         }
