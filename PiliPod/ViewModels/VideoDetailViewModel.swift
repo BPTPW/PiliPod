@@ -184,12 +184,12 @@ class VideoDetailViewModel {
             let seekTime = await MainActor.run { self.initialSeekTime }
 
             // 历史记录跳转播放：在播放器加载后 seek；避免未 ready 时 seek 无效
-                if let seekTo = seekTime, seekTo > 0 {
-                    try? await Task.sleep(nanoseconds: 300_000_000)
-                    await MainActor.run {
-                        self.player?.seek(to: seekTo)
-                    }
+            if let seekTo = seekTime, seekTo > 0 {
+                try? await Task.sleep(nanoseconds: 300000000)
+                await MainActor.run {
+                    self.player?.seek(to: seekTo)
                 }
+            }
 
             // 上报播放历史（进入时）
             Task {

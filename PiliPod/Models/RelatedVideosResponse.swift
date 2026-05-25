@@ -23,4 +23,3 @@ struct RelatedVideo: Codable {
     let owner: Owner
     let stat: Stat
 }
-

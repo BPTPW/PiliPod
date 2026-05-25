@@ -1044,7 +1044,7 @@ private struct PlayerControlsOverlay: View {
     }
 }
 
-// MARK: - Progress Bar (Segment-Friendly)
+// MARK: - 视频进度条 (Segment-Friendly)
 
 private struct ProgressSegment: Identifiable, Equatable {
     let id = UUID()
@@ -1155,7 +1155,7 @@ private struct VideoProgressBar: View {
     }
 }
 
-// MARK: - Debug Info Panel for DASH Stream
+// MARK: - DASH 流详情窗口
 
 struct DashStreamDebugPanel: View {
     let stream: DashStream
@@ -1301,19 +1301,6 @@ struct URIRow: View {
                 .foregroundColor(.primary)
                 .textSelection(.enabled)
         }
-    }
-}
-
-// MARK: - 背景模糊效果扩展
-
-extension View {
-    // MARK: - 应用背景模糊效果
-    
-    func backdrop() -> some View {
-        background(
-            .ultraThinMaterial,
-            in: RoundedRectangle(cornerRadius: 8)
-        )
     }
 }
 

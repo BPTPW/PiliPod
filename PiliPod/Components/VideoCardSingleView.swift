@@ -61,7 +61,7 @@ struct VideoCardSingleView: View {
                             Text(video.uploader)
                                 .font(.system(size: 12))
                                 .foregroundStyle(.secondary)
-                            
+
                             Text(video.publishTimeText)
                                 .font(.system(size: 11))
                                 .foregroundStyle(.secondary)
