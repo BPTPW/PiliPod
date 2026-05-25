@@ -782,7 +782,7 @@ private struct VideoActionButton: View {
     }
 }
 
-// MARK: - Favorite Folder Sheet
+// MARK: - 收藏夹抽屉
 
 private struct FavoriteFolderSheet: View {
     @Binding var folders: [FavoriteFolderItem]
@@ -892,7 +892,7 @@ private struct FavoriteFolderRow: View {
     }
 }
 
-// MARK: - Player Controls Overlay
+// MARK: - 视频控制器覆盖
 
 private struct PlayerControlsOverlay: View {
     @Binding var showDebugPanel: Bool
@@ -985,10 +985,10 @@ private struct PlayerControlsOverlay: View {
             )
 
             Text("\(formatMMSS(currentTime))/\(formatMMSS(duration))")
-                .font(.system(size: 12, weight: .semibold, design: .monospaced))
+                .font(.system(size: 10, weight: .semibold, design: .monospaced))
                 .foregroundStyle(.primary)
-                .padding(.horizontal, 10)
-                .padding(.vertical, 7)
+                .padding(.horizontal, 8)
+                .padding(.vertical, 5)
                 .glassEffect(
                     .regular,
                     in: .capsule
