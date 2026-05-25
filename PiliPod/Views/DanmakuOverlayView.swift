@@ -14,7 +14,7 @@ struct DanmakuEngineConfig: Sendable, Equatable {
     var bottomRegionRatio: Double = 1.0
     var opacity: Double = 1.0
     var fontWeightValue: Int = 6
-    var strokeWidth: Double = 1.0
+    var strokeWidth: Double = 0.8
     var fontScale: Double = 1.0
     var fullscreenFontScale: Double = 1.2
     var scrollDuration: Double = 7.0
@@ -28,7 +28,7 @@ struct DanmakuEngineConfig: Sendable, Equatable {
         c.bottomRegionRatio = min(max(c.bottomRegionRatio, 0.1), 1.0)
         c.opacity = min(max(c.opacity, 0.0), 1.0)
         c.fontWeightValue = min(max(c.fontWeightValue, 1), 9)
-        c.strokeWidth = min(max(c.strokeWidth, 0.0), 5.0)
+        c.strokeWidth = min(max(c.strokeWidth, 0.0), 2.0)
         c.fontScale = min(max(c.fontScale, 0.5), 2.5)
         c.fullscreenFontScale = min(max(c.fullscreenFontScale, 0.5), 2.5)
         c.scrollDuration = min(max(c.scrollDuration, 1.0), 30.0)
@@ -201,6 +201,16 @@ final class DanmakuEngine: ObservableObject {
             tryActivate(item: item, currentTime: currentTime)
             cursor += 1
         }
+    }
+
+    func seek(to time: Double) {
+        let target = max(0, time)
+        activeItems = []
+        topLaneNextFree = Array(repeating: 0, count: topLaneCount)
+        bottomLaneNextFree = Array(repeating: 0, count: bottomLaneCount)
+        scrollLaneNextFree = Array(repeating: 0, count: scrollLaneCount)
+        cursor = items.partitioningIndex { $0.appearTime >= target }
+        tick(currentTime: target)
     }
 
     private func ensureLaneStorage() {
@@ -388,10 +398,11 @@ struct DanmakuOverlayView: View {
     let config: DanmakuEngineConfig
 
     @StateObject private var engine = DanmakuEngine()
+    @State private var lastTime: Double = 0
 
     var body: some View {
         GeometryReader { geo in
-            TimelineView(.periodic(from: .now, by: 1.0 / 30.0)) { _ in
+            TimelineView(.periodic(from: .now, by: 1.0 / 60.0)) { _ in
                 ZStack(alignment: .topLeading) {
                     ForEach(engine.activeItems) { item in
                         danmakuText(item)
@@ -419,7 +430,12 @@ struct DanmakuOverlayView: View {
                     engine.updateLayout(width: newSize.width, height: newSize.height)
                 }
                 .onChange(of: currentTime) { _, newValue in
-                    engine.tick(currentTime: newValue)
+                    if newValue + 0.2 < lastTime {
+                        engine.seek(to: newValue)
+                    } else {
+                        engine.tick(currentTime: newValue)
+                    }
+                    lastTime = newValue
                 }
             }
         }
@@ -475,6 +491,22 @@ struct DanmakuOverlayView: View {
                 .lineLimit(1)
                 .foregroundStyle(item.color.opacity(config.opacity))
         }
+    }
+}
+
+private extension Array {
+    func partitioningIndex(where predicate: (Element) -> Bool) -> Int {
+        var low = 0
+        var high = count
+        while low < high {
+            let mid = (low + high) / 2
+            if predicate(self[mid]) {
+                high = mid
+            } else {
+                low = mid + 1
+            }
+        }
+        return low
     }
 }
 

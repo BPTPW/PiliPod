@@ -1006,8 +1006,8 @@ private struct DanmakuSettingsSheet: View {
                     ) {
                         steppedSlider(
                             value: $config.strokeWidth,
-                            range: 0 ... 5,
-                            step: 0.5
+                            range: 0 ... 2,
+                            step: 0.1
                         )
                     }
 
