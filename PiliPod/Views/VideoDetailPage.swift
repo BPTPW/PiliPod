@@ -1281,6 +1281,7 @@ private struct PlayerControlsOverlay: View {
                 onShowDanmakuSettings()
             }) {
                 Image("DanmakuSetting")
+                    .renderingMode(.template)
                     .resizable()
                     .scaledToFit()
                     .frame(width: 16, height: 16)
