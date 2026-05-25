@@ -7,6 +7,7 @@
 
 import CryptoKit
 import Foundation
+import SwiftProtobuf
 
 class BiliAPI {
     static let shared = BiliAPI()
@@ -703,6 +704,43 @@ class BiliAPI {
         else {
             throw APIError.requestFailed
         }
+    }
+
+    // MARK: - 获取视频弹幕分包（protobuf）
+
+    func fetchDanmakuSegment(
+        cid: Int,
+        segmentIndex: Int = 1
+    ) async throws -> Bilibili_Community_Service_Dm_V1_DmSegMobileReply {
+        var components = URLComponents(
+            string: "https://api.bilibili.com/x/v2/dm/web/seg.so"
+        )
+        components?.queryItems = [
+            URLQueryItem(name: "type", value: "1"),
+            URLQueryItem(name: "oid", value: String(cid)),
+            URLQueryItem(name: "segment_index", value: String(segmentIndex))
+        ]
+
+        guard let url = components?.url else {
+            throw APIError.invalidURL
+        }
+
+        var request = makeRequest(url: url)
+        request.setValue("https://www.bilibili.com", forHTTPHeaderField: "Referer")
+        request.setValue(
+            "Mozilla/5.0 (iPhone; CPU iPhone OS 18_2 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.2 Mobile/15E148 Safari/604.1",
+            forHTTPHeaderField: "User-Agent"
+        )
+
+        let (data, response) = try await URLSession.shared.data(for: request)
+
+        guard let httpResponse = response as? HTTPURLResponse,
+              (200 ... 299).contains(httpResponse.statusCode)
+        else {
+            throw APIError.requestFailed
+        }
+
+        return try Bilibili_Community_Service_Dm_V1_DmSegMobileReply(serializedBytes: data)
     }
 }
 

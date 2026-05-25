@@ -23,6 +23,10 @@ class VideoDetailViewModel {
 
     var ownerFollowerCount: Int?
     var ownerArchiveCount: Int?
+    var danmakuSegmentIndex = 1
+    var danmakuElements: [Bilibili_Community_Service_Dm_V1_DanmakuElem] = []
+    var danmakuIsLoading = false
+    var danmakuError: String?
 
     var isLiked = false
     var isDisliked = false
@@ -73,6 +77,10 @@ class VideoDetailViewModel {
         relatedError = nil
         ownerFollowerCount = nil
         ownerArchiveCount = nil
+        danmakuSegmentIndex = 1
+        danmakuElements = []
+        danmakuIsLoading = false
+        danmakuError = nil
         isLiked = false
         isDisliked = false
         isCoined = false
@@ -123,6 +131,11 @@ class VideoDetailViewModel {
             await MainActor.run {
                 self.cid = playbackCid
                 self.initialSeekTime = playerInitialSeekTime
+            }
+
+            // 先加载第一包弹幕，供后续渲染层接入
+            Task {
+                await loadDanmakuSegment(cid: playbackCid, segmentIndex: 1)
             }
 
             // 获取用户对该视频的操作状态（点赞/点踩/投币/收藏）
@@ -224,6 +237,34 @@ class VideoDetailViewModel {
         }
 
         relatedIsLoading = false
+    }
+
+    @MainActor
+    func loadDanmakuSegment(cid: Int? = nil, segmentIndex: Int = 1) async {
+        let targetCid = cid ?? self.cid
+        guard targetCid > 0 else {
+            danmakuError = "无效的 cid"
+            danmakuElements = []
+            return
+        }
+        guard !danmakuIsLoading else { return }
+
+        danmakuIsLoading = true
+        danmakuError = nil
+        danmakuSegmentIndex = segmentIndex
+
+        do {
+            let reply = try await BiliAPI.shared.fetchDanmakuSegment(
+                cid: targetCid,
+                segmentIndex: segmentIndex
+            )
+            danmakuElements = reply.elems
+        } catch {
+            danmakuElements = []
+            danmakuError = error.localizedDescription
+        }
+
+        danmakuIsLoading = false
     }
 
     // MARK: - Actions (UI Only)
