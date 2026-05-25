@@ -28,6 +28,9 @@ struct VideoDetailPage: View {
     @State private var speedBoostMultiplier: Double = 2.0
     @State private var isSpeedBoostPressing = false
     @State private var speedBoostTriggerTask: Task<Void, Never>?
+    @State private var danmakuConfig = DanmakuConfigStore.load()
+    @State private var isDanmakuSettingsPresented = false
+    @State private var lastDanmakuPrefetchSegment = 0
 
     let video: VideoItem
     let namespace: Namespace.ID
@@ -103,8 +106,19 @@ struct VideoDetailPage: View {
                                             }
                                     )
                                     .overlay {
+                                        DanmakuOverlayView(
+                                            currentTime: player.currentTime,
+                                            isPlaying: player.isPlaying,
+                                            elements: bindableViewModel.danmakuElements,
+                                            config: danmakuConfig
+                                        )
+                                    }
+                                    .overlay {
                                         PlayerControlsOverlay(
                                             showDebugPanel: $showDebugPanel,
+                                            onShowDanmakuSettings: {
+                                                isDanmakuSettingsPresented = true
+                                            },
                                             isVisible: controlsVisible,
                                             currentTime: player.currentTime,
                                             duration: player.duration,
@@ -124,6 +138,9 @@ struct VideoDetailPage: View {
                                             },
                                             onSeek: { time in
                                                 player.seek(to: time)
+                                                Task {
+                                                    await bindableViewModel.preloadDanmakuIfNeeded(currentTime: time)
+                                                }
                                                 showControlsAndAutoHideIfNeeded(player: player, forceShow: true)
                                             },
                                             onFullscreen: {
@@ -140,7 +157,7 @@ struct VideoDetailPage: View {
                                                 .padding(.vertical, 6)
                                                 .glassEffect(.regular, in: .capsule)
                                                 .padding(.top, 12)
-                                                .transition(.opacity)
+                                            .transition(.opacity)
                                         }
                                     }
                                     .onAppear {
@@ -154,6 +171,14 @@ struct VideoDetailPage: View {
 #endif
                                         if !isPlaying, isPlaybackEnded(player: player) {
                                             player.pause()
+                                        }
+                                    }
+                                    .onChange(of: player.currentTime) { _, newTime in
+                                        let segment = max(1, Int(newTime / 360.0) + 1)
+                                        guard segment != lastDanmakuPrefetchSegment else { return }
+                                        lastDanmakuPrefetchSegment = segment
+                                        Task {
+                                            await bindableViewModel.preloadDanmakuIfNeeded(currentTime: newTime)
                                         }
                                     }
                                     .onChange(of: showDebugPanel) { _, newValue in
@@ -219,11 +244,11 @@ struct VideoDetailPage: View {
                                         if let follower = bindableViewModel.ownerFollowerCount,
                                            let archiveCount = bindableViewModel.ownerArchiveCount
                                         {
-                                            Text("\(formatCount(follower))粉丝 \(archiveCount)视频")
+                                            Text("\(formatCount(follower))粉丝  \(archiveCount)视频")
                                                 .font(.caption)
                                                 .foregroundColor(.secondary)
                                         } else {
-                                            Text("—粉丝 —视频")
+                                            Text("—粉丝  —视频")
                                                 .font(.caption)
                                                 .foregroundColor(.secondary)
                                         }
@@ -441,6 +466,13 @@ struct VideoDetailPage: View {
                     )
                     .presentationDetents([.medium, .large])
                 }
+                .sheet(isPresented: $isDanmakuSettingsPresented) {
+                    DanmakuSettingsSheet(
+                        config: $danmakuConfig,
+                        onClose: { isDanmakuSettingsPresented = false }
+                    )
+                    .presentationDetents([.medium, .large])
+                }
 
                 // 调试信息面板
                 if showDebugPanel, let stream = bindableViewModel.dashStream {
@@ -460,11 +492,17 @@ struct VideoDetailPage: View {
             }
         }
         .onAppear {
+            danmakuConfig = DanmakuConfigStore.load()
 #if canImport(UIKit)
             setIdleTimerDisabled(bindableViewModel.player?.isPlaying == true)
 #endif
         }
+        .onChange(of: danmakuConfig) { _, newValue in
+            danmakuConfig = newValue.clamped()
+            DanmakuConfigStore.save(danmakuConfig)
+        }
         .task {
+            lastDanmakuPrefetchSegment = 0
             await bindableViewModel.loadVideoData()
 
             // 加载完成后启动历史上报
@@ -878,6 +916,280 @@ private struct FavoriteFolderSheet: View {
     }
 }
 
+// MARK: - 弹幕设置抽屉
+
+private struct DanmakuSettingsSheet: View {
+    @Binding var config: DanmakuEngineConfig
+    let onClose: () -> Void
+
+    private let defaultConfig = DanmakuEngineConfig()
+
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 16) {
+                    sliderSection(
+                        title: "屏蔽等级",
+                        valueText: "\(config.blockLevel)",
+                        onReset: { config.blockLevel = defaultConfig.blockLevel }
+                    ) {
+                        steppedSlider(
+                            value: Binding(
+                                get: { Double(config.blockLevel) },
+                                set: { config.blockLevel = Int($0) }
+                            ),
+                            range: 0 ... 10,
+                            step: 1
+                        )
+                    }
+
+                    blockTypeSection
+
+                    otherSection
+
+                    sliderSection(
+                        title: "显示区域",
+                        valueText: "\(Int((config.topRegionRatio * 100).rounded()))%",
+                        onReset: {
+                            config.topRegionRatio = defaultConfig.topRegionRatio
+                            config.bottomRegionRatio = defaultConfig.bottomRegionRatio
+                        }
+                    ) {
+                        steppedSlider(
+                            value: Binding(
+                                get: { config.topRegionRatio * 100 },
+                                set: {
+                                    let ratio = $0 / 100
+                                    config.topRegionRatio = ratio
+                                    config.bottomRegionRatio = ratio
+                                }
+                            ),
+                            range: 10 ... 100,
+                            step: 10
+                        )
+                    }
+
+                    sliderSection(
+                        title: "不透明度",
+                        valueText: "\(Int((config.opacity * 100).rounded()))%",
+                        onReset: { config.opacity = defaultConfig.opacity }
+                    ) {
+                        steppedSlider(
+                            value: Binding(
+                                get: { config.opacity * 100 },
+                                set: { config.opacity = $0 / 100 }
+                            ),
+                            range: 0 ... 100,
+                            step: 10
+                        )
+                    }
+
+                    sliderSection(
+                        title: "字体粗细",
+                        valueText: "\(config.fontWeightValue)",
+                        onReset: { config.fontWeightValue = defaultConfig.fontWeightValue }
+                    ) {
+                        steppedSlider(
+                            value: Binding(
+                                get: { Double(config.fontWeightValue) },
+                                set: { config.fontWeightValue = Int($0) }
+                            ),
+                            range: 1 ... 9,
+                            step: 1
+                        )
+                    }
+
+                    sliderSection(
+                        title: "描边粗细",
+                        valueText: String(format: "%.1f", config.strokeWidth),
+                        onReset: { config.strokeWidth = defaultConfig.strokeWidth }
+                    ) {
+                        steppedSlider(
+                            value: $config.strokeWidth,
+                            range: 0 ... 5,
+                            step: 0.5
+                        )
+                    }
+
+                    sliderSection(
+                        title: "字体大小",
+                        valueText: "\(Int((config.fontScale * 100).rounded()))%",
+                        onReset: { config.fontScale = defaultConfig.fontScale }
+                    ) {
+                        steppedSlider(
+                            value: Binding(
+                                get: { config.fontScale * 100 },
+                                set: { config.fontScale = $0 / 100 }
+                            ),
+                            range: 50 ... 250,
+                            step: 10
+                        )
+                    }
+
+                    sliderSection(
+                        title: "全屏字体大小",
+                        valueText: "\(Int((config.fullscreenFontScale * 100).rounded()))%",
+                        onReset: { config.fullscreenFontScale = defaultConfig.fullscreenFontScale }
+                    ) {
+                        steppedSlider(
+                            value: Binding(
+                                get: { config.fullscreenFontScale * 100 },
+                                set: { config.fullscreenFontScale = $0 / 100 }
+                            ),
+                            range: 50 ... 250,
+                            step: 10
+                        )
+                    }
+
+                    sliderSection(
+                        title: "滚动弹幕时长",
+                        valueText: "\(Int(config.scrollDuration.rounded()))s",
+                        onReset: { config.scrollDuration = defaultConfig.scrollDuration }
+                    ) {
+                        steppedSlider(
+                            value: $config.scrollDuration,
+                            range: 1 ... 30,
+                            step: 1
+                        )
+                    }
+
+                    sliderSection(
+                        title: "静态弹幕时长",
+                        valueText: "\(Int(config.staticDuration.rounded()))s",
+                        onReset: { config.staticDuration = defaultConfig.staticDuration }
+                    ) {
+                        steppedSlider(
+                            value: $config.staticDuration,
+                            range: 1 ... 30,
+                            step: 1
+                        )
+                    }
+
+                    sliderSection(
+                        title: "弹幕行高",
+                        valueText: String(format: "%.1f", config.lineHeightMultiplier),
+                        onReset: { config.lineHeightMultiplier = defaultConfig.lineHeightMultiplier }
+                    ) {
+                        steppedSlider(
+                            value: $config.lineHeightMultiplier,
+                            range: 1 ... 3,
+                            step: 0.1
+                        )
+                    }
+                }
+                .padding(16)
+            }
+            .navigationTitle("弹幕设置")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("保存") {
+                        onClose()
+                    }
+                }
+            }
+        }
+    }
+
+    private var blockTypeSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            titleRow(
+                "按类型屏蔽",
+                valueText: "",
+                onReset: {
+                    config.blockScroll = defaultConfig.blockScroll
+                    config.blockTop = defaultConfig.blockTop
+                    config.blockBottom = defaultConfig.blockBottom
+                    config.blockColorful = defaultConfig.blockColorful
+                }
+            )
+            HStack(spacing: 8) {
+                toggleChip("滚动", isOn: $config.blockScroll)
+                toggleChip("顶部", isOn: $config.blockTop)
+                toggleChip("底部", isOn: $config.blockBottom)
+                toggleChip("彩色", isOn: $config.blockColorful)
+            }
+        }
+    }
+
+    private var otherSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            titleRow(
+                "其他",
+                valueText: "",
+                onReset: {
+                    config.allowOverlapWhenMassive = defaultConfig.allowOverlapWhenMassive
+                    config.forceAllScroll = defaultConfig.forceAllScroll
+                }
+            )
+            HStack(spacing: 8) {
+                toggleChip("海量弹幕", isOn: $config.allowOverlapWhenMassive)
+                toggleChip("全部滚动", isOn: $config.forceAllScroll)
+                Spacer(minLength: 0)
+            }
+        }
+    }
+
+    private func sliderSection(
+        title: String,
+        valueText: String,
+        onReset: @escaping () -> Void,
+        @ViewBuilder control: () -> some View
+    ) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            titleRow(title, valueText: valueText, onReset: onReset)
+            control()
+        }
+    }
+
+    private func titleRow(_ title: String, valueText: String, onReset: @escaping () -> Void) -> some View {
+        HStack(spacing: 8) {
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title)
+                    .font(.subheadline)
+                    .foregroundStyle(.primary)
+                Text(valueText)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            Spacer()
+            Button(action: onReset) {
+                Image(systemName: "arrow.counterclockwise")
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundStyle(.primary)
+                    .frame(width: 28, height: 28)
+            }
+            .buttonStyle(.plain)
+        }
+    }
+
+    private func steppedSlider(
+        value: Binding<Double>,
+        range: ClosedRange<Double>,
+        step: Double
+    ) -> some View {
+        Slider(value: value, in: range, step: step)
+            .tint(Color("BiliPink"))
+    }
+
+    private func toggleChip(_ title: String, isOn: Binding<Bool>) -> some View {
+        Button {
+            isOn.wrappedValue.toggle()
+        } label: {
+            Text(title)
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundStyle(isOn.wrappedValue ? .white : .primary)
+                .padding(.horizontal, 10)
+                .padding(.vertical, 6)
+                .background(
+                    RoundedRectangle(cornerRadius: 8, style: .continuous)
+                        .fill(isOn.wrappedValue ? Color("BiliPink") : Color(.systemGray5))
+                )
+        }
+        .buttonStyle(.plain)
+    }
+}
+
 private struct FavoriteFolderRow: View {
     let folder: FavoriteFolderItem
     let isSelected: Bool
@@ -903,7 +1215,7 @@ private struct FavoriteFolderRow: View {
                 Spacer()
 
                 Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
-                    .foregroundStyle(isSelected ? .pink : .secondary)
+                    .foregroundStyle(isSelected ? Color("BiliPink") : .secondary)
                     .imageScale(.large)
             }
             .contentShape(Rectangle())
@@ -917,6 +1229,7 @@ private struct FavoriteFolderRow: View {
 private struct PlayerControlsOverlay: View {
     @Binding var showDebugPanel: Bool
 
+    let onShowDanmakuSettings: () -> Void
     let isVisible: Bool
     let currentTime: TimeInterval
     let duration: TimeInterval
@@ -946,6 +1259,7 @@ private struct PlayerControlsOverlay: View {
 
     private var topBar: some View {
         HStack(spacing: 12) {
+            // 左上角返回
             Button(action: {
                 onUserInteracted()
                 onBack()
@@ -962,6 +1276,23 @@ private struct PlayerControlsOverlay: View {
 
             Spacer()
 
+            Button(action: {
+                onUserInteracted()
+                onShowDanmakuSettings()
+            }) {
+                Image("DanmakuSetting")
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 16, height: 16)
+                    .foregroundColor(.primary)
+                    .frame(width: 32, height: 32)
+            }
+            .glassEffect(
+                .regular.interactive(),
+                in: .circle
+            )
+
+            // 右上角更多
             Button(action: {
                 onUserInteracted()
                 showDebugPanel.toggle()
@@ -981,6 +1312,7 @@ private struct PlayerControlsOverlay: View {
 
     private var bottomBar: some View {
         HStack(spacing: 10) {
+            // 播放暂停按钮
             Button(action: {
                 onUserInteracted()
                 onTogglePlayPause()

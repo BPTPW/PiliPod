@@ -27,6 +27,9 @@ class VideoDetailViewModel {
     var danmakuElements: [Bilibili_Community_Service_Dm_V1_DanmakuElem] = []
     var danmakuIsLoading = false
     var danmakuError: String?
+    private var loadedDanmakuSegments: Set<Int> = []
+    private var loadingDanmakuSegments: Set<Int> = []
+    private var danmakuCID: Int = 0
 
     var isLiked = false
     var isDisliked = false
@@ -81,6 +84,9 @@ class VideoDetailViewModel {
         danmakuElements = []
         danmakuIsLoading = false
         danmakuError = nil
+        loadedDanmakuSegments = []
+        loadingDanmakuSegments = []
+        danmakuCID = 0
         isLiked = false
         isDisliked = false
         isCoined = false
@@ -247,24 +253,67 @@ class VideoDetailViewModel {
             danmakuElements = []
             return
         }
-        guard !danmakuIsLoading else { return }
+
+        if danmakuCID != targetCid {
+            danmakuCID = targetCid
+            loadedDanmakuSegments = []
+            loadingDanmakuSegments = []
+            danmakuElements = []
+            danmakuSegmentIndex = 1
+        }
+        guard !loadedDanmakuSegments.contains(segmentIndex) else { return }
+        guard !loadingDanmakuSegments.contains(segmentIndex) else { return }
 
         danmakuIsLoading = true
         danmakuError = nil
         danmakuSegmentIndex = segmentIndex
+        loadingDanmakuSegments.insert(segmentIndex)
 
         do {
             let reply = try await BiliAPI.shared.fetchDanmakuSegment(
                 cid: targetCid,
                 segmentIndex: segmentIndex
             )
-            danmakuElements = reply.elems
+            loadedDanmakuSegments.insert(segmentIndex)
+            loadingDanmakuSegments.remove(segmentIndex)
+            mergeDanmakuElements(reply.elems)
         } catch {
-            danmakuElements = []
+            loadingDanmakuSegments.remove(segmentIndex)
             danmakuError = error.localizedDescription
         }
 
-        danmakuIsLoading = false
+        danmakuIsLoading = !loadingDanmakuSegments.isEmpty
+    }
+
+    @MainActor
+    func preloadDanmakuIfNeeded(currentTime: Double) async {
+        let targetCid = cid
+        guard targetCid > 0 else { return }
+
+        let currentSegment = max(1, Int(currentTime / 360.0) + 1)
+        await loadDanmakuSegment(cid: targetCid, segmentIndex: currentSegment)
+        await loadDanmakuSegment(cid: targetCid, segmentIndex: currentSegment + 1)
+    }
+
+    @MainActor
+    private func mergeDanmakuElements(_ newItems: [Bilibili_Community_Service_Dm_V1_DanmakuElem]) {
+        guard !newItems.isEmpty else { return }
+
+        var merged = danmakuElements
+        merged.append(contentsOf: newItems)
+        var seen: Set<Int64> = []
+        danmakuElements = merged
+            .filter { elem in
+                if seen.contains(elem.id) { return false }
+                seen.insert(elem.id)
+                return true
+            }
+            .sorted { lhs, rhs in
+                if lhs.progress == rhs.progress {
+                    return lhs.id < rhs.id
+                }
+                return lhs.progress < rhs.progress
+            }
     }
 
     // MARK: - Actions (UI Only)
