@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		C31A86E82FC467D40064DFDC /* SwiftProtobuf in Frameworks */ = {isa = PBXBuildFile; productRef = C31A86E72FC467D40064DFDC /* SwiftProtobuf */; };
 		C38E5EE02FBFF03C00899168 /* MPVKit in Frameworks */ = {isa = PBXBuildFile; productRef = C38E5EDF2FBFF03C00899168 /* MPVKit */; };
 /* End PBXBuildFile section */
 
@@ -70,6 +71,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				C38E5EE02FBFF03C00899168 /* MPVKit in Frameworks */,
+				C31A86E82FC467D40064DFDC /* SwiftProtobuf in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -90,12 +92,20 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		C31A86E62FC467D40064DFDC /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
 		C3E76F752FBED5AF00DD7377 = {
 			isa = PBXGroup;
 			children = (
 				C3E76F802FBED5AF00DD7377 /* PiliPod */,
 				C3E76F8E2FBED5B000DD7377 /* PiliPodTests */,
 				C3E76F982FBED5B000DD7377 /* PiliPodUITests */,
+				C31A86E62FC467D40064DFDC /* Frameworks */,
 				C3E76F7F2FBED5AF00DD7377 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -132,6 +142,7 @@
 			name = PiliPod;
 			packageProductDependencies = (
 				C38E5EDF2FBFF03C00899168 /* MPVKit */,
+				C31A86E72FC467D40064DFDC /* SwiftProtobuf */,
 			);
 			productName = PiliPod;
 			productReference = C3E76F7E2FBED5AF00DD7377 /* PiliPod.app */;
@@ -217,6 +228,7 @@
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
 				C38E5EDE2FBFF03C00899168 /* XCRemoteSwiftPackageReference "MPVKit" */,
+				C38E61B32FC466FD00899168 /* XCRemoteSwiftPackageReference "swift-protobuf" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = C3E76F7F2FBED5AF00DD7377 /* Products */;
@@ -460,7 +472,7 @@
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator macosx xros xrsimulator";
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
-				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = nonisolated;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 5.0;
@@ -521,7 +533,7 @@
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator macosx xros xrsimulator";
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
-				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = nonisolated;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 5.0;
@@ -682,9 +694,22 @@
 				minimumVersion = 0.41.0;
 			};
 		};
+		C38E61B32FC466FD00899168 /* XCRemoteSwiftPackageReference "swift-protobuf" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/apple/swift-protobuf.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.38.0;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
+		C31A86E72FC467D40064DFDC /* SwiftProtobuf */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = C38E61B32FC466FD00899168 /* XCRemoteSwiftPackageReference "swift-protobuf" */;
+			productName = SwiftProtobuf;
+		};
 		C38E5EDF2FBFF03C00899168 /* MPVKit */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = C38E5EDE2FBFF03C00899168 /* XCRemoteSwiftPackageReference "MPVKit" */;
