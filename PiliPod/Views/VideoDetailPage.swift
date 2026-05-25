@@ -905,7 +905,10 @@ private struct FavoriteFolderSheet: View {
                     Button(action: onConfirm) {
                         Image(systemName: "checkmark")
                             .font(.system(size: 14, weight: .semibold))
+                            .foregroundStyle(.primary)
                     }
+                    .buttonStyle(.borderedProminent)
+                    .tint(.blue)
                     .disabled(selectedIds == initiallySelectedIds)
                 }
             }
@@ -1083,9 +1086,13 @@ private struct DanmakuSettingsSheet: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button("保存") {
-                        onClose()
+                    Button(action: onClose) {
+                        Image(systemName: "checkmark")
+                            .font(.system(size: 14, weight: .semibold))
+                            .foregroundStyle(.primary)
                     }
+                    .buttonStyle(.borderedProminent)
+                    .tint(.blue)
                 }
             }
         }
