@@ -24,6 +24,10 @@ struct VideoDetailPage: View {
     @State private var favoriteInitiallySelectedIds: Set<Int64> = []
     @State private var favoriteIsLoading = false
     @State private var selectedRelatedVideo: VideoItem?
+    @State private var isSpeedBoostActive = false
+    @State private var speedBoostMultiplier: Double = 2.0
+    @State private var isSpeedBoostPressing = false
+    @State private var speedBoostTriggerTask: Task<Void, Never>?
 
     let video: VideoItem
     let namespace: Namespace.ID
@@ -65,6 +69,42 @@ struct VideoDetailPage: View {
                                 .onTapGesture {
                                     showControlsAndAutoHideIfNeeded(player: player)
                                 }
+                                .highPriorityGesture(
+                                    TapGesture(count: 2)
+                                        .onEnded {
+                                            if player.isPlaying {
+                                                player.pause()
+                                            } else {
+                                                player.resume()
+                                            }
+                                            showControlsAndAutoHideIfNeeded(player: player, forceShow: true)
+                                        }
+                                )
+                                .simultaneousGesture(
+                                    DragGesture(minimumDistance: 0)
+                                        .onChanged { _ in
+                                            if !isSpeedBoostPressing {
+                                                isSpeedBoostPressing = true
+                                                speedBoostTriggerTask?.cancel()
+                                                speedBoostTriggerTask = Task { @MainActor in
+                                                    do {
+                                                        try await Task.sleep(nanoseconds: 200_000_000)
+                                                    } catch {
+                                                        return
+                                                    }
+                                                    if isSpeedBoostPressing {
+                                                        beginSpeedBoostIfNeeded(player: player)
+                                                    }
+                                                }
+                                            }
+                                        }
+                                        .onEnded { _ in
+                                            isSpeedBoostPressing = false
+                                            speedBoostTriggerTask?.cancel()
+                                            speedBoostTriggerTask = nil
+                                            endSpeedBoostIfNeeded(player: player)
+                                        }
+                                )
                                 .overlay {
                                     PlayerControlsOverlay(
                                         showDebugPanel: $showDebugPanel,
@@ -94,6 +134,18 @@ struct VideoDetailPage: View {
                                         }
                                     )
                                 }
+                                .overlay(alignment: .top) {
+                                    if isSpeedBoostActive {
+                                        Text(formatSpeedBoostLabel(speedBoostMultiplier))
+                                            .font(.system(size: 12, weight: .semibold, design: .rounded))
+                                            .foregroundStyle(.primary)
+                                            .padding(.horizontal, 12)
+                                            .padding(.vertical, 6)
+                                            .glassEffect(.regular, in: .capsule)
+                                            .padding(.top, 12)
+                                            .transition(.opacity)
+                                    }
+                                }
                                 .onAppear {
                                     // 初次进入时给用户一个可发现的控制层
                                     showControlsAndAutoHideIfNeeded(player: player, forceShow: true)
@@ -103,6 +155,9 @@ struct VideoDetailPage: View {
 #if canImport(UIKit)
                                     setIdleTimerDisabled(isPlaying)
 #endif
+                                    if !isPlaying, isPlaybackEnded(player: player) {
+                                        player.pause()
+                                    }
                                 }
                                 .onChange(of: showDebugPanel) { _, newValue in
                                     if !newValue {
@@ -415,6 +470,11 @@ struct VideoDetailPage: View {
         .onDisappear {
             hideControlsTask?.cancel()
             if let player = bindableViewModel.player {
+                speedBoostTriggerTask?.cancel()
+                speedBoostTriggerTask = nil
+                if isSpeedBoostActive {
+                    endSpeedBoostIfNeeded(player: player)
+                }
                 player.pause()
                 bindableViewModel.stopHistoryReporting(with: player)
             }
@@ -474,6 +534,36 @@ struct VideoDetailPage: View {
                 controlsVisible = false
             }
         }
+    }
+
+    private func isPlaybackEnded(player: MPVKitPlayer) -> Bool {
+        guard player.duration > 0 else { return false }
+        return player.currentTime >= player.duration - 0.05
+    }
+
+    private func beginSpeedBoostIfNeeded(player: MPVKitPlayer) {
+        guard !isSpeedBoostActive else { return }
+        isSpeedBoostActive = true
+        player.setPlaybackRate(speedBoostMultiplier)
+#if canImport(UIKit)
+        let generator = UIImpactFeedbackGenerator(style: .rigid)
+        generator.prepare()
+        generator.impactOccurred()
+#endif
+    }
+
+    private func endSpeedBoostIfNeeded(player: MPVKitPlayer) {
+        guard isSpeedBoostActive else { return }
+        isSpeedBoostActive = false
+        player.setPlaybackRate(1.0)
+    }
+
+    private func formatSpeedBoostLabel(_ rate: Double) -> String {
+        if rate.rounded() == rate {
+            return "\(Int(rate))x倍速中"
+        }
+
+        return String(format: "%.1fx倍速中", rate)
     }
 
 #if canImport(UIKit)

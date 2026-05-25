@@ -104,6 +104,10 @@ final class MPVKitMetalViewController: UIViewController {
         setFlag(MPVKitProperty.pause, true)
     }
 
+    func setPlaybackRate(_ rate: Double) {
+        setDouble(MPVKitProperty.playbackRate, rate)
+    }
+
     func stop() {
         command("stop")
     }
@@ -315,6 +319,12 @@ final class MPVKitMetalViewController: UIViewController {
         mpv_set_property(mpv, name, MPV_FORMAT_FLAG, &data)
     }
 
+    private func setDouble(_ name: String, _ value: Double) {
+        guard let mpv else { return }
+        var data = value
+        mpv_set_property(mpv, name, MPV_FORMAT_DOUBLE, &data)
+    }
+
     private func command(_ command: String, args: [String?] = []) {
         guard let mpv else { return }
         var cargs = makeCArgs(command, args).map { $0.flatMap { UnsafePointer<CChar>(strdup($0)) } }
@@ -389,6 +399,7 @@ final class MPVKitMetalViewController: UIViewController {
 
 private enum MPVKitProperty {
     static let pause = "pause"
+    static let playbackRate = "speed"
 }
 
 final class MPVKitMetalLayer: CAMetalLayer {

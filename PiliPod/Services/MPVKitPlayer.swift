@@ -66,6 +66,10 @@ class MPVKitPlayer: NSObject {
         stopDisplayLink()
     }
 
+    func setPlaybackRate(_ rate: Double) {
+        controller?.setPlaybackRate(rate)
+    }
+
     func stop() {
         controller?.stop()
         isPlaying = false
