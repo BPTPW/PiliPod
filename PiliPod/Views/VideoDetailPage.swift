@@ -455,12 +455,12 @@ struct VideoDetailPage: View {
         if forceShow {
             controlsVisible = true
         } else {
-            // 点一下就显示；如果已显示，也会刷新自动隐藏计时
-            controlsVisible = true
+            // 点一下显示；若已显示则切换为隐藏
+            controlsVisible.toggle()
         }
 
         hideControlsTask?.cancel()
-        guard player.isPlaying else { return }
+        guard controlsVisible, player.isPlaying else { return }
 
         hideControlsTask = Task { @MainActor in
             do {
