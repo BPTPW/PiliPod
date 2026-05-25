@@ -58,6 +58,7 @@ class MPVKitPlayer: NSObject {
     func resume() {
         controller?.play()
         isPlaying = true
+        startDisplayLink()
     }
 
     func pause() {
