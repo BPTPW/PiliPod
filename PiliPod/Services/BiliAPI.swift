@@ -234,14 +234,16 @@ class BiliAPI {
         return data
     }
 
-    /// 获取并解析 App 版推荐 Feed，返回多态卡片数组 + 下次分页用的 idx
+    // MARK: - 获取并解析App版推荐Feed
+
     func fetchAppRecommendFeed(idx: Int, flush: Int) async throws -> (cards: [FeedCardItem], nextIdx: Int) {
         let data = try await fetchAppRecommendVideos(idx: idx, flush: flush)
         let parsed = try parseAppRecommendFeed(from: data)
         return parsed
     }
 
-    /// 将 App 推荐接口的原始 JSON 解析为 FeedCardItem 数组
+    // MARK: - 解析App推荐接口数据
+
     private func parseAppRecommendFeed(from data: Data) throws -> (cards: [FeedCardItem], nextIdx: Int) {
         let response = try JSONDecoder().decode(AppFeedResponse.self, from: data)
 
