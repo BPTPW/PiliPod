@@ -33,6 +33,7 @@ struct VideoDetailPage: View {
     @State private var isFullscreen = false
     @State private var isFullscreenDanmakuPanelVisible = false
     @State private var lastDanmakuPrefetchSegment = 0
+    @State private var selectedTab: VideoDetailTab = .intro
 
     let video: VideoItem
     let namespace: Namespace.ID
@@ -56,408 +57,226 @@ struct VideoDetailPage: View {
         @Bindable var bindableViewModel = viewModel
         GeometryReader { geo in
             ZStack {
-                ScrollView {
-                    VStack(spacing: 0) {
-                        // DASH 播放器
-                        if let stream = bindableViewModel.dashStream, let player = bindableViewModel.player {
-                            ZStack(alignment: .topLeading) {
-                                // DASH 播放器容器
-                                MPVKitPlayerView(player: player)
-                                    .aspectRatio(stream.aspectRatio, contentMode: .fit)
-                                    .frame(
-                                        width: isFullscreen ? geo.size.width : nil,
+                VStack(spacing: 0) {
+                    // DASH 播放器
+                    if let stream = bindableViewModel.dashStream, let player = bindableViewModel.player {
+                        ZStack(alignment: .topLeading) {
+                            // DASH 播放器容器
+                            MPVKitPlayerView(player: player)
+                                .aspectRatio(stream.aspectRatio, contentMode: .fit)
+                                .frame( width: isFullscreen ? geo.size.width : nil,
                                         height: isFullscreen ? geo.size.height : nil,
-                                        alignment: .center
-                                    )
-                                    .frame(maxWidth: .infinity, alignment: .center)
-                                    .clipped()
-                                    .background(Color.red)
-                                    .matchedGeometryEffect(id: heroID, in: namespace)
-                                    .contentShape(Rectangle())
-                                    .onTapGesture {
-                                        showControlsAndAutoHideIfNeeded(player: player)
-                                    }
-                                    .highPriorityGesture(
-                                        TapGesture(count: 2)
-                                            .onEnded {
-                                                if player.isPlaying {
-                                                    player.pause()
-                                                } else {
-                                                    player.resume()
-                                                }
-                                                showControlsAndAutoHideIfNeeded(player: player, forceShow: true)
-                                            }
-                                    )
-                                    .simultaneousGesture(
-                                        DragGesture(minimumDistance: 0)
-                                            .onChanged { _ in
-                                                if !isSpeedBoostPressing {
-                                                    isSpeedBoostPressing = true
-                                                    speedBoostTriggerTask?.cancel()
-                                                    speedBoostTriggerTask = Task { @MainActor in
-                                                        do {
-                                                            try await Task.sleep(nanoseconds: 200000000)
-                                                        } catch {
-                                                            return
-                                                        }
-                                                        if isSpeedBoostPressing {
-                                                            beginSpeedBoostIfNeeded(player: player)
-                                                        }
-                                                    }
-                                                }
-                                            }
-                                            .onEnded { _ in
-                                                isSpeedBoostPressing = false
-                                                speedBoostTriggerTask?.cancel()
-                                                speedBoostTriggerTask = nil
-                                                endSpeedBoostIfNeeded(player: player)
-                                            }
-                                    )
-                                    .overlay {
-                                        DanmakuOverlayView(
-                                            currentTime: player.currentTime,
-                                            isPlaying: player.isPlaying,
-                                            elements: bindableViewModel.danmakuElements,
-                                            config: fullscreenAwareDanmakuConfig
-                                        )
-                                    }
-                                    .overlay {
-                                        PlayerControlsOverlay(
-                                            showDebugPanel: $showDebugPanel,
-                                            onShowDanmakuSettings: {
-                                                if isFullscreen {
-                                                    isFullscreenDanmakuPanelVisible.toggle()
-                                                } else {
-                                                    isDanmakuSettingsPresented = true
-                                                }
-                                            },
-                                            isFullscreen: isFullscreen,
-                                            isFullscreenDanmakuPanelVisible: isFullscreenDanmakuPanelVisible,
-                                            qualityOptions: bindableViewModel.qualityOptions,
-                                            selectedQualityCode: bindableViewModel.selectedQualityCode,
-                                            selectedPlaybackRate: bindableViewModel.selectedPlaybackRate,
-                                            isVisible: controlsVisible,
-                                            currentTime: player.currentTime,
-                                            duration: player.duration,
-                                            bufferedUntil: player.bufferedUntil,
-                                            isPlaying: player.isPlaying,
-                                            segments: [],
-                                            onBack: { handleBackAction() },
-                                            onUserInteracted: {
-                                                showControlsAndAutoHideIfNeeded(player: player, forceShow: true)
-                                            },
-                                            onTogglePlayPause: {
-                                                if player.isPlaying {
-                                                    player.pause()
-                                                } else {
-                                                    player.resume()
-                                                }
-                                            },
-                                            onSeek: { time in
-                                                player.seek(to: time)
-                                                Task {
-                                                    await bindableViewModel.preloadDanmakuIfNeeded(currentTime: time)
-                                                }
-                                                showControlsAndAutoHideIfNeeded(player: player, forceShow: true)
-                                            },
-                                            onFullscreen: {
-                                                withAnimation(.easeInOut(duration: 0.2)) {
-                                                    isFullscreen.toggle()
-                                                    if !isFullscreen {
-                                                        isFullscreenDanmakuPanelVisible = false
-                                                    }
-                                                }
-                                                updateDeviceOrientationForFullscreen(
-                                                    isFullscreen: isFullscreen
-                                                )
-                                            },
-                                            onSelectQuality: { code in
-                                                bindableViewModel.switchQuality(to: code)
-                                            },
-                                            onSelectPlaybackRate: { rate in
-                                                bindableViewModel.setPlaybackRate(rate)
-                                            }
-                                        )
-                                    }
-                                    .overlay(alignment: .trailing) {
-                                        if controlsVisible && isFullscreen && isFullscreenDanmakuPanelVisible {
-                                            DanmakuSettingsPanel(
-                                                config: $danmakuConfig,
-                                                onClose: {
-                                                    isFullscreenDanmakuPanelVisible = false
-                                                }
-                                            )
-                                            .padding(.trailing, 12)
-                                            .transition(.move(edge: .trailing).combined(with: .opacity))
-                                        }
-                                    }
-                                    .overlay(alignment: .top) {
-                                        if isSpeedBoostActive {
-                                            Text(formatSpeedBoostLabel(speedBoostMultiplier))
-                                                .font(.system(size: 12, weight: .semibold, design: .rounded))
-                                                .foregroundStyle(.primary)
-                                                .padding(.horizontal, 12)
-                                                .padding(.vertical, 6)
-                                                .glassEffect(.regular, in: .capsule)
-                                                .padding(.top, 12)
-                                            .transition(.opacity)
-                                        }
-                                    }
-                                    .onAppear {
-                                        // 初次进入时给用户一个可发现的控制层
-                                        showControlsAndAutoHideIfNeeded(player: player, forceShow: true)
-                                    }
-                                    .onChange(of: player.isPlaying) { _, isPlaying in
-                                        showControlsAndAutoHideIfNeeded(player: player)
-#if canImport(UIKit)
-                                        setIdleTimerDisabled(isPlaying)
-#endif
-                                        if !isPlaying, isPlaybackEnded(player: player) {
-                                            player.pause()
-                                        }
-                                    }
-                                    .onChange(of: player.currentTime) { _, newTime in
-                                        let segment = max(1, Int(newTime / 360.0) + 1)
-                                        guard segment != lastDanmakuPrefetchSegment else { return }
-                                        lastDanmakuPrefetchSegment = segment
-                                        Task {
-                                            await bindableViewModel.preloadDanmakuIfNeeded(currentTime: newTime)
-                                        }
-                                    }
-                                    .onChange(of: showDebugPanel) { _, newValue in
-                                        if !newValue {
-                                            showControlsAndAutoHideIfNeeded(player: player, forceShow: true)
-                                        } else {
-                                            controlsVisible = true
-                                            hideControlsTask?.cancel()
-                                        }
-                                    }
-                            }
-                            .frame(
-                                width: isFullscreen ? geo.size.width : nil,
-                                height: isFullscreen ? geo.size.height : nil,
-                                alignment: .center
-                            )
-                            .frame(maxWidth: .infinity, alignment: .center)
-                            .clipped()
-                        } else {
-                            // 加载状态：先展示封面，保证卡片→详情的 Hero 动画有目标视图
-                            ZStack {
-                                AsyncImage(url: URL(string: video.cover)) { image in
-                                    image
-                                        .resizable()
-                                        .scaledToFill()
-                                } placeholder: {
-                                    Rectangle()
-                                        .fill(Color(.systemGray5))
-                                }
-                                .frame(maxWidth: .infinity)
-                                .aspectRatio(16.0 / 9.0, contentMode: .fit)
-                                .background(Color.black)
+                                        alignment: .center )
+                                .frame(maxWidth: .infinity, alignment: .center)
+                                .clipped()
+                                .ignoresSafeArea(isFullscreen ? .all : [])
+                                .background(Color.red)
                                 .matchedGeometryEffect(id: heroID, in: namespace)
-
-                                VStack(spacing: 12) {
-                                    if bindableViewModel.isLoading {
-                                        ProgressView()
-                                            .tint(.white)
-                                    } else if bindableViewModel.error != nil {
-                                        Image(systemName: "exclamationmark.triangle")
-                                            .font(.system(size: 32))
-                                            .foregroundColor(.white)
-                                    } else {
-                                        ProgressView()
-                                            .tint(.white)
-                                    }
-                                }
-                            }
-                        }
-
-                        // 视频信息
-                        if !isFullscreen {
-                            VStack(alignment: .leading, spacing: 12) {
-                                if let detail = bindableViewModel.videoDetail {
-                                HStack(spacing: 12) {
-                                    AsyncImage(url: URL(string: detail.owner.face)) { image in
-                                        image
-                                            .resizable()
-                                            .scaledToFill()
-                                    } placeholder: {
-                                        Circle()
-                                            .fill(Color.gray)
-                                    }
-                                    .frame(width: 40, height: 40)
-                                    .clipShape(Circle())
-
-                                    VStack(alignment: .leading, spacing: 2) {
-                                        Text(detail.owner.name)
-                                            .font(.subheadline)
-                                            .foregroundColor(.primary)
-                                        if let follower = bindableViewModel.ownerFollowerCount,
-                                           let archiveCount = bindableViewModel.ownerArchiveCount
-                                        {
-                                            Text("\(formatCount(follower))粉丝  \(archiveCount)视频")
-                                                .font(.caption)
-                                                .foregroundColor(.secondary)
-                                        } else {
-                                            Text("—粉丝  —视频")
-                                                .font(.caption)
-                                                .foregroundColor(.secondary)
-                                        }
-                                    }
-
-                                    Spacer()
-                                }
-                                // 视频标题
-                                Text(video.title)
-                                    .font(.headline)
-                                    .lineLimit(2)
-                                    .foregroundColor(.primary)
-                                    .contentShape(Rectangle())
-                                    .onTapGesture {
-                                        withAnimation(.easeInOut(duration: 0.18)) {
-                                            isVideoDetailExpanded.toggle()
-                                        }
-                                    }
-
-                                // 视频数据
-                                HStack(spacing: 10) {
-                                    Label(formatCount(detail.stat.view), systemImage: "play.fill")
-                                    Label(formatCount(detail.stat.danmaku), systemImage: "text.bubble.fill")
-                                    Text(formatTimestamp(TimeInterval(detail.pubdate)))
-                                    if let online = bindableViewModel.playerInfo?.onlineCount,
-                                       online > 0,
-                                       Date().timeIntervalSince1970 >= TimeInterval(detail.pubdate)
-                                    {
-                                        Label("\(formatCount(online))人在看", systemImage: "person.2.fill")
-                                    }
-                                }
-                                .font(.system(size: 11))
-                                .foregroundStyle(.secondary)
                                 .contentShape(Rectangle())
                                 .onTapGesture {
-                                    withAnimation(.easeInOut(duration: 0.18)) {
-                                        isVideoDetailExpanded.toggle()
-                                    }
+                                    showControlsAndAutoHideIfNeeded(player: player)
                                 }
-
-                                // 视频详情（默认折叠；点击标题或视频数据展开/收起）
-                                if isVideoDetailExpanded {
-                                    VStack(alignment: .leading, spacing: 12) {
-                                        Text(detail.bvid)
-                                            .font(.system(.subheadline, design: .monospaced))
-                                            .foregroundStyle(.secondary)
-                                            .frame(maxWidth: .infinity, alignment: .leading)
-                                            .contentShape(Rectangle())
-                                            .onLongPressGesture {
-#if canImport(UIKit)
-                                                UIPasteboard.general.string = detail.bvid
-#endif
+                                .highPriorityGesture(
+                                    TapGesture(count: 2)
+                                        .onEnded {
+                                            if player.isPlaying {
+                                                player.pause()
+                                            } else {
+                                                player.resume()
                                             }
-
-                                        if !detail.desc.isEmpty {
-                                            Text(detail.desc)
-                                                .font(.footnote)
-                                                .foregroundStyle(.secondary)
-                                                .frame(maxWidth: .infinity, alignment: .leading)
-                                                .fixedSize(horizontal: false, vertical: true)
+                                            showControlsAndAutoHideIfNeeded(player: player, forceShow: true)
                                         }
-                                    }
-                                    .padding(.top, 4)
-                                    .transition(.opacity.combined(with: .move(edge: .top)))
-                                }
-
-                                // 操作栏（点赞/点踩/投币/收藏/转发/稍后再看）
-                                VideoActionBar(
-                                    isLiked: bindableViewModel.isLiked,
-                                    isDisliked: bindableViewModel.isDisliked,
-                                    isCoined: bindableViewModel.isCoined,
-                                    isFavorited: bindableViewModel.isFavorited,
-                                    likeCount: bindableViewModel.likeCount,
-                                    coinCount: bindableViewModel.coinCount,
-                                    favoriteCount: bindableViewModel.favoriteCount,
-                                    shareCount: detail.stat.share,
-                                    isLikeRequesting: bindableViewModel.isLikeRequesting,
-                                    isDislikeRequesting: bindableViewModel.isDislikeRequesting,
-                                    isCoinRequesting: bindableViewModel.isCoinRequesting,
-                                    isFavoriteRequesting: bindableViewModel.isFavoriteRequesting,
-                                    onToggleLike: {
-                                        withAnimation(.easeInOut(duration: 0.15)) {
-                                            bindableViewModel.toggleLike()
-                                        }
-                                    },
-                                    onToggleDislike: {
-                                        withAnimation(.easeInOut(duration: 0.15)) {
-                                            bindableViewModel.toggleDislike()
-                                        }
-                                    },
-                                    onToggleCoin: {
-                                        guard !bindableViewModel.isCoined else { return }
-                                        isCoinPickerPresented = true
-                                    },
-                                    onToggleFavorite: {
-                                        isFavoriteSheetPresented = true
-                                    },
-                                    onShare: {
-                                        // TODO: add share logic later
-                                    },
-                                    onLaterWatch: {}
                                 )
-                                .padding(.top, 4)
-
-                                // 推荐视频
-                                if bindableViewModel.relatedIsLoading
-                                    || bindableViewModel.relatedError != nil
-                                    || !bindableViewModel.relatedVideos.isEmpty
-                                {
-                                    Divider()
-                                        .padding(.top, 10)
-
-                                    HStack(spacing: 10) {
-                                        Text("推荐视频")
-                                            .font(.headline)
-                                            .foregroundStyle(.primary)
-
-                                        if bindableViewModel.relatedIsLoading {
-                                            ProgressView()
-                                                .controlSize(.small)
-                                        }
-
-                                        Spacer()
-                                    }
-                                    .padding(.top, 6)
-
-                                    if let error = bindableViewModel.relatedError,
-                                       !bindableViewModel.relatedIsLoading,
-                                       bindableViewModel.relatedVideos.isEmpty
-                                    {
-                                        Text(error)
-                                            .font(.footnote)
-                                            .foregroundStyle(.secondary)
-                                            .padding(.top, 4)
-                                    } else {
-                                        LazyVStack(spacing: 12) {
-                                            ForEach(bindableViewModel.relatedVideos.prefix(40)) { item in
-                                                VideoCardSingleView(
-                                                    video: item,
-                                                    namespace: namespace,
-                                                    onTap: { selectedRelatedVideo = item }
-                                                )
+                                .simultaneousGesture(
+                                    DragGesture(minimumDistance: 0)
+                                        .onChanged { _ in
+                                            if !isSpeedBoostPressing {
+                                                isSpeedBoostPressing = true
+                                                speedBoostTriggerTask?.cancel()
+                                                speedBoostTriggerTask = Task { @MainActor in
+                                                    do {
+                                                        try await Task.sleep(nanoseconds: 200000000)
+                                                    } catch {
+                                                        return
+                                                    }
+                                                    if isSpeedBoostPressing {
+                                                        beginSpeedBoostIfNeeded(player: player)
+                                                    }
+                                                }
                                             }
                                         }
-                                        .padding(.top, 8)
+                                        .onEnded { _ in
+                                            isSpeedBoostPressing = false
+                                            speedBoostTriggerTask?.cancel()
+                                            speedBoostTriggerTask = nil
+                                            endSpeedBoostIfNeeded(player: player)
+                                        }
+                                )
+                                .overlay {
+                                    DanmakuOverlayView(
+                                        currentTime: player.currentTime,
+                                        isPlaying: player.isPlaying,
+                                        elements: bindableViewModel.danmakuElements,
+                                        config: fullscreenAwareDanmakuConfig
+                                    )
+                                }
+                                .overlay {
+                                    PlayerControlsOverlay(
+                                        showDebugPanel: $showDebugPanel,
+                                        onShowDanmakuSettings: {
+                                            if isFullscreen {
+                                                isFullscreenDanmakuPanelVisible.toggle()
+                                            } else {
+                                                isDanmakuSettingsPresented = true
+                                            }
+                                        },
+                                        isFullscreen: isFullscreen,
+                                        isFullscreenDanmakuPanelVisible: isFullscreenDanmakuPanelVisible,
+                                        qualityOptions: bindableViewModel.qualityOptions,
+                                        selectedQualityCode: bindableViewModel.selectedQualityCode,
+                                        selectedPlaybackRate: bindableViewModel.selectedPlaybackRate,
+                                        isVisible: controlsVisible,
+                                        currentTime: player.currentTime,
+                                        duration: player.duration,
+                                        bufferedUntil: player.bufferedUntil,
+                                        isPlaying: player.isPlaying,
+                                        segments: [],
+                                        onBack: { handleBackAction() },
+                                        onUserInteracted: {
+                                            showControlsAndAutoHideIfNeeded(player: player, forceShow: true)
+                                        },
+                                        onTogglePlayPause: {
+                                            if player.isPlaying {
+                                                player.pause()
+                                            } else {
+                                                player.resume()
+                                            }
+                                        },
+                                        onSeek: { time in
+                                            player.seek(to: time)
+                                            Task {
+                                                await bindableViewModel.preloadDanmakuIfNeeded(currentTime: time)
+                                            }
+                                            showControlsAndAutoHideIfNeeded(player: player, forceShow: true)
+                                        },
+                                        onFullscreen: {
+                                            withAnimation(.easeInOut(duration: 0.2)) {
+                                                isFullscreen.toggle()
+                                                if !isFullscreen {
+                                                    isFullscreenDanmakuPanelVisible = false
+                                                }
+                                            }
+                                            updateDeviceOrientationForFullscreen(
+                                                isFullscreen: isFullscreen
+                                            )
+                                        },
+                                        onSelectQuality: { code in
+                                            bindableViewModel.switchQuality(to: code)
+                                        },
+                                        onSelectPlaybackRate: { rate in
+                                            bindableViewModel.setPlaybackRate(rate)
+                                        }
+                                    )
+                                }
+                                .overlay(alignment: .trailing) {
+                                    if controlsVisible && isFullscreen && isFullscreenDanmakuPanelVisible {
+                                        DanmakuSettingsPanel(
+                                            config: $danmakuConfig,
+                                            onClose: {
+                                                isFullscreenDanmakuPanelVisible = false
+                                            }
+                                        )
+                                        .padding(.trailing, 12)
+                                        .transition(.move(edge: .trailing).combined(with: .opacity))
                                     }
                                 }
+                                .overlay(alignment: .top) {
+                                    if isSpeedBoostActive {
+                                        Text(formatSpeedBoostLabel(speedBoostMultiplier))
+                                            .font(.system(size: 12, weight: .semibold, design: .rounded))
+                                            .foregroundStyle(.primary)
+                                            .padding(.horizontal, 12)
+                                            .padding(.vertical, 6)
+                                            .glassEffect(.regular, in: .capsule)
+                                            .padding(.top, 12)
+                                        .transition(.opacity)
+                                    }
+                                }
+                                .onAppear {
+                                    // 初次进入时给用户一个可发现的控制层
+                                    showControlsAndAutoHideIfNeeded(player: player, forceShow: true)
+                                }
+                                .onChange(of: player.isPlaying) { _, isPlaying in
+                                    showControlsAndAutoHideIfNeeded(player: player)
+#if canImport(UIKit)
+                                    setIdleTimerDisabled(isPlaying)
+#endif
+                                    if !isPlaying, isPlaybackEnded(player: player) {
+                                        player.pause()
+                                    }
+                                }
+                                .onChange(of: player.currentTime) { _, newTime in
+                                    let segment = max(1, Int(newTime / 360.0) + 1)
+                                    guard segment != lastDanmakuPrefetchSegment else { return }
+                                    lastDanmakuPrefetchSegment = segment
+                                    Task {
+                                        await bindableViewModel.preloadDanmakuIfNeeded(currentTime: newTime)
+                                    }
+                                }
+                                .onChange(of: showDebugPanel) { _, newValue in
+                                    if !newValue {
+                                        showControlsAndAutoHideIfNeeded(player: player, forceShow: true)
+                                    } else {
+                                        controlsVisible = true
+                                        hideControlsTask?.cancel()
+                                    }
+                                }
+                        }
+                        .frame(
+                            width: isFullscreen ? geo.size.width : nil,
+                            height: isFullscreen ? geo.size.height : nil,
+                            alignment: .center
+                        )
+                        .frame(maxWidth: .infinity, alignment: .center)
+                        .clipped()
+                    } else {
+                        // 加载状态：先展示封面，保证卡片→详情的 Hero 动画有目标视图
+                        ZStack {
+                            AsyncImage(url: URL(string: video.cover)) { image in
+                                image
+                                    .resizable()
+                                    .scaledToFill()
+                            } placeholder: {
+                                Rectangle()
+                                    .fill(Color(.systemGray5))
+                            }
+                            .frame(maxWidth: .infinity)
+                            .aspectRatio(16.0 / 9.0, contentMode: .fit)
+                            .background(Color.black)
+                            .matchedGeometryEffect(id: heroID, in: namespace)
+
+                            VStack(spacing: 12) {
+                                if bindableViewModel.isLoading {
+                                    ProgressView()
+                                        .tint(.white)
+                                } else if bindableViewModel.error != nil {
+                                    Image(systemName: "exclamationmark.triangle")
+                                        .font(.system(size: 32))
+                                        .foregroundColor(.white)
+                                } else {
+                                    ProgressView()
+                                        .tint(.white)
                                 }
                             }
-                            .padding(16)
-                            .background(Color(.systemBackground))
                         }
                     }
-                    .frame(maxWidth: .infinity, alignment: .top)
+
+                    if !isFullscreen {
+                        tabBar
+                        tabContent
+                    }
                 }
-                // .background(Color(.systemBackground))
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-                .scrollDisabled(isFullscreen)
                 .confirmationDialog(
                     "投币",
                     isPresented: $isCoinPickerPresented,
@@ -638,6 +457,233 @@ struct VideoDetailPage: View {
             config.fontScale = danmakuConfig.fullscreenFontScale
         }
         return config
+    }
+
+    private enum VideoDetailTab: String, CaseIterable {
+        case intro = "简介"
+        case comments = "评论"
+    }
+
+    private var tabBar: some View {
+        HStack(spacing: 18) {
+            ForEach(VideoDetailTab.allCases, id: \.self) { tab in
+                Button {
+                    selectedTab = tab
+                } label: {
+                    Text(tab.rawValue)
+                        .font(.system(size: 15, weight: .semibold))
+                        .foregroundStyle(selectedTab == tab ? .primary : .secondary)
+                        .padding(.vertical, 6)
+                }
+                .buttonStyle(.plain)
+            }
+            Spacer()
+        }
+        .padding(.horizontal, 16)
+        .padding(.top, 12)
+        .padding(.bottom, 4)
+        .background(Color(.systemBackground))
+    }
+
+    @ViewBuilder
+    private var tabContent: some View {
+        switch selectedTab {
+        case .intro:
+            introTabContent
+        case .comments:
+            VStack(alignment: .leading, spacing: 8) {
+                Text("评论区建设中")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+            .padding(16)
+            .background(Color(.systemBackground))
+        }
+    }
+
+    private var introTabContent: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 12) {
+                if let detail = viewModel.videoDetail {
+                    HStack(spacing: 12) {
+                        AsyncImage(url: URL(string: detail.owner.face)) { image in
+                            image
+                                .resizable()
+                                .scaledToFill()
+                        } placeholder: {
+                            Circle()
+                                .fill(Color.gray)
+                        }
+                        .frame(width: 40, height: 40)
+                        .clipShape(Circle())
+
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(detail.owner.name)
+                                .font(.subheadline)
+                                .foregroundColor(.primary)
+                            if let follower = viewModel.ownerFollowerCount,
+                               let archiveCount = viewModel.ownerArchiveCount
+                            {
+                                Text("\(formatCount(follower))粉丝  \(archiveCount)视频")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                            } else {
+                                Text("—粉丝  —视频")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                            }
+                        }
+
+                        Spacer()
+                    }
+
+                    // 视频标题
+                    Text(video.title)
+                        .font(.headline)
+                        .lineLimit(2)
+                        .foregroundColor(.primary)
+                        .contentShape(Rectangle())
+                        .onTapGesture {
+                            withAnimation(.easeInOut(duration: 0.18)) {
+                                isVideoDetailExpanded.toggle()
+                            }
+                        }
+
+                    // 视频数据
+                    HStack(spacing: 10) {
+                        Label(formatCount(detail.stat.view), systemImage: "play.fill")
+                        Label(formatCount(detail.stat.danmaku), systemImage: "text.bubble.fill")
+                        Text(formatTimestamp(TimeInterval(detail.pubdate)))
+                        if let online = viewModel.playerInfo?.onlineCount,
+                           online > 0,
+                           Date().timeIntervalSince1970 >= TimeInterval(detail.pubdate)
+                        {
+                            Label("\(formatCount(online))人在看", systemImage: "person.2.fill")
+                        }
+                    }
+                    .font(.system(size: 11))
+                    .foregroundStyle(.secondary)
+                    .contentShape(Rectangle())
+                    .onTapGesture {
+                        withAnimation(.easeInOut(duration: 0.18)) {
+                            isVideoDetailExpanded.toggle()
+                        }
+                    }
+
+                    // 视频详情（默认折叠；点击标题或视频数据展开/收起）
+                    if isVideoDetailExpanded {
+                        VStack(alignment: .leading, spacing: 12) {
+                            Text(detail.bvid)
+                                .font(.system(.subheadline, design: .monospaced))
+                                .foregroundStyle(.secondary)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .contentShape(Rectangle())
+                                .onLongPressGesture {
+#if canImport(UIKit)
+                                    UIPasteboard.general.string = detail.bvid
+#endif
+                                }
+
+                            if !detail.desc.isEmpty {
+                                Text(detail.desc)
+                                    .font(.footnote)
+                                    .foregroundStyle(.secondary)
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                                    .fixedSize(horizontal: false, vertical: true)
+                            }
+                        }
+                        .padding(.top, 4)
+                        .transition(.opacity.combined(with: .move(edge: .top)))
+                    }
+
+                    // 操作栏（点赞/点踩/投币/收藏/转发/稍后再看）
+                    VideoActionBar(
+                        isLiked: viewModel.isLiked,
+                        isDisliked: viewModel.isDisliked,
+                        isCoined: viewModel.isCoined,
+                        isFavorited: viewModel.isFavorited,
+                        likeCount: viewModel.likeCount,
+                        coinCount: viewModel.coinCount,
+                        favoriteCount: viewModel.favoriteCount,
+                        shareCount: detail.stat.share,
+                        isLikeRequesting: viewModel.isLikeRequesting,
+                        isDislikeRequesting: viewModel.isDislikeRequesting,
+                        isCoinRequesting: viewModel.isCoinRequesting,
+                        isFavoriteRequesting: viewModel.isFavoriteRequesting,
+                        onToggleLike: {
+                            withAnimation(.easeInOut(duration: 0.15)) {
+                                viewModel.toggleLike()
+                            }
+                        },
+                        onToggleDislike: {
+                            withAnimation(.easeInOut(duration: 0.15)) {
+                                viewModel.toggleDislike()
+                            }
+                        },
+                        onToggleCoin: {
+                            guard !viewModel.isCoined else { return }
+                            isCoinPickerPresented = true
+                        },
+                        onToggleFavorite: {
+                            isFavoriteSheetPresented = true
+                        },
+                        onShare: {
+                            // TODO: add share logic later
+                        },
+                        onLaterWatch: {}
+                    )
+                    .padding(.top, 4)
+
+                    // 推荐视频
+                    if viewModel.relatedIsLoading
+                        || viewModel.relatedError != nil
+                        || !viewModel.relatedVideos.isEmpty
+                    {
+                        Divider()
+                            .padding(.top, 10)
+
+                        HStack(spacing: 10) {
+                            Text("推荐视频")
+                                .font(.headline)
+                                .foregroundStyle(.primary)
+
+                            if viewModel.relatedIsLoading {
+                                ProgressView()
+                                    .controlSize(.small)
+                            }
+
+                            Spacer()
+                        }
+                        .padding(.top, 6)
+
+                        if let error = viewModel.relatedError,
+                           !viewModel.relatedIsLoading,
+                           viewModel.relatedVideos.isEmpty
+                        {
+                            Text(error)
+                                .font(.footnote)
+                                .foregroundStyle(.secondary)
+                                .padding(.top, 4)
+                        } else {
+                            LazyVStack(spacing: 12) {
+                                ForEach(viewModel.relatedVideos.prefix(40)) { item in
+                                    VideoCardSingleView(
+                                        video: item,
+                                        namespace: namespace,
+                                        onTap: { selectedRelatedVideo = item }
+                                    )
+                                }
+                            }
+                            .padding(.top, 8)
+                        }
+                    }
+                }
+            }
+            .padding(16)
+            .frame(maxWidth: .infinity, alignment: .top)
+        }
+        .background(Color(.systemBackground))
     }
 
     // MARK: - 显示控制条并在需要时自动隐藏
