@@ -96,7 +96,8 @@ class DashStreamSelector {
         let codes = data.data.acceptQuality
         let descriptions = data.data.acceptDescription
         return codes.enumerated().map { index, code in
-            let label = index < descriptions.count ? descriptions[index] : qualityLabel(for: code)
+            //let label = index < descriptions.count ? descriptions[index] : qualityLabel(for: code)
+            let label = qualityLabel(for: code)
             return VideoQualityOption(id: code, code: code, label: label)
         }
     }
