@@ -29,31 +29,36 @@ struct BiliVideoSource: Equatable {
 
 // MARK: - PlayURL API Response
 
-struct PlayUrlResponse: Codable {
+struct PlayUrlResponse: Decodable {
     let code: Int
+    let message: String?
     let data: PlayUrlData
 }
 
-struct PlayUrlData: Codable {
+struct PlayUrlData: Decodable {
     let dash: DASHData
     let quality: Int?
+    let acceptDescription: [String]
+    let acceptQuality: [Int]
     let video_codecid: Int?
 
     enum CodingKeys: String, CodingKey {
         case dash
         case quality
+        case acceptDescription = "accept_description"
+        case acceptQuality = "accept_quality"
         case video_codecid
     }
 }
 
-struct DASHData: Codable {
+struct DASHData: Decodable {
     let video: [DASHVideo]
     let audio: [DASHAudio]
     let dolby: DolbyData?
     let flac: FlacData?
 }
 
-struct DASHVideo: Codable {
+struct DASHVideo: Decodable {
     let id: Int
     let baseUrl: String
     let backupUrl: [String]?
@@ -76,10 +81,33 @@ struct DASHVideo: Codable {
         case height
         case frameRate
         case sar
+        case base_url
+        case backup_url
+        case mime_type
+        case frame_rate
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decode(Int.self, forKey: .id)
+        baseUrl = try container.decodeIfPresent(String.self, forKey: .baseUrl)
+            ?? container.decode(String.self, forKey: .base_url)
+        backupUrl = try container.decodeIfPresent([String].self, forKey: .backupUrl)
+            ?? container.decodeIfPresent([String].self, forKey: .backup_url)
+        bandwidth = try container.decode(Int.self, forKey: .bandwidth)
+        mimeType = try container.decodeIfPresent(String.self, forKey: .mimeType)
+            ?? container.decode(String.self, forKey: .mime_type)
+        codecs = try container.decode(String.self, forKey: .codecs)
+        width = try container.decode(Int.self, forKey: .width)
+        height = try container.decode(Int.self, forKey: .height)
+        frameRate = try container.decodeIfPresent(String.self, forKey: .frameRate)
+            ?? container.decodeIfPresent(String.self, forKey: .frame_rate)
+            ?? "30"
+        sar = try container.decodeIfPresent(String.self, forKey: .sar)
     }
 }
 
-struct DASHAudio: Codable {
+struct DASHAudio: Decodable {
     let id: Int
     let baseUrl: String
     let backupUrl: [String]?
@@ -98,15 +126,35 @@ struct DASHAudio: Codable {
         case codecs
         case channels
         case sampleRate
+        case base_url
+        case backup_url
+        case mime_type
+        case sample_rate
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decode(Int.self, forKey: .id)
+        baseUrl = try container.decodeIfPresent(String.self, forKey: .baseUrl)
+            ?? container.decode(String.self, forKey: .base_url)
+        backupUrl = try container.decodeIfPresent([String].self, forKey: .backupUrl)
+            ?? container.decodeIfPresent([String].self, forKey: .backup_url)
+        bandwidth = try container.decode(Int.self, forKey: .bandwidth)
+        mimeType = try container.decodeIfPresent(String.self, forKey: .mimeType)
+            ?? container.decode(String.self, forKey: .mime_type)
+        codecs = try container.decode(String.self, forKey: .codecs)
+        channels = try container.decodeIfPresent(Int.self, forKey: .channels)
+        sampleRate = try container.decodeIfPresent(String.self, forKey: .sampleRate)
+            ?? container.decodeIfPresent(String.self, forKey: .sample_rate)
     }
 }
 
-struct DolbyData: Codable {
+struct DolbyData: Decodable {
     let type: Int?
     let audio: [DASHAudio]?
 }
 
-struct FlacData: Codable {
+struct FlacData: Decodable {
     let audio: DASHAudio?
 }
 

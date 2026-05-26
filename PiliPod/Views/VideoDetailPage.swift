@@ -30,6 +30,8 @@ struct VideoDetailPage: View {
     @State private var speedBoostTriggerTask: Task<Void, Never>?
     @State private var danmakuConfig = DanmakuConfigStore.load()
     @State private var isDanmakuSettingsPresented = false
+    @State private var isFullscreen = false
+    @State private var isFullscreenDanmakuPanelVisible = false
     @State private var lastDanmakuPrefetchSegment = 0
 
     let video: VideoItem
@@ -62,6 +64,7 @@ struct VideoDetailPage: View {
                                 // DASH 播放器容器
                                 MPVKitPlayerView(player: player)
                                     .aspectRatio(stream.aspectRatio, contentMode: .fit)
+                                    .frame(maxHeight: isFullscreen ? geo.size.height : nil)
                                     .frame(maxWidth: .infinity)
                                     .background(Color.black)
                                     .matchedGeometryEffect(id: heroID, in: namespace)
@@ -117,15 +120,24 @@ struct VideoDetailPage: View {
                                         PlayerControlsOverlay(
                                             showDebugPanel: $showDebugPanel,
                                             onShowDanmakuSettings: {
-                                                isDanmakuSettingsPresented = true
+                                                if isFullscreen {
+                                                    isFullscreenDanmakuPanelVisible.toggle()
+                                                } else {
+                                                    isDanmakuSettingsPresented = true
+                                                }
                                             },
+                                            isFullscreen: isFullscreen,
+                                            isFullscreenDanmakuPanelVisible: isFullscreenDanmakuPanelVisible,
+                                            qualityOptions: bindableViewModel.qualityOptions,
+                                            selectedQualityCode: bindableViewModel.selectedQualityCode,
+                                            selectedPlaybackRate: bindableViewModel.selectedPlaybackRate,
                                             isVisible: controlsVisible,
                                             currentTime: player.currentTime,
                                             duration: player.duration,
                                             bufferedUntil: player.bufferedUntil,
                                             isPlaying: player.isPlaying,
                                             segments: [],
-                                            onBack: onBack,
+                                            onBack: { handleBackAction() },
                                             onUserInteracted: {
                                                 showControlsAndAutoHideIfNeeded(player: player, forceShow: true)
                                             },
@@ -144,9 +156,35 @@ struct VideoDetailPage: View {
                                                 showControlsAndAutoHideIfNeeded(player: player, forceShow: true)
                                             },
                                             onFullscreen: {
-                                                // TODO: implement fullscreen logic later
+                                                withAnimation(.easeInOut(duration: 0.2)) {
+                                                    isFullscreen.toggle()
+                                                    if !isFullscreen {
+                                                        isFullscreenDanmakuPanelVisible = false
+                                                    }
+                                                }
+                                                updateDeviceOrientationForFullscreen(
+                                                    isFullscreen: isFullscreen
+                                                )
+                                            },
+                                            onSelectQuality: { code in
+                                                bindableViewModel.switchQuality(to: code)
+                                            },
+                                            onSelectPlaybackRate: { rate in
+                                                bindableViewModel.setPlaybackRate(rate)
                                             }
                                         )
+                                    }
+                                    .overlay(alignment: .trailing) {
+                                        if controlsVisible && isFullscreen && isFullscreenDanmakuPanelVisible {
+                                            DanmakuSettingsPanel(
+                                                config: $danmakuConfig,
+                                                onClose: {
+                                                    isFullscreenDanmakuPanelVisible = false
+                                                }
+                                            )
+                                            .padding(.trailing, 12)
+                                            .transition(.move(edge: .trailing).combined(with: .opacity))
+                                        }
                                     }
                                     .overlay(alignment: .top) {
                                         if isSpeedBoostActive {
@@ -223,8 +261,9 @@ struct VideoDetailPage: View {
                         }
 
                         // 视频信息
-                        VStack(alignment: .leading, spacing: 12) {
-                            if let detail = bindableViewModel.videoDetail {
+                        if !isFullscreen {
+                            VStack(alignment: .leading, spacing: 12) {
+                                if let detail = bindableViewModel.videoDetail {
                                 HStack(spacing: 12) {
                                     AsyncImage(url: URL(string: detail.owner.face)) { image in
                                         image
@@ -396,10 +435,11 @@ struct VideoDetailPage: View {
                                         .padding(.top, 8)
                                     }
                                 }
+                                }
                             }
+                            .padding(16)
+                            .background(Color(.systemBackground))
                         }
-                        .padding(16)
-                        .background(Color(.systemBackground))
                     }
                     .frame(maxWidth: .infinity, alignment: .top)
                 }
@@ -484,11 +524,34 @@ struct VideoDetailPage: View {
                 }
             }
             .overlay(alignment: .top) {
-                Color.black
-                    .frame(height: geo.safeAreaInsets.top)
-                    .frame(maxWidth: .infinity)
+                if isFullscreen {
+                    LinearGradient(
+                        colors: [Color.black.opacity(0.65), Color.black.opacity(0)],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
+                    .frame(height: 120 + geo.safeAreaInsets.top)
                     .ignoresSafeArea(edges: .top)
                     .allowsHitTesting(false)
+                } else {
+                    Color.black
+                        .frame(height: geo.safeAreaInsets.top)
+                        .frame(maxWidth: .infinity)
+                        .ignoresSafeArea(edges: .top)
+                        .allowsHitTesting(false)
+                }
+            }
+            .overlay(alignment: .bottom) {
+                if isFullscreen {
+                    LinearGradient(
+                        colors: [Color.black.opacity(0), Color.black.opacity(0.68)],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
+                    .frame(height: 130 + geo.safeAreaInsets.bottom)
+                    .ignoresSafeArea(edges: .bottom)
+                    .allowsHitTesting(false)
+                }
             }
         }
         .onAppear {
@@ -528,6 +591,7 @@ struct VideoDetailPage: View {
         .navigationBarBackButtonHidden(true)
         .toolbar(.hidden, for: .navigationBar)
         .toolbar(.hidden, for: .tabBar)
+        .statusBarHidden(isFullscreen)
         .navigationDestination(item: $selectedRelatedVideo) { relatedVideo in
             if #available(iOS 18.0, *) {
                 VideoDetailPage(
@@ -665,6 +729,32 @@ struct VideoDetailPage: View {
         formatter.timeZone = TimeZone.current
 
         return formatter.string(from: date)
+    }
+
+#if canImport(UIKit)
+    private func updateDeviceOrientationForFullscreen(isFullscreen: Bool) {
+        guard let scene = UIApplication.shared.connectedScenes.first as? UIWindowScene else { return }
+        let prefs = UIWindowScene.GeometryPreferences.iOS(
+            interfaceOrientations: isFullscreen ? .landscapeRight : .portrait
+        )
+        scene.requestGeometryUpdate(prefs) { error in
+            print("requestGeometryUpdate failed: \(error.localizedDescription)")
+        }
+    }
+#endif
+
+    private func handleBackAction() {
+        if isFullscreen {
+            withAnimation(.easeInOut(duration: 0.2)) {
+                isFullscreen = false
+                isFullscreenDanmakuPanelVisible = false
+            }
+#if canImport(UIKit)
+            updateDeviceOrientationForFullscreen(isFullscreen: false)
+#endif
+        } else {
+            onBack()
+        }
     }
 }
 
@@ -1197,6 +1287,43 @@ private struct DanmakuSettingsSheet: View {
     }
 }
 
+private struct DanmakuSettingsPanel: View {
+    @Binding var config: DanmakuEngineConfig
+    let onClose: () -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Text("弹幕设置")
+                    .font(.headline)
+                    .foregroundStyle(.white)
+                Spacer()
+                Button(action: onClose) {
+                    Image(systemName: "xmark")
+                        .foregroundStyle(.white)
+                }
+            }
+
+            Toggle("屏蔽滚动", isOn: $config.blockScroll)
+                .tint(Color("BiliPink"))
+            Toggle("屏蔽顶部", isOn: $config.blockTop)
+                .tint(Color("BiliPink"))
+            Toggle("屏蔽底部", isOn: $config.blockBottom)
+                .tint(Color("BiliPink"))
+            Toggle("屏蔽彩色", isOn: $config.blockColorful)
+                .tint(Color("BiliPink"))
+        }
+        .foregroundStyle(.white)
+        .font(.system(size: 14, weight: .medium))
+        .padding(14)
+        .frame(width: 260)
+        .background(
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .fill(Color.black.opacity(0.62))
+        )
+    }
+}
+
 private struct FavoriteFolderRow: View {
     let folder: FavoriteFolderItem
     let isSelected: Bool
@@ -1237,6 +1364,11 @@ private struct PlayerControlsOverlay: View {
     @Binding var showDebugPanel: Bool
 
     let onShowDanmakuSettings: () -> Void
+    let isFullscreen: Bool
+    let isFullscreenDanmakuPanelVisible: Bool
+    let qualityOptions: [VideoQualityOption]
+    let selectedQualityCode: Int?
+    let selectedPlaybackRate: Double
     let isVisible: Bool
     let currentTime: TimeInterval
     let duration: TimeInterval
@@ -1248,6 +1380,8 @@ private struct PlayerControlsOverlay: View {
     let onTogglePlayPause: () -> Void
     let onSeek: (TimeInterval) -> Void
     let onFullscreen: () -> Void
+    let onSelectQuality: (Int) -> Void
+    let onSelectPlaybackRate: (Double) -> Void
 
     var body: some View {
         ZStack {
@@ -1283,44 +1417,57 @@ private struct PlayerControlsOverlay: View {
 
             Spacer()
 
-            Button(action: {
-                onUserInteracted()
-                onShowDanmakuSettings()
-            }) {
-                Image("DanmakuSetting")
-                    .renderingMode(.template)
-                    .resizable()
-                    .scaledToFit()
-                    .frame(width: 16, height: 16)
-                    .foregroundColor(.primary)
-                    .frame(width: 32, height: 32)
+            if !isFullscreen {
+                Button(action: {
+                    onUserInteracted()
+                    onShowDanmakuSettings()
+                }) {
+                    Image("DanmakuSetting")
+                        .renderingMode(.template)
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: 16, height: 16)
+                        .foregroundColor(.primary)
+                        .frame(width: 32, height: 32)
+                }
+                .glassEffect(
+                    .regular.interactive(),
+                    in: .circle
+                )
             }
-            .glassEffect(
-                .regular.interactive(),
-                in: .circle
-            )
 
-            // 右上角更多
-            Button(action: {
-                onUserInteracted()
-                showDebugPanel.toggle()
-            }) {
-                Image(systemName: "ellipsis")
-                    .font(.system(size: 16, weight: .semibold))
-                    .foregroundColor(.primary)
-                    .frame(width: 40, height: 40)
+            if !isFullscreen {
+                // 右上角更多
+                Button(action: {
+                    onUserInteracted()
+                    showDebugPanel.toggle()
+                }) {
+                    Image(systemName: "ellipsis")
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundColor(.primary)
+                        .frame(width: 40, height: 40)
+                }
+                .glassEffect(
+                    .regular.interactive(),
+                    in: .circle
+                )
             }
-            .glassEffect(
-                .regular.interactive(),
-                in: .circle
-            )
         }
         .padding(12)
     }
 
     private var bottomBar: some View {
+        Group {
+            if isFullscreen {
+                fullscreenBottomBar
+            } else {
+                regularBottomBar
+            }
+        }
+    }
+
+    private var regularBottomBar: some View {
         HStack(spacing: 10) {
-            // 播放暂停按钮
             Button(action: {
                 onUserInteracted()
                 onTogglePlayPause()
@@ -1371,6 +1518,129 @@ private struct PlayerControlsOverlay: View {
         }
         .padding(.horizontal, 12)
         .padding(.bottom, 10)
+    }
+
+    private var fullscreenBottomBar: some View {
+        VStack(spacing: 8) {
+            HStack {
+                Text("\(formatMMSS(currentTime))/\(formatMMSS(duration))")
+                    .font(.system(size: 12, weight: .semibold, design: .monospaced))
+                    .foregroundStyle(.white)
+                Spacer()
+            }
+            .padding(.horizontal, 12)
+
+            VideoProgressBar(
+                currentTime: currentTime,
+                duration: duration,
+                bufferedUntil: bufferedUntil,
+                segments: segments,
+                onSeek: { t in onSeek(t) },
+                onUserInteracted: onUserInteracted
+            )
+            .frame(maxWidth: .infinity)
+            .padding(.horizontal, 12)
+
+            HStack {
+                HStack(spacing: 10) {
+                    actionCircleButton(systemName: isPlaying ? "pause.fill" : "play.fill") {
+                        onUserInteracted()
+                        onTogglePlayPause()
+                    }
+                    actionCircleButton(imageName: "DanmakuSetting") {
+                        onUserInteracted()
+                        onShowDanmakuSettings()
+                    }
+                }
+                Spacer()
+                HStack(spacing: 8) {
+                    rateMenu
+                    qualityMenu
+                }
+            }
+            .padding(.horizontal, 12)
+        }
+        .padding(.bottom, 10)
+    }
+
+    private var qualityMenu: some View {
+        Menu {
+            ForEach(qualityOptions) { option in
+                Button(option.label) {
+                    onUserInteracted()
+                    onSelectQuality(option.code)
+                }
+            }
+        } label: {
+            Text(currentQualityLabel)
+                .foregroundStyle(.white)
+                .font(.system(size: 16, weight: .semibold))
+                .padding(8)
+        }
+    }
+
+    private var rateMenu: some View {
+        let rates = [0.5, 0.75, 1.0, 1.25, 1.5, 2.0]
+        return Menu {
+            ForEach(rates, id: \.self) { rate in
+                Button(playbackRateText(rate)) {
+                    onUserInteracted()
+                    onSelectPlaybackRate(rate)
+                }
+            }
+        } label: {
+            Text(playbackRateMenuLabel)
+                .foregroundStyle(.white)
+                .font(.system(size: 16, weight: .semibold))
+                .padding(8)
+        }
+    }
+
+    private func actionCircleButton(
+        systemName: String? = nil,
+        imageName: String? = nil,
+        action: @escaping () -> Void
+    ) -> some View {
+        Button(action: action) {
+            Group {
+                if let systemName {
+                    Image(systemName: systemName)
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundColor(.primary)
+                } else if let imageName {
+                    Image(imageName)
+                        .renderingMode(.template)
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: 16, height: 16)
+                        .foregroundColor(.primary)
+                }
+            }
+            .frame(width: 32, height: 32)
+        }
+        .glassEffect(
+            .regular.interactive(),
+            in: .circle
+        )
+    }
+
+    private var currentQualityLabel: String {
+        if let selectedQualityCode,
+           let selected = qualityOptions.first(where: { $0.code == selectedQualityCode }) {
+            return selected.label
+        }
+        return "清晰度"
+    }
+
+    private var playbackRateMenuLabel: String {
+        selectedPlaybackRate == 1.0 ? "倍速" : playbackRateText(selectedPlaybackRate)
+    }
+
+    private func playbackRateText(_ rate: Double) -> String {
+        if rate.rounded() == rate {
+            return "\(Int(rate))x"
+        }
+        return String(format: "%.2gx", rate)
     }
 
     // MARK: - 格式化时间（分钟:秒）

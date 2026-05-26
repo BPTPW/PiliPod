@@ -16,6 +16,10 @@ class VideoDetailViewModel {
     var isLoading = false
     var error: String?
     var playerInfo: PlayerWbiV2Data?
+    var playUrlData: PlayUrlResponse?
+    var qualityOptions: [VideoQualityOption] = []
+    var selectedQualityCode: Int?
+    var selectedPlaybackRate: Double = 1.0
 
     var relatedVideos: [VideoItem] = []
     var relatedIsLoading = false
@@ -184,19 +188,26 @@ class VideoDetailViewModel {
                 bvid: bvid,
                 cid: playbackCid
             )
+            let options = DashStreamSelector.qualityOptions(from: playUrlResponse)
+            let defaultQuality = options.map(\.code).max()
 
             // 选择最优 DASH 流（HEVC 优先）
-            guard let stream = DashStreamSelector.selectOptimalStream(from: playUrlResponse) else {
+            guard let quality = defaultQuality,
+                  let stream = DashStreamSelector.selectStream(from: playUrlResponse, qualityCode: quality) else {
                 throw APIError.noVideoOrAudio
             }
 
             await MainActor.run {
+                self.playUrlData = playUrlResponse
+                self.qualityOptions = options
+                self.selectedQualityCode = quality
                 self.dashStream = stream
                 self.isLoading = false
 
                 // 加载到播放器
                 if let player = self.player {
                     player.play(stream: stream)
+                    player.setPlaybackRate(self.selectedPlaybackRate)
                 }
             }
 
@@ -226,6 +237,32 @@ class VideoDetailViewModel {
                 self.isLoading = false
             }
         }
+    }
+
+    @MainActor
+    func switchQuality(to code: Int) {
+        guard selectedQualityCode != code,
+              let playUrlData,
+              let stream = DashStreamSelector.selectStream(from: playUrlData, qualityCode: code),
+              let player
+        else { return }
+
+        let current = player.currentTime
+        let wasPlaying = player.isPlaying
+        selectedQualityCode = code
+        dashStream = stream
+        player.play(stream: stream)
+        player.seek(to: current)
+        player.setPlaybackRate(selectedPlaybackRate)
+        if !wasPlaying {
+            player.pause()
+        }
+    }
+
+    @MainActor
+    func setPlaybackRate(_ rate: Double) {
+        selectedPlaybackRate = rate
+        player?.setPlaybackRate(rate)
     }
 
     @MainActor
