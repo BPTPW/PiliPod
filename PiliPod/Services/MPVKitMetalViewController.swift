@@ -154,6 +154,7 @@ final class MPVKitMetalViewController: UIViewController {
         checkError(mpv_set_option_string(mpv, "gpu-context", "moltenvk"), context: "gpu-context")
         checkError(mpv_set_option_string(mpv, "hwdec", "videotoolbox"), context: "hwdec")
         checkError(mpv_set_option_string(mpv, "video-rotate", "no"), context: "video-rotate")
+        checkError(mpv_set_option_string(mpv, "keep-open", "yes"), context: "keep-open")
         if !pendingHeaders.isEmpty {
             setHTTPHeaders(mpv, headers: pendingHeaders)
         }

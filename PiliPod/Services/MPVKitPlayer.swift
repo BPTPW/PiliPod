@@ -78,6 +78,11 @@ class MPVKitPlayer: NSObject {
     }
 
     func seek(to time: TimeInterval) {
+        if duration > 0 {
+            currentTime = min(max(time, 0), duration)
+        } else {
+            currentTime = max(time, 0)
+        }
         controller?.seek(to: time)
     }
 
@@ -96,8 +101,17 @@ class MPVKitPlayer: NSObject {
         guard let controller else { return }
 
         let time = controller.timePosition()
-        if time > 0 {
-            currentTime = time
+        if time.isFinite {
+            let normalizedTime = max(time, 0)
+            if duration > 0,
+               normalizedTime <= 0.001,
+               currentTime >= duration - 0.5,
+               controller.isPaused()
+            {
+                currentTime = duration
+            } else {
+                currentTime = normalizedTime
+            }
         }
 
         let total = controller.durationValue()
