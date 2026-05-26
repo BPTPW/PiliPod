@@ -263,12 +263,14 @@ struct VideoDetailPage: View {
                                 }
                         }
                         .frame(
-                            width: isFullscreen ? geo.size.width : nil,
-                            height: isFullscreen ? geo.size.height : nil,
+                            width: isFullscreen ? geo.size.width : geo.size.width,
+                            height: isFullscreen
+                                ? geo.size.height
+                                : min(geo.size.width / stream.aspectRatio, geo.size.width * (4.0 / 3.0)),
                             alignment: .center
                         )
-                        .frame(maxWidth: .infinity, alignment: .center)
                         .clipped()
+                        .layoutPriority(1)
                     } else {
                         // 加载状态：先展示封面，保证卡片→详情的 Hero 动画有目标视图
                         ZStack {
@@ -284,7 +286,7 @@ struct VideoDetailPage: View {
                             .aspectRatio(16.0 / 9.0, contentMode: .fit)
                             .background(Color.black)
                             .matchedGeometryEffect(id: heroID, in: namespace)
-
+                            
                             VStack(spacing: 12) {
                                 if bindableViewModel.isLoading {
                                     ProgressView()
@@ -299,6 +301,15 @@ struct VideoDetailPage: View {
                                 }
                             }
                         }
+                        .frame(
+                            width: isFullscreen ? geo.size.width : geo.size.width,
+                            height: isFullscreen
+                                ? geo.size.height
+                                : min(geo.size.width / (16.0 / 9.0), geo.size.width * (4.0 / 3.0)),
+                            alignment: .center
+                        )
+                        .clipped()
+                        .layoutPriority(1)
                     }
 
                     if !isFullscreen {
