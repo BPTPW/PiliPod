@@ -58,6 +58,12 @@ class VideoDetailViewModel {
 
     private var historyReportTimer: Timer?
     private var lastReportedProgress = 0
+    private var playerRebuildToken = UUID()
+    private var isRebuildingPlayer = false
+
+    var currentPlayerViewID: String {
+        playerRebuildToken.uuidString
+    }
 
     init(
         bvid: String,
@@ -263,6 +269,76 @@ class VideoDetailViewModel {
     func setPlaybackRate(_ rate: Double) {
         selectedPlaybackRate = rate
         player?.setPlaybackRate(rate)
+    }
+
+    @MainActor
+    func rebuildPlayerPreservingState() async {
+        guard !isRebuildingPlayer else { return }
+        isRebuildingPlayer = true
+        defer { isRebuildingPlayer = false }
+
+        guard let oldPlayer = player, let stream = dashStream else { return }
+
+        let resumeTime = oldPlayer.currentTime
+        let resumeRate = selectedPlaybackRate
+        let shouldResume = oldPlayer.isPlaying
+
+        oldPlayer.pause()
+
+        let newPlayer = MPVKitPlayer()
+        player = newPlayer
+        playerRebuildToken = UUID()
+
+        newPlayer.play(stream: stream)
+        newPlayer.setPlaybackRate(resumeRate)
+
+        // Restore after readiness with retries; fixed delay is too flaky on rotation.
+        await restorePlaybackState(
+            on: newPlayer,
+            time: resumeTime,
+            rate: resumeRate,
+            shouldResume: shouldResume
+        )
+    }
+
+    @MainActor
+    private func restorePlaybackState(
+        on player: MPVKitPlayer,
+        time: Double,
+        rate: Double,
+        shouldResume: Bool
+    ) async {
+        let targetTime = max(0, time)
+
+        // Wait for player state to start updating (controller attached / file loaded).
+        for _ in 0 ..< 20 {
+            if player.duration > 0 || player.currentTime > 0 {
+                break
+            }
+            try? await Task.sleep(nanoseconds: 100000000)
+        }
+
+        player.seek(to: targetTime)
+        player.setPlaybackRate(rate)
+
+        if shouldResume {
+            player.resume()
+        } else {
+            player.pause()
+        }
+
+        // One more correction pass to reduce occasional drift after stream rebuild.
+        for _ in 0 ..< 6 {
+            try? await Task.sleep(nanoseconds: 120000000)
+            if abs(player.currentTime - targetTime) <= 1.0 {
+                break
+            }
+            player.seek(to: targetTime)
+        }
+
+        if !shouldResume {
+            player.pause()
+        }
     }
 
     @MainActor

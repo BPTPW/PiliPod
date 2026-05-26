@@ -63,6 +63,7 @@ struct VideoDetailPage: View {
                         ZStack(alignment: .topLeading) {
                             // DASH 播放器容器
                             MPVKitPlayerView(player: player)
+                                .id(bindableViewModel.currentPlayerViewID)
                                 .aspectRatio(stream.aspectRatio, contentMode: .fit)
                                 .frame( width: isFullscreen ? geo.size.width : nil,
                                         height: isFullscreen ? geo.size.height : nil,
@@ -70,7 +71,7 @@ struct VideoDetailPage: View {
                                 .frame(maxWidth: .infinity, alignment: .center)
                                 .clipped()
                                 .ignoresSafeArea(isFullscreen ? .all : [])
-                                .background(Color.red)
+                                .background(Color.black)
                                 .matchedGeometryEffect(id: heroID, in: namespace)
                                 .contentShape(Rectangle())
                                 .onTapGesture {
@@ -169,6 +170,9 @@ struct VideoDetailPage: View {
                                             updateDeviceOrientationForFullscreen(
                                                 isFullscreen: isFullscreen
                                             )
+                                            Task { @MainActor in
+                                                await bindableViewModel.rebuildPlayerPreservingState()
+                                            }
                                         },
                                         onSelectQuality: { code in
                                             bindableViewModel.switchQuality(to: code)
@@ -356,7 +360,7 @@ struct VideoDetailPage: View {
                 }
             }
             .overlay(alignment: .top) {
-                if isFullscreen {
+                if isFullscreen && controlsVisible {
                     LinearGradient(
                         colors: [Color.black.opacity(0.65), Color.black.opacity(0)],
                         startPoint: .top,
@@ -374,7 +378,7 @@ struct VideoDetailPage: View {
                 }
             }
             .overlay(alignment: .bottom) {
-                if isFullscreen {
+                if isFullscreen && controlsVisible {
                     LinearGradient(
                         colors: [Color.black.opacity(0), Color.black.opacity(0.68)],
                         startPoint: .top,
@@ -826,6 +830,9 @@ struct VideoDetailPage: View {
 #if canImport(UIKit)
             updateDeviceOrientationForFullscreen(isFullscreen: false)
 #endif
+            Task { @MainActor in
+                await viewModel.rebuildPlayerPreservingState()
+            }
         } else {
             onBack()
         }

@@ -36,8 +36,7 @@ final class MPVKitMetalViewController: UIViewController {
 
         eventQueue.setSpecific(key: eventQueueKey, value: ())
 
-        metalLayer.frame = view.frame
-        metalLayer.contentsScale = UIScreen.main.nativeScale
+        syncMetalLayerLayout()
         metalLayer.framebufferOnly = true
         metalLayer.backgroundColor = UIColor.black.cgColor
 
@@ -48,7 +47,23 @@ final class MPVKitMetalViewController: UIViewController {
 
     override func viewDidLayoutSubviews() {
         super.viewDidLayoutSubviews()
-        metalLayer.frame = view.frame
+        syncMetalLayerLayout()
+    }
+
+    private func syncMetalLayerLayout() {
+        let bounds = view.bounds
+        guard bounds.width > 0, bounds.height > 0 else { return }
+
+        let scale = view.window?.screen.scale ?? UIScreen.main.scale
+        view.contentScaleFactor = scale
+        metalLayer.contentsScale = scale
+
+        // Align layer frame to pixel boundaries and let CAMetalLayer manage drawableSize.
+        let x = (bounds.origin.x * scale).rounded(.down) / scale
+        let y = (bounds.origin.y * scale).rounded(.down) / scale
+        let width = (bounds.size.width * scale).rounded(.down) / scale
+        let height = (bounds.size.height * scale).rounded(.down) / scale
+        metalLayer.frame = CGRect(x: x, y: y, width: width, height: height)
     }
 
     func applyHTTPHeaders(_ headers: [String: String]) {
