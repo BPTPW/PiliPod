@@ -17,7 +17,6 @@ struct VideoDetailPage: View {
     @State private var controlsVisible = true
     @State private var hideControlsTask: Task<Void, Never>?
     @State private var isVideoDetailExpanded = false
-    @State private var isCoinPickerPresented = false
     @State private var isFavoriteSheetPresented = false
     @State private var favoriteFolders: [FavoriteFolderItem] = []
     @State private var favoriteSelectedIds: Set<Int64> = []
@@ -308,19 +307,6 @@ struct VideoDetailPage: View {
                     }
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-                .confirmationDialog(
-                    "投币",
-                    isPresented: $isCoinPickerPresented,
-                    titleVisibility: .visible
-                ) {
-                    Button("投 1 枚") {
-                        Task { await bindableViewModel.coin(multiply: 1) }
-                    }
-                    Button("投 2 枚") {
-                        Task { await bindableViewModel.coin(multiply: 2) }
-                    }
-                    Button("取消", role: .cancel) {}
-                }
                 .sheet(isPresented: $isFavoriteSheetPresented) {
                     FavoriteFolderSheet(
                         folders: $favoriteFolders,
@@ -631,9 +617,11 @@ struct VideoDetailPage: View {
                                 viewModel.toggleDislike()
                             }
                         },
-                        onToggleCoin: {
-                            guard !viewModel.isCoined else { return }
-                            isCoinPickerPresented = true
+                        onCoin1: {
+                            Task { await viewModel.coin(multiply: 1) }
+                        },
+                        onCoin2: {
+                            Task { await viewModel.coin(multiply: 2) }
                         },
                         onToggleFavorite: {
                             isFavoriteSheetPresented = true
@@ -865,7 +853,8 @@ private struct VideoActionBar: View {
 
     let onToggleLike: () -> Void
     let onToggleDislike: () -> Void
-    let onToggleCoin: () -> Void
+    let onCoin1: () -> Void
+    let onCoin2: () -> Void
     let onToggleFavorite: () -> Void
     let onShare: () -> Void
     let onLaterWatch: () -> Void
@@ -888,12 +877,13 @@ private struct VideoActionBar: View {
                 onTap: onToggleDislike
             )
 
-            VideoActionButton(
+            VideoCoinMenuButton(
                 title: formatCount(coinCount),
                 assetImage: "BiliCoin",
                 isActive: isCoined,
-                isDisabled: isCoinRequesting,
-                onTap: onToggleCoin
+                isDisabled: isCoinRequesting || isCoined,
+                onCoin1: onCoin1,
+                onCoin2: onCoin2
             )
 
             VideoActionButton(
@@ -934,6 +924,52 @@ private struct VideoActionBar: View {
         }
 
         return "\(count)"
+    }
+}
+
+private struct VideoCoinMenuButton: View {
+    let title: String
+    let assetImage: String
+    let isActive: Bool
+    let isDisabled: Bool
+    let onCoin1: () -> Void
+    let onCoin2: () -> Void
+
+    var body: some View {
+        Menu {
+            Button("投1个") { onCoin1() }
+            Button("投2个") { onCoin2() }
+        } label: {
+            VStack(spacing: 6) {
+                ZStack {
+                    RoundedRectangle(cornerRadius: 22, style: .continuous)
+                        .fill(isActive ? Color("BiliPink") : Color.white.opacity(0))
+                        .animation(.smooth(duration: 0.1), value: isActive)
+
+                    Image(assetImage)
+                        .renderingMode(.template)
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: 18, height: 18)
+                        .foregroundStyle(isActive ? .white : .primary)
+                }
+                .frame(width: 44, height: 44)
+                .glassEffect(
+                    .regular.interactive(),
+                    in: .circle
+                )
+
+                Text(title)
+                    .font(.system(size: 11, weight: .regular))
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
+            }
+            .frame(maxWidth: .infinity)
+        }
+        .buttonStyle(.plain)
+        .disabled(isDisabled)
+        .opacity(isDisabled ? 0.6 : 1.0)
     }
 }
 
