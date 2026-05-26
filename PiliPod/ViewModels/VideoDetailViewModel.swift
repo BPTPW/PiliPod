@@ -246,23 +246,28 @@ class VideoDetailViewModel {
     }
 
     @MainActor
-    func switchQuality(to code: Int) {
+    func switchQuality(to code: Int) async {
         guard selectedQualityCode != code,
               let playUrlData,
               let stream = DashStreamSelector.selectStream(from: playUrlData, qualityCode: code),
               let player
         else { return }
 
-        let current = player.currentTime
-        let wasPlaying = player.isPlaying
+        let resumeTime = player.currentTime
+        let resumeRate = selectedPlaybackRate
+        let shouldResume = player.isPlaying
+
         selectedQualityCode = code
         dashStream = stream
         player.play(stream: stream)
-        player.seek(to: current)
-        player.setPlaybackRate(selectedPlaybackRate)
-        if !wasPlaying {
-            player.pause()
-        }
+        player.setPlaybackRate(resumeRate)
+
+        await restorePlaybackState(
+            on: player,
+            time: resumeTime,
+            rate: resumeRate,
+            shouldResume: shouldResume
+        )
     }
 
     @MainActor

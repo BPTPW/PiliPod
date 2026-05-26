@@ -200,7 +200,9 @@ struct VideoDetailPage: View {
                                             }
                                         },
                                         onSelectQuality: { code in
-                                            bindableViewModel.switchQuality(to: code)
+                                            Task { @MainActor in
+                                                await bindableViewModel.switchQuality(to: code)
+                                            }
                                         },
                                         onSelectPlaybackRate: { rate in
                                             bindableViewModel.setPlaybackRate(rate)
