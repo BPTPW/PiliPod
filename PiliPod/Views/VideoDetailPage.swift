@@ -64,9 +64,14 @@ struct VideoDetailPage: View {
                                 // DASH 播放器容器
                                 MPVKitPlayerView(player: player)
                                     .aspectRatio(stream.aspectRatio, contentMode: .fit)
-                                    .frame(maxHeight: isFullscreen ? geo.size.height : nil)
-                                    .frame(maxWidth: .infinity)
-                                    .background(Color.black)
+                                    .frame(
+                                        width: isFullscreen ? geo.size.width : nil,
+                                        height: isFullscreen ? geo.size.height : nil,
+                                        alignment: .center
+                                    )
+                                    .frame(maxWidth: .infinity, alignment: .center)
+                                    .clipped()
+                                    .background(Color.red)
                                     .matchedGeometryEffect(id: heroID, in: namespace)
                                     .contentShape(Rectangle())
                                     .onTapGesture {
@@ -113,7 +118,7 @@ struct VideoDetailPage: View {
                                             currentTime: player.currentTime,
                                             isPlaying: player.isPlaying,
                                             elements: bindableViewModel.danmakuElements,
-                                            config: danmakuConfig
+                                            config: fullscreenAwareDanmakuConfig
                                         )
                                     }
                                     .overlay {
@@ -228,6 +233,13 @@ struct VideoDetailPage: View {
                                         }
                                     }
                             }
+                            .frame(
+                                width: isFullscreen ? geo.size.width : nil,
+                                height: isFullscreen ? geo.size.height : nil,
+                                alignment: .center
+                            )
+                            .frame(maxWidth: .infinity, alignment: .center)
+                            .clipped()
                         } else {
                             // 加载状态：先展示封面，保证卡片→详情的 Hero 动画有目标视图
                             ZStack {
@@ -445,6 +457,7 @@ struct VideoDetailPage: View {
                 }
                 // .background(Color(.systemBackground))
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+                .scrollDisabled(isFullscreen)
                 .confirmationDialog(
                     "投币",
                     isPresented: $isCoinPickerPresented,
@@ -530,7 +543,7 @@ struct VideoDetailPage: View {
                         startPoint: .top,
                         endPoint: .bottom
                     )
-                    .frame(height: 120 + geo.safeAreaInsets.top)
+                    .frame(height: 60 + geo.safeAreaInsets.top / 2)
                     .ignoresSafeArea(edges: .top)
                     .allowsHitTesting(false)
                 } else {
@@ -548,9 +561,16 @@ struct VideoDetailPage: View {
                         startPoint: .top,
                         endPoint: .bottom
                     )
-                    .frame(height: 130 + geo.safeAreaInsets.bottom)
+                    .frame(height: 65 + geo.safeAreaInsets.bottom / 2)
                     .ignoresSafeArea(edges: .bottom)
                     .allowsHitTesting(false)
+                }
+            }
+            .background {
+                if isFullscreen {
+                    Color.black.ignoresSafeArea()
+                } else {
+                    Color.clear
                 }
             }
         }
@@ -610,6 +630,14 @@ struct VideoDetailPage: View {
                 )
             }
         }
+    }
+
+    private var fullscreenAwareDanmakuConfig: DanmakuEngineConfig {
+        var config = danmakuConfig
+        if isFullscreen {
+            config.fontScale = danmakuConfig.fullscreenFontScale
+        }
+        return config
     }
 
     // MARK: - 显示控制条并在需要时自动隐藏
