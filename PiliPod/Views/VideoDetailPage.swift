@@ -1443,6 +1443,81 @@ private struct FavoriteFolderRow: View {
     }
 }
 
+// MARK: - 独立的视频菜单组件，避免跟随视频时间的高频刷新
+
+private struct PlaybackRateMenuView: View, Equatable {
+    let selectedRate: Double
+    let onUserInteracted: () -> Void
+    let onSelect: (Double) -> Void
+    
+    static func == (lhs: PlaybackRateMenuView, rhs: PlaybackRateMenuView) -> Bool {
+        lhs.selectedRate == rhs.selectedRate
+    }
+    
+    var body: some View {
+        Menu {
+            let rates: [Double] = [0.5, 0.75, 1.0, 1.25, 1.5, 2.0]
+            ForEach(rates, id: \.self) { rate in
+                Button(playbackRateText(rate)) {
+                    onUserInteracted()
+                    onSelect(rate)
+                }
+            }
+        } label: {
+            Text(playbackRateMenuLabel)
+                .foregroundStyle(.white)
+                .font(.system(size: 16, weight: .semibold))
+                .padding(8)
+        }
+    }
+    
+    private var playbackRateMenuLabel: String {
+        selectedRate == 1.0 ? "倍速" : playbackRateText(selectedRate)
+    }
+    
+    private func playbackRateText(_ rate: Double) -> String {
+        if rate.rounded() == rate {
+            return "\(Int(rate))x"
+        }
+        return String(format: "%.2gx", rate)
+    }
+}
+
+private struct QualityMenuView: View, Equatable {
+    let options: [VideoQualityOption]
+    let selectedCode: Int?
+    let onUserInteracted: () -> Void
+    let onSelect: (Int) -> Void
+    
+    static func == (lhs: QualityMenuView, rhs: QualityMenuView) -> Bool {
+        lhs.selectedCode == rhs.selectedCode && lhs.options.count == rhs.options.count
+    }
+    
+    var body: some View {
+        Menu {
+            ForEach(options) { option in
+                Button(option.label) {
+                    onUserInteracted()
+                    onSelect(option.code)
+                }
+            }
+        } label: {
+            Text(currentQualityLabel)
+                .foregroundStyle(.white)
+                .font(.system(size: 16, weight: .semibold))
+                .padding(8)
+        }
+    }
+    
+    private var currentQualityLabel: String {
+        if let selectedCode = selectedCode,
+           let selected = options.first(where: { $0.code == selectedCode }) {
+            return selected.label
+        }
+        return "清晰度"
+    }
+}
+
 // MARK: - 视频控制器覆盖
 
 private struct PlayerControlsOverlay: View {
@@ -1639,46 +1714,25 @@ private struct PlayerControlsOverlay: View {
                 }
                 Spacer()
                 HStack(spacing: 8) {
-                    rateMenu
-                    qualityMenu
+                    PlaybackRateMenuView(
+                        selectedRate: selectedPlaybackRate,
+                        onUserInteracted: onUserInteracted,
+                        onSelect: onSelectPlaybackRate
+                    )
+                    .equatable()
+                    
+                    QualityMenuView(
+                        options: qualityOptions,
+                        selectedCode: selectedQualityCode,
+                        onUserInteracted: onUserInteracted,
+                        onSelect: onSelectQuality
+                    )
+                    .equatable()
                 }
             }
             .padding(.horizontal, 12)
         }
         .padding(.bottom, 10)
-    }
-
-    private var qualityMenu: some View {
-        Menu {
-            ForEach(qualityOptions) { option in
-                Button(option.label) {
-                    onUserInteracted()
-                    onSelectQuality(option.code)
-                }
-            }
-        } label: {
-            Text(currentQualityLabel)
-                .foregroundStyle(.white)
-                .font(.system(size: 16, weight: .semibold))
-                .padding(8)
-        }
-    }
-
-    private var rateMenu: some View {
-        let rates = [0.5, 0.75, 1.0, 1.25, 1.5, 2.0]
-        return Menu {
-            ForEach(rates, id: \.self) { rate in
-                Button(playbackRateText(rate)) {
-                    onUserInteracted()
-                    onSelectPlaybackRate(rate)
-                }
-            }
-        } label: {
-            Text(playbackRateMenuLabel)
-                .foregroundStyle(.white)
-                .font(.system(size: 16, weight: .semibold))
-                .padding(8)
-        }
     }
 
     private func actionCircleButton(
@@ -1707,25 +1761,6 @@ private struct PlayerControlsOverlay: View {
             .regular.interactive(),
             in: .circle
         )
-    }
-
-    private var currentQualityLabel: String {
-        if let selectedQualityCode,
-           let selected = qualityOptions.first(where: { $0.code == selectedQualityCode }) {
-            return selected.label
-        }
-        return "清晰度"
-    }
-
-    private var playbackRateMenuLabel: String {
-        selectedPlaybackRate == 1.0 ? "倍速" : playbackRateText(selectedPlaybackRate)
-    }
-
-    private func playbackRateText(_ rate: Double) -> String {
-        if rate.rounded() == rate {
-            return "\(Int(rate))x"
-        }
-        return String(format: "%.2gx", rate)
     }
 
     // MARK: - 格式化时间（分钟:秒）
