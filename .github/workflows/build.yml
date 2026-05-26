@@ -1,0 +1,141 @@
+name: Build Unsigned IPA and Release
+
+on:
+    workflow_dispatch:
+        inputs:
+            tag_name:
+                description: '发布版本号 (例如: 1.0.0)'
+                required: true
+                type: string
+
+jobs:
+    build-and-release:
+        runs-on: macos-latest
+        permissions:
+            contents: write # 确保有创建 Release 的权限
+
+        steps:
+            - name: Checkout Code
+              uses: actions/checkout@v4
+              with:
+                  fetch-depth: 0 # 拉取完整历史记录，用于计算构建号和生成变更日志
+
+            - name: Set up Xcode Version
+              uses: maxim-lobanov/setup-xcode@v1
+              with:
+                  xcode-version: 'latest' # 使用最新稳定版 Xcode
+
+            - name: Generate Build Number & Build IPA
+              id: build_ipa
+              run: |
+                  # 1. 获取 Git 总提交次数作为构建编号 (Build Number)
+                  BUILD_NUMBER=$(git rev-list --count HEAD)
+                  echo "BUILD_NUMBER=$BUILD_NUMBER" >> $GITHUB_ENV
+
+                  TAG_NAME="${{ inputs.tag_name }}"
+                  IPA_NAME="PiliPod ${TAG_NAME}-${BUILD_NUMBER}.ipa"
+                  echo "IPA_NAME=$IPA_NAME" >> $GITHUB_ENV
+
+                  echo "开始打包，版本号: ${TAG_NAME}, 构建号: ${BUILD_NUMBER}"
+
+                  # 2. 自动检测是 Workspace 还是 Project
+                  if [ -d "PiliPod.xcworkspace" ]; then
+                    BUILD_CMD="-workspace PiliPod.xcworkspace"
+                  else
+                    BUILD_CMD="-project PiliPod.xcodeproj"
+                  fi
+
+                  # 3. 编译生成未签名的 Archive
+                  xcodebuild archive \
+                    $BUILD_CMD \
+                    -scheme PiliPod \
+                    -configuration Release \
+                    -archivePath build/PiliPod.xcarchive \
+                    CODE_SIGNING_ALLOWED=NO \
+                    CODE_SIGNING_REQUIRED=NO \
+                    CODE_SIGN_IDENTITY="" \
+                    PROVISIONING_PROFILE_SPECIFIER=""
+                    
+                  # 4. 将解包出的 .app 文件夹包装为未签名的 .ipa 文件
+                  mkdir -p build/Payload
+                  cp -R build/PiliPod.xcarchive/Products/Applications/PiliPod.app build/Payload/
+                  cd build
+                  zip -r "$IPA_NAME" Payload
+
+                  echo "IPA 导出成功: $IPA_NAME"
+
+            - name: Generate Custom Changelog
+              id: changelog
+              run: |
+                  # 1. 获取上一个 Tag 范围
+                  PREVIOUS_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "")
+                  if [ -z "$PREVIOUS_TAG" ]; then
+                    LOG_RANGE="HEAD"
+                  else
+                    LOG_RANGE="${PREVIOUS_TAG}..HEAD"
+                  fi
+
+                  # 2. 定义过滤与格式化函数 (已加入 PR 判断逻辑)
+                  format_logs() {
+                    local regex=$1
+                    git log $LOG_RANGE --no-merges --grep="$regex" -i --pretty=format:"%s|%an" | while IFS='|' read -r title author; do
+                      if [ -n "$title" ]; then
+                        # 判断标题末尾是否包含 (#数字) 这种 GitHub PR 的典型特征
+                        if echo "$title" | grep -qE '\(#[0-9]+\)$'; then
+                          # 是 PR，带上 by @作者
+                          echo "- ${title} by @${author}"
+                        else
+                          # 普通提交，不带作者
+                          echo "- ${title}"
+                        fi
+                      fi
+                    done
+                  }
+
+                  # 3. 提取 Conventional Commits 核心分类
+                  FEAT_LOGS=$(format_logs "^feat")
+                  FIX_LOGS=$(format_logs "^fix")
+                  PERF_LOGS=$(format_logs "^\(perf\|refactor\)")
+
+                  # 4. 组合成最后的 Release 文本
+                  > changelog.txt
+
+                  if [ -n "$FEAT_LOGS" ]; then
+                    echo "### ✨ 新功能 (Features)" >> changelog.txt
+                    echo "$FEAT_LOGS" >> changelog.txt
+                    echo "" >> changelog.txt
+                  fi
+
+                  if [ -n "$FIX_LOGS" ]; then
+                    echo "### 🐛 问题修复 (Bug Fixes)" >> changelog.txt
+                    echo "$FIX_LOGS" >> changelog.txt
+                    echo "" >> changelog.txt
+                  fi
+
+                  if [ -n "$PERF_LOGS" ]; then
+                    echo "### ⚡ 性能与重构 (Performance & Refactor)" >> changelog.txt
+                    echo "$PERF_LOGS" >> changelog.txt
+                    echo "" >> changelog.txt
+                  fi
+
+                  # 防止内容为空导致发布失败
+                  if [ ! -s changelog.txt ]; then
+                    echo "### ♻️ 日常更新" >> changelog.txt
+                    echo "- 常规优化与代码调整" >> changelog.txt
+                  fi
+
+                  echo "--- 生成的 Release 文本预览 ---"
+                  cat changelog.txt
+
+            - name: Create GitHub Release
+              uses: softprops/action-gh-release@v2
+              with:
+                  tag_name: ${{ inputs.tag_name }}
+                  name: 'PiliPod ${{ inputs.tag_name }} (Build ${{ env.BUILD_NUMBER }})'
+                  body_path: changelog.txt
+                  draft: false
+                  prerelease: false
+                  files: |
+                      build/${{ env.IPA_NAME }}
+              env:
+                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
