@@ -122,6 +122,31 @@ struct VideoDetailPage: View {
                                     )
                                 }
                                 .overlay {
+                                    if isFullscreen && controlsVisible {
+                                        VStack(spacing: 0) {
+                                            LinearGradient(
+                                                colors: [Color.black.opacity(0.65), Color.black.opacity(0)],
+                                                startPoint: .top,
+                                                endPoint: .bottom
+                                            )
+                                            .frame(height: 60 + geo.safeAreaInsets.top / 2)
+                                            .frame(maxWidth: .infinity, alignment: .top)
+
+                                            Spacer(minLength: 0)
+
+                                            LinearGradient(
+                                                colors: [Color.black.opacity(0), Color.black.opacity(0.68)],
+                                                startPoint: .top,
+                                                endPoint: .bottom
+                                            )
+                                            .frame(height: 65 + geo.safeAreaInsets.bottom / 2)
+                                            .frame(maxWidth: .infinity, alignment: .bottom)
+                                        }
+                                        .ignoresSafeArea()
+                                        .allowsHitTesting(false)
+                                    }
+                                }
+                                .overlay {
                                     PlayerControlsOverlay(
                                         showDebugPanel: $showDebugPanel,
                                         onShowDanmakuSettings: {
@@ -360,33 +385,12 @@ struct VideoDetailPage: View {
                 }
             }
             .overlay(alignment: .top) {
-                if isFullscreen && controlsVisible {
-                    LinearGradient(
-                        colors: [Color.black.opacity(0.65), Color.black.opacity(0)],
-                        startPoint: .top,
-                        endPoint: .bottom
-                    )
-                    .frame(height: 60 + geo.safeAreaInsets.top / 2)
-                    .ignoresSafeArea(edges: .top)
-                    .allowsHitTesting(false)
-                } else {
+                if !isFullscreen {
                     Color.black
                         .frame(height: geo.safeAreaInsets.top)
                         .frame(maxWidth: .infinity)
                         .ignoresSafeArea(edges: .top)
                         .allowsHitTesting(false)
-                }
-            }
-            .overlay(alignment: .bottom) {
-                if isFullscreen && controlsVisible {
-                    LinearGradient(
-                        colors: [Color.black.opacity(0), Color.black.opacity(0.68)],
-                        startPoint: .top,
-                        endPoint: .bottom
-                    )
-                    .frame(height: 65 + geo.safeAreaInsets.bottom / 2)
-                    .ignoresSafeArea(edges: .bottom)
-                    .allowsHitTesting(false)
                 }
             }
             .background {
