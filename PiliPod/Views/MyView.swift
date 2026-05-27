@@ -10,6 +10,7 @@ import SwiftUI
 struct MyView: View {
     @StateObject private var viewModel = MyViewModel()
     @ObservedObject private var loginSession = LoginSession.shared
+    @State private var showLoginSheet = false
 
     var body: some View {
         NavigationStack {
@@ -49,19 +50,40 @@ struct MyView: View {
 
                 Spacer()
 
-                LoginImportView {
-                    Task {
-                        await viewModel.loadUser()
+                VStack(spacing: 12) {
+                    LoginImportView {
+                        Task {
+                            await viewModel.loadUser()
+                        }
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .frame(maxWidth: .infinity)
+
+                    if loginSession.isLogin {
+                        Button("退出登录") {
+                            LoginImportService.clearLoginState()
+                            viewModel.user = nil
+                        }
+                        .buttonStyle(.bordered)
+                        .tint(.red)
+                        .frame(maxWidth: .infinity)
+                    } else {
+                        Button("登录") {
+                            showLoginSheet = true
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .frame(maxWidth: .infinity)
                     }
                 }
-                .buttonStyle(.borderedProminent)
-                .frame(maxWidth: .infinity)
                 .padding(.horizontal)
                 .padding(.bottom, 20)
             }
             .navigationTitle("我的")
             .task {
                 await viewModel.loadUser()
+            }
+            .fullScreenCover(isPresented: $showLoginSheet) {
+                LoginPageView()
             }
         }
     }

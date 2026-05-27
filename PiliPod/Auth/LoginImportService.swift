@@ -65,4 +65,17 @@ enum LoginImportService {
         LoginSession.shared.type = UserDefaults.standard.array(forKey: "bili_type") as? [Int]
         LoginSession.shared.isLogin = true
     }
+
+    static func clearLoginState() {
+        LoginSession.shared.cookies = nil
+        LoginSession.shared.accessKey = nil
+        LoginSession.shared.refresh = nil
+        LoginSession.shared.type = nil
+        LoginSession.shared.isLogin = false
+
+        UserDefaults.standard.removeObject(forKey: "bili_cookie")
+        UserDefaults.standard.removeObject(forKey: "bili_accessKey")
+        UserDefaults.standard.removeObject(forKey: "bili_refresh")
+        UserDefaults.standard.removeObject(forKey: "bili_type")
+    }
 }
