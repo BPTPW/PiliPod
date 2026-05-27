@@ -64,9 +64,9 @@ struct VideoDetailPage: View {
                             MPVKitPlayerView(player: player)
                                 .id(bindableViewModel.currentPlayerViewID)
                                 .aspectRatio(stream.aspectRatio, contentMode: .fit)
-                                .frame( width: isFullscreen ? geo.size.width : nil,
-                                        height: isFullscreen ? geo.size.height : nil,
-                                        alignment: .center )
+                                .frame(width: isFullscreen ? geo.size.width : nil,
+                                       height: isFullscreen ? geo.size.height : nil,
+                                       alignment: .center)
                                 .frame(maxWidth: .infinity, alignment: .center)
                                 .clipped()
                                 .ignoresSafeArea(isFullscreen ? .all : [])
@@ -229,7 +229,7 @@ struct VideoDetailPage: View {
                                             .padding(.vertical, 6)
                                             .glassEffect(.regular, in: .capsule)
                                             .padding(.top, 12)
-                                        .transition(.opacity)
+                                            .transition(.opacity)
                                     }
                                 }
                                 .onAppear {
@@ -286,7 +286,7 @@ struct VideoDetailPage: View {
                             .aspectRatio(16.0 / 9.0, contentMode: .fit)
                             .background(Color.black)
                             .matchedGeometryEffect(id: heroID, in: namespace)
-                            
+
                             VStack(spacing: 12) {
                                 if bindableViewModel.isLoading {
                                     ProgressView()
@@ -1498,11 +1498,11 @@ private struct PlaybackRateMenuView: View, Equatable {
     let selectedRate: Double
     let onUserInteracted: () -> Void
     let onSelect: (Double) -> Void
-    
+
     static func == (lhs: PlaybackRateMenuView, rhs: PlaybackRateMenuView) -> Bool {
         lhs.selectedRate == rhs.selectedRate
     }
-    
+
     var body: some View {
         Menu {
             let rates: [Double] = [0.5, 0.75, 1.0, 1.25, 1.5, 2.0]
@@ -1519,11 +1519,11 @@ private struct PlaybackRateMenuView: View, Equatable {
                 .padding(8)
         }
     }
-    
+
     private var playbackRateMenuLabel: String {
         selectedRate == 1.0 ? "倍速" : playbackRateText(selectedRate)
     }
-    
+
     private func playbackRateText(_ rate: Double) -> String {
         if rate.rounded() == rate {
             return "\(Int(rate))x"
@@ -1537,11 +1537,11 @@ private struct QualityMenuView: View, Equatable {
     let selectedCode: Int?
     let onUserInteracted: () -> Void
     let onSelect: (Int) -> Void
-    
+
     static func == (lhs: QualityMenuView, rhs: QualityMenuView) -> Bool {
         lhs.selectedCode == rhs.selectedCode && lhs.options.count == rhs.options.count
     }
-    
+
     var body: some View {
         Menu {
             ForEach(options) { option in
@@ -1557,10 +1557,11 @@ private struct QualityMenuView: View, Equatable {
                 .padding(8)
         }
     }
-    
+
     private var currentQualityLabel: String {
         if let selectedCode = selectedCode,
-           let selected = options.first(where: { $0.code == selectedCode }) {
+           let selected = options.first(where: { $0.code == selectedCode })
+        {
             return selected.label
         }
         return "清晰度"
@@ -1769,7 +1770,7 @@ private struct PlayerControlsOverlay: View {
                         onSelect: onSelectPlaybackRate
                     )
                     .equatable()
-                    
+
                     QualityMenuView(
                         options: qualityOptions,
                         selectedCode: selectedQualityCode,

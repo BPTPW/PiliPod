@@ -199,7 +199,8 @@ class VideoDetailViewModel {
 
             // 选择最优 DASH 流（HEVC 优先）
             guard let quality = defaultQuality,
-                  let stream = DashStreamSelector.selectStream(from: playUrlResponse, qualityCode: quality) else {
+                  let stream = DashStreamSelector.selectStream(from: playUrlResponse, qualityCode: quality)
+            else {
                 throw APIError.noVideoOrAudio
             }
 

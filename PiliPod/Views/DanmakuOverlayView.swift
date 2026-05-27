@@ -1,6 +1,6 @@
+import Combine
 import SwiftUI
 import UIKit
-import Combine
 
 struct DanmakuEngineConfig: Sendable, Equatable {
     var blockLevel: Int = 0
@@ -370,7 +370,7 @@ final class DanmakuEngine: ObservableObject {
         switch protoFontSize {
         case ..<25:
             return 12
-        case 25..<36:
+        case 25 ..< 36:
             return 17
         default:
             return 24
