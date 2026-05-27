@@ -101,19 +101,19 @@ jobs:
                   > changelog.txt
 
                   if [ -n "$FEAT_LOGS" ]; then
-                    echo "### ✨ 新功能 (Features)" >> changelog.txt
+                    echo "### ✨ 新功能" >> changelog.txt
                     echo "$FEAT_LOGS" >> changelog.txt
                     echo "" >> changelog.txt
                   fi
 
                   if [ -n "$FIX_LOGS" ]; then
-                    echo "### 🐛 问题修复 (Bug Fixes)" >> changelog.txt
+                    echo "### 🐛 问题修复" >> changelog.txt
                     echo "$FIX_LOGS" >> changelog.txt
                     echo "" >> changelog.txt
                   fi
 
                   if [ -n "$PERF_LOGS" ]; then
-                    echo "### ⚡ 性能与重构 (Performance & Refactor)" >> changelog.txt
+                    echo "### ⚡ 性能优化与重构" >> changelog.txt
                     echo "$PERF_LOGS" >> changelog.txt
                     echo "" >> changelog.txt
                   fi
