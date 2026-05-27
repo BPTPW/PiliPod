@@ -18,6 +18,7 @@ struct VideoItem: Identifiable, Hashable {
     let uploader: String
     let duration: Int
     let publishTimeText: String
+    let bottomRcmdReasonText: String?
 
     var durationFormatted: String {
         let h = duration / 3600
@@ -53,6 +54,7 @@ extension VideoItem {
         self.duration = video.duration
 
         self.publishTimeText = Self.formatTimestamp(video.pubdate)
+        self.bottomRcmdReasonText = nil
     }
 
     init(from video: RelatedVideo) {
@@ -76,6 +78,7 @@ extension VideoItem {
         self.duration = video.duration
 
         self.publishTimeText = Self.formatTimestamp(video.pubdate)
+        self.bottomRcmdReasonText = nil
     }
 
     static func formatCount(_ count: Int) -> String {

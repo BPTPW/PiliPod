@@ -109,7 +109,8 @@ struct VideoCardSingleView: View {
                     danmakuCount: "345",
                     uploader: "测试UP主",
                     duration: 325,
-                    publishTimeText: "2026-05-25"
+                    publishTimeText: "2026-05-25",
+                    bottomRcmdReasonText: nil
                 ),
                 namespace: ns,
                 onTap: {}

@@ -277,6 +277,7 @@ class BiliAPI {
                 let duration = item.playerArgs?.duration ?? 0
                 let cid = item.playerArgs?.cid
                 let publishTimeText = item.coverRightText ?? "--"
+                let bottomRcmdReasonText = item.bottomRcmdReasonStyle?.text
 
                 // App 接口 param 可能是 aid（纯数字），统一转为 bvid
                 let bvid: String
@@ -297,7 +298,8 @@ class BiliAPI {
                     danmakuCount: danmakuCount,
                     uploader: upName,
                     duration: duration,
-                    publishTimeText: publishTimeText
+                    publishTimeText: publishTimeText,
+                    bottomRcmdReasonText: bottomRcmdReasonText
                 )
                 result.append(.video(videoItem))
 

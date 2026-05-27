@@ -38,6 +38,7 @@ struct AppFeedRawItem: Codable {
     let coverLeftText2: String?
     let coverLeftText3: String?
     let coverRightText: String?
+    let bottomRcmdReasonStyle: AppFeedBottomRcmdReasonStyle?
     let args: AppFeedArgs?
     let playerArgs: AppFeedPlayerArgs?
 
@@ -53,9 +54,14 @@ struct AppFeedRawItem: Codable {
         case coverLeftText2 = "cover_left_text_2"
         case coverLeftText3 = "cover_left_text_3"
         case coverRightText = "cover_right_text"
+        case bottomRcmdReasonStyle = "bottom_rcmd_reason_style"
         case args
         case playerArgs = "player_args"
     }
+}
+
+struct AppFeedBottomRcmdReasonStyle: Codable {
+    let text: String?
 }
 
 struct AppFeedArgs: Codable {

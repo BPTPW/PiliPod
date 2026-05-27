@@ -61,10 +61,26 @@ struct VideoCardView: View {
                     .font(.system(size: 11))
                     .foregroundStyle(.secondary)
 
-                    // UP主
-                    Text(video.uploader)
-                        .font(.system(size: 12))
-                        .foregroundStyle(.secondary)
+                    HStack(alignment: .center, spacing: 5) {
+                        // 推荐理由 （有返回时显示）
+                        if let reason = video.bottomRcmdReasonText, !reason.isEmpty {
+                            Text(reason)
+                                .font(.system(size: 12))
+                                .foregroundStyle(Color.white)
+                                .padding(.horizontal, 3)
+                                .padding(.vertical, 2)
+                                .glassEffect(
+                                    .regular.tint(Color("BiliPink")),
+                                    in: RoundedRectangle(cornerRadius: 5)
+                                )
+                        }
+
+                        // UP主
+                        Text(video.uploader)
+                            .font(.system(size: 12))
+                            .foregroundStyle(.secondary)
+                            .padding(.vertical, 2)
+                    }
                 }
                 .padding(10)
             }
@@ -99,7 +115,8 @@ struct VideoCardView: View {
                     danmakuCount: "345",
                     uploader: "测试UP主",
                     duration: 325,
-                    publishTimeText: "2026-05-25"
+                    publishTimeText: "2026-05-25",
+                    bottomRcmdReasonText: "已关注"
                 ),
                 namespace: ns,
                 onTap: {}
