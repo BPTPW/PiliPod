@@ -1,17 +1,19 @@
+import CryptoKit
 import Foundation
 import Security
-import CryptoKit
 
 // MARK: - 1. 严格的 RFC3986 编码器
+
 extension String {
     func biliUrlEncoded() -> String {
         let unreserved = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~"
         let allowed = CharacterSet(charactersIn: unreserved)
-        return self.addingPercentEncoding(withAllowedCharacters: allowed) ?? self
+        return addingPercentEncoding(withAllowedCharacters: allowed) ?? self
     }
 }
 
 // MARK: - 2. 状态模型 (支持风控验证码反馈)
+
 public enum BiliLoginStatus {
     case success(data: [String: Any])
     /// 如果返回此状态，拉起 WebView 供用户验证，验证后将 geetest 的返回值重新传入 login 函数
@@ -35,9 +37,10 @@ public struct BiliPreCaptchaData {
 }
 
 // MARK: - 3. 本地设备特征管理器 (确保全局唯一，防风控)
+
 public class BiliDeviceConfig {
     public static let shared = BiliDeviceConfig()
-    
+
     // 初始化时从UserDefaults读取，如果没有则生成并保存
     public lazy var deviceId: String = {
         if let saved = UserDefaults.standard.string(forKey: "bili_device_id") { return saved }
@@ -45,7 +48,7 @@ public class BiliDeviceConfig {
         UserDefaults.standard.set(newId, forKey: "bili_device_id")
         return newId
     }()
-    
+
     public lazy var buvid: String = {
         if let saved = UserDefaults.standard.string(forKey: "bili_buvid") { return saved }
         let digest = Insecure.MD5.hash(data: UUID().uuidString.data(using: .utf8) ?? Data())
@@ -54,7 +57,7 @@ public class BiliDeviceConfig {
         UserDefaults.standard.set(newBuvid, forKey: "bili_buvid")
         return newBuvid
     }()
-    
+
     // 固定伪装参数
     public let build = "2001100"
     public let mobiApp = "android_hd"
@@ -67,12 +70,12 @@ public class BiliDeviceConfig {
 }
 
 // MARK: - 4. 核心登录服务
+
 public class BiliAuthService {
-    
     private let appKey = "dfca71928277209b"
     private let appSecret = "b5475a8825547a4fc26c7d518eaaa02e"
     private let config = BiliDeviceConfig.shared
-    
+
     public init() {}
 
     @discardableResult
@@ -84,7 +87,8 @@ public class BiliAuthService {
 
         var cookieDict: [String: String] = [:]
         if let cookieInfo = data["cookie_info"] as? [String: Any],
-           let cookieArray = cookieInfo["cookies"] as? [[String: Any]] {
+           let cookieArray = cookieInfo["cookies"] as? [[String: Any]]
+        {
             for item in cookieArray {
                 if let name = item["name"] as? String, let value = item["value"] as? String {
                     cookieDict[name] = value
@@ -116,7 +120,7 @@ public class BiliAuthService {
         LoginImportService.saveToLocal(cookie)
         return true
     }
-    
+
     /// 仅密码登录（参考 loginByPwd）
     public func login(
         account: String,
@@ -127,14 +131,14 @@ public class BiliAuthService {
         do {
             // 1. 获取登录加密公钥与 hash 盐
             let keyInfo = try await fetchOAuth2Key()
-            
+
             // 2. 加密密码 (hash + password)
             let encryptedPassword = try rsaEncrypt(payload: keyInfo.hash + password, publicKeyPEM: keyInfo.key)
-            
+
             // 3. 动态生成 dt 并加密（与 loginByPwd 一致：字段内预编码）
             let dtRaw = generateRandomString(length: 16)
             let dtEncrypted = try rsaEncrypt(payload: dtRaw, publicKeyPEM: keyInfo.key).biliUrlEncoded()
-            
+
             // 4. 组装参数（按 loginByPwd 对齐）
             var params: [String: String] = [
                 "appkey": appKey,
@@ -161,7 +165,7 @@ public class BiliAuthService {
                 "statistics": config.statistics,
                 "ts": String(Int(Date().timeIntervalSince1970))
             ]
-            
+
             // 5. 如果触发了风控，回填验证码凭证
             if let geetest = geetestParams {
                 params["gee_challenge"] = geetest.challenge
@@ -171,10 +175,10 @@ public class BiliAuthService {
             if let rToken = recaptchaToken {
                 params["recaptcha_token"] = rToken
             }
-            
+
             // 6. 生成签名 (Sign)
             params["sign"] = generateSign(for: params)
-            
+
             // 7. 发起网络请求
             let loginUrl = URL(string: "https://passport.bilibili.com/x/passport-login/oauth2/login")!
             var request = URLRequest(url: loginUrl)
@@ -190,23 +194,22 @@ public class BiliAuthService {
             request.setValue("cronet", forHTTPHeaderField: "bili-http-engine")
             request.setValue("application/x-www-form-urlencoded; charset=utf-8", forHTTPHeaderField: "content-type")
             request.setValue("https://www.bilibili.com", forHTTPHeaderField: "referer")
-            
-            
+
             let bodyString = makeOrderedBodyString(from: params)
             request.httpBody = bodyString.data(using: .utf8)
-            
+
             let (data, _) = try await URLSession.shared.data(for: request)
-            
+
             // 8. 处理返回结果
             guard let json = try JSONSerialization.jsonObject(with: data) as? [String: Any] else {
                 return .failed(code: -999, message: "数据解析失败")
             }
-            
+
             let code = json["code"] as? Int ?? -999
             let message = json["message"] as? String ?? "未知错误"
             let payload = json["data"] as? [String: Any]
             let status = payload?["status"] as? Int
-            
+
             if code == 0, status == 2, let payload {
                 return await makeNeedPhoneVerifyStatus(
                     payload: payload,
@@ -221,7 +224,8 @@ public class BiliAuthService {
                    let rawURL = resData["url"] as? String,
                    let verifyURL = URL(string: rawURL),
                    let components = URLComponents(url: verifyURL, resolvingAgainstBaseURL: false),
-                   let items = components.queryItems {
+                   let items = components.queryItems
+                {
                     let recaptcha = items.first(where: { $0.name == "recaptcha_token" })?.value ?? ""
                     let gt = items.first(where: { $0.name == "gee_gt" })?.value ?? ""
                     let challenge = items.first(where: { $0.name == "gee_challenge" })?.value ?? ""
@@ -233,12 +237,12 @@ public class BiliAuthService {
             } else {
                 return .failed(code: code, message: message)
             }
-            
+
         } catch {
             return .failed(code: -997, message: error.localizedDescription)
         }
     }
-    
+
     // MARK: - 辅助方法
 
     private func fetchOAuth2Key() async throws -> (hash: String, key: String) {
@@ -248,23 +252,24 @@ public class BiliAuthService {
             "ts": String(Int(Date().timeIntervalSince1970))
         ]
         params["sign"] = generateSign(for: params)
-        
+
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue("application/x-www-form-urlencoded", forHTTPHeaderField: "Content-Type")
         request.httpBody = makeOrderedBodyString(from: params).data(using: .utf8)
-        
+
         let (data, _) = try await URLSession.shared.data(for: request)
         guard let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
               let code = json["code"] as? Int, code == 0,
               let resData = json["data"] as? [String: Any],
               let hash = resData["hash"] as? String,
-              let key = resData["key"] as? String else {
+              let key = resData["key"] as? String
+        else {
             throw NSError(domain: "Auth", code: -1, userInfo: [NSLocalizedDescriptionKey: "获取公钥失败"])
         }
         return (hash, key)
     }
-    
+
     private func generateSign(for parameters: [String: String]) -> String {
         var validParams = parameters
         validParams.removeValue(forKey: "sign")
@@ -296,21 +301,21 @@ public class BiliAuthService {
             return encodedValue.isEmpty ? encodedKey : "\(encodedKey)=\(encodedValue)"
         }.joined(separator: "&")
     }
-    
+
     private func generateRandomString(length: Int) -> String {
         let letters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
-        return String((0..<length).map { _ in letters.randomElement()! })
+        return String((0 ..< length).map { _ in letters.randomElement()! })
     }
-    
+
     private func rsaEncrypt(payload: String, publicKeyPEM: String) throws -> String {
         guard let dataToEncrypt = payload.data(using: .utf8) else { throw NSError(domain: "RSA", code: -1) }
         let keyString = publicKeyPEM
             .replacingOccurrences(of: "-----BEGIN PUBLIC KEY-----", with: "")
             .replacingOccurrences(of: "-----END PUBLIC KEY-----", with: "")
             .replacingOccurrences(of: "\n", with: "")
-        
+
         guard let keyData = Data(base64Encoded: keyString) else { throw NSError(domain: "RSA", code: -2) }
-        let options: [String: Any] = [ kSecAttrKeyType as String: kSecAttrKeyTypeRSA, kSecAttrKeyClass as String: kSecAttrKeyClassPublic ]
+        let options: [String: Any] = [kSecAttrKeyType as String: kSecAttrKeyTypeRSA, kSecAttrKeyClass as String: kSecAttrKeyClassPublic]
         var error: Unmanaged<CFError>?
         guard let secKey = SecKeyCreateWithData(keyData as CFData, options as CFDictionary, &error) else { throw NSError(domain: "RSA", code: -3) }
         guard let encryptedData = SecKeyCreateEncryptedData(secKey, .rsaEncryptionPKCS1, dataToEncrypt as CFData, &error) as Data? else { throw NSError(domain: "RSA", code: -4) }
@@ -354,7 +359,8 @@ public class BiliAuthService {
                   let payload = json["data"] as? [String: Any],
                   let token = payload["recaptcha_token"] as? String,
                   let gt = payload["gee_gt"] as? String,
-                  let challenge = payload["gee_challenge"] as? String else {
+                  let challenge = payload["gee_challenge"] as? String
+            else {
                 let msg = json["message"] as? String ?? "preCapture 请求失败"
                 return .failure(NSError(domain: "Auth", code: code, userInfo: [NSLocalizedDescriptionKey: msg]))
             }
@@ -400,7 +406,8 @@ public class BiliAuthService {
             let code = json["code"] as? Int ?? -2002
             guard code == 0,
                   let payload = json["data"] as? [String: Any],
-                  let captchaKey = payload["captcha_key"] as? String else {
+                  let captchaKey = payload["captcha_key"] as? String
+            else {
                 let msg = json["message"] as? String ?? "发送短信失败"
                 return .failure(NSError(domain: "Auth", code: code, userInfo: [NSLocalizedDescriptionKey: msg]))
             }
@@ -445,7 +452,8 @@ public class BiliAuthService {
             let retCode = json["code"] as? Int ?? -2003
             guard retCode == 0,
                   let payload = json["data"] as? [String: Any],
-                  let oauthCode = payload["code"] as? String else {
+                  let oauthCode = payload["code"] as? String
+            else {
                 let msg = json["message"] as? String ?? "短信验证失败"
                 return .failure(NSError(domain: "Auth", code: retCode, userInfo: [NSLocalizedDescriptionKey: msg]))
             }
@@ -526,7 +534,8 @@ public class BiliAuthService {
             guard let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
                   let code = json["code"] as? Int, code == 0,
                   let info = json["data"] as? [String: Any],
-                  let accountInfo = info["account_info"] as? [String: Any] else {
+                  let accountInfo = info["account_info"] as? [String: Any]
+            else {
                 return .failed(code: -2007, message: "获取安全验证信息失败")
             }
 

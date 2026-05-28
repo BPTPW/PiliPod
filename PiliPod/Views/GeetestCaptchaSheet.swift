@@ -148,7 +148,8 @@ private struct GeetestWebView: UIViewRepresentable {
             }
 
             guard message.name == "success",
-                  let payload = message.body as? [String: Any] else {
+                  let payload = message.body as? [String: Any]
+            else {
                 return
             }
 
@@ -161,7 +162,7 @@ private struct GeetestWebView: UIViewRepresentable {
             let seccode = (payload["geetest_seccode"] as? String)
                 ?? (payload["seccode"] as? String)
                 ?? ""
-            
+
             guard !validate.isEmpty, !challenge.isEmpty, !seccode.isEmpty else {
                 print("Geetest success payload missing fields: \(payload)")
                 return

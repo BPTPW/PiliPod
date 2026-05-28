@@ -25,7 +25,7 @@ struct PhoneVerifySheet: View {
                 Text(phoneText)
                     .font(.title3)
 
-                HStack(){
+                HStack {
                     TextField("请输入短信验证码", text: $smsCode)
                         .textFieldStyle(.plain)
                         .keyboardType(.numberPad)
@@ -40,18 +40,17 @@ struct PhoneVerifySheet: View {
                         in: .capsule
                     )
                 }
-                .padding(.vertical,10)
-                .padding(.horizontal,20)
-                .glassEffect(.regular.interactive(),in: .capsule)
-               
+                .padding(.vertical, 10)
+                .padding(.horizontal, 20)
+                .glassEffect(.regular.interactive(), in: .capsule)
 
                 HStack(spacing: 12) {
                     Button("验证并登录") {
                         onSubmitCode(smsCode)
                     }
                     .disabled(isLoading || smsCode.isEmpty)
-                    .frame(maxWidth:.infinity)
-                    .padding(.vertical,10)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 10)
                     .glassEffect(
                         .regular.interactive().tint(.blue),
                         in: .capsule
@@ -82,7 +81,7 @@ struct PhoneVerifySheet: View {
         phoneText: "139*****999",
         isLoading: false,
         errorMessage: nil,
-        onSendCode: { },
+        onSendCode: {},
         onSubmitCode: { code in print("Submit code: \(code)") }
     )
 }

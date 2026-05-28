@@ -5,8 +5,8 @@
 //  Created by co on 2026/5/27.
 //
 
-import Foundation
 import Combine
+import Foundation
 
 @MainActor
 final class LoginViewModel: ObservableObject {
@@ -74,6 +74,7 @@ final class LoginViewModel: ObservableObject {
                 gt: gt,
                 challenge: challenge
             )
+
         case .needPhoneVerify(let context):
             phoneVerifyContext = PhoneVerifyContext(
                 tmpCode: context.tmpCode,
@@ -98,7 +99,7 @@ final class LoginViewModel: ObservableObject {
         isLoading = true
         errorMessage = nil
         defer { isLoading = false }
-        
+
         let status = await authService.login(
             account: username,
             password: password,

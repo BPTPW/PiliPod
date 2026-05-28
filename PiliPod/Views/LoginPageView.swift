@@ -14,26 +14,25 @@ struct LoginPageView: View {
     var body: some View {
         NavigationStack {
             VStack(spacing: 16) {
-                
-                HStack(spacing: 15){
+                HStack(spacing: 15) {
                     Image(systemName: "person.fill")
                     TextField("账号", text: $viewModel.username)
                         .textInputAutocapitalization(.never)
                         .autocorrectionDisabled()
                 }
-                .padding(.vertical,10)
-                .padding(.horizontal,20)
-                .glassEffect(.regular.interactive(),in: .capsule)
+                .padding(.vertical, 10)
+                .padding(.horizontal, 20)
+                .glassEffect(.regular.interactive(), in: .capsule)
 
-                HStack(spacing: 15){
+                HStack(spacing: 15) {
                     Image(systemName: "lock.fill")
                     SecureField("密码", text: $viewModel.password)
                         .textInputAutocapitalization(.never)
                         .autocorrectionDisabled()
                 }
-                .padding(.vertical,10)
-                .padding(.horizontal,20)
-                .glassEffect(.regular.interactive(),in: .capsule)
+                .padding(.vertical, 10)
+                .padding(.horizontal, 20)
+                .glassEffect(.regular.interactive(), in: .capsule)
 
                 Button {
                     Task {
@@ -49,7 +48,7 @@ struct LoginPageView: View {
                             .foregroundStyle(.white)
                     }
                 }
-                .padding(.vertical,10)
+                .padding(.vertical, 10)
                 .glassEffect(
                     .regular.interactive().tint(.blue),
                     in: .capsule
