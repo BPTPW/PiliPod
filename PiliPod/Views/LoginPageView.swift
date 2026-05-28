@@ -50,7 +50,6 @@ struct LoginPageView: View {
                     }
                 }
                 .padding(.vertical,10)
-                .buttonStyle(.plain)
                 .glassEffect(
                     .regular.interactive().tint(.blue),
                     in: .capsule

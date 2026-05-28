@@ -32,7 +32,7 @@ struct PhoneVerifySheet: View {
                     Button("发送验证码") {
                         onSendCode()
                     }
-                    .buttonStyle(.bordered)
+                    .padding(10)
                     .foregroundStyle(.primary)
                     .disabled(false)
                     .glassEffect(
@@ -42,7 +42,7 @@ struct PhoneVerifySheet: View {
                 }
                 .padding(.vertical,10)
                 .padding(.horizontal,20)
-                .glassEffect(.regular,in: .capsule)
+                .glassEffect(.regular.interactive(),in: .capsule)
                
 
                 HStack(spacing: 12) {
@@ -52,7 +52,6 @@ struct PhoneVerifySheet: View {
                     .disabled(isLoading || smsCode.isEmpty)
                     .frame(maxWidth:.infinity)
                     .padding(.vertical,10)
-                    .buttonStyle(.plain)
                     .glassEffect(
                         .regular.interactive().tint(.blue),
                         in: .capsule
@@ -74,20 +73,13 @@ struct PhoneVerifySheet: View {
             }
             .padding()
             .navigationTitle("手机号验证")
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button("关闭") {
-                        dismiss()
-                    }
-                }
-            }
         }
     }
 }
 
 #Preview {
     PhoneVerifySheet(
-        phoneText: "139****9999",
+        phoneText: "139*****999",
         isLoading: false,
         errorMessage: nil,
         onSendCode: { },

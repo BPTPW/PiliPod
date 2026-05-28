@@ -30,13 +30,6 @@ struct GeetestCaptchaSheet: View {
                 dismiss()
             }
             .navigationTitle("人机验证")
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button("关闭") {
-                        dismiss()
-                    }
-                }
-            }
         }
     }
 }
