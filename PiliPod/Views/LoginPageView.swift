@@ -59,6 +59,45 @@ struct LoginPageView: View {
                 }
             }
         }
+        .sheet(item: $viewModel.geetestContext) { context in
+            GeetestCaptchaSheet(
+                gt: context.gt,
+                challenge: context.challenge
+            ) { result in
+                Task {
+                    if viewModel.phoneVerifyContext != nil {
+                        await viewModel.submitPhoneVerifyGeetest(result)
+                    } else {
+                        await viewModel.submitGeetestResult(
+                            result,
+                            recaptchaToken: context.recaptchaToken
+                        )
+                    }
+                }
+            }
+        }
+        .sheet(item: $viewModel.phoneVerifyContext) { context in
+            PhoneVerifySheet(
+                phoneText: context.maskedTel,
+                isLoading: viewModel.isLoading,
+                errorMessage: viewModel.phoneVerifyMessage,
+                onSendCode: {
+                    Task {
+                        await viewModel.sendPhoneVerifySMS()
+                    }
+                },
+                onSubmitCode: { code in
+                    Task {
+                        await viewModel.submitPhoneVerifyCode(code)
+                    }
+                }
+            )
+        }
+        .onReceive(viewModel.$loginSucceeded) { succeeded in
+            if succeeded {
+                dismiss()
+            }
+        }
     }
 }
 
