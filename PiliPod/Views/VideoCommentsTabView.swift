@@ -65,12 +65,6 @@ struct VideoCommentsTabView: View {
             let reply = try await BiliAPI.shared.fetchVideoCommentMainList(aid: Int64(aid))
             comments = reply.replies.map { toCommentItem($0) }
             hasLoaded = true
-
-            if let first = reply.replies.first {
-                print("[Comments] first username=\(first.member.name) message=\(first.content.message)")
-            } else {
-                print("[Comments] no comments returned")
-            }
         } catch {
             errorText = error.localizedDescription
             print("[Comments] load failed: \(error.localizedDescription)")
@@ -107,4 +101,3 @@ struct VideoCommentsTabView: View {
         return formatter.string(from: date)
     }
 }
-

@@ -10,7 +10,7 @@ import SwiftUI
 struct CommentCardView: View {
     let comment: CommentItem
 
-    private let avatarSize: CGFloat = 40
+    private let avatarSize: CGFloat = 35
     private let horizontalGap: CGFloat = 10
 
     var body: some View {
@@ -20,7 +20,7 @@ struct CommentCardView: View {
 
                 VStack(alignment: .leading, spacing: 4) {
                     Text(comment.username)
-                        .font(.headline)
+                        .font(.body.weight(.semibold))
                         .foregroundStyle(.primary)
 
                     Text("\(comment.timeText) · \(comment.ipLocation)")
@@ -66,11 +66,10 @@ struct CommentCardView: View {
     private var repliesSection: some View {
         VStack(alignment: .leading, spacing: 6) {
             ForEach(comment.replies) { reply in
-                Text("\(reply.username): \(reply.content)")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                highlightedReplyText(username: reply.username, content: reply.content)
+                    .font(.subheadline)
                     .frame(maxWidth: .infinity, alignment: .leading)
-                    .lineLimit(1)
+                    .lineLimit(2)
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -111,6 +110,58 @@ struct CommentCardView: View {
             .foregroundStyle(.secondary)
             .padding(6)
             .background(Color.secondary.opacity(0.12))
+    }
+
+    private func highlightedReplyText(username: String, content: String) -> Text {
+        let prefix = Text(username).foregroundStyle(Color("BiliPink"))
+            + Text(": ").foregroundStyle(.primary)
+        return prefix + highlightedMentionText(content)
+    }
+
+    private func highlightedMentionText(_ content: String) -> Text {
+        let pattern = #"\@[^\s@:：]+"#
+        guard let regex = try? NSRegularExpression(pattern: pattern) else {
+            return Text(content).foregroundStyle(.primary)
+        }
+
+        let nsContent = content as NSString
+        let matches = regex.matches(
+            in: content,
+            range: NSRange(location: 0, length: nsContent.length)
+        )
+        guard !matches.isEmpty else {
+            return Text(content).foregroundStyle(.primary)
+        }
+
+        var result = Text("")
+        var currentLocation = 0
+        for match in matches {
+            if match.range.location > currentLocation {
+                let normalPart = nsContent.substring(
+                    with: NSRange(
+                        location: currentLocation,
+                        length: match.range.location - currentLocation
+                    )
+                )
+                result = result + Text(normalPart).foregroundStyle(.primary)
+            }
+
+            let mentionPart = nsContent.substring(with: match.range)
+            result = result + Text(mentionPart).foregroundStyle(Color("BiliPink"))
+            currentLocation = match.range.location + match.range.length
+        }
+
+        if currentLocation < nsContent.length {
+            let tail = nsContent.substring(
+                with: NSRange(
+                    location: currentLocation,
+                    length: nsContent.length - currentLocation
+                )
+            )
+            result = result + Text(tail).foregroundStyle(.primary)
+        }
+
+        return result
     }
 }
 
