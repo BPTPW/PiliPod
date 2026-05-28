@@ -10,10 +10,12 @@ import SwiftUI
 struct VideoCardView: View {
     let video: VideoItem
     let namespace: Namespace.ID
+    let thumbnailWidth: CGFloat
     let onTap: () -> Void
 
     private var heroID: String { "videoHero.\(video.bvid)" }
     private let cornerRadius: CGFloat = 18
+    private var thumbnailHeight: CGFloat { thumbnailWidth * 10 / 16 }
 
     var body: some View {
         Button(action: onTap) {
@@ -28,7 +30,7 @@ struct VideoCardView: View {
                         Rectangle()
                             .fill(Color(.systemGray5))
                     }
-                    .frame(maxWidth: .infinity)
+                    .frame(width: thumbnailWidth, height: thumbnailHeight)
                     .clipped()
 
                     Text(video.durationFormatted)
@@ -95,6 +97,7 @@ struct VideoCardView: View {
             // iOS26-ish：更柔和的环境阴影 + 更集中的投影
             .shadow(color: .black.opacity(0.10), radius: 18, y: 10)
             .shadow(color: .black.opacity(0.06), radius: 6, y: 2)
+            .frame(width: thumbnailWidth, alignment: .leading)
         }
         .buttonStyle(.plain)
     }
@@ -119,6 +122,7 @@ struct VideoCardView: View {
                     bottomRcmdReasonText: "已关注"
                 ),
                 namespace: ns,
+                thumbnailWidth: 180,
                 onTap: {}
             )
             .padding()
