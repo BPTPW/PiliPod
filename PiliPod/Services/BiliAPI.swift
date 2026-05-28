@@ -603,6 +603,38 @@ class BiliAPI {
         }
     }
 
+    // MARK: - 稍后再看（最多 100 个）
+
+    func addToWatchLater(bvid: String) async throws {
+        guard let sessData = LoginSession.shared.cookies?.SESSDATA, !sessData.isEmpty else {
+            throw APIError.responseError(-101)
+        }
+        guard let csrf = LoginSession.shared.cookies?.bili_jct, !csrf.isEmpty else {
+            throw APIError.responseError(-111)
+        }
+
+        let params: [String: String] = [
+            "bvid": bvid,
+            "csrf": csrf
+        ]
+
+        guard let request = makePostFormRequest(
+            urlString: "https://api.bilibili.com/x/v2/history/toview/add",
+            parameters: params
+        ) else {
+            throw APIError.invalidURL
+        }
+
+        let (data, _) = try await URLSession.shared.data(for: request)
+        let response = try JSONDecoder().decode(
+            SimpleAPIResponse<EmptyCodable>.self,
+            from: data
+        )
+        if response.code != 0 {
+            throw APIError.responseError(response.code)
+        }
+    }
+
     // MARK: - 播放链接
 
     func fetchPlayUrl(

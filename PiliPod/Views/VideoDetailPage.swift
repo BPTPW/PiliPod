@@ -610,6 +610,7 @@ struct VideoDetailPage: View {
                         isDisliked: viewModel.isDisliked,
                         isCoined: viewModel.isCoined,
                         isFavorited: viewModel.isFavorited,
+                        isWatchLater: viewModel.isWatchLater,
                         likeCount: viewModel.likeCount,
                         coinCount: viewModel.coinCount,
                         favoriteCount: viewModel.favoriteCount,
@@ -618,6 +619,7 @@ struct VideoDetailPage: View {
                         isDislikeRequesting: viewModel.isDislikeRequesting,
                         isCoinRequesting: viewModel.isCoinRequesting,
                         isFavoriteRequesting: viewModel.isFavoriteRequesting,
+                        isWatchLaterRequesting: viewModel.isWatchLaterRequesting,
                         onToggleLike: {
                             withAnimation(.easeInOut(duration: 0.15)) {
                                 viewModel.toggleLike()
@@ -640,7 +642,11 @@ struct VideoDetailPage: View {
                         onShare: {
                             // TODO: add share logic later
                         },
-                        onLaterWatch: {}
+                        onLaterWatch: {
+                            if(!viewModel.isWatchLater){
+                                viewModel.addToWatchLater()
+                            }
+                        }
                     )
                     .padding(.top, 4)
 
@@ -851,6 +857,7 @@ private struct VideoActionBar: View {
     let isDisliked: Bool
     let isCoined: Bool
     let isFavorited: Bool
+    let isWatchLater: Bool
 
     let likeCount: Int
     let coinCount: Int
@@ -861,6 +868,7 @@ private struct VideoActionBar: View {
     let isDislikeRequesting: Bool
     let isCoinRequesting: Bool
     let isFavoriteRequesting: Bool
+    let isWatchLaterRequesting: Bool
 
     let onToggleLike: () -> Void
     let onToggleDislike: () -> Void
@@ -916,8 +924,8 @@ private struct VideoActionBar: View {
             VideoActionButton(
                 title: "稍后再看",
                 systemImage: "clock.badge",
-                isActive: false,
-                isDisabled: false,
+                isActive: isWatchLater,
+                isDisabled: isWatchLaterRequesting,
                 onTap: onLaterWatch
             )
         }

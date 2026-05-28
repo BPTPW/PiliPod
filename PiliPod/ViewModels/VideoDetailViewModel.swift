@@ -39,6 +39,7 @@ class VideoDetailViewModel {
     var isDisliked = false
     var isCoined = false
     var isFavorited = false
+    var isWatchLater = false
 
     var likeCount = 0
     var coinCount = 0
@@ -48,6 +49,7 @@ class VideoDetailViewModel {
     var isDislikeRequesting = false
     var isCoinRequesting = false
     var isFavoriteRequesting = false
+    var isWatchLaterRequesting = false
 
     let bvid: String
     var aid: Int = 0
@@ -101,6 +103,7 @@ class VideoDetailViewModel {
         isDisliked = false
         isCoined = false
         isFavorited = false
+        isWatchLater = false
         likeCount = 0
         coinCount = 0
         favoriteCount = 0
@@ -453,6 +456,10 @@ class VideoDetailViewModel {
         // 收藏需要弹出收藏夹选择 UI，这里不做 toggle
     }
 
+    func addToWatchLater() {
+        Task { await addToWatchLaterAsync() }
+    }
+
     @MainActor
     private func toggleLikeAsync() async {
         guard !isLikeRequesting else { return }
@@ -526,6 +533,22 @@ class VideoDetailViewModel {
             self.error = error.localizedDescription
         }
         isCoinRequesting = false
+    }
+
+    @MainActor
+    private func addToWatchLaterAsync() async {
+        guard !isWatchLaterRequesting else { return }
+        guard !isWatchLater else { return }
+        guard !bvid.isEmpty else { return }
+
+        isWatchLaterRequesting = true
+        do {
+            try await BiliAPI.shared.addToWatchLater(bvid: bvid)
+            isWatchLater = true
+        } catch {
+            self.error = error.localizedDescription
+        }
+        isWatchLaterRequesting = false
     }
 
     func fetchFavoriteFoldersForCurrentUser() async throws -> [FavoriteFolderItem] {
