@@ -18,29 +18,45 @@ struct PhoneVerifySheet: View {
 
     var body: some View {
         NavigationStack {
-            VStack(spacing: 16) {
-                Text("本次登录需要验证手机号")
+            VStack(spacing: 20) {
+                Text("需要验证手机号")
                     .font(.headline)
 
                 Text(phoneText)
                     .font(.title3)
 
-                TextField("请输入短信验证码", text: $smsCode)
-                    .textFieldStyle(.roundedBorder)
-                    .keyboardType(.numberPad)
-
-                HStack(spacing: 12) {
+                HStack(){
+                    TextField("请输入短信验证码", text: $smsCode)
+                        .textFieldStyle(.plain)
+                        .keyboardType(.numberPad)
                     Button("发送验证码") {
                         onSendCode()
                     }
                     .buttonStyle(.bordered)
-                    .disabled(isLoading)
+                    .foregroundStyle(.primary)
+                    .disabled(false)
+                    .glassEffect(
+                        .regular.interactive(),
+                        in: .capsule
+                    )
+                }
+                .padding(.vertical,10)
+                .padding(.horizontal,20)
+                .glassEffect(.regular,in: .capsule)
+               
 
+                HStack(spacing: 12) {
                     Button("验证并登录") {
                         onSubmitCode(smsCode)
                     }
-                    .buttonStyle(.borderedProminent)
                     .disabled(isLoading || smsCode.isEmpty)
+                    .frame(maxWidth:.infinity)
+                    .padding(.vertical,10)
+                    .buttonStyle(.plain)
+                    .glassEffect(
+                        .regular.interactive().tint(.blue),
+                        in: .capsule
+                    )
                 }
 
                 if let errorMessage, !errorMessage.isEmpty {
@@ -67,4 +83,14 @@ struct PhoneVerifySheet: View {
             }
         }
     }
+}
+
+#Preview {
+    PhoneVerifySheet(
+        phoneText: "139****9999",
+        isLoading: false,
+        errorMessage: nil,
+        onSendCode: { },
+        onSubmitCode: { code in print("Submit code: \(code)") }
+    )
 }
