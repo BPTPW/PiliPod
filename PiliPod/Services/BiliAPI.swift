@@ -139,6 +139,123 @@ class BiliAPI {
         return digest.map { String(format: "%02hhx", $0) }.joined()
     }
 
+    // MARK: - 获取视频评论（gRPC）
+
+    func fetchVideoCommentMainList(
+        aid: Int64,
+        next: Int64 = 0,
+        mode: Bilibili_Main_Community_Reply_V1_Mode = .mainListHot
+    ) async throws -> Bilibili_Main_Community_Reply_V1_MainListReply {
+        guard let url = URL(string: "https://grpc.biliapi.net/bilibili.main.community.reply.v1.Reply/MainList") else {
+            throw APIError.invalidURL
+        }
+
+        var reqMessage = Bilibili_Main_Community_Reply_V1_MainListReq()
+        reqMessage.oid = aid
+        reqMessage.type = 1
+        reqMessage.cursor = .init()
+        reqMessage.cursor.next = next
+        reqMessage.cursor.mode = mode
+
+        let messageBytes = try reqMessage.serializedData()
+        var grpcBody = Data([0x00])
+        var length = UInt32(messageBytes.count).bigEndian
+        withUnsafeBytes(of: &length) { bytes in
+            grpcBody.append(contentsOf: bytes)
+        }
+        grpcBody.append(messageBytes)
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.httpBody = grpcBody
+
+        request.setValue("application/grpc", forHTTPHeaderField: "Content-Type")
+        request.setValue("trailers", forHTTPHeaderField: "TE")
+        request.setValue("grpc.biliapi.net", forHTTPHeaderField: "Host")
+        request.setValue(
+            "bili-universal/7320300 os/ios model/iPhone 13 mobi_app/iphone build/7320300 network/2 wifi/0 channel/AppStore",
+            forHTTPHeaderField: "User-Agent"
+        )
+        request.setValue("https://www.bilibili.com", forHTTPHeaderField: "Referer")
+
+        let cookie = LoginSession.shared.cookieString
+        if !cookie.isEmpty {
+            request.setValue(cookie, forHTTPHeaderField: "Cookie")
+        }
+
+        if let accessKey = LoginSession.shared.accessKey, !accessKey.isEmpty {
+            request.setValue("identify_v1 \(accessKey)", forHTTPHeaderField: "Authorization")
+        }
+
+        let (data, response) = try await URLSession.shared.data(for: request)
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw APIError.requestFailed
+        }
+        guard (200 ... 299).contains(httpResponse.statusCode) else {
+            throw APIError.requestFailed
+        }
+
+        let headerGrpcStatus = httpResponse.value(forHTTPHeaderField: "grpc-status")
+        let headerGrpcMessage = httpResponse.value(forHTTPHeaderField: "grpc-message")
+        if let headerGrpcStatus, headerGrpcStatus != "0" {
+            throw APIError.grpcError(
+                status: headerGrpcStatus,
+                message: decodeGrpcMessage(headerGrpcMessage)
+            )
+        }
+
+        var idx = 0
+        while idx + 5 <= data.count {
+            let flag = data[idx]
+            let lenData = data[(idx + 1)..<(idx + 5)]
+            let payloadLength = lenData.reduce(UInt32(0)) { (acc, byte) in
+                (acc << 8) | UInt32(byte)
+            }
+            idx += 5
+
+            let end = idx + Int(payloadLength)
+            guard end <= data.count else { break }
+
+            let payload = data[idx..<end]
+            idx = end
+
+            if flag & 0x80 == 0 {
+                return try Bilibili_Main_Community_Reply_V1_MainListReply(serializedBytes: payload)
+            }
+
+            if flag & 0x80 != 0,
+               let trailerText = String(data: payload, encoding: .utf8) {
+                let status = parseTrailerValue("grpc-status", in: trailerText)
+                if let status, status != "0" {
+                    let message = parseTrailerValue("grpc-message", in: trailerText)
+                    throw APIError.grpcError(
+                        status: status,
+                        message: decodeGrpcMessage(message)
+                    )
+                }
+            }
+        }
+
+        throw APIError.requestFailed
+    }
+
+    private func parseTrailerValue(_ key: String, in trailerText: String) -> String? {
+        for line in trailerText.split(separator: "\r\n", omittingEmptySubsequences: true) {
+            let parts = line.split(separator: ":", maxSplits: 1, omittingEmptySubsequences: true)
+            guard parts.count == 2 else { continue }
+            if parts[0].trimmingCharacters(in: .whitespacesAndNewlines).lowercased() == key.lowercased() {
+                return parts[1].trimmingCharacters(in: .whitespacesAndNewlines)
+            }
+        }
+        return nil
+    }
+
+    private func decodeGrpcMessage(_ raw: String?) -> String {
+        guard let raw, !raw.isEmpty else { return "unknown" }
+        let replaced = raw.replacingOccurrences(of: "+", with: " ")
+        return replaced.removingPercentEncoding ?? raw
+    }
+
     // MARK: - 获取网页版推荐视频
 
     func fetchRecommendVideos(
@@ -785,6 +902,7 @@ enum APIError: LocalizedError {
     case responseError(Int)
     case noVideoOrAudio
     case requestFailed
+    case grpcError(status: String, message: String)
 
     var errorDescription: String? {
         switch self {
@@ -796,6 +914,8 @@ enum APIError: LocalizedError {
             return "未找到视频或音频流"
         case .requestFailed:
             return "请求失败"
+        case let .grpcError(status, message):
+            return "gRPC 错误: status=\(status), message=\(message)"
         }
     }
 }

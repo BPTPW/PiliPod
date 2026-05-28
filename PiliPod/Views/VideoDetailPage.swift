@@ -498,14 +498,8 @@ struct VideoDetailPage: View {
         case .intro:
             introTabContent
         case .comments:
-            VStack(alignment: .leading, spacing: 8) {
-                Text("评论区建设中")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-            }
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-            .padding(16)
-            .background(Color(.systemBackground))
+            VideoCommentsTabView(aid: viewModel.aid)
+                .background(Color(.systemBackground))
         }
     }
 
