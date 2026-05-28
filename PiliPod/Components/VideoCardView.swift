@@ -28,7 +28,7 @@ struct VideoCardView: View {
                         Rectangle()
                             .fill(Color(.systemGray5))
                     }
-                    .frame(height: 112)
+                    .frame(maxWidth: .infinity)
                     .clipped()
 
                     Text(video.durationFormatted)
