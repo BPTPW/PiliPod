@@ -14,7 +14,7 @@ struct LoginImportView: View {
 
     @State private var showImporter = false
 
-    init(title: String = "导入登入数据", onImported: @escaping () -> Void) {
+    init(title: String = "导入登录数据", onImported: @escaping () -> Void) {
         self.title = title
         self.onImported = onImported
     }
