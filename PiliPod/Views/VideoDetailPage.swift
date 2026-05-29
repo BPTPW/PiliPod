@@ -561,9 +561,8 @@ struct VideoDetailPage: View {
                                 }) {
                                     Text(viewModel.isOwnerFollowing ? "已关注" : "关注")
                                         .font(.caption.weight(.semibold))
-                                        .foregroundColor(viewModel.isOwnerFollowing ? .secondary : .white)
+                                        .foregroundColor(viewModel.isOwnerFollowing ? .followedText : .white)
                                 }
-                                //.disabled(viewModel.isOwnerFollowRequesting)
                                 .frame(width: 65,height: 25)
                             }
                             .glassEffect(

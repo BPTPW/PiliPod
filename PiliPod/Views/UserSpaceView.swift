@@ -148,13 +148,14 @@ struct UserSpaceView: View {
 
                     ZStack {
                         RoundedRectangle(cornerRadius: 16, style: .continuous)
-                            .fill(viewModel.isFollowed ? .gray : Color("BiliPink"))
+                            .fill(viewModel.isFollowed ? .followedBackground : Color("BiliPink"))
                             .animation(.smooth(duration: 0.1), value: viewModel.isFollowed)
                             .frame(height: 32)
 
                         Button {} label: {
                             Text(viewModel.isFollowed ? "已关注" : "关注")
-                                .foregroundStyle(.white)
+                                .foregroundStyle(viewModel.isFollowed ? .followedText : .white)
+                                .font(.headline)
                         }
                         .frame(maxWidth: .infinity)
                         .frame(height: 32)
