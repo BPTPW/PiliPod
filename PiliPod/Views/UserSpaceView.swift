@@ -19,6 +19,8 @@ struct UserSpaceView: View {
     @State private var selectedTab: UserSpaceTab = .posts
     @State private var toastMessage: String?
     @Namespace private var topToolsGlass
+    @Namespace private var videoHeroNamespace
+    @State private var selectedVideo: VideoItem?
 
     let mid: Int
     let fromViewAid: Int?
@@ -51,6 +53,24 @@ struct UserSpaceView: View {
         }
         .toolbar(.hidden, for: .navigationBar)
         .toast(message: $toastMessage)
+        .navigationDestination(item: $selectedVideo) { video in
+            if #available(iOS 18.0, *) {
+                VideoDetailPage(
+                    video: video,
+                    namespace: videoHeroNamespace,
+                    onBack: { selectedVideo = nil }
+                )
+                .navigationTransition(
+                    .zoom(sourceID: "videoHero.\(video.bvid)", in: videoHeroNamespace)
+                )
+            } else {
+                VideoDetailPage(
+                    video: video,
+                    namespace: videoHeroNamespace,
+                    onBack: { selectedVideo = nil }
+                )
+            }
+        }
         .task {
             await viewModel.load(mid: mid, fromViewAid: fromViewAid)
         }
@@ -233,19 +253,72 @@ struct UserSpaceView: View {
                 }
             }
             .pickerStyle(.segmented)
-
-            RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .fill(Color(.secondarySystemBackground))
-                .frame(height: 320)
-                .overlay {
-                    Text("\(selectedTab.rawValue)内容暂时留空")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                }
+            
+            if selectedTab == .posts {
+                postsTabContent
+            } else {
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    .fill(Color(.secondarySystemBackground))
+                    .frame(height: 320)
+                    .overlay {
+                        Text("\(selectedTab.rawValue)内容暂时留空")
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                    }
+            }
         }
         .padding(.horizontal, 16)
         .padding(.top, 18)
         .padding(.bottom, 24)
+    }
+
+    @ViewBuilder
+    private var postsTabContent: some View {
+        if viewModel.archiveIsLoading && viewModel.archiveVideos.isEmpty {
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .fill(Color(.secondarySystemBackground))
+                .frame(height: 200)
+                .overlay {
+                    ProgressView("加载投稿中…")
+                }
+        } else if let error = viewModel.archiveErrorMessage, viewModel.archiveVideos.isEmpty {
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .fill(Color(.secondarySystemBackground))
+                .frame(height: 200)
+                .overlay {
+                    Text(error)
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                        .padding(.horizontal, 14)
+                }
+        } else if viewModel.archiveVideos.isEmpty {
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .fill(Color(.secondarySystemBackground))
+                .frame(height: 200)
+                .overlay {
+                    Text("还没有投稿内容")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                }
+        } else {
+            LazyVStack(spacing: 12) {
+                ForEach(viewModel.archiveVideos) { video in
+                    VideoCardSingleView(
+                        video: video,
+                        namespace: videoHeroNamespace,
+                        onTap: { selectedVideo = video }
+                    )
+                    .onAppear {
+                        Task { await viewModel.loadMoreArchiveIfNeeded(current: video) }
+                    }
+                }
+
+                if viewModel.archiveIsLoading && !viewModel.archiveVideos.isEmpty {
+                    ProgressView()
+                        .padding(.vertical, 8)
+                }
+            }
+        }
     }
 
     private func stat(_ value: String, _ title: String) -> some View {

@@ -367,17 +367,7 @@ class BiliAPI {
 
     func fetchUserSpace(mid: Int, fromViewAid: Int?) async throws -> UserSpaceData {
         let urlString = "https://app.bilibili.com/x/v2/space"
-        var params: [String: String] = [
-            "build": "8430300",
-            "version": "8.43.0",
-            "c_locale": "zh_CN",
-            "channel": "master",
-            "mobi_app": "android",
-            "platform": "android",
-            "s_locale": "zh_CN",
-            "statistics": "{\"appId\":1,\"platform\":3,\"version\":\"8.43.0\",\"abtest\":\"\"}",
-            "vmid": String(mid)
-        ]
+        var params = makeSpaceCommonParameters(mid: mid)
 
         if let fromViewAid {
             params["from_view_aid"] = String(fromViewAid)
@@ -404,6 +394,61 @@ class BiliAPI {
         }
 
         return spaceData
+    }
+
+    // MARK: - 获取个人空间投稿（App，游标分页）
+
+    func fetchSpaceArchiveCursor(
+        mid: Int,
+        aid: Int?,
+        order: String = "pubdate",
+        ps: Int = 20,
+        qn: Int = 80
+    ) async throws -> SpaceArchiveData {
+        let urlString = "https://app.biliapi.com/x/v2/space/archive/cursor"
+        var params = makeSpaceCommonParameters(mid: mid)
+        params["order"] = order
+        params["ps"] = String(ps)
+        params["qn"] = String(qn)
+        if let aid {
+            params["aid"] = String(aid)
+        }
+
+        guard let request = makeAppRequest(baseURLString: urlString, method: "GET", parameters: params) else {
+            throw APIError.invalidURL
+        }
+
+        let (data, response) = try await URLSession.shared.data(for: request)
+
+        guard let httpResponse = response as? HTTPURLResponse,
+              (200 ... 299).contains(httpResponse.statusCode)
+        else {
+            throw APIError.requestFailed
+        }
+
+        let decoded = try JSONDecoder().decode(SpaceArchiveResponse.self, from: data)
+        guard decoded.code == 0 else {
+            throw APIError.businessError(code: decoded.code, message: decoded.message)
+        }
+        guard let archiveData = decoded.data else {
+            throw APIError.requestFailed
+        }
+
+        return archiveData
+    }
+
+    private func makeSpaceCommonParameters(mid: Int) -> [String: String] {
+        [
+            "build": "8430300",
+            "version": "8.43.0",
+            "c_locale": "zh_CN",
+            "channel": "master",
+            "mobi_app": "android",
+            "platform": "android",
+            "s_locale": "zh_CN",
+            "statistics": "{\"appId\":1,\"platform\":3,\"version\":\"8.43.0\",\"abtest\":\"\"}",
+            "vmid": String(mid)
+        ]
     }
 
     // MARK: - 解析App推荐接口数据

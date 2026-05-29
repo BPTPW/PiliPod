@@ -7,17 +7,86 @@ final class UserSpaceViewModel: ObservableObject {
     @Published var isLoading = false
     @Published var errorMessage: String?
     @Published var isFollowRequesting = false
+    @Published var archiveVideos: [VideoItem] = []
+    @Published var archiveIsLoading = false
+    @Published var archiveErrorMessage: String?
+    @Published var archiveHasMore = true
+
+    private var archiveNextAid: Int?
+    private var archiveMid: Int?
 
     func load(mid: Int, fromViewAid: Int?) async {
+        archiveMid = mid
         isLoading = true
         errorMessage = nil
         defer { isLoading = false }
 
         do {
             data = try await BiliAPI.shared.fetchUserSpace(mid: mid, fromViewAid: fromViewAid)
+            await refreshArchive()
         } catch {
             data = nil
             errorMessage = error.localizedDescription
+        }
+    }
+
+    func refreshArchive() async {
+        guard let mid = archiveMid else { return }
+
+        archiveIsLoading = true
+        archiveErrorMessage = nil
+        archiveHasMore = true
+        archiveNextAid = nil
+        defer { archiveIsLoading = false }
+
+        do {
+            let page = try await BiliAPI.shared.fetchSpaceArchiveCursor(
+                mid: mid,
+                aid: nil,
+                order: "pubdate",
+                ps: 20,
+                qn: 80
+            )
+            let items = page.item ?? []
+            archiveVideos = items.map { VideoItem(from: $0) }
+            archiveNextAid = items.last?.resolvedAid
+            archiveHasMore = (page.hasNext ?? false) && archiveNextAid != nil && !items.isEmpty
+        } catch {
+            archiveVideos = []
+            archiveErrorMessage = error.localizedDescription
+            archiveHasMore = false
+        }
+    }
+
+    func loadMoreArchiveIfNeeded(current item: VideoItem) async {
+        guard item.id == archiveVideos.last?.id else { return }
+        await loadMoreArchive()
+    }
+
+    func loadMoreArchive() async {
+        guard let mid = archiveMid else { return }
+        print(archiveHasMore)
+        guard !archiveIsLoading, archiveHasMore, let aid = archiveNextAid else { return }
+        
+        archiveIsLoading = true
+        defer { archiveIsLoading = false }
+
+        do {
+            let page = try await BiliAPI.shared.fetchSpaceArchiveCursor(
+                mid: mid,
+                aid: aid,
+                order: "pubdate",
+                ps: 20,
+                qn: 80
+            )
+            let items = page.item ?? []
+            let more = items.map { VideoItem(from: $0) }
+            archiveVideos.append(contentsOf: more)
+            archiveNextAid = items.last?.resolvedAid
+            archiveHasMore = (page.hasNext ?? false) && archiveNextAid != nil && !items.isEmpty
+        } catch {
+            archiveErrorMessage = error.localizedDescription
+            archiveHasMore = false
         }
     }
 
@@ -98,5 +167,21 @@ final class UserSpaceViewModel: ObservableObject {
         }
 
         return trimmed
+    }
+}
+
+private extension VideoItem {
+    init(from archive: SpaceArchiveItem) {
+        let bvid = archive.bvid ?? ""
+        self.bvid = bvid.isEmpty ? "av\(archive.aid ?? 0)" : bvid
+        self.cid = archive.firstCid
+        self.cover = (archive.cover ?? "").replacingOccurrences(of: "http://", with: "https://")
+        self.title = archive.title ?? ""
+        self.playCount = Self.formatCount(archive.play ?? 0)
+        self.danmakuCount = Self.formatCount(archive.danmaku ?? 0)
+        self.uploader = archive.author ?? ""
+        self.duration = archive.duration ?? 0
+        self.publishTimeText = archive.publishTimeText ?? "--"
+        self.bottomRcmdReasonText = nil
     }
 }
