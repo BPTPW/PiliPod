@@ -74,32 +74,18 @@ class BiliAPI {
     ) -> URLRequest? {
         guard let baseURL = URL(string: baseURLString) else { return nil }
 
-        // 1. 合并业务参数与系统公共移动端参数
+        // 合并业务参数与系统公共移动端参数
         var allParams = parameters
-        allParams["appkey"] = Self.appKey
+        allParams["appkey"] = BiliAPI.appKey
         allParams["mobi_app"] = "android_hd"
         allParams["platform"] = "android"
         allParams["ts"] = String(Int(Date().timeIntervalSince1970))
 
-        // 2. 注入通过 LoginSession 导入的移动端特有凭证 accessKey
-        if let accessKey = LoginSession.shared.accessKey, !accessKey.isEmpty {
-            allParams["access_key"] = accessKey
-        }
+        // 进行签名
+        allParams["sign"] = generateSign(for: allParams)
+        let paramsString = makeOrderedBodyString(from: allParams)
 
-        // 3. 将所有参数按照 Key 的字母顺序（ASCII 码）升序排列
-        let sortedParams = allParams.sorted { $0.key < $1.key }
-
-        // 4. 拼接成未编码的 Raw Query 字符串用于加签
-        let rawQueryString = sortedParams.map { "\($0.key)=\($0.value)" }.joined(separator: "&")
-
-        // 5. 尾部加上移动端 Secret，计算 MD5 得到核心 sign
-        let signString = rawQueryString + Self.appSecret
-        let sign = md5(signString)
-
-        // 将计算出的签名也加入最终的参数中
-        allParams["sign"] = sign
-
-        // 6. 组装真正的 URLRequest
+        // 组装真正的 URLRequest
         var request = URLRequest(url: baseURL)
         request.httpMethod = method
 
@@ -116,17 +102,17 @@ class BiliAPI {
         // 7. 根据 GET 还是 POST 将带 sign 的参数绑定到 Request 中
         if method.uppercased() == "GET" {
             if var components = URLComponents(url: baseURL, resolvingAgainstBaseURL: false) {
-                components.queryItems = allParams.map { URLQueryItem(name: $0.key, value: $0.value) }
+                if let existing = components.percentEncodedQuery, !existing.isEmpty {
+                    components.percentEncodedQuery = existing + "&" + paramsString
+                } else {
+                    components.percentEncodedQuery = paramsString
+                }
                 if let finalURL = components.url {
                     request.url = finalURL
                 }
             }
         } else {
-            var bodyComponents = URLComponents()
-            bodyComponents.queryItems = allParams.map { URLQueryItem(name: $0.key, value: $0.value) }
-            if let bodyString = bodyComponents.percentEncodedQuery {
-                request.httpBody = bodyString.data(using: .utf8)
-            }
+            request.httpBody = paramsString.data(using: .utf8)
         }
 
         return request
@@ -969,6 +955,40 @@ class BiliAPI {
 
         return try Bilibili_Community_Service_Dm_V1_DmSegMobileReply(serializedBytes: data)
     }
+    
+    // sign 创建
+    
+    private func generateSign(for parameters: [String: String]) -> String {
+            var validParams = parameters
+            validParams.removeValue(forKey: "sign")
+            let sortedKeys = validParams.keys.sorted()
+            // key / value 都走 RFC3986 编码，签名串按字典序拼接
+            let paramString = sortedKeys.map { key in
+                let value = validParams[key] ?? ""
+                let encodedKey = key.biliUrlEncoded()
+                let encodedValue = value.biliUrlEncoded()
+                return encodedValue.isEmpty ? encodedKey : "\(encodedKey)=\(encodedValue)"
+            }.joined(separator: "&")
+        let digest = Insecure.MD5.hash(data: (paramString + BiliAPI.appSecret).data(using: .utf8) ?? Data())
+            return digest.map { String(format: "%02hhx", $0) }.joined()
+        }
+
+        // 请求体顺序：其他 key 按字典序，最后固定 appkey、ts、sign
+        private func makeOrderedBodyString(from parameters: [String: String]) -> String {
+            let tailKeys = ["appkey", "ts", "sign"]
+            let sortedOtherKeys = parameters.keys
+                .filter { !tailKeys.contains($0) }
+                .sorted()
+
+            let orderedKeys = sortedOtherKeys + tailKeys.filter { parameters[$0] != nil }
+
+            return orderedKeys.map { key in
+                let value = parameters[key] ?? ""
+                let encodedKey = key.biliUrlEncoded()
+                let encodedValue = value.biliUrlEncoded()
+                return encodedValue.isEmpty ? encodedKey : "\(encodedKey)=\(encodedValue)"
+            }.joined(separator: "&")
+        }
 }
 
 // MARK: - 错误处理
