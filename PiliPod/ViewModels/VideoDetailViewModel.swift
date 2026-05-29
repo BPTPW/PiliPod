@@ -27,6 +27,8 @@ class VideoDetailViewModel {
 
     var ownerFollowerCount: Int?
     var ownerArchiveCount: Int?
+    var isOwnerFollowing = false
+    var isOwnerFollowRequesting = false
     var danmakuSegmentIndex = 1
     var danmakuElements: [Bilibili_Community_Service_Dm_V1_DanmakuElem] = []
     var danmakuIsLoading = false
@@ -92,6 +94,8 @@ class VideoDetailViewModel {
         relatedError = nil
         ownerFollowerCount = nil
         ownerArchiveCount = nil
+        isOwnerFollowing = false
+        isOwnerFollowRequesting = false
         danmakuSegmentIndex = 1
         danmakuElements = []
         danmakuIsLoading = false
@@ -185,6 +189,7 @@ class VideoDetailViewModel {
                     await MainActor.run {
                         self.ownerFollowerCount = stats.follower
                         self.ownerArchiveCount = stats.archiveCount
+                        self.isOwnerFollowing = stats.following
                     }
                 } catch {
                     // 忽略错误，避免影响播放；UI 保留占位
@@ -454,6 +459,39 @@ class VideoDetailViewModel {
 
     func toggleFavorite() {
         // 收藏需要弹出收藏夹选择 UI，这里不做 toggle
+    }
+
+    func toggleOwnerFollow() async throws {
+        guard !isOwnerFollowRequesting else { return }
+        guard let ownerMid = videoDetail?.owner.mid, ownerMid > 0 else { return }
+
+        isOwnerFollowRequesting = true
+        let wasFollowing = isOwnerFollowing
+        let previousFollowerCount = ownerFollowerCount
+
+        // 乐观更新，提升点击反馈速度
+        isOwnerFollowing.toggle()
+        if var followerCount = ownerFollowerCount {
+            if wasFollowing {
+                followerCount = max(0, followerCount - 1)
+            } else {
+                followerCount += 1
+            }
+            ownerFollowerCount = followerCount
+        }
+
+        do {
+            let act = wasFollowing ? 2 : 1
+            try await BiliAPI.shared.modifyUserRelation(fid: ownerMid, act: act)
+        } catch {
+            // 失败时回滚状态，避免 UI 与服务端不一致
+            isOwnerFollowing = wasFollowing
+            ownerFollowerCount = previousFollowerCount
+            isOwnerFollowRequesting = false
+            throw error
+        }
+
+        isOwnerFollowRequesting = false
     }
 
     func addToWatchLater() {

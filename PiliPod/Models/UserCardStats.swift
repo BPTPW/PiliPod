@@ -10,10 +10,12 @@ import Foundation
 struct UserCardStats: Codable, Sendable {
     let follower: Int
     let archiveCount: Int
+    let following: Bool
 
     enum CodingKeys: String, CodingKey {
         case follower
         case archiveCount = "archive_count"
+        case following
     }
 }
 

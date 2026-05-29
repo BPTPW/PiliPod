@@ -445,7 +445,7 @@ class BiliAPI {
         return (result, nextIdx)
     }
 
-    // MARK: - 获取用户数据
+    // MARK: - 获取当前用户数据
 
     func fetchMyInfo() async throws -> UserCard {
         let url = URL(string: "https://api.bilibili.com/x/web-interface/nav")!
@@ -461,6 +461,8 @@ class BiliAPI {
         return response.data
     }
 
+    // MARK: -获取用户卡片
+    
     func fetchUserCardStats(mid: Int) async throws -> UserCardStats {
         var components = URLComponents(string: "https://api.bilibili.com/x/web-interface/card")
         components?.queryItems = [
@@ -550,6 +552,37 @@ class BiliAPI {
         }
 
         return relation
+    }
+
+    // MARK: - 用户关系
+
+    func modifyUserRelation(fid: Int, act: Int) async throws {
+        guard act == 1 || act == 2 else {
+            throw APIError.requestFailed
+        }
+        guard let csrf = LoginSession.shared.cookies?.bili_jct, !csrf.isEmpty else {
+            throw APIError.responseError(-111)
+        }
+
+        let parameters: [String: String] = [
+            "fid": String(fid),
+            "act": String(act),
+            "csrf": csrf
+        ]
+
+        guard let request = makePostFormRequest(
+            urlString: "https://api.bilibili.com/x/relation/modify",
+            parameters: parameters
+        ) else {
+            throw APIError.invalidURL
+        }
+
+        let (data, _) = try await URLSession.shared.data(for: request)
+        let response = try JSONDecoder().decode(SimpleAPIResponse<EmptyCodable>.self, from: data)
+
+        if response.code != 0 {
+            throw APIError.businessError(code: response.code, message: response.message)
+        }
     }
 
     // MARK: - 点赞
@@ -900,6 +933,7 @@ class BiliAPI {
 enum APIError: LocalizedError {
     case invalidURL
     case responseError(Int)
+    case businessError(code: Int, message: String?)
     case noVideoOrAudio
     case requestFailed
     case grpcError(status: String, message: String)
@@ -909,6 +943,11 @@ enum APIError: LocalizedError {
         case .invalidURL:
             return "无效的 URL"
         case .responseError(let code):
+            return "API 错误: \(code)"
+        case let .businessError(code, message):
+            if let message, !message.isEmpty {
+                return message
+            }
             return "API 错误: \(code)"
         case .noVideoOrAudio:
             return "未找到视频或音频流"

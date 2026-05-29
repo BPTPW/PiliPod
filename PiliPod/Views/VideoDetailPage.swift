@@ -33,6 +33,7 @@ struct VideoDetailPage: View {
     @State private var isFullscreenDanmakuPanelVisible = false
     @State private var lastDanmakuPrefetchSegment = 0
     @State private var selectedTab: VideoDetailTab = .intro
+    @State private var toastMessage: String?
 
     let video: VideoItem
     let namespace: Namespace.ID
@@ -437,6 +438,7 @@ struct VideoDetailPage: View {
         .navigationBarBackButtonHidden(true)
         .toolbar(.hidden, for: .navigationBar)
         .toolbar(.hidden, for: .tabBar)
+        .toast(message: $toastMessage)
         .statusBarHidden(isFullscreen)
         .navigationDestination(item: $selectedRelatedVideo) { relatedVideo in
             if #available(iOS 18.0, *) {
@@ -519,24 +521,57 @@ struct VideoDetailPage: View {
                         .frame(width: 40, height: 40)
                         .clipShape(Circle())
 
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text(detail.owner.name)
-                                .font(.subheadline)
-                                .foregroundColor(.primary)
-                            if let follower = viewModel.ownerFollowerCount,
-                               let archiveCount = viewModel.ownerArchiveCount
-                            {
-                                Text("\(formatCount(follower))粉丝  \(archiveCount)视频")
-                                    .font(.caption)
-                                    .foregroundColor(.secondary)
-                            } else {
-                                Text("—粉丝  —视频")
-                                    .font(.caption)
-                                    .foregroundColor(.secondary)
+                        HStack{
+                            // UP主信息
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(detail.owner.name)
+                                    .font(.subheadline)
+                                    .foregroundColor(.primary)
+                                if let follower = viewModel.ownerFollowerCount,
+                                   let archiveCount = viewModel.ownerArchiveCount
+                                {
+                                    Text("\(formatCount(follower))粉丝  \(archiveCount)视频")
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
+                                } else {
+                                    Text("—粉丝  —视频")
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
+                                }
                             }
+                            
+                            Spacer()
+                            // 关注按钮
+                            ZStack{
+                                RoundedRectangle(cornerRadius: 22, style: .continuous)
+                                    .fill(viewModel.isOwnerFollowing ? .gray : Color("BiliPink"))
+                                    .animation(.smooth(duration: 0.1), value: viewModel.isOwnerFollowing)
+                                
+                                Button(action: {
+                                    guard !viewModel.isOwnerFollowRequesting else { return }
+                                    Task {
+                                        do {
+                                            try await viewModel.toggleOwnerFollow()
+                                        } catch {
+                                            await MainActor.run {
+                                                toastMessage = error.localizedDescription
+                                            }
+                                        }
+                                    }
+                                }) {
+                                    Text(viewModel.isOwnerFollowing ? "已关注" : "关注")
+                                        .font(.caption.weight(.semibold))
+                                        .foregroundColor(viewModel.isOwnerFollowing ? .secondary : .white)
+                                }
+                                //.disabled(viewModel.isOwnerFollowRequesting)
+                                .frame(width: 65,height: 25)
+                            }
+                            .glassEffect(
+                                .regular.interactive(),
+                                in:.capsule
+                            )
+                            .frame(width: 65,height: 25)
                         }
-
-                        Spacer()
                     }
 
                     // 视频标题
