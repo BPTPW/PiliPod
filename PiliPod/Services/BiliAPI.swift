@@ -360,6 +360,49 @@ class BiliAPI {
         return parsed
     }
 
+    // MARK: - 获取个人空间信息（App）
+
+    func fetchUserSpace(mid: Int, fromViewAid: Int?) async throws -> UserSpaceData {
+        let urlString = "https://app.bilibili.com/x/v2/space"
+        var params: [String: String] = [
+            "build": "8430300",
+            "version": "8.43.0",
+            "c_locale": "zh_CN",
+            "channel": "master",
+            "mobi_app": "android",
+            "platform": "android",
+            "s_locale": "zh_CN",
+            "statistics": "{\"appId\":1,\"platform\":3,\"version\":\"8.43.0\",\"abtest\":\"\"}",
+            "vmid": String(mid)
+        ]
+
+        if let fromViewAid {
+            params["from_view_aid"] = String(fromViewAid)
+        }
+
+        guard let request = makeAppRequest(baseURLString: urlString, method: "GET", parameters: params) else {
+            throw APIError.invalidURL
+        }
+
+        let (data, response) = try await URLSession.shared.data(for: request)
+
+        guard let httpResponse = response as? HTTPURLResponse,
+              (200 ... 299).contains(httpResponse.statusCode)
+        else {
+            throw APIError.requestFailed
+        }
+
+        let decoded = try JSONDecoder().decode(UserSpaceResponse.self, from: data)
+        guard decoded.code == 0 else {
+            throw APIError.businessError(code: decoded.code, message: decoded.message)
+        }
+        guard let spaceData = decoded.data else {
+            throw APIError.requestFailed
+        }
+
+        return spaceData
+    }
+
     // MARK: - 解析App推荐接口数据
 
     private func parseAppRecommendFeed(from data: Data) throws -> (cards: [FeedCardItem], nextIdx: Int) {
