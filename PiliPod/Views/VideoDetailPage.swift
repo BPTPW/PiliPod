@@ -844,7 +844,7 @@ struct VideoDetailPage: View {
     }
 }
 
-// MARK: - Video Action Bar
+// MARK: - 视频操作
 
 private struct VideoActionBar: View {
     let isLiked: Bool
@@ -878,7 +878,8 @@ private struct VideoActionBar: View {
                 title: formatCount(likeCount),
                 systemImage: "hand.thumbsup.fill",
                 isActive: isLiked,
-                isDisabled: isLikeRequesting,
+                //isDisabled: isLikeRequesting,
+                isDisabled: false,
                 onTap: onToggleLike
             )
 
@@ -886,7 +887,8 @@ private struct VideoActionBar: View {
                 title: "点踩",
                 systemImage: "hand.thumbsdown.fill",
                 isActive: isDisliked,
-                isDisabled: isDislikeRequesting,
+                //isDisabled: isDislikeRequesting,
+                isDisabled: false,
                 onTap: onToggleDislike
             )
 
@@ -894,7 +896,8 @@ private struct VideoActionBar: View {
                 title: formatCount(coinCount),
                 assetImage: "BiliCoin",
                 isActive: isCoined,
-                isDisabled: isCoinRequesting || isCoined,
+                //isDisabled: isCoinRequesting || isCoined,
+                isDisabled: isCoined,
                 onCoin1: onCoin1,
                 onCoin2: onCoin2
             )
@@ -903,7 +906,8 @@ private struct VideoActionBar: View {
                 title: formatCount(favoriteCount),
                 systemImage: "star.fill",
                 isActive: isFavorited,
-                isDisabled: isFavoriteRequesting,
+                //isDisabled: isFavoriteRequesting,
+                isDisabled: false,
                 onTap: onToggleFavorite
             )
 
