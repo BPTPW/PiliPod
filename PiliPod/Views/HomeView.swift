@@ -12,6 +12,7 @@ struct HomeView: View {
     @State private var selectedTab: String = "推荐"
     @State private var selectedVideo: VideoItem?
     @State private var serchQuery = ""
+    @State private var toastMessage: String?
     @Namespace private var videoHeroNamespace
     @Bindable var viewModel: HomeViewModel
     @ObservedObject private var loginSession = LoginSession.shared
@@ -56,7 +57,9 @@ struct HomeView: View {
                         )
 
                         // 消息按钮
-                        Button {} label: {
+                        Button {
+                            toastMessage = "暂时没有新消息"
+                        } label: {
                             Image(systemName: "bell.fill")
                                 .font(.system(size: 18))
                                 .frame(width: 40, height: 40)
@@ -256,6 +259,7 @@ struct HomeView: View {
                 viewModel.userFace = nil
             }
         }
+        .toast(message: $toastMessage)
     }
 
     // MARK: - Feed 卡片分发
