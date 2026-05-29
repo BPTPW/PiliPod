@@ -17,6 +17,7 @@ struct UserSpaceView: View {
     @Environment(\.dismiss) private var dismiss
     @StateObject private var viewModel = UserSpaceViewModel()
     @State private var selectedTab: UserSpaceTab = .posts
+    @State private var toastMessage: String?
     @Namespace private var topToolsGlass
 
     let mid: Int
@@ -49,6 +50,7 @@ struct UserSpaceView: View {
             .ignoresSafeArea(edges: .top)
         }
         .toolbar(.hidden, for: .navigationBar)
+        .toast(message: $toastMessage)
         .task {
             await viewModel.load(mid: mid, fromViewAid: fromViewAid)
         }
@@ -89,7 +91,7 @@ struct UserSpaceView: View {
                 }
             } label: {
                 Image(systemName: "chevron.left")
-                    .frame(width: 34, height: 34)
+                    .frame(width: 40, height: 40)
                     // 修复二：增加 contentShape，保证整个 Frame 区域都可点击，防止被透明像素穿透
                     .contentShape(Rectangle())
                     .foregroundStyle(.primary)
@@ -103,7 +105,7 @@ struct UserSpaceView: View {
             Spacer()
 
             GlassEffectContainer {
-                HStack(spacing: 0) {
+                HStack(spacing: 5) {
                     Button {} label: {
                         Image(systemName: "magnifyingglass")
                             .foregroundStyle(.primary)
@@ -122,7 +124,7 @@ struct UserSpaceView: View {
                     .glassEffectUnion(id: "UserSpaceTopTools", namespace: topToolsGlass)
                 }
             }
-            .frame(height: 34)
+            .frame(height: 40)
         }
         .padding(.horizontal, 16)
         .padding(.top, topInset + 10)
@@ -147,19 +149,29 @@ struct UserSpaceView: View {
                     }
 
                     ZStack {
-                        RoundedRectangle(cornerRadius: 16, style: .continuous)
+                        Capsule(style: .continuous)
                             .fill(viewModel.isFollowed ? .followedBackground : Color("BiliPink"))
                             .animation(.smooth(duration: 0.1), value: viewModel.isFollowed)
                             .frame(height: 32)
 
-                        Button {} label: {
+                        Button {
+                            guard !viewModel.isFollowRequesting else { return }
+                            Task {
+                                do {
+                                    try await viewModel.toggleFollow()
+                                } catch {
+                                    await MainActor.run {
+                                        toastMessage = error.localizedDescription
+                                    }
+                                }
+                            }
+                        } label: {
                             Text(viewModel.isFollowed ? "已关注" : "关注")
                                 .foregroundStyle(viewModel.isFollowed ? .followedText : .white)
                                 .font(.headline)
+                                .frame(maxWidth: .infinity)
+                                .frame(height: 32)
                         }
-                        .frame(maxWidth: .infinity)
-                        .frame(height: 32)
-                        .buttonStyle(.plain)
                     }
                     .glassEffect(
                         .regular.interactive(),
@@ -181,12 +193,6 @@ struct UserSpaceView: View {
             Text("UID: \(viewModel.uidText)  IP属地: \(viewModel.ipLocationText)")
                 .font(.footnote)
                 .foregroundStyle(.secondary)
-
-            if let errorMessage = viewModel.errorMessage {
-                Text(errorMessage)
-                    .font(.footnote)
-                    .foregroundStyle(.red)
-            }
         }
         .padding(.horizontal, 16)
         .padding(.top, 12)

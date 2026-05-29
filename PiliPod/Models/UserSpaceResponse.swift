@@ -9,7 +9,7 @@ struct UserSpaceResponse: Codable {
 
 struct UserSpaceData: Codable {
     let defaultTab: String?
-    let card: UserSpaceCard?
+    var card: UserSpaceCard?
     let images: UserSpaceImages?
 
     enum CodingKeys: String, CodingKey {
@@ -31,11 +31,11 @@ struct UserSpaceCard: Codable {
     let mid: String?
     let name: String?
     let face: String?
-    let fans: Int?
+    var fans: Int?
     let attention: Int?
     let sign: String?
     let likes: UserSpaceLikes?
-    let relation: UserSpaceRelation?
+    var relation: UserSpaceRelation?
     let spaceTag: [UserSpaceTag]?
 
     enum CodingKeys: String, CodingKey {
@@ -60,7 +60,7 @@ struct UserSpaceLikes: Codable {
 }
 
 struct UserSpaceRelation: Codable {
-    let isFollow: Int?
+    var isFollow: Int?
 
     enum CodingKeys: String, CodingKey {
         case isFollow = "is_follow"
