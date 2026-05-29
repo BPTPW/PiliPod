@@ -9,6 +9,7 @@ import SwiftUI
 
 struct VideoCommentsTabView: View {
     let aid: Int
+    let onOpenUserSpace: (Int) -> Void
 
     @State private var isLoading = false
     @State private var errorText: String?
@@ -44,7 +45,11 @@ struct VideoCommentsTabView: View {
                     .padding(16)
             } else {
                 List(comments) { item in
-                    CommentCardView(comment: item)
+                    CommentCardView(
+                        comment: item,
+                        onTapAvatar: onOpenUserSpace,
+                        onTapReplyUser: onOpenUserSpace
+                    )
                 }
                 .listStyle(.plain)
             }
@@ -74,6 +79,7 @@ struct VideoCommentsTabView: View {
     private func toCommentItem(_ reply: Bilibili_Main_Community_Reply_V1_ReplyInfo) -> CommentItem {
         let childReplies = reply.replies.prefix(2).map { child in
             CommentReplyItem(
+                mid: child.mid > 0 ? Int(child.mid) : nil,
                 username: child.member.name.isEmpty ? "匿名用户" : child.member.name,
                 content: child.content.message
             )
@@ -81,6 +87,7 @@ struct VideoCommentsTabView: View {
 
         return CommentItem(
             avatarURL: reply.member.face.isEmpty ? nil : reply.member.face,
+            mid: Int(reply.mid),
             username: reply.member.name.isEmpty ? "匿名用户" : reply.member.name,
             timeText: formatTimestamp(reply.ctime),
             ipLocation: "未知",

@@ -9,9 +9,21 @@ import SwiftUI
 
 struct CommentCardView: View {
     let comment: CommentItem
+    let onTapAvatar: ((Int) -> Void)?
+    let onTapReplyUser: ((Int) -> Void)?
 
     private let avatarSize: CGFloat = 35
     private let horizontalGap: CGFloat = 10
+
+    init(
+        comment: CommentItem,
+        onTapAvatar: ((Int) -> Void)? = nil,
+        onTapReplyUser: ((Int) -> Void)? = nil
+    ) {
+        self.comment = comment
+        self.onTapAvatar = onTapAvatar
+        self.onTapReplyUser = onTapReplyUser
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -66,10 +78,19 @@ struct CommentCardView: View {
     private var repliesSection: some View {
         VStack(alignment: .leading, spacing: 6) {
             ForEach(comment.replies) { reply in
-                highlightedReplyText(username: reply.username, content: reply.content)
-                    .font(.subheadline)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .lineLimit(2)
+                HStack(alignment: .firstTextBaseline, spacing: 0) {
+                    Text(reply.username)
+                        .foregroundStyle(Color("BiliPink"))
+                        .contentShape(Rectangle())
+                        .onTapGesture {
+                            guard let mid = reply.mid, mid > 0 else { return }
+                            onTapReplyUser?(mid)
+                        }
+                    highlightedReplyContentText(reply.content)
+                }
+                .font(.subheadline)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .lineLimit(2)
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -101,6 +122,11 @@ struct CommentCardView: View {
         }
         .frame(width: avatarSize, height: avatarSize)
         .clipShape(Circle())
+        .contentShape(Circle())
+        .onTapGesture {
+            guard comment.mid > 0 else { return }
+            onTapAvatar?(comment.mid)
+        }
     }
 
     private var fallbackAvatar: some View {
@@ -112,10 +138,8 @@ struct CommentCardView: View {
             .background(Color.secondary.opacity(0.12))
     }
 
-    private func highlightedReplyText(username: String, content: String) -> Text {
-        let prefix = Text(username).foregroundStyle(Color("BiliPink"))
-            + Text(": ").foregroundStyle(.primary)
-        return prefix + highlightedMentionText(content)
+    private func highlightedReplyContentText(_ content: String) -> Text {
+        Text(": ").foregroundStyle(.primary) + highlightedMentionText(content)
     }
 
     private func highlightedMentionText(_ content: String) -> Text {
@@ -168,6 +192,7 @@ struct CommentCardView: View {
 struct CommentItem: Identifiable {
     let id = UUID()
     let avatarURL: String?
+    let mid: Int
     let username: String
     let timeText: String
     let ipLocation: String
@@ -179,6 +204,7 @@ struct CommentItem: Identifiable {
 
 struct CommentReplyItem: Identifiable {
     let id = UUID()
+    let mid: Int?
     let username: String
     let content: String
 }
@@ -188,6 +214,7 @@ struct CommentReplyItem: Identifiable {
         CommentCardView(
             comment: CommentItem(
                 avatarURL: nil,
+                mid: 1,
                 username: "PiliUser",
                 timeText: "2小时前",
                 ipLocation: "广东",
@@ -195,8 +222,8 @@ struct CommentReplyItem: Identifiable {
                 likeCount: 128,
                 dislikeCount: 3,
                 replies: [
-                    CommentReplyItem(username: "听友A", content: "同感，这段讲得很通透。"),
-                    CommentReplyItem(username: "听友B", content: "我更喜欢后半段关于工具的讨论。")
+                    CommentReplyItem(mid: 11, username: "听友A", content: "同感，这段讲得很通透。"),
+                    CommentReplyItem(mid: 12, username: "听友B", content: "我更喜欢后半段关于工具的讨论。")
                 ]
             )
         )
@@ -204,6 +231,7 @@ struct CommentReplyItem: Identifiable {
         CommentCardView(
             comment: CommentItem(
                 avatarURL: nil,
+                mid: 2,
                 username: "AnotherUser",
                 timeText: "昨天",
                 ipLocation: "上海",

@@ -23,15 +23,20 @@ struct MyView: View {
                 Spacer()
 
                 if let user = viewModel.user {
-                    AsyncImage(url: URL(string: user.face)) { image in
-                        image
-                            .resizable()
-                            .scaledToFill()
-                    } placeholder: {
-                        ProgressView()
+                    NavigationLink {
+                        UserSpaceView(mid: Int(user.mid))
+                    } label: {
+                        AsyncImage(url: URL(string: user.face)) { image in
+                            image
+                                .resizable()
+                                .scaledToFill()
+                        } placeholder: {
+                            ProgressView()
+                        }
+                        .frame(width: 84, height: 84)
+                        .clipShape(Circle())
                     }
-                    .frame(width: 84, height: 84)
-                    .clipShape(Circle())
+                    .buttonStyle(.plain)
 
                     Text(user.name)
                         .font(.title2)

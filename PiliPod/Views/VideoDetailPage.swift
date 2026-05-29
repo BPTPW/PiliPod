@@ -23,6 +23,7 @@ struct VideoDetailPage: View {
     @State private var favoriteInitiallySelectedIds: Set<Int64> = []
     @State private var favoriteIsLoading = false
     @State private var selectedRelatedVideo: VideoItem?
+    @State private var selectedUserSpaceRoute: UserSpaceRoute?
     @State private var isSpeedBoostActive = false
     @State private var speedBoostMultiplier: Double = 2.0
     @State private var isSpeedBoostPressing = false
@@ -458,6 +459,16 @@ struct VideoDetailPage: View {
                 )
             }
         }
+        .navigationDestination(item: $selectedUserSpaceRoute) { route in
+            UserSpaceView(
+                mid: route.mid,
+                fromViewAid: route.fromViewAid,
+                onBack: { selectedUserSpaceRoute = nil }
+            )
+            .onDisappear {
+                selectedUserSpaceRoute = nil
+            }
+        }
     }
 
     private var fullscreenAwareDanmakuConfig: DanmakuEngineConfig {
@@ -500,7 +511,16 @@ struct VideoDetailPage: View {
         case .intro:
             introTabContent
         case .comments:
-            VideoCommentsTabView(aid: viewModel.aid)
+            VideoCommentsTabView(
+                aid: viewModel.aid,
+                onOpenUserSpace: { mid in
+                    guard mid > 0 else { return }
+                    selectedUserSpaceRoute = UserSpaceRoute(
+                        mid: mid,
+                        fromViewAid: viewModel.aid > 0 ? viewModel.aid : nil
+                    )
+                }
+            )
                 .background(Color(.systemBackground))
         }
     }
@@ -510,18 +530,18 @@ struct VideoDetailPage: View {
             VStack(alignment: .leading, spacing: 12) {
                 if let detail = viewModel.videoDetail {
                     HStack(spacing: 12) {
-                        AsyncImage(url: URL(string: detail.owner.face)) { image in
-                            image
-                                .resizable()
-                                .scaledToFill()
-                        } placeholder: {
-                            Circle()
-                                .fill(Color.gray)
-                        }
-                        .frame(width: 40, height: 40)
-                        .clipShape(Circle())
+                        HStack(spacing: 12) {
+                            AsyncImage(url: URL(string: detail.owner.face)) { image in
+                                image
+                                    .resizable()
+                                    .scaledToFill()
+                            } placeholder: {
+                                Circle()
+                                    .fill(Color.gray)
+                            }
+                            .frame(width: 40, height: 40)
+                            .clipShape(Circle())
 
-                        HStack{
                             // UP主信息
                             VStack(alignment: .leading, spacing: 2) {
                                 Text(detail.owner.name)
@@ -539,12 +559,21 @@ struct VideoDetailPage: View {
                                         .foregroundColor(.secondary)
                                 }
                             }
-                            
+                        }
+                        .contentShape(Rectangle())
+                        .onTapGesture {
+                            selectedUserSpaceRoute = UserSpaceRoute(
+                                mid: detail.owner.mid,
+                                fromViewAid: detail.aid
+                            )
+                        }
+
+                        HStack{
                             Spacer()
                             // 关注按钮
                             ZStack{
-                                RoundedRectangle(cornerRadius: 22, style: .continuous)
-                                    .fill(viewModel.isOwnerFollowing ? .gray : Color("BiliPink"))
+                                Capsule(style: .continuous)
+                                    .fill(viewModel.isOwnerFollowing ? .followedBackground : Color("BiliPink"))
                                     .animation(.smooth(duration: 0.1), value: viewModel.isOwnerFollowing)
                                 
                                 Button(action: {
@@ -875,6 +904,15 @@ struct VideoDetailPage: View {
         } else {
             onBack()
         }
+    }
+}
+
+private struct UserSpaceRoute: Identifiable, Hashable {
+    let mid: Int
+    let fromViewAid: Int?
+
+    var id: String {
+        "\(mid)-\(fromViewAid ?? 0)"
     }
 }
 
