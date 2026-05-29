@@ -45,12 +45,14 @@ struct PhoneVerifySheet: View {
                 .glassEffect(.regular.interactive(), in: .capsule)
 
                 HStack(spacing: 12) {
-                    Button("验证并登录") {
+                    Button{
                         onSubmitCode(smsCode)
+                    } label: {
+                        Text("验证并登录")
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 10)
                     }
                     .disabled(isLoading || smsCode.isEmpty)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 10)
                     .foregroundStyle(.white)
                     .glassEffect(
                         .regular.interactive().tint(.blue),

@@ -46,9 +46,9 @@ struct LoginPageView: View {
                         Text("登录")
                             .frame(maxWidth: .infinity)
                             .foregroundStyle(.white)
+                            .padding(.vertical, 10)
                     }
                 }
-                .padding(.vertical, 10)
                 .glassEffect(
                     .regular.interactive().tint(.blue),
                     in: .capsule
