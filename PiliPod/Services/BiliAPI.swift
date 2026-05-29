@@ -80,6 +80,11 @@ class BiliAPI {
         allParams["mobi_app"] = "android_hd"
         allParams["platform"] = "android"
         allParams["ts"] = String(Int(Date().timeIntervalSince1970))
+        
+        // 写入移动端凭证 accessKey
+        if let accessKey = LoginSession.shared.accessKey, !accessKey.isEmpty {
+            allParams["access_key"] = accessKey
+        }
 
         // 进行签名
         allParams["sign"] = generateSign(for: allParams)
@@ -321,11 +326,23 @@ class BiliAPI {
         ]
 
         // 使用新封装的加签构造器创建请求
-        guard let request = makeAppRequest(baseURLString: appRcmdHost, method: "GET", parameters: businessParams) else {
+        guard var request = makeAppRequest(baseURLString: appRcmdHost, method: "GET", parameters: businessParams) else {
             throw APIError.invalidURL
         }
 
-        print(request)
+        // 添加请求 headers
+        request.setValue(BiliDeviceConfig.shared.buvid, forHTTPHeaderField: "buvid")
+        request.setValue("1111111111111111111111111111111111111111111111111111111111111111", forHTTPHeaderField: "fp_local")
+        request.setValue("1111111111111111111111111111111111111111111111111111111111111111", forHTTPHeaderField: "fp_remote")
+        request.setValue("11111111", forHTTPHeaderField: "session_id")
+        request.setValue("prod", forHTTPHeaderField: "env")
+        request.setValue("android_hd", forHTTPHeaderField: "app-key")
+        request.setValue("11111111111111111111111111111111:1111111111111111:0:0", forHTTPHeaderField: "x-bili-trace-id")
+        request.setValue("", forHTTPHeaderField: "x-bili-aurora-eid")
+        request.setValue("", forHTTPHeaderField: "x-bili-aurora-zone")
+        request.setValue("cronet", forHTTPHeaderField: "bili-http-engine")
+        
+        print(request.url)
 
         let (data, response) = try await URLSession.shared.data(for: request)
 
