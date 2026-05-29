@@ -45,7 +45,7 @@ jobs:
                     BUILD_CMD="-project PiliPod.xcodeproj"
                   fi
 
-                  # 3. 编译生成未签名的 Archive
+                  # 3. 编译生成未签名的 Archive，并动态注入版本号
                   xcodebuild archive \
                     $BUILD_CMD \
                     -scheme PiliPod \
@@ -54,7 +54,9 @@ jobs:
                     CODE_SIGNING_ALLOWED=NO \
                     CODE_SIGNING_REQUIRED=NO \
                     CODE_SIGN_IDENTITY="" \
-                    PROVISIONING_PROFILE_SPECIFIER=""
+                    PROVISIONING_PROFILE_SPECIFIER="" \
+                    MARKETING_VERSION="${TAG_NAME}" \
+                    CURRENT_PROJECT_VERSION="${BUILD_NUMBER}"
                     
                   # 4. 将解包出的 .app 文件夹包装为未签名的 .ipa 文件
                   mkdir -p build/Payload
@@ -82,10 +84,8 @@ jobs:
                       if [ -n "$title" ]; then
                         # 判断标题末尾是否包含 (#数字) 这种 GitHub PR 的典型特征
                         if echo "$title" | grep -qE '\(#[0-9]+\)$'; then
-                          # 是 PR，带上 by @作者
                           echo "- ${title} by @${author}"
                         else
-                          # 普通提交，不带作者
                           echo "- ${title}"
                         fi
                       fi
