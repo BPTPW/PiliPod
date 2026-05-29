@@ -51,6 +51,7 @@ struct PhoneVerifySheet: View {
                     .disabled(isLoading || smsCode.isEmpty)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 10)
+                    .foregroundStyle(.white)
                     .glassEffect(
                         .regular.interactive().tint(.blue),
                         in: .capsule
