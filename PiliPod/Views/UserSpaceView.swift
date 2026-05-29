@@ -1,5 +1,18 @@
 import SwiftUI
 
+// 通过扩展 UINavigationController 强制开启侧滑返回手势
+extension UINavigationController: @retroactive UIGestureRecognizerDelegate {
+    override open func viewDidLoad() {
+        super.viewDidLoad()
+        interactivePopGestureRecognizer?.delegate = self
+    }
+    
+    public func gestureRecognizerShouldBegin(_ gestureRecognizer: UIGestureRecognizer) -> Bool {
+        // 只有在导航栈内有超过一个视图时才允许滑动返回，防止在根视图滑动导致卡死
+        return viewControllers.count > 1
+    }
+}
+
 struct UserSpaceView: View {
     @Environment(\.dismiss) private var dismiss
     @StateObject private var viewModel = UserSpaceViewModel()
@@ -8,10 +21,12 @@ struct UserSpaceView: View {
 
     let mid: Int
     let fromViewAid: Int?
+    let onBack: (() -> Void)?
 
-    init(mid: Int, fromViewAid: Int? = nil) {
+    init(mid: Int, fromViewAid: Int? = nil, onBack: (() -> Void)? = nil) {
         self.mid = mid
         self.fromViewAid = fromViewAid
+        self.onBack = onBack
     }
 
     var body: some View {
@@ -27,9 +42,9 @@ struct UserSpaceView: View {
                     }
                 }
                 .background(Color(.systemBackground))
-
+            }
+            .overlay(alignment: .top) {
                 topBar(topInset: topInset)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
             }
             .ignoresSafeArea(edges: .top)
         }
@@ -67,10 +82,16 @@ struct UserSpaceView: View {
     private func topBar(topInset: CGFloat) -> some View {
         HStack {
             Button {
-                dismiss()
+                if let onBack {
+                    onBack()
+                } else {
+                    dismiss()
+                }
             } label: {
                 Image(systemName: "chevron.left")
                     .frame(width: 34, height: 34)
+                    // 修复二：增加 contentShape，保证整个 Frame 区域都可点击，防止被透明像素穿透
+                    .contentShape(Rectangle())
                     .foregroundStyle(.primary)
             }
             .buttonStyle(.plain)
