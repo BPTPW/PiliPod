@@ -17,6 +17,7 @@ struct CommentCardView: View {
 
     private let avatarSize: CGFloat = 35
     private let horizontalGap: CGFloat = 10
+    @State private var selectedPicture: CommentPicture?
 
     init(
         comment: CommentItem,
@@ -50,6 +51,12 @@ struct CommentCardView: View {
                 .padding(.leading, avatarSize + horizontalGap)
         }
         .padding(.vertical, 12)
+        .fullScreenCover(item: $selectedPicture) { picture in
+            FullscreenImageViewer(
+                imageURL: picture.url,
+                onDismiss: { selectedPicture = nil }
+            )
+        }
     }
 
     private var contentColumn: some View {
@@ -123,11 +130,14 @@ struct CommentCardView: View {
                     }
                 }
                 .frame(
-                    maxWidth: .infinity,
                     maxHeight: 220,
                     alignment: .leading
                 )
                 .clipShape(RoundedRectangle(cornerRadius: 10))
+                .contentShape(Rectangle())
+                .onTapGesture {
+                    selectedPicture = picture
+                }
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -462,7 +472,7 @@ private extension NSString {
                 ipLocation: "广东",
                 content: "这期节目观点很有意思，尤其是关于创作流程那一段，反复听了两遍。",
                 emotes: [:],
-                pictures: [],
+                pictures: [CommentPicture(url: "https://i2.hdslb.com/bfs/archive/e8eaf7459a5d008e9142e75b5798798f10dfbc16.jpg@672w_378h_1c.webp", width: 672, height: 378)],
                 likeCount: 128,
                 dislikeCount: 3,
                 replies: [
