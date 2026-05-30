@@ -81,17 +81,36 @@ struct VideoCommentsTabView: View {
             CommentReplyItem(
                 mid: child.mid > 0 ? Int(child.mid) : nil,
                 username: child.member.name.isEmpty ? "匿名用户" : child.member.name,
-                content: child.content.message
+                content: child.content.message,
+                emotes: child.content.emote.mapValues { emote in
+                    CommentEmote(
+                        text: emote.text,
+                        url: normalizedHTTPSURLString(emote.gifURL.isEmpty ? emote.url : emote.gifURL)
+                    )
+                }
             )
         }
 
         return CommentItem(
-            avatarURL: reply.member.face.isEmpty ? nil : reply.member.face,
+            avatarURL: reply.member.face.isEmpty ? nil : normalizedHTTPSURLString(reply.member.face),
             mid: Int(reply.mid),
             username: reply.member.name.isEmpty ? "匿名用户" : reply.member.name,
             timeText: formatTimestamp(reply.ctime),
             ipLocation: "未知",
             content: reply.content.message,
+            emotes: reply.content.emote.mapValues { emote in
+                CommentEmote(
+                    text: emote.text,
+                    url: normalizedHTTPSURLString(emote.gifURL.isEmpty ? emote.url : emote.gifURL)
+                )
+            },
+            pictures: reply.content.pictures.map { picture in
+                CommentPicture(
+                    url: normalizedHTTPSURLString(picture.imgSrc),
+                    width: picture.imgWidth,
+                    height: picture.imgHeight
+                )
+            },
             likeCount: Int(reply.like),
             dislikeCount: 0,
             replies: Array(childReplies)
@@ -106,5 +125,9 @@ struct VideoCommentsTabView: View {
         formatter.locale = Locale(identifier: "zh_CN")
         formatter.timeZone = TimeZone.current
         return formatter.string(from: date)
+    }
+
+    private func normalizedHTTPSURLString(_ raw: String) -> String {
+        raw.replacingOccurrences(of: "http://", with: "https://")
     }
 }
