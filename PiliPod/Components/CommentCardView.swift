@@ -227,7 +227,7 @@ struct CommentReplyItem: Identifiable {
     let emotes: [String: CommentEmote]
 }
 
-struct CommentEmote {
+struct CommentEmote: Equatable {
     let text: String
     let url: String
 }
@@ -266,6 +266,10 @@ private struct EmoteTextViewRepresentable: UIViewRepresentable {
     let highlightMentions: Bool
     let usernamePrefix: String?
 
+    func makeCoordinator() -> Coordinator {
+        Coordinator()
+    }
+
     func makeUIView(context: Context) -> UITextView {
         let view = UITextView()
         view.isEditable = false
@@ -280,35 +284,90 @@ private struct EmoteTextViewRepresentable: UIViewRepresentable {
     }
 
     func updateUIView(_ uiView: UITextView, context: Context) {
-        uiView.attributedText = makeAttributedText()
+        let request = RenderRequest(
+            text: text,
+            emotes: emotes,
+            fontTextStyle: fontTextStyle,
+            highlightMentions: highlightMentions,
+            usernamePrefix: usernamePrefix
+        )
+        context.coordinator.render(request: request, on: uiView)
     }
 
-    private func makeAttributedText() -> NSAttributedString {
-        let baseFont = UIFont.preferredFont(forTextStyle: fontTextStyle)
+    struct RenderRequest: Equatable {
+        let text: String
+        let emotes: [String: CommentEmote]
+        let fontTextStyle: UIFont.TextStyle
+        let highlightMentions: Bool
+        let usernamePrefix: String?
+    }
+
+    final class Coordinator {
+        private var renderID = UUID()
+        private var loadingTask: Task<Void, Never>?
+
+        deinit {
+            loadingTask?.cancel()
+        }
+
+        func render(request: RenderRequest, on textView: UITextView) {
+            loadingTask?.cancel()
+            let currentID = UUID()
+            renderID = currentID
+
+            textView.attributedText = EmoteTextViewRepresentable.makeAttributedText(
+                request: request,
+                imageLookup: { EmoteImageStore.shared.image(for: $0) }
+            )
+
+            let missingURLs = request.emotes.values
+                .map(\.url)
+                .filter { !$0.isEmpty && EmoteImageStore.shared.image(for: $0) == nil }
+            guard !missingURLs.isEmpty else { return }
+
+            loadingTask = Task {
+                await EmoteImageStore.shared.prefetch(urlStrings: missingURLs)
+                guard !Task.isCancelled else { return }
+                await MainActor.run {
+                    guard self.renderID == currentID else { return }
+                    textView.attributedText = EmoteTextViewRepresentable.makeAttributedText(
+                        request: request,
+                        imageLookup: { EmoteImageStore.shared.image(for: $0) }
+                    )
+                }
+            }
+        }
+    }
+
+    private static func makeAttributedText(
+        request: RenderRequest,
+        imageLookup: (String) -> UIImage?
+    ) -> NSAttributedString {
+        let baseFont = UIFont.preferredFont(forTextStyle: request.fontTextStyle)
         let baseColor = UIColor.label
         let mutable = NSMutableAttributedString(
-            string: text,
+            string: request.text,
             attributes: [
                 .font: baseFont,
                 .foregroundColor: baseColor
             ]
         )
 
-        let sortedKeys = emotes.keys.sorted { $0.count > $1.count }
+        let sortedKeys = request.emotes.keys.sorted { $0.count > $1.count }
         for key in sortedKeys where !key.isEmpty {
-            guard let emote = emotes[key], !emote.url.isEmpty else { continue }
+            guard let emote = request.emotes[key], !emote.url.isEmpty else { continue }
             let nsText = mutable.string as NSString
             let ranges = nsText.ranges(of: key)
             for range in ranges.reversed() {
                 let attachment = NSTextAttachment()
                 attachment.bounds = CGRect(x: 0, y: -4, width: 20, height: 20)
-                attachment.image = loadImageSync(from: emote.url)
+                attachment.image = imageLookup(emote.url) ?? placeholderEmoteImage()
                 let imgAttr = NSAttributedString(attachment: attachment)
                 mutable.replaceCharacters(in: range, with: imgAttr)
             }
         }
 
-        if highlightMentions {
+        if request.highlightMentions {
             let pattern = #"\@[^\s@:：]+"#
             if let regex = try? NSRegularExpression(pattern: pattern) {
                 let all = NSRange(location: 0, length: (mutable.string as NSString).length)
@@ -319,7 +378,7 @@ private struct EmoteTextViewRepresentable: UIViewRepresentable {
             }
         }
 
-        if let usernamePrefix, !usernamePrefix.isEmpty {
+        if let usernamePrefix = request.usernamePrefix, !usernamePrefix.isEmpty {
             let prefix = "\(usernamePrefix):"
             let ns = mutable.string as NSString
             let range = ns.range(of: prefix)
@@ -332,13 +391,47 @@ private struct EmoteTextViewRepresentable: UIViewRepresentable {
         return mutable
     }
 
-    private func loadImageSync(from urlString: String) -> UIImage? {
-        guard let url = URL(string: urlString),
-              let data = try? Data(contentsOf: url),
-              let image = UIImage(data: data) else {
-            return nil
+    private static func placeholderEmoteImage() -> UIImage {
+        let renderer = UIGraphicsImageRenderer(size: CGSize(width: 20, height: 20))
+        return renderer.image { ctx in
+            UIColor.systemGray4.setFill()
+            UIBezierPath(roundedRect: CGRect(x: 0, y: 0, width: 20, height: 20), cornerRadius: 4).fill()
+            UIColor.systemGray2.setStroke()
+            UIBezierPath(roundedRect: CGRect(x: 1, y: 1, width: 18, height: 18), cornerRadius: 4).stroke()
         }
-        return image
+    }
+}
+
+private final class EmoteImageStore {
+    static let shared = EmoteImageStore()
+
+    private let cache = NSCache<NSString, UIImage>()
+    private init() {}
+
+    func image(for urlString: String) -> UIImage? {
+        cache.object(forKey: urlString as NSString)
+    }
+
+    func prefetch(urlStrings: [String]) async {
+        await withTaskGroup(of: Void.self) { group in
+            for urlString in Set(urlStrings) {
+                group.addTask {
+                    await self.fetch(urlString: urlString)
+                }
+            }
+        }
+    }
+
+    private func fetch(urlString: String) async {
+        if cache.object(forKey: urlString as NSString) != nil { return }
+        guard let url = URL(string: urlString) else { return }
+        do {
+            let (data, _) = try await URLSession.shared.data(from: url)
+            guard let image = UIImage(data: data) else { return }
+            cache.setObject(image, forKey: urlString as NSString)
+        } catch {
+            return
+        }
     }
 }
 
