@@ -52,6 +52,7 @@ struct UserSpaceView: View {
             .ignoresSafeArea(edges: .top)
         }
         .toolbar(.hidden, for: .navigationBar)
+        .toolbar(.hidden, for: .tabBar)
         .toast(message: $toastMessage)
         .navigationDestination(item: $selectedVideo) { video in
             if #available(iOS 18.0, *) {
