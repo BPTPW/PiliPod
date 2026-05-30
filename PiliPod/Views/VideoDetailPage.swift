@@ -465,9 +465,6 @@ struct VideoDetailPage: View {
                 fromViewAid: route.fromViewAid,
                 onBack: { selectedUserSpaceRoute = nil }
             )
-            .onDisappear {
-                selectedUserSpaceRoute = nil
-            }
         }
     }
 
