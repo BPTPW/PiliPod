@@ -553,6 +553,123 @@ class BiliAPI {
         }
     }
 
+    // MARK: - 发表评论 / 上传评论图片
+
+    func uploadCommentImage(data: Data, fileName: String = "comment.jpg") async throws -> CommentImageUploadData {
+        guard LoginSession.shared.isLogin else {
+            throw APIError.responseError(-101)
+        }
+        guard let csrf = LoginSession.shared.cookies?.bili_jct, !csrf.isEmpty else {
+            throw APIError.responseError(-111)
+        }
+
+        guard let url = URL(string: "https://api.bilibili.com/x/dynamic/feed/draw/upload_bfs") else {
+            throw APIError.invalidURL
+        }
+
+        let boundary = "Boundary-\(UUID().uuidString)"
+        var request = makeRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
+        request.setValue("https://www.bilibili.com", forHTTPHeaderField: "Referer")
+        request.httpBody = makeUploadBody(
+            boundary: boundary,
+            csrf: csrf,
+            fileData: data,
+            fileName: fileName
+        )
+
+        let (respData, response) = try await URLSession.shared.data(for: request)
+        guard let httpResponse = response as? HTTPURLResponse,
+              (200 ... 299).contains(httpResponse.statusCode) else {
+            throw APIError.requestFailed
+        }
+
+        let decoded = try JSONDecoder().decode(SimpleAPIResponse<CommentImageUploadData>.self, from: respData)
+        guard decoded.code == 0, let payload = decoded.data else {
+            throw APIError.businessError(code: decoded.code, message: decoded.message)
+        }
+        return payload
+    }
+
+    func addVideoComment(
+        oid: Int,
+        message: String,
+        pictures: [CommentPictureUploadPayload] = [],
+        root: Int? = nil,
+        parent: Int? = nil
+    ) async throws -> CommentAddResponseData {
+        guard LoginSession.shared.isLogin else {
+            throw APIError.responseError(-101)
+        }
+        guard let csrf = LoginSession.shared.cookies?.bili_jct, !csrf.isEmpty else {
+            throw APIError.responseError(-111)
+        }
+
+        let urlString = "https://api.bilibili.com/x/v2/reply/add"
+        var params: [String: String] = [
+            "type": "1",
+            "oid": String(oid),
+            "message": message,
+            "csrf": csrf
+        ]
+        if !pictures.isEmpty,
+           let payload = try? JSONEncoder().encode(pictures),
+           let picturesJSONString = String(data: payload, encoding: .utf8) {
+            params["pictures"] = picturesJSONString
+        }
+        if let root, root > 0 {
+            params["root"] = String(root)
+        }
+        if let parent, parent > 0 {
+            params["parent"] = String(parent)
+        }
+
+        guard let request = makeAppRequest(baseURLString: urlString, method: "POST", parameters: params) else {
+            throw APIError.invalidURL
+        }
+
+        let (data, response) = try await URLSession.shared.data(for: request)
+        guard let httpResponse = response as? HTTPURLResponse,
+              (200 ... 299).contains(httpResponse.statusCode) else {
+            throw APIError.requestFailed
+        }
+
+        let decoded = try JSONDecoder().decode(SimpleAPIResponse<CommentAddResponseData>.self, from: data)
+        guard decoded.code == 0, let payload = decoded.data else {
+            throw APIError.businessError(code: decoded.code, message: decoded.message)
+        }
+        return payload
+    }
+
+    private func makeUploadBody(
+        boundary: String,
+        csrf: String,
+        fileData: Data,
+        fileName: String
+    ) -> Data {
+        var body = Data()
+
+        func appendField(name: String, value: String) {
+            body.append("--\(boundary)\r\n".data(using: .utf8)!)
+            body.append("Content-Disposition: form-data; name=\"\(name)\"\r\n\r\n".data(using: .utf8)!)
+            body.append("\(value)\r\n".data(using: .utf8)!)
+        }
+
+        appendField(name: "csrf", value: csrf)
+        appendField(name: "category", value: "daily")
+        appendField(name: "biz", value: "new_dyn")
+
+        body.append("--\(boundary)\r\n".data(using: .utf8)!)
+        body.append("Content-Disposition: form-data; name=\"file_up\"; filename=\"\(fileName)\"\r\n".data(using: .utf8)!)
+        body.append("Content-Type: image/jpeg\r\n\r\n".data(using: .utf8)!)
+        body.append(fileData)
+        body.append("\r\n".data(using: .utf8)!)
+
+        body.append("--\(boundary)--\r\n".data(using: .utf8)!)
+        return body
+    }
+
     // MARK: - 解析App推荐接口数据
 
     private func parseAppRecommendFeed(from data: Data) throws -> (cards: [FeedCardItem], nextIdx: Int) {

@@ -25,82 +25,119 @@ struct VideoCommentsTabView: View {
     @State private var detailNextCursor: Int64 = 0
     @State private var detailHasMore = true
     @State private var detailIsLoadingMore = false
+    @State private var showComposer = false
 
     var body: some View {
-        Group {
-            if isLoading {
-                VStack(spacing: 10) {
-                    ProgressView()
-                    Text("评论加载中…")
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
-                }
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-                .padding(.top, 24)
-            } else if let errorText {
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("评论加载失败")
-                        .font(.subheadline.weight(.semibold))
-                    Text(errorText)
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
-                }
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-                .padding(16)
-            } else if isInDetailMode, let root = detailRootComment {
-                detailListView(root: root)
-            } else if comments.isEmpty {
-                Text("暂无评论")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
+        ZStack(alignment: .bottomTrailing) {
+            Group {
+                if isLoading {
+                    VStack(spacing: 10) {
+                        ProgressView()
+                        Text("评论加载中…")
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
+                    }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+                    .padding(.top, 24)
+                } else if let errorText {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("评论加载失败")
+                            .font(.subheadline.weight(.semibold))
+                        Text(errorText)
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
+                    }
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
                     .padding(16)
-            } else {
-                List {
-                    ForEach(comments) { item in
-                        CommentCardView(
-                            comment: item,
-                            onTapAvatar: onOpenUserSpace,
-                            onTapReplyUser: onOpenUserSpace,
-                            onTapComment: { tapped in
-                                Task { @MainActor in
-                                    await openDetailMode(with: tapped)
+                } else if isInDetailMode, let root = detailRootComment {
+                    detailListView(root: root)
+                } else if comments.isEmpty {
+                    Text("暂无评论")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                        .padding(16)
+                } else {
+                    List {
+                        ForEach(comments) { item in
+                            CommentCardView(
+                                comment: item,
+                                onTapAvatar: onOpenUserSpace,
+                                onTapReplyUser: onOpenUserSpace,
+                                onTapComment: { tapped in
+                                    Task { @MainActor in
+                                        await openDetailMode(with: tapped)
+                                    }
+                                },
+                                onTapLike: { tapped in
+                                    Task { @MainActor in
+                                        await toggleLike(for: tapped)
+                                    }
+                                },
+                                onTapDislike: { tapped in
+                                    Task { @MainActor in
+                                        await toggleDislike(for: tapped)
+                                    }
                                 }
-                            },
-                            onTapLike: { tapped in
-                                Task { @MainActor in
-                                    await toggleLike(for: tapped)
-                                }
-                            },
-                            onTapDislike: { tapped in
-                                Task { @MainActor in
-                                    await toggleDislike(for: tapped)
-                                }
-                            }
-                        )
-                    }
+                            )
+                        }
 
-                    if hasMore {
-                        HStack(spacing: 8) {
-                            if isLoadingMore {
-                                ProgressView()
+                        if hasMore {
+                            HStack(spacing: 8) {
+                                if isLoadingMore {
+                                    ProgressView()
+                                }
+                                Text(isLoadingMore ? "加载更多评论中…" : "上拉加载更多")
+                                    .font(.footnote)
+                                    .foregroundStyle(.secondary)
                             }
-                            Text(isLoadingMore ? "加载更多评论中…" : "上拉加载更多")
-                                .font(.footnote)
-                                .foregroundStyle(.secondary)
-                        }
-                        .frame(maxWidth: .infinity, alignment: .center)
-                        .padding(.vertical, 12)
-                        .listRowSeparator(.hidden)
-                        .onAppear {
-                            Task { @MainActor in
-                                await loadMoreCommentsIfNeeded()
+                            .frame(maxWidth: .infinity, alignment: .center)
+                            .padding(.vertical, 12)
+                            .listRowSeparator(.hidden)
+                            .onAppear {
+                                Task { @MainActor in
+                                    await loadMoreCommentsIfNeeded()
+                                }
                             }
                         }
+                    }
+                    .listStyle(.plain)
+                }
+            }
+
+            if !isInDetailMode {
+                Button {
+                    showComposer = true
+                } label: {
+                    Image(systemName: "square.and.pencil")
+                        .foregroundStyle(.primary)
+                        .padding(14)
+                        .glassEffect(
+                            .regular.interactive(),
+                            in: Circle()
+                        )
+                }
+                .tint(.primary)
+                .padding(.trailing, 16)
+                .padding(.bottom, 16)
+            }
+        }
+        .sheet(isPresented: $showComposer) {
+            CommentComposerSheet(
+                aid: aid,
+                onDismiss: { showComposer = false },
+                onPosted: {
+                    Task { @MainActor in
+                        hasLoaded = false
+                        hasMore = true
+                        nextCursor = 0
+                        comments = []
+                        await loadComments()
                     }
                 }
-                .listStyle(.plain)
-            }
+            )
+            .presentationDetents([.fraction(0.5)])
+            .presentationDragIndicator(.visible)
         }
         .task(id: aid) {
             guard aid > 0 else { return }
