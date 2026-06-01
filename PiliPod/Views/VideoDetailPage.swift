@@ -18,6 +18,13 @@ struct VideoDetailPage: View {
         case rotation
     }
 
+    private enum DragInteractionMode {
+        case none
+        case speedBoost
+        case horizontalSeek
+        case brightnessAdjust
+    }
+
     @State var viewModel: VideoDetailViewModel
     @State private var showDebugPanel = false
     @State private var controlsVisible = true
@@ -41,6 +48,7 @@ struct VideoDetailPage: View {
     @State private var isBrightnessAdjusting = false
     @State private var brightnessAdjustBaseValue: Double = 0
     @State private var brightnessPreviewValue: Double = 0
+    @State private var dragInteractionMode: DragInteractionMode = .none
     @State private var danmakuConfig = DanmakuConfigStore.load()
     @State private var isDanmakuSettingsPresented = false
     @State private var isFullscreen = false
@@ -106,6 +114,30 @@ struct VideoDetailPage: View {
                                 .simultaneousGesture(
                                     DragGesture(minimumDistance: 0)
                                         .onChanged { value in
+                                            if dragInteractionMode == .horizontalSeek {
+                                                let width = max(1, geo.size.width)
+                                                let ratio = Double(value.translation.width / width)
+                                                let delta = ratio * maxHorizontalSeekOffset
+                                                let target = clampSeekTime(horizontalSeekBaseTime + delta, duration: player.duration)
+                                                horizontalSeekPreviewTime = target
+                                                showControlsAndAutoHideIfNeeded(player: player, forceShow: true)
+                                                return
+                                            }
+
+                                            if dragInteractionMode == .brightnessAdjust {
+                                                let height = max(1, geo.size.height)
+                                                let delta = Double(-value.translation.height / height) * verticalBrightnessDragSensitivity
+                                                let target = clampUnit(brightnessAdjustBaseValue + delta)
+                                                brightnessPreviewValue = target
+                                                setScreenBrightness(target)
+                                                showControlsAndAutoHideIfNeeded(player: player, forceShow: true)
+                                                return
+                                            }
+
+                                            if dragInteractionMode == .speedBoost {
+                                                return
+                                            }
+
                                             let dx = value.translation.width
                                             let dy = value.translation.height
                                             let shouldStartHorizontalSeek =
@@ -114,6 +146,7 @@ struct VideoDetailPage: View {
                                                 abs(dx) > abs(dy)
 
                                             if shouldStartHorizontalSeek {
+                                                dragInteractionMode = .horizontalSeek
                                                 isHorizontalSeeking = true
                                                 horizontalSeekBaseTime = player.currentTime
                                                 speedBoostTriggerTask?.cancel()
@@ -140,6 +173,7 @@ struct VideoDetailPage: View {
                                                 abs(dy) > abs(dx)
 
                                             if shouldStartBrightnessAdjust {
+                                                dragInteractionMode = .brightnessAdjust
                                                 isBrightnessAdjusting = true
                                                 brightnessAdjustBaseValue = currentScreenBrightness()
                                                 brightnessPreviewValue = brightnessAdjustBaseValue
@@ -175,7 +209,7 @@ struct VideoDetailPage: View {
                                             }
                                         }
                                         .onEnded { _ in
-                                            if isHorizontalSeeking {
+                                            if dragInteractionMode == .horizontalSeek && isHorizontalSeeking {
                                                 if let seekTarget = horizontalSeekPreviewTime {
                                                     player.seek(to: seekTarget)
                                                     Task {
@@ -194,6 +228,7 @@ struct VideoDetailPage: View {
                                             speedBoostTriggerTask?.cancel()
                                             speedBoostTriggerTask = nil
                                             endSpeedBoostIfNeeded(player: player)
+                                            dragInteractionMode = .none
                                         }
                                 )
                                 .overlay {
@@ -544,6 +579,7 @@ struct VideoDetailPage: View {
                 horizontalSeekPreviewTime = nil
                 progressDragPreviewTime = nil
                 isBrightnessAdjusting = false
+                dragInteractionMode = .none
                 player.pause()
                 bindableViewModel.stopHistoryReporting(with: player)
             }
@@ -933,6 +969,8 @@ struct VideoDetailPage: View {
 
     private func beginSpeedBoostIfNeeded(player: MPVKitPlayer) {
         guard !isSpeedBoostActive else { return }
+        guard dragInteractionMode == .none else { return }
+        dragInteractionMode = .speedBoost
         isSpeedBoostActive = true
         player.setPlaybackRate(speedBoostMultiplier)
 #if canImport(UIKit)
