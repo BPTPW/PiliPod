@@ -14,6 +14,7 @@ struct CommentCardView: View {
     let comment: CommentItem
     let onTapAvatar: ((Int) -> Void)?
     let onTapReplyUser: ((Int) -> Void)?
+    let onTapComment: ((CommentItem) -> Void)?
 
     private let avatarSize: CGFloat = 35
     private let horizontalGap: CGFloat = 10
@@ -22,11 +23,13 @@ struct CommentCardView: View {
     init(
         comment: CommentItem,
         onTapAvatar: ((Int) -> Void)? = nil,
-        onTapReplyUser: ((Int) -> Void)? = nil
+        onTapReplyUser: ((Int) -> Void)? = nil,
+        onTapComment: ((CommentItem) -> Void)? = nil
     ) {
         self.comment = comment
         self.onTapAvatar = onTapAvatar
         self.onTapReplyUser = onTapReplyUser
+        self.onTapComment = onTapComment
     }
 
     var body: some View {
@@ -51,6 +54,10 @@ struct CommentCardView: View {
                 .padding(.leading, avatarSize + horizontalGap)
         }
         .padding(.vertical, 12)
+        .contentShape(Rectangle())
+        .onTapGesture {
+            onTapComment?(comment)
+        }
         .fullScreenCover(item: $selectedPicture) { picture in
             FullscreenImageViewer(
                 imageURL: picture.url,
@@ -218,6 +225,7 @@ struct CommentItem: Identifiable {
     let id = UUID()
     let avatarURL: String?
     let mid: Int
+    let rpid: Int
     let username: String
     let timeText: String
     let ipLocation: String
@@ -467,6 +475,7 @@ private extension NSString {
             comment: CommentItem(
                 avatarURL: nil,
                 mid: 1,
+                rpid: 1001,
                 username: "PiliUser",
                 timeText: "2小时前",
                 ipLocation: "广东",
@@ -486,6 +495,7 @@ private extension NSString {
             comment: CommentItem(
                 avatarURL: nil,
                 mid: 2,
+                rpid: 1002,
                 username: "AnotherUser",
                 timeText: "昨天",
                 ipLocation: "上海",

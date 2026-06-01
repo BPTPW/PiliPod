@@ -137,10 +137,6 @@ class BiliAPI {
         next: Int64 = 0,
         mode: Bilibili_Main_Community_Reply_V1_Mode = .mainListHot
     ) async throws -> Bilibili_Main_Community_Reply_V1_MainListReply {
-        guard let url = URL(string: "https://grpc.biliapi.net/bilibili.main.community.reply.v1.Reply/MainList") else {
-            throw APIError.invalidURL
-        }
-
         var reqMessage = Bilibili_Main_Community_Reply_V1_MainListReq()
         reqMessage.oid = aid
         reqMessage.type = 1
@@ -148,18 +144,51 @@ class BiliAPI {
         reqMessage.cursor.next = next
         reqMessage.cursor.mode = mode
 
-        let messageBytes = try reqMessage.serializedData()
+        let payload = try await sendGrpcUnary(
+            path: "/bilibili.main.community.reply.v1.Reply/MainList",
+            body: reqMessage.serializedData()
+        )
+        return try Bilibili_Main_Community_Reply_V1_MainListReply(serializedBytes: payload)
+    }
+
+    func fetchVideoCommentDetailList(
+        aid: Int64,
+        rootRpid: Int64,
+        next: Int64 = 0,
+        mode: Bilibili_Main_Community_Reply_V1_Mode = .mainListHot
+    ) async throws -> Bilibili_Main_Community_Reply_V1_DetailListReply {
+        var reqMessage = Bilibili_Main_Community_Reply_V1_DetailListReq()
+        reqMessage.oid = aid
+        reqMessage.type = 1
+        reqMessage.root = rootRpid
+        reqMessage.rpid = rootRpid
+        reqMessage.scene = .reply
+        reqMessage.cursor = .init()
+        reqMessage.cursor.next = next
+        reqMessage.cursor.mode = mode
+
+        let payload = try await sendGrpcUnary(
+            path: "/bilibili.main.community.reply.v1.Reply/DetailList",
+            body: reqMessage.serializedData()
+        )
+        return try Bilibili_Main_Community_Reply_V1_DetailListReply(serializedBytes: payload)
+    }
+
+    private func sendGrpcUnary(path: String, body: Data) async throws -> Data {
+        guard let url = URL(string: "https://grpc.biliapi.net\(path)") else {
+            throw APIError.invalidURL
+        }
+
         var grpcBody = Data([0x00])
-        var length = UInt32(messageBytes.count).bigEndian
+        var length = UInt32(body.count).bigEndian
         withUnsafeBytes(of: &length) { bytes in
             grpcBody.append(contentsOf: bytes)
         }
-        grpcBody.append(messageBytes)
+        grpcBody.append(body)
 
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.httpBody = grpcBody
-
         request.setValue("application/grpc", forHTTPHeaderField: "Content-Type")
         request.setValue("trailers", forHTTPHeaderField: "TE")
         request.setValue("grpc.biliapi.net", forHTTPHeaderField: "Host")
@@ -173,7 +202,6 @@ class BiliAPI {
         if !cookie.isEmpty {
             request.setValue(cookie, forHTTPHeaderField: "Cookie")
         }
-
         if let accessKey = LoginSession.shared.accessKey, !accessKey.isEmpty {
             request.setValue("identify_v1 \(accessKey)", forHTTPHeaderField: "Authorization")
         }
@@ -203,15 +231,13 @@ class BiliAPI {
                 (acc << 8) | UInt32(byte)
             }
             idx += 5
-
             let end = idx + Int(payloadLength)
             guard end <= data.count else { break }
-
             let payload = data[idx..<end]
             idx = end
 
             if flag & 0x80 == 0 {
-                return try Bilibili_Main_Community_Reply_V1_MainListReply(serializedBytes: payload)
+                return Data(payload)
             }
 
             if flag & 0x80 != 0,
