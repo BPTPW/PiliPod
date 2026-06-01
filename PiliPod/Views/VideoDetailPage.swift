@@ -154,6 +154,7 @@ struct VideoDetailPage: View {
                                 .overlay {
                                     PlayerControlsOverlay(
                                         showDebugPanel: $showDebugPanel,
+                                        danmakuEnabled: $danmakuConfig.isEnabled,
                                         onShowDanmakuSettings: {
                                             if isFullscreen {
                                                 isFullscreenDanmakuPanelVisible.toggle()
@@ -1713,6 +1714,7 @@ private struct QualityMenuView: View, Equatable {
 
 private struct PlayerControlsOverlay: View {
     @Binding var showDebugPanel: Bool
+    @Binding var danmakuEnabled: Bool
 
     let onShowDanmakuSettings: () -> Void
     let isFullscreen: Bool
@@ -1769,6 +1771,7 @@ private struct PlayerControlsOverlay: View {
             Spacer()
 
             if !isFullscreen {
+                // 弹幕设置按钮
                 Button(action: {
                     onUserInteracted()
                     onShowDanmakuSettings()
@@ -1894,13 +1897,20 @@ private struct PlayerControlsOverlay: View {
 
             HStack {
                 HStack(spacing: 10) {
+                    // 播放/暂停按钮
                     actionCircleButton(systemName: isPlaying ? "pause.fill" : "play.fill") {
                         onUserInteracted()
                         onTogglePlayPause()
                     }
+                    // 横屏下的弹幕设置按钮
                     actionCircleButton(imageName: "DanmakuSetting") {
                         onUserInteracted()
                         onShowDanmakuSettings()
+                    }
+                    // 横屏下的弹幕开关按钮
+                    actionCircleButton(imageName: danmakuEnabled ? "DanmakuOn" : "DanmakuOff") {
+                        onUserInteracted()
+                        danmakuEnabled.toggle()
                     }
                 }
                 Spacer()

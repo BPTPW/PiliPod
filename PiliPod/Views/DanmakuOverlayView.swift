@@ -3,6 +3,7 @@ import SwiftUI
 import UIKit
 
 struct DanmakuEngineConfig: Sendable, Equatable {
+    var isEnabled = true
     var blockLevel: Int = 0
     var blockScroll = false
     var blockTop = false
@@ -54,6 +55,7 @@ struct DanmakuEngineConfig: Sendable, Equatable {
 
 extension DanmakuEngineConfig: Codable {
     private enum CodingKeys: String, CodingKey {
+        case isEnabled
         case blockLevel
         case blockScroll
         case blockTop
@@ -401,42 +403,48 @@ struct DanmakuOverlayView: View {
     @State private var lastTime: Double = 0
 
     var body: some View {
-        GeometryReader { geo in
-            TimelineView(.periodic(from: .now, by: 1.0 / 60.0)) { _ in
-                ZStack(alignment: .topLeading) {
-                    ForEach(engine.activeItems) { item in
-                        danmakuText(item)
-                            .position(x: xPosition(for: item, containerWidth: geo.size.width), y: item.topY + item.lineHeight * 0.5)
-                            .zIndex(item.zIndexValue)
+        Group {
+            if config.isEnabled {
+                GeometryReader { geo in
+                    TimelineView(.periodic(from: .now, by: 1.0 / 60.0)) { _ in
+                        ZStack(alignment: .topLeading) {
+                            ForEach(engine.activeItems) { item in
+                                danmakuText(item)
+                                    .position(x: xPosition(for: item, containerWidth: geo.size.width), y: item.topY + item.lineHeight * 0.5)
+                                    .zIndex(item.zIndexValue)
+                            }
+                        }
+                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                        .clipped()
+                        .onAppear {
+                            engine.updateConfig(config)
+                            engine.load(elements: elements, config: config)
+                            engine.updateLayout(width: geo.size.width, height: geo.size.height)
+                        }
+                        .onChange(of: elements) { _, newValue in
+                            engine.load(elements: newValue, config: config)
+                            engine.updateLayout(width: geo.size.width, height: geo.size.height)
+                        }
+                        .onChange(of: config) { _, newValue in
+                            engine.updateConfig(newValue)
+                            engine.load(elements: elements, config: newValue)
+                            engine.updateLayout(width: geo.size.width, height: geo.size.height)
+                        }
+                        .onChange(of: geo.size) { _, newSize in
+                            engine.updateLayout(width: newSize.width, height: newSize.height)
+                        }
+                        .onChange(of: currentTime) { _, newValue in
+                            if newValue + 0.2 < lastTime {
+                                engine.seek(to: newValue)
+                            } else {
+                                engine.tick(currentTime: newValue)
+                            }
+                            lastTime = newValue
+                        }
                     }
                 }
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-                .clipped()
-                .onAppear {
-                    engine.updateConfig(config)
-                    engine.load(elements: elements, config: config)
-                    engine.updateLayout(width: geo.size.width, height: geo.size.height)
-                }
-                .onChange(of: elements) { _, newValue in
-                    engine.load(elements: newValue, config: config)
-                    engine.updateLayout(width: geo.size.width, height: geo.size.height)
-                }
-                .onChange(of: config) { _, newValue in
-                    engine.updateConfig(newValue)
-                    engine.load(elements: elements, config: newValue)
-                    engine.updateLayout(width: geo.size.width, height: geo.size.height)
-                }
-                .onChange(of: geo.size) { _, newSize in
-                    engine.updateLayout(width: newSize.width, height: newSize.height)
-                }
-                .onChange(of: currentTime) { _, newValue in
-                    if newValue + 0.2 < lastTime {
-                        engine.seek(to: newValue)
-                    } else {
-                        engine.tick(currentTime: newValue)
-                    }
-                    lastTime = newValue
-                }
+            } else {
+                Color.clear
             }
         }
         .allowsHitTesting(false)
