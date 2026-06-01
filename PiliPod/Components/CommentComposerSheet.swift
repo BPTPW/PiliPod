@@ -96,7 +96,7 @@ struct CommentComposerSheet: View {
                     }
                     .glassEffect(.regular.interactive(), in: .circle)
                     .disabled(selectedImages.count >= maxImageCount || isPosting)
-                    .tint(.primary)
+                    .buttonStyle(.plain)
 
                     Button {
                         hideKeyboard()
@@ -144,8 +144,13 @@ struct CommentComposerSheet: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
-                    Button("取消") { onDismiss() }
-                        .disabled(isPosting)
+                    Button{
+                        onDismiss()
+                    } label: {
+                        Image(systemName: "xmark")
+                            .foregroundStyle(.primary)
+                    }
+                    .disabled(isPosting)
                 }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
@@ -154,10 +159,11 @@ struct CommentComposerSheet: View {
                         if isPosting {
                             ProgressView()
                         } else {
-                            Text("发送")
-                                .fontWeight(.semibold)
+                            Image(systemName: "paperplane")
+                                .foregroundStyle(.primary)
                         }
                     }
+                    .buttonStyle(.borderedProminent)
                     .disabled(!canSubmit || isPosting)
                 }
             }
