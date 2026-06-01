@@ -417,13 +417,13 @@ struct VideoDetailPage: View {
                                                         .fill(Color.white.opacity(0.95))
                                                         .frame(width: barWidth * clampUnit(brightnessPreviewValue), height: 4)
                                                 }
-                                                .padding(.top, 3)
+                                                .padding(.top, 2)
                                             }
                                             .frame(width: 100, height: 10)
                                         }
                                         .frame(height: 24, alignment: .center)
                                         .padding(.horizontal, 8)
-                                        .padding(.vertical, 6)
+                                        .padding(.vertical, 4)
                                         .glassEffect(.clear.tint(.black), in: .capsule)
                                         .transition(.opacity)
                                     }
@@ -445,13 +445,13 @@ struct VideoDetailPage: View {
                                                         .fill(Color.white.opacity(0.95))
                                                         .frame(width: barWidth * clampUnit(volumePreviewValue), height: 4)
                                                 }
-                                                .padding(.top, 3)
+                                                .padding(.top, 2)
                                             }
                                             .frame(width: 100, height: 10)
                                         }
                                         .frame(height: 24, alignment: .center)
                                         .padding(.horizontal, 8)
-                                        .padding(.vertical, 6)
+                                        .padding(.vertical, 4)
                                         .glassEffect(.clear.tint(.black), in: .capsule)
                                         .transition(.opacity)
                                     }
