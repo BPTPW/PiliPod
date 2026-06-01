@@ -26,6 +26,7 @@ struct VideoCommentsTabView: View {
     @State private var detailHasMore = true
     @State private var detailIsLoadingMore = false
     @State private var showComposer = false
+    @State private var composerDetent: PresentationDetent = .fraction(0.5)
 
     var body: some View {
         ZStack(alignment: .bottomTrailing) {
@@ -126,6 +127,9 @@ struct VideoCommentsTabView: View {
             CommentComposerSheet(
                 aid: aid,
                 onDismiss: { showComposer = false },
+                onEmotePanelVisibilityChanged: { shown in
+                    composerDetent = shown ? .fraction(0.78) : .fraction(0.5)
+                },
                 onPosted: {
                     Task { @MainActor in
                         hasLoaded = false
@@ -136,7 +140,7 @@ struct VideoCommentsTabView: View {
                     }
                 }
             )
-            .presentationDetents([.fraction(0.5)])
+            .presentationDetents([.fraction(0.5), .fraction(0.78)], selection: $composerDetent)
             .presentationDragIndicator(.visible)
         }
         .task(id: aid) {

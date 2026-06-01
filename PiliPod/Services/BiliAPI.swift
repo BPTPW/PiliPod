@@ -670,6 +670,31 @@ class BiliAPI {
         return body
     }
 
+    func fetchUserReplyEmotePackages() async throws -> [ReplyEmotePackage] {
+        var components = URLComponents(string: "https://api.bilibili.com/x/emote/user/panel/web")
+        components?.queryItems = [
+            URLQueryItem(name: "business", value: "reply")
+        ]
+        guard let url = components?.url else {
+            throw APIError.invalidURL
+        }
+
+        let request = makeRequest(url: url)
+        let (data, response) = try await URLSession.shared.data(for: request)
+        guard let httpResponse = response as? HTTPURLResponse,
+              (200 ... 299).contains(httpResponse.statusCode) else {
+            throw APIError.requestFailed
+        }
+
+        let decoded = try JSONDecoder().decode(UserReplyEmotePanelResponse.self, from: data)
+        guard decoded.code == 0 else {
+            throw APIError.businessError(code: decoded.code, message: decoded.message)
+        }
+
+        let packages = decoded.data?.packages ?? []
+        return packages.filter { $0.flags?.added != false }
+    }
+
     // MARK: - 解析App推荐接口数据
 
     private func parseAppRecommendFeed(from data: Data) throws -> (cards: [FeedCardItem], nextIdx: Int) {
