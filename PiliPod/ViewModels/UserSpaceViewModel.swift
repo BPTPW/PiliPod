@@ -67,7 +67,7 @@ final class UserSpaceViewModel: ObservableObject {
         guard let mid = archiveMid else { return }
         print(archiveHasMore)
         guard !archiveIsLoading, archiveHasMore, let aid = archiveNextAid else { return }
-        
+
         archiveIsLoading = true
         defer { archiveIsLoading = false }
 

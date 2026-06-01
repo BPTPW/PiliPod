@@ -207,14 +207,15 @@ struct CommentCardView: View {
         .padding(.vertical, 8)
         .glassEffect(
             .regular,
-            in: RoundedRectangle(cornerRadius:12)
+            in: RoundedRectangle(cornerRadius: 12)
         )
     }
 
     private var avatar: some View {
         Group {
             if let avatarURL = comment.avatarURL,
-               let url = URL(string: avatarURL) {
+               let url = URL(string: avatarURL)
+            {
                 AsyncImage(url: url) { phase in
                     switch phase {
                     case .success(let image):
@@ -246,7 +247,6 @@ struct CommentCardView: View {
             .padding(6)
             .background(Color.secondary.opacity(0.12))
     }
-
 }
 
 struct CommentItem: Identifiable {
@@ -303,7 +303,7 @@ private struct EmoteRichTextView: View {
             highlightMentions: highlightMentions,
             usernamePrefix: usernamePrefix
         )
-            .frame(minHeight: 20)
+        .frame(minHeight: 20)
     }
 }
 
@@ -421,7 +421,7 @@ private struct EmoteTextViewRepresentable: UIViewRepresentable {
             if let regex = try? NSRegularExpression(pattern: pattern) {
                 let all = NSRange(location: 0, length: (mutable.string as NSString).length)
                 let color = UIColor(named: "BiliPink") ?? UIColor.systemPink
-                regex.matches(in: mutable.string, range: all).forEach { match in
+                for match in regex.matches(in: mutable.string, range: all) {
                     mutable.addAttribute(.foregroundColor, value: color, range: match.range)
                 }
             }
@@ -442,7 +442,7 @@ private struct EmoteTextViewRepresentable: UIViewRepresentable {
 
     private static func placeholderEmoteImage() -> UIImage {
         let renderer = UIGraphicsImageRenderer(size: CGSize(width: 20, height: 20))
-        return renderer.image { ctx in
+        return renderer.image { _ in
             UIColor.systemGray4.setFill()
             UIBezierPath(roundedRect: CGRect(x: 0, y: 0, width: 20, height: 20), cornerRadius: 4).fill()
             UIColor.systemGray2.setStroke()

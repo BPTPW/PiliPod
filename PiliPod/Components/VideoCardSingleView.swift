@@ -57,7 +57,7 @@ struct VideoCardSingleView: View {
 
                     // 右侧底部：从下往上 = 播放弹幕 / 发布时间 UP主
                     VStack(alignment: .leading, spacing: 4) {
-                        HStack(spacing: (video.uploader == "" ? 0 : 10)) {
+                        HStack(spacing: video.uploader == "" ? 0 : 10) {
                             Text(video.uploader)
                                 .font(.system(size: 12))
                                 .foregroundStyle(.secondary)

@@ -177,7 +177,7 @@ struct VideoCommentsTabView: View {
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 10)
-            
+
             if detailIsLoading {
                 VStack(spacing: 8) {
                     ProgressView()

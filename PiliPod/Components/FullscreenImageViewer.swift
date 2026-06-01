@@ -7,9 +7,9 @@
 
 import SwiftUI
 #if canImport(UIKit)
+import Photos
 import UIKit
 import VisionKit
-import Photos
 #endif
 
 struct FullscreenImageViewer: View {

@@ -80,7 +80,7 @@ class BiliAPI {
         allParams["mobi_app"] = "android_hd"
         allParams["platform"] = "android"
         allParams["ts"] = String(Int(Date().timeIntervalSince1970))
-        
+
         // 写入移动端凭证 accessKey
         if let accessKey = LoginSession.shared.accessKey, !accessKey.isEmpty {
             allParams["access_key"] = accessKey
@@ -227,7 +227,7 @@ class BiliAPI {
         while idx + 5 <= data.count {
             let flag = data[idx]
             let lenData = data[(idx + 1)..<(idx + 5)]
-            let payloadLength = lenData.reduce(UInt32(0)) { (acc, byte) in
+            let payloadLength = lenData.reduce(UInt32(0)) { acc, byte in
                 (acc << 8) | UInt32(byte)
             }
             idx += 5
@@ -241,7 +241,8 @@ class BiliAPI {
             }
 
             if flag & 0x80 != 0,
-               let trailerText = String(data: payload, encoding: .utf8) {
+               let trailerText = String(data: payload, encoding: .utf8)
+            {
                 let status = parseTrailerValue("grpc-status", in: trailerText)
                 if let status, status != "0" {
                     let message = parseTrailerValue("grpc-message", in: trailerText)
@@ -367,7 +368,7 @@ class BiliAPI {
         request.setValue("", forHTTPHeaderField: "x-bili-aurora-eid")
         request.setValue("", forHTTPHeaderField: "x-bili-aurora-zone")
         request.setValue("cronet", forHTTPHeaderField: "bili-http-engine")
-        
+
         print(request.url)
 
         let (data, response) = try await URLSession.shared.data(for: request)
@@ -581,7 +582,8 @@ class BiliAPI {
 
         let (respData, response) = try await URLSession.shared.data(for: request)
         guard let httpResponse = response as? HTTPURLResponse,
-              (200 ... 299).contains(httpResponse.statusCode) else {
+              (200 ... 299).contains(httpResponse.statusCode)
+        else {
             throw APIError.requestFailed
         }
 
@@ -615,7 +617,8 @@ class BiliAPI {
         ]
         if !pictures.isEmpty,
            let payload = try? JSONEncoder().encode(pictures),
-           let picturesJSONString = String(data: payload, encoding: .utf8) {
+           let picturesJSONString = String(data: payload, encoding: .utf8)
+        {
             params["pictures"] = picturesJSONString
         }
         if let root, root > 0 {
@@ -631,7 +634,8 @@ class BiliAPI {
 
         let (data, response) = try await URLSession.shared.data(for: request)
         guard let httpResponse = response as? HTTPURLResponse,
-              (200 ... 299).contains(httpResponse.statusCode) else {
+              (200 ... 299).contains(httpResponse.statusCode)
+        else {
             throw APIError.requestFailed
         }
 
@@ -682,7 +686,8 @@ class BiliAPI {
         let request = makeRequest(url: url)
         let (data, response) = try await URLSession.shared.data(for: request)
         guard let httpResponse = response as? HTTPURLResponse,
-              (200 ... 299).contains(httpResponse.statusCode) else {
+              (200 ... 299).contains(httpResponse.statusCode)
+        else {
             throw APIError.requestFailed
         }
 
@@ -796,8 +801,8 @@ class BiliAPI {
         return response.data
     }
 
-    // MARK: -获取用户卡片
-    
+    // MARK: - 获取用户卡片
+
     func fetchUserCardStats(mid: Int) async throws -> UserCardStats {
         var components = URLComponents(string: "https://api.bilibili.com/x/web-interface/card")
         components?.queryItems = [
@@ -1261,40 +1266,40 @@ class BiliAPI {
 
         return try Bilibili_Community_Service_Dm_V1_DmSegMobileReply(serializedBytes: data)
     }
-    
+
     // sign 创建
-    
+
     private func generateSign(for parameters: [String: String]) -> String {
-            var validParams = parameters
-            validParams.removeValue(forKey: "sign")
-            let sortedKeys = validParams.keys.sorted()
-            // key / value 都走 RFC3986 编码，签名串按字典序拼接
-            let paramString = sortedKeys.map { key in
-                let value = validParams[key] ?? ""
-                let encodedKey = key.biliUrlEncoded()
-                let encodedValue = value.biliUrlEncoded()
-                return encodedValue.isEmpty ? encodedKey : "\(encodedKey)=\(encodedValue)"
-            }.joined(separator: "&")
+        var validParams = parameters
+        validParams.removeValue(forKey: "sign")
+        let sortedKeys = validParams.keys.sorted()
+        // key / value 都走 RFC3986 编码，签名串按字典序拼接
+        let paramString = sortedKeys.map { key in
+            let value = validParams[key] ?? ""
+            let encodedKey = key.biliUrlEncoded()
+            let encodedValue = value.biliUrlEncoded()
+            return encodedValue.isEmpty ? encodedKey : "\(encodedKey)=\(encodedValue)"
+        }.joined(separator: "&")
         let digest = Insecure.MD5.hash(data: (paramString + BiliAPI.appSecret).data(using: .utf8) ?? Data())
-            return digest.map { String(format: "%02hhx", $0) }.joined()
-        }
+        return digest.map { String(format: "%02hhx", $0) }.joined()
+    }
 
-        // 请求体顺序：其他 key 按字典序，最后固定 appkey、ts、sign
-        private func makeOrderedBodyString(from parameters: [String: String]) -> String {
-            let tailKeys = ["appkey", "ts", "sign"]
-            let sortedOtherKeys = parameters.keys
-                .filter { !tailKeys.contains($0) }
-                .sorted()
+    // 请求体顺序：其他 key 按字典序，最后固定 appkey、ts、sign
+    private func makeOrderedBodyString(from parameters: [String: String]) -> String {
+        let tailKeys = ["appkey", "ts", "sign"]
+        let sortedOtherKeys = parameters.keys
+            .filter { !tailKeys.contains($0) }
+            .sorted()
 
-            let orderedKeys = sortedOtherKeys + tailKeys.filter { parameters[$0] != nil }
+        let orderedKeys = sortedOtherKeys + tailKeys.filter { parameters[$0] != nil }
 
-            return orderedKeys.map { key in
-                let value = parameters[key] ?? ""
-                let encodedKey = key.biliUrlEncoded()
-                let encodedValue = value.biliUrlEncoded()
-                return encodedValue.isEmpty ? encodedKey : "\(encodedKey)=\(encodedValue)"
-            }.joined(separator: "&")
-        }
+        return orderedKeys.map { key in
+            let value = parameters[key] ?? ""
+            let encodedKey = key.biliUrlEncoded()
+            let encodedValue = value.biliUrlEncoded()
+            return encodedValue.isEmpty ? encodedKey : "\(encodedKey)=\(encodedValue)"
+        }.joined(separator: "&")
+    }
 }
 
 // MARK: - 错误处理
@@ -1311,7 +1316,7 @@ enum APIError: LocalizedError {
         switch self {
         case .invalidURL:
             return "无效的 URL"
-        case .responseError(let code):
+        case let .responseError(code):
             return "API 错误: \(code)"
         case let .businessError(code, message):
             if let message, !message.isEmpty {

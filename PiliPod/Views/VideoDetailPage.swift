@@ -68,7 +68,8 @@ struct VideoDetailPage: View {
                 VStack(spacing: 0) {
                     // DASH 播放器
                     if let stream = bindableViewModel.dashStream, let
-                        player = bindableViewModel.player {
+                        player = bindableViewModel.player
+                    {
                         ZStack(alignment: .center) {
                             // DASH 播放器容器
                             MPVKitPlayerView(player: player)
@@ -436,37 +437,37 @@ struct VideoDetailPage: View {
         .toast(message: $toastMessage)
         .statusBarHidden(isFullscreen)
 #if canImport(UIKit)
-        .onReceive(NotificationCenter.default.publisher(
-            for: UIDevice.orientationDidChangeNotification
-        )) { _ in
-            handleDeviceOrientationChange()
-        }
+            .onReceive(NotificationCenter.default.publisher(
+                for: UIDevice.orientationDidChangeNotification
+            )) { _ in
+                handleDeviceOrientationChange()
+            }
 #endif
-        .navigationDestination(item: $selectedRelatedVideo) { relatedVideo in
-            if #available(iOS 18.0, *) {
-                VideoDetailPage(
-                    video: relatedVideo,
-                    namespace: namespace,
-                    onBack: { selectedRelatedVideo = nil }
-                )
-                .navigationTransition(
-                    .zoom(sourceID: "videoHero.\(relatedVideo.bvid)", in: namespace)
-                )
-            } else {
-                VideoDetailPage(
-                    video: relatedVideo,
-                    namespace: namespace,
-                    onBack: { selectedRelatedVideo = nil }
+            .navigationDestination(item: $selectedRelatedVideo) { relatedVideo in
+                if #available(iOS 18.0, *) {
+                    VideoDetailPage(
+                        video: relatedVideo,
+                        namespace: namespace,
+                        onBack: { selectedRelatedVideo = nil }
+                    )
+                    .navigationTransition(
+                        .zoom(sourceID: "videoHero.\(relatedVideo.bvid)", in: namespace)
+                    )
+                } else {
+                    VideoDetailPage(
+                        video: relatedVideo,
+                        namespace: namespace,
+                        onBack: { selectedRelatedVideo = nil }
+                    )
+                }
+            }
+            .navigationDestination(item: $selectedUserSpaceRoute) { route in
+                UserSpaceView(
+                    mid: route.mid,
+                    fromViewAid: route.fromViewAid,
+                    onBack: { selectedUserSpaceRoute = nil }
                 )
             }
-        }
-        .navigationDestination(item: $selectedUserSpaceRoute) { route in
-            UserSpaceView(
-                mid: route.mid,
-                fromViewAid: route.fromViewAid,
-                onBack: { selectedUserSpaceRoute = nil }
-            )
-        }
     }
 
     private var fullscreenAwareDanmakuConfig: DanmakuEngineConfig {
@@ -531,7 +532,7 @@ struct VideoDetailPage: View {
                     )
                 }
             )
-                .background(Color(.systemBackground))
+            .background(Color(.systemBackground))
         }
     }
 
@@ -578,14 +579,14 @@ struct VideoDetailPage: View {
                             )
                         }
 
-                        HStack{
+                        HStack {
                             Spacer()
                             // 关注按钮
-                            ZStack{
+                            ZStack {
                                 Capsule(style: .continuous)
                                     .fill(viewModel.isOwnerFollowing ? .followedBackground : Color("BiliPink"))
                                     .animation(.smooth(duration: 0.1), value: viewModel.isOwnerFollowing)
-                                
+
                                 Button(action: {
                                     guard !viewModel.isOwnerFollowRequesting else { return }
                                     Task {
@@ -602,13 +603,13 @@ struct VideoDetailPage: View {
                                         .font(.caption.weight(.semibold))
                                         .foregroundColor(viewModel.isOwnerFollowing ? .followedText : .white)
                                 }
-                                .frame(width: 65,height: 25)
+                                .frame(width: 65, height: 25)
                             }
                             .glassEffect(
                                 .regular.interactive(),
-                                in:.capsule
+                                in: .capsule
                             )
-                            .frame(width: 65,height: 25)
+                            .frame(width: 65, height: 25)
                         }
                     }
 
@@ -710,7 +711,7 @@ struct VideoDetailPage: View {
                             // TODO: add share logic later
                         },
                         onLaterWatch: {
-                            if(!viewModel.isWatchLater){
+                            if !viewModel.isWatchLater {
                                 viewModel.addToWatchLater()
                             }
                         }
@@ -963,10 +964,10 @@ struct VideoDetailPage: View {
         Task { @MainActor in
             viewModel.player?.refreshVideoOutput()
             // 多次刷新保证成功
-            //try? await Task.sleep(nanoseconds: 30000000)
-            //viewModel.player?.refreshVideoOutput()
-            //try? await Task.sleep(nanoseconds: 30000000)
-            //viewModel.player?.refreshVideoOutput()
+            // try? await Task.sleep(nanoseconds: 30000000)
+            // viewModel.player?.refreshVideoOutput()
+            // try? await Task.sleep(nanoseconds: 30000000)
+            // viewModel.player?.refreshVideoOutput()
         }
     }
 }
@@ -1014,7 +1015,7 @@ private struct VideoActionBar: View {
                 title: formatCount(likeCount),
                 systemImage: "hand.thumbsup.fill",
                 isActive: isLiked,
-                //isDisabled: isLikeRequesting,
+                // isDisabled: isLikeRequesting,
                 isDisabled: false,
                 onTap: onToggleLike
             )
@@ -1023,7 +1024,7 @@ private struct VideoActionBar: View {
                 title: "点踩",
                 systemImage: "hand.thumbsdown.fill",
                 isActive: isDisliked,
-                //isDisabled: isDislikeRequesting,
+                // isDisabled: isDislikeRequesting,
                 isDisabled: false,
                 onTap: onToggleDislike
             )
@@ -1032,7 +1033,7 @@ private struct VideoActionBar: View {
                 title: formatCount(coinCount),
                 assetImage: "BiliCoin",
                 isActive: isCoined,
-                //isDisabled: isCoinRequesting || isCoined,
+                // isDisabled: isCoinRequesting || isCoined,
                 isDisabled: isCoined,
                 onCoin1: onCoin1,
                 onCoin2: onCoin2
@@ -1042,7 +1043,7 @@ private struct VideoActionBar: View {
                 title: formatCount(favoriteCount),
                 systemImage: "star.fill",
                 isActive: isFavorited,
-                //isDisabled: isFavoriteRequesting,
+                // isDisabled: isFavoriteRequesting,
                 isDisabled: false,
                 onTap: onToggleFavorite
             )

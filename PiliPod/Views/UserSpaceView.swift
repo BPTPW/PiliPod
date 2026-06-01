@@ -6,7 +6,7 @@ extension UINavigationController: @retroactive UIGestureRecognizerDelegate {
         super.viewDidLoad()
         interactivePopGestureRecognizer?.delegate = self
     }
-    
+
     public func gestureRecognizerShouldBegin(_ gestureRecognizer: UIGestureRecognizer) -> Bool {
         // 只有在导航栈内有超过一个视图时才允许滑动返回，防止在根视图滑动导致卡死
         return viewControllers.count > 1
@@ -254,7 +254,7 @@ struct UserSpaceView: View {
                 }
             }
             .pickerStyle(.segmented)
-            
+
             if selectedTab == .posts {
                 postsTabContent
             } else {

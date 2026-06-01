@@ -16,7 +16,7 @@ struct CommentComposerSheet: View {
     let onPosted: () -> Void
 
     @State private var text: String = ""
-    @State private var selectedRange: NSRange = NSRange(location: 0, length: 0)
+    @State private var selectedRange: NSRange = .init(location: 0, length: 0)
     @State private var photoItems: [PhotosPickerItem] = []
     @State private var selectedImages: [SelectedCommentImage] = []
     @State private var isPosting = false
@@ -111,7 +111,6 @@ struct CommentComposerSheet: View {
                             .foregroundStyle(.primary)
                             .padding(.horizontal, 12)
                             .padding(.vertical, 8)
-                            
                     }
                     .glassEffect(.regular.interactive(), in: .circle)
                     .disabled(isPosting)
@@ -144,7 +143,7 @@ struct CommentComposerSheet: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
-                    Button{
+                    Button {
                         onDismiss()
                     } label: {
                         Image(systemName: "xmark")
