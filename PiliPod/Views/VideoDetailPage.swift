@@ -960,8 +960,12 @@ struct VideoDetailPage: View {
 
     private func refreshPlayerLayoutAfterFullscreenChange() {
         Task { @MainActor in
-            try? await Task.sleep(nanoseconds: 120000000)
             viewModel.player?.refreshVideoOutput()
+            // 多次刷新保证成功
+            //try? await Task.sleep(nanoseconds: 30000000)
+            //viewModel.player?.refreshVideoOutput()
+            //try? await Task.sleep(nanoseconds: 30000000)
+            //viewModel.player?.refreshVideoOutput()
         }
     }
 }
