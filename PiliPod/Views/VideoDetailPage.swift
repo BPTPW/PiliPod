@@ -34,6 +34,10 @@ struct VideoDetailPage: View {
     @State private var speedBoostMultiplier: Double = 2.0
     @State private var isSpeedBoostPressing = false
     @State private var speedBoostTriggerTask: Task<Void, Never>?
+    @State private var isHorizontalSeeking = false
+    @State private var horizontalSeekBaseTime: TimeInterval = 0
+    @State private var horizontalSeekPreviewTime: TimeInterval?
+    @State private var progressDragPreviewTime: TimeInterval?
     @State private var danmakuConfig = DanmakuConfigStore.load()
     @State private var isDanmakuSettingsPresented = false
     @State private var isFullscreen = false
@@ -46,6 +50,7 @@ struct VideoDetailPage: View {
     let video: VideoItem
     let namespace: Namespace.ID
     let onBack: () -> Void
+    private let maxHorizontalSeekOffset: TimeInterval = 50
 
     private var heroID: String { "videoHero.\(video.bvid)" }
 
@@ -96,7 +101,33 @@ struct VideoDetailPage: View {
                                 )
                                 .simultaneousGesture(
                                     DragGesture(minimumDistance: 0)
-                                        .onChanged { _ in
+                                        .onChanged { value in
+                                            let dx = value.translation.width
+                                            let dy = value.translation.height
+                                            let shouldStartHorizontalSeek =
+                                                !isHorizontalSeeking &&
+                                                abs(dx) > 18 &&
+                                                abs(dx) > abs(dy)
+
+                                            if shouldStartHorizontalSeek {
+                                                isHorizontalSeeking = true
+                                                horizontalSeekBaseTime = player.currentTime
+                                                speedBoostTriggerTask?.cancel()
+                                                speedBoostTriggerTask = nil
+                                                isSpeedBoostPressing = false
+                                                endSpeedBoostIfNeeded(player: player)
+                                            }
+
+                                            if isHorizontalSeeking {
+                                                let width = max(1, geo.size.width)
+                                                let ratio = Double(dx / width)
+                                                let delta = ratio * maxHorizontalSeekOffset
+                                                let target = clampSeekTime(horizontalSeekBaseTime + delta, duration: player.duration)
+                                                horizontalSeekPreviewTime = target
+                                                showControlsAndAutoHideIfNeeded(player: player, forceShow: true)
+                                                return
+                                            }
+
                                             if !isSpeedBoostPressing {
                                                 isSpeedBoostPressing = true
                                                 speedBoostTriggerTask?.cancel()
@@ -113,6 +144,18 @@ struct VideoDetailPage: View {
                                             }
                                         }
                                         .onEnded { _ in
+                                            if isHorizontalSeeking {
+                                                if let seekTarget = horizontalSeekPreviewTime {
+                                                    player.seek(to: seekTarget)
+                                                    Task {
+                                                        await bindableViewModel.preloadDanmakuIfNeeded(currentTime: seekTarget)
+                                                    }
+                                                }
+                                                horizontalSeekPreviewTime = nil
+                                                isHorizontalSeeking = false
+                                                showControlsAndAutoHideIfNeeded(player: player, forceShow: true)
+                                            }
+
                                             isSpeedBoostPressing = false
                                             speedBoostTriggerTask?.cancel()
                                             speedBoostTriggerTask = nil
@@ -202,6 +245,9 @@ struct VideoDetailPage: View {
                                         },
                                         onSelectPlaybackRate: { rate in
                                             bindableViewModel.setPlaybackRate(rate)
+                                        },
+                                        onSeekPreviewChanged: { previewTime in
+                                            progressDragPreviewTime = previewTime
                                         }
                                     )
                                 }
@@ -218,7 +264,16 @@ struct VideoDetailPage: View {
                                     }
                                 }
                                 .overlay(alignment: .top) {
-                                    if isSpeedBoostActive {
+                                    if let seekPreview = activeSeekPreviewTime(duration: player.duration) {
+                                        Text("\(formatMMSS(seekPreview))/\(formatMMSS(player.duration))")
+                                            .font(.system(size: 12, weight: .semibold, design: .rounded))
+                                            .foregroundStyle(.primary)
+                                            .padding(.horizontal, 12)
+                                            .padding(.vertical, 6)
+                                            .glassEffect(.regular, in: .capsule)
+                                            .padding(.top, 12)
+                                            .transition(.opacity)
+                                    } else if isSpeedBoostActive {
                                         Text(formatSpeedBoostLabel(speedBoostMultiplier))
                                             .font(.system(size: 12, weight: .semibold, design: .rounded))
                                             .foregroundStyle(.primary)
@@ -424,6 +479,9 @@ struct VideoDetailPage: View {
                 if isSpeedBoostActive {
                     endSpeedBoostIfNeeded(player: player)
                 }
+                isHorizontalSeeking = false
+                horizontalSeekPreviewTime = nil
+                progressDragPreviewTime = nil
                 player.pause()
                 bindableViewModel.stopHistoryReporting(with: player)
             }
@@ -838,6 +896,29 @@ struct VideoDetailPage: View {
         }
 
         return String(format: "%.1fx倍速中", rate)
+    }
+
+    private func formatMMSS(_ seconds: TimeInterval) -> String {
+        guard seconds.isFinite, seconds > 0 else { return "00:00" }
+        let s = Int(seconds.rounded(.down))
+        let m = s / 60
+        let r = s % 60
+        return String(format: "%02d:%02d", m, r)
+    }
+
+    private func activeSeekPreviewTime(duration: TimeInterval) -> TimeInterval? {
+        if let horizontalSeekPreviewTime {
+            return clampSeekTime(horizontalSeekPreviewTime, duration: duration)
+        }
+        if let progressDragPreviewTime {
+            return clampSeekTime(progressDragPreviewTime, duration: duration)
+        }
+        return nil
+    }
+
+    private func clampSeekTime(_ time: TimeInterval, duration: TimeInterval) -> TimeInterval {
+        let safeDuration = max(0, duration)
+        return min(max(0, time), safeDuration)
     }
 
     // MARK: - 设置空闲计时器
@@ -1736,6 +1817,7 @@ private struct PlayerControlsOverlay: View {
     let onFullscreen: () -> Void
     let onSelectQuality: (Int) -> Void
     let onSelectPlaybackRate: (Double) -> Void
+    let onSeekPreviewChanged: (TimeInterval?) -> Void
 
     var body: some View {
         ZStack {
@@ -1843,7 +1925,8 @@ private struct PlayerControlsOverlay: View {
                 bufferedUntil: bufferedUntil,
                 segments: segments,
                 onSeek: { t in onSeek(t) },
-                onUserInteracted: onUserInteracted
+                onUserInteracted: onUserInteracted,
+                onSeekPreviewChanged: onSeekPreviewChanged
             )
 
             Text("\(formatMMSS(currentTime))/\(formatMMSS(duration))")
@@ -1891,7 +1974,8 @@ private struct PlayerControlsOverlay: View {
                 bufferedUntil: bufferedUntil,
                 segments: segments,
                 onSeek: { t in onSeek(t) },
-                onUserInteracted: onUserInteracted
+                onUserInteracted: onUserInteracted,
+                onSeekPreviewChanged: onSeekPreviewChanged
             )
             .frame(maxWidth: .infinity)
             .padding(.horizontal, 12)
@@ -2002,6 +2086,7 @@ private struct VideoProgressBar: View {
     let segments: [ProgressSegment]
     let onSeek: (TimeInterval) -> Void
     let onUserInteracted: () -> Void
+    let onSeekPreviewChanged: (TimeInterval?) -> Void
 
     @GestureState private var isDragging = false
     @State private var dragProgress: Double? = nil
@@ -2071,11 +2156,17 @@ private struct VideoProgressBar: View {
                         onUserInteracted()
                         let p = min(max(value.location.x / w, 0), 1)
                         dragProgress = p
+                        if duration > 0 {
+                            onSeekPreviewChanged(duration * p)
+                        } else {
+                            onSeekPreviewChanged(nil)
+                        }
                     }
                     .onEnded { value in
                         onUserInteracted()
                         let p = min(max(value.location.x / w, 0), 1)
                         dragProgress = nil
+                        onSeekPreviewChanged(nil)
                         guard duration > 0 else { return }
                         onSeek(duration * p)
                     }
