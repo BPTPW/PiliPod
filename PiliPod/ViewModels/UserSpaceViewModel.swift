@@ -179,7 +179,7 @@ private extension VideoItem {
         self.title = archive.title ?? ""
         self.playCount = Self.formatCount(archive.play ?? 0)
         self.danmakuCount = Self.formatCount(archive.danmaku ?? 0)
-        self.uploader = archive.author ?? ""
+        self.uploader = ""
         self.duration = archive.duration ?? 0
         self.publishTimeText = archive.publishTimeText ?? "--"
         self.bottomRcmdReasonText = nil
