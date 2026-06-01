@@ -66,6 +66,16 @@ struct VideoCommentsTabView: View {
                                 Task { @MainActor in
                                     await openDetailMode(with: tapped)
                                 }
+                            },
+                            onTapLike: { tapped in
+                                Task { @MainActor in
+                                    await toggleLike(for: tapped)
+                                }
+                            },
+                            onTapDislike: { tapped in
+                                Task { @MainActor in
+                                    await toggleDislike(for: tapped)
+                                }
                             }
                         )
                     }
@@ -159,6 +169,8 @@ struct VideoCommentsTabView: View {
                     pictures: root.pictures,
                     likeCount: root.likeCount,
                     dislikeCount: root.dislikeCount,
+                    isLiked: root.isLiked,
+                    isDisliked: root.isDisliked,
                     replies: []
                 )
 
@@ -166,7 +178,17 @@ struct VideoCommentsTabView: View {
                     CommentCardView(
                         comment: rootOnly,
                         onTapAvatar: onOpenUserSpace,
-                        onTapReplyUser: onOpenUserSpace
+                        onTapReplyUser: onOpenUserSpace,
+                        onTapLike: { tapped in
+                            Task { @MainActor in
+                                await toggleLike(for: tapped)
+                            }
+                        },
+                        onTapDislike: { tapped in
+                            Task { @MainActor in
+                                await toggleDislike(for: tapped)
+                            }
+                        }
                     )
 
                     Text("相关评论")
@@ -180,7 +202,17 @@ struct VideoCommentsTabView: View {
                         CommentCardView(
                             comment: reply,
                             onTapAvatar: onOpenUserSpace,
-                            onTapReplyUser: onOpenUserSpace
+                            onTapReplyUser: onOpenUserSpace,
+                            onTapLike: { tapped in
+                                Task { @MainActor in
+                                    await toggleLike(for: tapped)
+                                }
+                            },
+                            onTapDislike: { tapped in
+                                Task { @MainActor in
+                                    await toggleDislike(for: tapped)
+                                }
+                            }
                         )
                     }
 
@@ -346,8 +378,86 @@ struct VideoCommentsTabView: View {
             },
             likeCount: Int(reply.like),
             dislikeCount: 0,
+            isLiked: reply.replyControl.action == 1,
+            isDisliked: reply.replyControl.action == 2,
             replies: Array(childReplies)
         )
+    }
+
+    @MainActor
+    private func toggleLike(for comment: CommentItem) async {
+        guard comment.rpid > 0 else { return }
+        let willLike = !comment.isLiked
+        do {
+            try await BiliAPI.shared.likeComment(
+                oid: aid,
+                rpid: comment.rpid,
+                isCancel: !willLike
+            )
+            applyCommentState(
+                rpid: comment.rpid,
+                mutate: { item in
+                    if willLike {
+                        item.isLiked = true
+                        item.likeCount += 1
+                        if item.isDisliked {
+                            item.isDisliked = false
+                            item.dislikeCount = max(0, item.dislikeCount - 1)
+                        }
+                    } else {
+                        item.isLiked = false
+                        item.likeCount = max(0, item.likeCount - 1)
+                    }
+                }
+            )
+        } catch {
+            print("[Comments] like failed: \(error.localizedDescription)")
+        }
+    }
+
+    @MainActor
+    private func toggleDislike(for comment: CommentItem) async {
+        guard comment.rpid > 0 else { return }
+        let willDislike = !comment.isDisliked
+        do {
+            try await BiliAPI.shared.hateComment(
+                oid: aid,
+                rpid: comment.rpid,
+                isCancel: !willDislike
+            )
+            applyCommentState(
+                rpid: comment.rpid,
+                mutate: { item in
+                    if willDislike {
+                        item.isDisliked = true
+                        item.dislikeCount += 1
+                        if item.isLiked {
+                            item.isLiked = false
+                            item.likeCount = max(0, item.likeCount - 1)
+                        }
+                    } else {
+                        item.isDisliked = false
+                        item.dislikeCount = max(0, item.dislikeCount - 1)
+                    }
+                }
+            )
+        } catch {
+            print("[Comments] dislike failed: \(error.localizedDescription)")
+        }
+    }
+
+    @MainActor
+    private func applyCommentState(rpid: Int, mutate: (inout CommentItem) -> Void) {
+        if let i = comments.firstIndex(where: { $0.rpid == rpid }) {
+            mutate(&comments[i])
+        }
+        if let i = detailReplies.firstIndex(where: { $0.rpid == rpid }) {
+            mutate(&detailReplies[i])
+        }
+        if detailRootComment?.rpid == rpid, var root = detailRootComment {
+            mutate(&root)
+            detailRootComment = root
+        }
     }
 
     private func formatTimestamp(_ timestamp: Int64) -> String {

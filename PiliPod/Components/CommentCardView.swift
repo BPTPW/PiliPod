@@ -15,6 +15,8 @@ struct CommentCardView: View {
     let onTapAvatar: ((Int) -> Void)?
     let onTapReplyUser: ((Int) -> Void)?
     let onTapComment: ((CommentItem) -> Void)?
+    let onTapLike: ((CommentItem) -> Void)?
+    let onTapDislike: ((CommentItem) -> Void)?
 
     private let avatarSize: CGFloat = 35
     private let horizontalGap: CGFloat = 10
@@ -24,12 +26,16 @@ struct CommentCardView: View {
         comment: CommentItem,
         onTapAvatar: ((Int) -> Void)? = nil,
         onTapReplyUser: ((Int) -> Void)? = nil,
-        onTapComment: ((CommentItem) -> Void)? = nil
+        onTapComment: ((CommentItem) -> Void)? = nil,
+        onTapLike: ((CommentItem) -> Void)? = nil,
+        onTapDislike: ((CommentItem) -> Void)? = nil
     ) {
         self.comment = comment
         self.onTapAvatar = onTapAvatar
         self.onTapReplyUser = onTapReplyUser
         self.onTapComment = onTapComment
+        self.onTapLike = onTapLike
+        self.onTapDislike = onTapDislike
     }
 
     var body: some View {
@@ -75,13 +81,29 @@ struct CommentCardView: View {
             }
 
             HStack(spacing: 18) {
-                Label("\(comment.likeCount)", systemImage: "hand.thumbsup")
+                Button {
+                    onTapLike?(comment)
+                } label: {
+                    Label(
+                        "\(comment.likeCount)",
+                        systemImage: comment.isLiked ? "hand.thumbsup.fill" : "hand.thumbsup"
+                    )
                     .font(.subheadline)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(comment.isLiked ? Color("BiliPink") : .secondary)
+                }
+                .buttonStyle(.plain)
 
-                Label("\(comment.dislikeCount)", systemImage: "hand.thumbsdown")
+                Button {
+                    onTapDislike?(comment)
+                } label: {
+                    Label(
+                        "\(comment.dislikeCount)",
+                        systemImage: comment.isDisliked ? "hand.thumbsdown.fill" : "hand.thumbsdown"
+                    )
                     .font(.subheadline)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(comment.isDisliked ? Color("BiliPink") : .secondary)
+                }
+                .buttonStyle(.plain)
 
                 Spacer(minLength: 0)
             }
@@ -232,8 +254,10 @@ struct CommentItem: Identifiable {
     let content: String
     let emotes: [String: CommentEmote]
     let pictures: [CommentPicture]
-    let likeCount: Int
-    let dislikeCount: Int
+    var likeCount: Int
+    var dislikeCount: Int
+    var isLiked: Bool
+    var isDisliked: Bool
     let replies: [CommentReplyItem]
 }
 
@@ -484,6 +508,8 @@ private extension NSString {
                 pictures: [CommentPicture(url: "https://i2.hdslb.com/bfs/archive/e8eaf7459a5d008e9142e75b5798798f10dfbc16.jpg@672w_378h_1c.webp", width: 672, height: 378)],
                 likeCount: 128,
                 dislikeCount: 3,
+                isLiked: false,
+                isDisliked: false,
                 replies: [
                     CommentReplyItem(mid: 11, username: "听友A", content: "同感，这段讲得很通透。", emotes: [:]),
                     CommentReplyItem(mid: 12, username: "听友B", content: "我更喜欢后半段关于工具的讨论。", emotes: [:])
@@ -504,6 +530,8 @@ private extension NSString {
                 pictures: [],
                 likeCount: 24,
                 dislikeCount: 0,
+                isLiked: true,
+                isDisliked: false,
                 replies: []
             )
         )

@@ -477,6 +477,82 @@ class BiliAPI {
         ]
     }
 
+    // MARK: - 评论点赞/点踩
+
+    func likeComment(
+        oid: Int,
+        rpid: Int,
+        isCancel: Bool
+    ) async throws {
+        guard LoginSession.shared.isLogin else {
+            throw APIError.responseError(-101)
+        }
+        guard let accessKey = LoginSession.shared.accessKey, !accessKey.isEmpty else {
+            throw APIError.responseError(-111)
+        }
+
+        let urlString = "https://api.bilibili.com/x/v2/reply/action"
+        let params: [String: String] = [
+            "type": "1",
+            "oid": String(oid),
+            "rpid": String(rpid),
+            "action": isCancel ? "0" : "1",
+            "access_key": accessKey
+        ]
+        guard let request = makeAppRequest(baseURLString: urlString, method: "POST", parameters: params) else {
+            throw APIError.invalidURL
+        }
+
+        let (data, response) = try await URLSession.shared.data(for: request)
+        guard let httpResponse = response as? HTTPURLResponse,
+              (200 ... 299).contains(httpResponse.statusCode)
+        else {
+            throw APIError.requestFailed
+        }
+
+        let decoded = try JSONDecoder().decode(SimpleAPIResponse<EmptyCodable>.self, from: data)
+        guard decoded.code == 0 else {
+            throw APIError.responseError(decoded.code)
+        }
+    }
+
+    func hateComment(
+        oid: Int,
+        rpid: Int,
+        isCancel: Bool
+    ) async throws {
+        guard LoginSession.shared.isLogin else {
+            throw APIError.responseError(-101)
+        }
+        guard let accessKey = LoginSession.shared.accessKey, !accessKey.isEmpty else {
+            throw APIError.responseError(-111)
+        }
+
+        let urlString = "https://api.bilibili.com/x/v2/reply/hate"
+        let params: [String: String] = [
+            "type": "1",
+            "oid": String(oid),
+            "rpid": String(rpid),
+            "action": isCancel ? "0" : "1",
+            "access_key": accessKey
+        ]
+        guard let request = makeAppRequest(baseURLString: urlString, method: "POST", parameters: params) else {
+            throw APIError.invalidURL
+        }
+
+        let (data, response) = try await URLSession.shared.data(for: request)
+        guard let httpResponse = response as? HTTPURLResponse,
+              (200 ... 299).contains(httpResponse.statusCode)
+        else {
+            throw APIError.requestFailed
+        }
+
+        let decoded = try JSONDecoder().decode(SimpleAPIResponse<EmptyCodable>.self, from: data)
+        guard decoded.code == 0 else {
+            throw APIError.responseError(decoded.code)
+        }
+    }
+
     // MARK: - 解析App推荐接口数据
 
     private func parseAppRecommendFeed(from data: Data) throws -> (cards: [FeedCardItem], nextIdx: Int) {
