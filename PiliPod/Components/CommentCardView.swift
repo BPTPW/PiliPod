@@ -81,6 +81,13 @@ struct CommentCardView: View {
             }
 
             HStack(spacing: 18) {
+                if comment.isUpLikedByAuthor {
+                    Text("UP主觉得很赞")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                }
+                Spacer()
+                // 点赞按钮
                 Button {
                     onTapLike?(comment)
                 } label: {
@@ -93,6 +100,7 @@ struct CommentCardView: View {
                 }
                 .buttonStyle(.plain)
 
+                // 点踩按钮
                 Button {
                     onTapDislike?(comment)
                 } label: {
@@ -104,8 +112,6 @@ struct CommentCardView: View {
                     .foregroundStyle(comment.isDisliked ? Color("BiliPink") : .secondary)
                 }
                 .buttonStyle(.plain)
-
-                Spacer(minLength: 0)
             }
             .labelStyle(.titleAndIcon)
 
@@ -258,6 +264,7 @@ struct CommentItem: Identifiable {
     var dislikeCount: Int
     var isLiked: Bool
     var isDisliked: Bool
+    var isUpLikedByAuthor: Bool
     let replies: [CommentReplyItem]
 }
 
@@ -510,6 +517,7 @@ private extension NSString {
                 dislikeCount: 3,
                 isLiked: false,
                 isDisliked: false,
+                isUpLikedByAuthor: true,
                 replies: [
                     CommentReplyItem(mid: 11, username: "听友A", content: "同感，这段讲得很通透。", emotes: [:]),
                     CommentReplyItem(mid: 12, username: "听友B", content: "我更喜欢后半段关于工具的讨论。", emotes: [:])
@@ -532,6 +540,7 @@ private extension NSString {
                 dislikeCount: 0,
                 isLiked: true,
                 isDisliked: false,
+                isUpLikedByAuthor: false,
                 replies: []
             )
         )
