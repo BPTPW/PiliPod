@@ -12,9 +12,12 @@ struct VideoCommentsTabView: View {
     let onOpenUserSpace: (Int) -> Void
 
     @State private var isLoading = false
+    @State private var isLoadingMore = false
     @State private var errorText: String?
     @State private var comments: [CommentItem] = []
     @State private var hasLoaded = false
+    @State private var nextCursor: Int64 = 0
+    @State private var hasMore = true
 
     var body: some View {
         Group {
@@ -44,18 +47,43 @@ struct VideoCommentsTabView: View {
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
                     .padding(16)
             } else {
-                List(comments) { item in
-                    CommentCardView(
-                        comment: item,
-                        onTapAvatar: onOpenUserSpace,
-                        onTapReplyUser: onOpenUserSpace
-                    )
+                List {
+                    ForEach(comments) { item in
+                        CommentCardView(
+                            comment: item,
+                            onTapAvatar: onOpenUserSpace,
+                            onTapReplyUser: onOpenUserSpace
+                        )
+                    }
+
+                    if hasMore {
+                        HStack(spacing: 8) {
+                            if isLoadingMore {
+                                ProgressView()
+                            }
+                            Text(isLoadingMore ? "加载更多评论中…" : "上拉加载更多")
+                                .font(.footnote)
+                                .foregroundStyle(.secondary)
+                        }
+                        .frame(maxWidth: .infinity, alignment: .center)
+                        .padding(.vertical, 12)
+                        .listRowSeparator(.hidden)
+                        .onAppear {
+                            Task { @MainActor in
+                                await loadMoreCommentsIfNeeded()
+                            }
+                        }
+                    }
                 }
                 .listStyle(.plain)
             }
         }
         .task(id: aid) {
-            guard aid > 0, !hasLoaded else { return }
+            guard aid > 0 else { return }
+            hasLoaded = false
+            hasMore = true
+            nextCursor = 0
+            comments = []
             await loadComments()
         }
     }
@@ -69,10 +97,32 @@ struct VideoCommentsTabView: View {
         do {
             let reply = try await BiliAPI.shared.fetchVideoCommentMainList(aid: Int64(aid))
             comments = reply.replies.map { toCommentItem($0) }
+            nextCursor = reply.cursor.next
+            hasMore = !reply.cursor.isEnd && !reply.replies.isEmpty
             hasLoaded = true
         } catch {
             errorText = error.localizedDescription
             print("[Comments] load failed: \(error.localizedDescription)")
+        }
+    }
+
+    @MainActor
+    private func loadMoreCommentsIfNeeded() async {
+        guard hasLoaded, hasMore, !isLoadingMore, aid > 0 else { return }
+        isLoadingMore = true
+        defer { isLoadingMore = false }
+
+        do {
+            let reply = try await BiliAPI.shared.fetchVideoCommentMainList(
+                aid: Int64(aid),
+                next: nextCursor
+            )
+            let appended = reply.replies.map { toCommentItem($0) }
+            comments.append(contentsOf: appended)
+            nextCursor = reply.cursor.next
+            hasMore = !reply.cursor.isEnd && !reply.replies.isEmpty
+        } catch {
+            print("[Comments] load more failed: \(error.localizedDescription)")
         }
     }
 

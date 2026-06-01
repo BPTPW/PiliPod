@@ -487,7 +487,7 @@ struct VideoDetailPage: View {
                 Button {
                     selectedTab = tab
                 } label: {
-                    Text(tab.rawValue)
+                    Text(titleForTab(tab))
                         .font(.system(size: 15, weight: .semibold))
                         .foregroundStyle(selectedTab == tab ? .primary : .secondary)
                         .padding(.vertical, 6)
@@ -500,6 +500,18 @@ struct VideoDetailPage: View {
         .padding(.top, 12)
         .padding(.bottom, 4)
         .background(Color(.systemBackground))
+    }
+
+    private func titleForTab(_ tab: VideoDetailTab) -> String {
+        switch tab {
+        case .intro:
+            return tab.rawValue
+        case .comments:
+            if let reply = viewModel.videoDetail?.stat.reply {
+                return "\(tab.rawValue) (\(reply))"
+            }
+            return tab.rawValue
+        }
     }
 
     @ViewBuilder
