@@ -50,6 +50,16 @@ final class MPVKitMetalViewController: UIViewController {
         syncMetalLayerLayout()
     }
 
+    /// Called from SwiftUI update cycle to ensure frame changes are pushed to
+    /// the CAMetalLayer even when the controller instance is reused.
+    func invalidateVideoLayout() {
+        syncMetalLayerLayout()
+        metalLayer.setNeedsLayout()
+        metalLayer.layoutIfNeeded()
+        view.setNeedsLayout()
+        view.layoutIfNeeded()
+    }
+
     private func syncMetalLayerLayout() {
         let bounds = view.bounds
         guard bounds.width > 0, bounds.height > 0 else { return }
@@ -58,12 +68,16 @@ final class MPVKitMetalViewController: UIViewController {
         view.contentScaleFactor = scale
         metalLayer.contentsScale = scale
 
-        // Align layer frame to pixel boundaries and let CAMetalLayer manage drawableSize.
-        let x = (bounds.origin.x * scale).rounded(.down) / scale
-        let y = (bounds.origin.y * scale).rounded(.down) / scale
-        let width = (bounds.size.width * scale).rounded(.down) / scale
-        let height = (bounds.size.height * scale).rounded(.down) / scale
-        metalLayer.frame = CGRect(x: x, y: y, width: width, height: height)
+        // Keep Metal layer pinned to the view's own coordinate space.
+        // Non-zero bounds origins after SwiftUI layout transitions can make
+        // video appear stuck at top-left if we mirror that origin to the layer.
+        let width = bounds.size.width
+        let height = bounds.size.height
+        metalLayer.frame = CGRect(origin: .zero, size: CGSize(width: width, height: height))
+        metalLayer.drawableSize = CGSize(
+            width: (width * scale).rounded(.toNearestOrAwayFromZero),
+            height: (height * scale).rounded(.toNearestOrAwayFromZero)
+        )
     }
 
     func applyHTTPHeaders(_ headers: [String: String]) {
@@ -121,6 +135,23 @@ final class MPVKitMetalViewController: UIViewController {
 
     func setPlaybackRate(_ rate: Double) {
         setDouble(MPVKitProperty.playbackRate, rate)
+    }
+
+    func setKeepAspect(_ enabled: Bool) {
+        guard let mpv else { return }
+        let value = enabled ? "yes" : "no"
+        checkError(
+            mpv_set_property_string(mpv, "keepaspect", value),
+            context: "set keepaspect=\(value)"
+        )
+    }
+
+    /// Force mpv VO to rebind the current rendering surface size without
+    /// recreating player instance or reloading stream.
+    func refreshVideoOutput() {
+        guard let mpv, !isShuttingDown else { return }
+        checkError(mpv_set_property_string(mpv, "vid", "no"), context: "refresh vid=no")
+        checkError(mpv_set_property_string(mpv, "vid", "auto"), context: "refresh vid=auto")
     }
 
     func stop() {

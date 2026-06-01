@@ -71,6 +71,14 @@ class MPVKitPlayer: NSObject {
         controller?.setPlaybackRate(rate)
     }
 
+    func setKeepAspect(_ enabled: Bool) {
+        controller?.setKeepAspect(enabled)
+    }
+
+    func refreshVideoOutput() {
+        controller?.refreshVideoOutput()
+    }
+
     func stop() {
         controller?.stop()
         isPlaying = false

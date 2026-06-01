@@ -12,6 +12,12 @@ import UIKit
 #endif
 
 struct VideoDetailPage: View {
+    private enum FullscreenTrigger {
+        case none
+        case manual
+        case rotation
+    }
+
     @State var viewModel: VideoDetailViewModel
     @State private var showDebugPanel = false
     @State private var controlsVisible = true
@@ -31,6 +37,7 @@ struct VideoDetailPage: View {
     @State private var danmakuConfig = DanmakuConfigStore.load()
     @State private var isDanmakuSettingsPresented = false
     @State private var isFullscreen = false
+    @State private var fullscreenTrigger: FullscreenTrigger = .none
     @State private var isFullscreenDanmakuPanelVisible = false
     @State private var lastDanmakuPrefetchSegment = 0
     @State private var selectedTab: VideoDetailTab = .intro
@@ -60,20 +67,17 @@ struct VideoDetailPage: View {
             ZStack {
                 VStack(spacing: 0) {
                     // DASH 播放器
-                    if let stream = bindableViewModel.dashStream, let player = bindableViewModel.player {
-                        ZStack(alignment: .topLeading) {
+                    if let stream = bindableViewModel.dashStream, let
+                        player = bindableViewModel.player {
+                        ZStack(alignment: .center) {
                             // DASH 播放器容器
                             MPVKitPlayerView(player: player)
                                 .id(bindableViewModel.currentPlayerViewID)
                                 .aspectRatio(stream.aspectRatio, contentMode: .fit)
-                                .frame(width: isFullscreen ? geo.size.width : nil,
-                                       height: isFullscreen ? geo.size.height : nil,
-                                       alignment: .center)
-                                .frame(maxWidth: .infinity, alignment: .center)
+                                .frame(maxWidth: .infinity, maxHeight: isFullscreen ? .infinity : nil, alignment: .center)
                                 .clipped()
                                 .ignoresSafeArea(isFullscreen ? .all : [])
                                 .background(Color.black)
-                                .matchedGeometryEffect(id: heroID, in: namespace)
                                 .contentShape(Rectangle())
                                 .onTapGesture {
                                     showControlsAndAutoHideIfNeeded(player: player)
@@ -187,18 +191,7 @@ struct VideoDetailPage: View {
                                             showControlsAndAutoHideIfNeeded(player: player, forceShow: true)
                                         },
                                         onFullscreen: {
-                                            withAnimation(.easeInOut(duration: 0.2)) {
-                                                isFullscreen.toggle()
-                                                if !isFullscreen {
-                                                    isFullscreenDanmakuPanelVisible = false
-                                                }
-                                            }
-                                            updateDeviceOrientationForFullscreen(
-                                                isFullscreen: isFullscreen
-                                            )
-                                            Task { @MainActor in
-                                                await bindableViewModel.rebuildPlayerPreservingState()
-                                            }
+                                            toggleFullscreenManually()
                                         },
                                         onSelectQuality: { code in
                                             Task { @MainActor in
@@ -265,9 +258,9 @@ struct VideoDetailPage: View {
                                 }
                         }
                         .frame(
-                            width: isFullscreen ? geo.size.width : geo.size.width,
+                            width: geo.size.width,
                             height: isFullscreen
-                                ? geo.size.height
+                                ? geo.size.height + geo.safeAreaInsets.top + geo.safeAreaInsets.bottom
                                 : min(geo.size.width / stream.aspectRatio, geo.size.width * (4.0 / 3.0)),
                             alignment: .center
                         )
@@ -304,9 +297,9 @@ struct VideoDetailPage: View {
                             }
                         }
                         .frame(
-                            width: isFullscreen ? geo.size.width : geo.size.width,
+                            width: geo.size.width,
                             height: isFullscreen
-                                ? geo.size.height
+                                ? geo.size.height + geo.safeAreaInsets.top + geo.safeAreaInsets.bottom
                                 : min(geo.size.width / (16.0 / 9.0), geo.size.width * (4.0 / 3.0)),
                             alignment: .center
                         )
@@ -319,7 +312,7 @@ struct VideoDetailPage: View {
                         tabContent
                     }
                 }
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: isFullscreen ? .center : .top)
                 .sheet(isPresented: $isFavoriteSheetPresented) {
                     FavoriteFolderSheet(
                         folders: $favoriteFolders,
@@ -441,6 +434,13 @@ struct VideoDetailPage: View {
         .toolbar(.hidden, for: .tabBar)
         .toast(message: $toastMessage)
         .statusBarHidden(isFullscreen)
+#if canImport(UIKit)
+        .onReceive(NotificationCenter.default.publisher(
+            for: UIDevice.orientationDidChangeNotification
+        )) { _ in
+            handleDeviceOrientationChange()
+        }
+#endif
         .navigationDestination(item: $selectedRelatedVideo) { relatedVideo in
             if #available(iOS 18.0, *) {
                 VideoDetailPage(
@@ -898,20 +898,70 @@ struct VideoDetailPage: View {
     }
 #endif
 
+    private func toggleFullscreenManually() {
+        let willEnterFullscreen = !isFullscreen
+        withAnimation(.easeInOut(duration: 0.2)) {
+            isFullscreen = willEnterFullscreen
+            fullscreenTrigger = willEnterFullscreen ? .manual : .none
+            if !willEnterFullscreen {
+                isFullscreenDanmakuPanelVisible = false
+            }
+        }
+        viewModel.player?.setKeepAspect(true)
+#if canImport(UIKit)
+        updateDeviceOrientationForFullscreen(isFullscreen: willEnterFullscreen)
+#endif
+        refreshPlayerLayoutAfterFullscreenChange()
+    }
+
+#if canImport(UIKit)
+    private func handleDeviceOrientationChange() {
+        guard let scene = UIApplication.shared.connectedScenes.first as? UIWindowScene else { return }
+        let interfaceOrientation = scene.interfaceOrientation
+        if interfaceOrientation.isLandscape {
+            if !isFullscreen {
+                withAnimation(.easeInOut(duration: 0.2)) {
+                    isFullscreen = true
+                    fullscreenTrigger = .rotation
+                }
+                viewModel.player?.setKeepAspect(true)
+                refreshPlayerLayoutAfterFullscreenChange()
+            }
+        } else if interfaceOrientation.isPortrait {
+            if isFullscreen, fullscreenTrigger == .rotation {
+                withAnimation(.easeInOut(duration: 0.2)) {
+                    isFullscreen = false
+                    fullscreenTrigger = .none
+                    isFullscreenDanmakuPanelVisible = false
+                }
+                viewModel.player?.setKeepAspect(true)
+                refreshPlayerLayoutAfterFullscreenChange()
+            }
+        }
+    }
+#endif
+
     private func handleBackAction() {
         if isFullscreen {
             withAnimation(.easeInOut(duration: 0.2)) {
                 isFullscreen = false
+                fullscreenTrigger = .none
                 isFullscreenDanmakuPanelVisible = false
             }
+            viewModel.player?.setKeepAspect(true)
 #if canImport(UIKit)
             updateDeviceOrientationForFullscreen(isFullscreen: false)
 #endif
-            Task { @MainActor in
-                await viewModel.rebuildPlayerPreservingState()
-            }
+            refreshPlayerLayoutAfterFullscreenChange()
         } else {
             onBack()
+        }
+    }
+
+    private func refreshPlayerLayoutAfterFullscreenChange() {
+        Task { @MainActor in
+            try? await Task.sleep(nanoseconds: 120000000)
+            viewModel.player?.refreshVideoOutput()
         }
     }
 }
