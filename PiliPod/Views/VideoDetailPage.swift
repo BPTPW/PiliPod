@@ -38,6 +38,9 @@ struct VideoDetailPage: View {
     @State private var horizontalSeekBaseTime: TimeInterval = 0
     @State private var horizontalSeekPreviewTime: TimeInterval?
     @State private var progressDragPreviewTime: TimeInterval?
+    @State private var isBrightnessAdjusting = false
+    @State private var brightnessAdjustBaseValue: Double = 0
+    @State private var brightnessPreviewValue: Double = 0
     @State private var danmakuConfig = DanmakuConfigStore.load()
     @State private var isDanmakuSettingsPresented = false
     @State private var isFullscreen = false
@@ -51,6 +54,7 @@ struct VideoDetailPage: View {
     let namespace: Namespace.ID
     let onBack: () -> Void
     private let maxHorizontalSeekOffset: TimeInterval = 50
+    private let verticalBrightnessDragSensitivity: Double = 1.3
 
     private var heroID: String { "videoHero.\(video.bvid)" }
 
@@ -128,6 +132,33 @@ struct VideoDetailPage: View {
                                                 return
                                             }
 
+                                            let shouldStartBrightnessAdjust =
+                                                !isHorizontalSeeking &&
+                                                !isBrightnessAdjusting &&
+                                                value.startLocation.x <= geo.size.width * 0.5 &&
+                                                abs(dy) > 18 &&
+                                                abs(dy) > abs(dx)
+
+                                            if shouldStartBrightnessAdjust {
+                                                isBrightnessAdjusting = true
+                                                brightnessAdjustBaseValue = currentScreenBrightness()
+                                                brightnessPreviewValue = brightnessAdjustBaseValue
+                                                speedBoostTriggerTask?.cancel()
+                                                speedBoostTriggerTask = nil
+                                                isSpeedBoostPressing = false
+                                                endSpeedBoostIfNeeded(player: player)
+                                            }
+
+                                            if isBrightnessAdjusting {
+                                                let height = max(1, geo.size.height)
+                                                let delta = Double(-dy / height) * verticalBrightnessDragSensitivity
+                                                let target = clampUnit(brightnessAdjustBaseValue + delta)
+                                                brightnessPreviewValue = target
+                                                setScreenBrightness(target)
+                                                showControlsAndAutoHideIfNeeded(player: player, forceShow: true)
+                                                return
+                                            }
+
                                             if !isSpeedBoostPressing {
                                                 isSpeedBoostPressing = true
                                                 speedBoostTriggerTask?.cancel()
@@ -154,6 +185,9 @@ struct VideoDetailPage: View {
                                                 horizontalSeekPreviewTime = nil
                                                 isHorizontalSeeking = false
                                                 showControlsAndAutoHideIfNeeded(player: player, forceShow: true)
+                                            }
+                                            if isBrightnessAdjusting {
+                                                isBrightnessAdjusting = false
                                             }
 
                                             isSpeedBoostPressing = false
@@ -282,6 +316,33 @@ struct VideoDetailPage: View {
                                             .glassEffect(.regular, in: .capsule)
                                             .padding(.top, 12)
                                             .transition(.opacity)
+                                    }
+                                }
+                                .overlay {
+                                    if isBrightnessAdjusting {
+                                        HStack(alignment: .center, spacing: 10) {
+                                            Image(systemName: "sun.max")
+                                                .font(.system(size: 12, weight: .semibold))
+                                                .foregroundStyle(.white)
+                                            GeometryReader { brightnessGeo in
+                                                let barWidth = max(1, brightnessGeo.size.width)
+                                                ZStack(alignment: .leading) {
+                                                    Capsule(style: .continuous)
+                                                        .fill(Color.white.opacity(0.24))
+                                                        .frame(height: 4)
+                                                    Capsule(style: .continuous)
+                                                        .fill(Color.white.opacity(0.95))
+                                                        .frame(width: barWidth * clampUnit(brightnessPreviewValue), height: 4)
+                                                }
+                                                .padding(.top, 3)
+                                            }
+                                            .frame(width: 100, height: 10)
+                                        }
+                                        .frame(height: 24, alignment: .center)
+                                        .padding(.horizontal, 8)
+                                        .padding(.vertical, 6)
+                                        .glassEffect(.clear.tint(.black), in: .capsule)
+                                        .transition(.opacity)
                                     }
                                 }
                                 .onAppear {
@@ -482,6 +543,7 @@ struct VideoDetailPage: View {
                 isHorizontalSeeking = false
                 horizontalSeekPreviewTime = nil
                 progressDragPreviewTime = nil
+                isBrightnessAdjusting = false
                 player.pause()
                 bindableViewModel.stopHistoryReporting(with: player)
             }
@@ -920,6 +982,25 @@ struct VideoDetailPage: View {
         let safeDuration = max(0, duration)
         return min(max(0, time), safeDuration)
     }
+
+    private func clampUnit(_ value: Double) -> Double {
+        min(max(0, value), 1)
+    }
+
+#if canImport(UIKit)
+    private func currentScreenBrightness() -> Double {
+        Double(UIScreen.main.brightness)
+    }
+
+    private func setScreenBrightness(_ value: Double) {
+        UIScreen.main.brightness = CGFloat(clampUnit(value))
+    }
+#else
+    private func currentScreenBrightness() -> Double { 0.5 }
+    private func setScreenBrightness(_ value: Double) {
+        _ = value
+    }
+#endif
 
     // MARK: - 设置空闲计时器
 
