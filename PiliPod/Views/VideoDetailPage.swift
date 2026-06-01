@@ -1656,7 +1656,7 @@ private struct PlaybackRateMenuView: View, Equatable {
         } label: {
             Text(playbackRateMenuLabel)
                 .foregroundStyle(.white)
-                .font(.system(size: 16, weight: .semibold))
+                .font(.system(size: 14, weight: .semibold))
                 .padding(8)
         }
     }
@@ -1694,7 +1694,7 @@ private struct QualityMenuView: View, Equatable {
         } label: {
             Text(currentQualityLabel)
                 .foregroundStyle(.white)
-                .font(.system(size: 16, weight: .semibold))
+                .font(.system(size: 14, weight: .semibold))
                 .padding(8)
         }
     }
