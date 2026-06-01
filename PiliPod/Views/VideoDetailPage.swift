@@ -9,6 +9,7 @@ import Observation
 import SwiftUI
 #if canImport(UIKit)
 import UIKit
+import MediaPlayer
 #endif
 
 struct VideoDetailPage: View {
@@ -23,6 +24,7 @@ struct VideoDetailPage: View {
         case speedBoost
         case horizontalSeek
         case brightnessAdjust
+        case volumeAdjust
     }
 
     @State var viewModel: VideoDetailViewModel
@@ -48,6 +50,10 @@ struct VideoDetailPage: View {
     @State private var isBrightnessAdjusting = false
     @State private var brightnessAdjustBaseValue: Double = 0
     @State private var brightnessPreviewValue: Double = 0
+    @State private var isVolumeAdjusting = false
+    @State private var volumeAdjustBaseValue: Double = 0
+    @State private var volumePreviewValue: Double = 0
+    @State private var systemVolumeControl = SystemVolumeController()
     @State private var dragInteractionMode: DragInteractionMode = .none
     @State private var danmakuConfig = DanmakuConfigStore.load()
     @State private var isDanmakuSettingsPresented = false
@@ -62,7 +68,7 @@ struct VideoDetailPage: View {
     let namespace: Namespace.ID
     let onBack: () -> Void
     private let maxHorizontalSeekOffset: TimeInterval = 50
-    private let verticalBrightnessDragSensitivity: Double = 1.3
+    private let verticalBrightnessDragSensitivity: Double = 2.5
 
     private var heroID: String { "videoHero.\(video.bvid)" }
 
@@ -134,6 +140,16 @@ struct VideoDetailPage: View {
                                                 return
                                             }
 
+                                            if dragInteractionMode == .volumeAdjust {
+                                                let height = max(1, geo.size.height)
+                                                let delta = Double(-value.translation.height / height) * verticalBrightnessDragSensitivity
+                                                let target = clampUnit(volumeAdjustBaseValue + delta)
+                                                volumePreviewValue = target
+                                                setSystemVolume(target)
+                                                showControlsAndAutoHideIfNeeded(player: player, forceShow: true)
+                                                return
+                                            }
+
                                             if dragInteractionMode == .speedBoost {
                                                 return
                                             }
@@ -193,6 +209,35 @@ struct VideoDetailPage: View {
                                                 return
                                             }
 
+                                            let shouldStartVolumeAdjust =
+                                                !isHorizontalSeeking &&
+                                                !isBrightnessAdjusting &&
+                                                !isVolumeAdjusting &&
+                                                value.startLocation.x > geo.size.width * 0.5 &&
+                                                abs(dy) > 18 &&
+                                                abs(dy) > abs(dx)
+
+                                            if shouldStartVolumeAdjust {
+                                                dragInteractionMode = .volumeAdjust
+                                                isVolumeAdjusting = true
+                                                volumeAdjustBaseValue = currentSystemVolume()
+                                                volumePreviewValue = volumeAdjustBaseValue
+                                                speedBoostTriggerTask?.cancel()
+                                                speedBoostTriggerTask = nil
+                                                isSpeedBoostPressing = false
+                                                endSpeedBoostIfNeeded(player: player)
+                                            }
+
+                                            if isVolumeAdjusting {
+                                                let height = max(1, geo.size.height)
+                                                let delta = Double(-dy / height) * verticalBrightnessDragSensitivity
+                                                let target = clampUnit(volumeAdjustBaseValue + delta)
+                                                volumePreviewValue = target
+                                                setSystemVolume(target)
+                                                showControlsAndAutoHideIfNeeded(player: player, forceShow: true)
+                                                return
+                                            }
+
                                             if !isSpeedBoostPressing {
                                                 isSpeedBoostPressing = true
                                                 speedBoostTriggerTask?.cancel()
@@ -222,6 +267,9 @@ struct VideoDetailPage: View {
                                             }
                                             if isBrightnessAdjusting {
                                                 isBrightnessAdjusting = false
+                                            }
+                                            if isVolumeAdjusting {
+                                                isVolumeAdjusting = false
                                             }
 
                                             isSpeedBoostPressing = false
@@ -368,6 +416,34 @@ struct VideoDetailPage: View {
                                                     Capsule(style: .continuous)
                                                         .fill(Color.white.opacity(0.95))
                                                         .frame(width: barWidth * clampUnit(brightnessPreviewValue), height: 4)
+                                                }
+                                                .padding(.top, 3)
+                                            }
+                                            .frame(width: 100, height: 10)
+                                        }
+                                        .frame(height: 24, alignment: .center)
+                                        .padding(.horizontal, 8)
+                                        .padding(.vertical, 6)
+                                        .glassEffect(.clear.tint(.black), in: .capsule)
+                                        .transition(.opacity)
+                                    }
+                                }
+                                .overlay {
+                                    if isVolumeAdjusting {
+                                        HStack(alignment: .center, spacing: 10) {
+                                            Image(systemName: "speaker.wave.3",
+                                                  variableValue: volumePreviewValue)
+                                                .font(.system(size: 12, weight: .semibold))
+                                                .foregroundStyle(.white)
+                                            GeometryReader { volumeGeo in
+                                                let barWidth = max(1, volumeGeo.size.width)
+                                                ZStack(alignment: .leading) {
+                                                    Capsule(style: .continuous)
+                                                        .fill(Color.white.opacity(0.24))
+                                                        .frame(height: 4)
+                                                    Capsule(style: .continuous)
+                                                        .fill(Color.white.opacity(0.95))
+                                                        .frame(width: barWidth * clampUnit(volumePreviewValue), height: 4)
                                                 }
                                                 .padding(.top, 3)
                                             }
@@ -579,6 +655,7 @@ struct VideoDetailPage: View {
                 horizontalSeekPreviewTime = nil
                 progressDragPreviewTime = nil
                 isBrightnessAdjusting = false
+                isVolumeAdjusting = false
                 dragInteractionMode = .none
                 player.pause()
                 bindableViewModel.stopHistoryReporting(with: player)
@@ -1040,6 +1117,14 @@ struct VideoDetailPage: View {
     }
 #endif
 
+    private func currentSystemVolume() -> Double {
+        clampUnit(systemVolumeControl.currentVolume)
+    }
+
+    private func setSystemVolume(_ value: Double) {
+        systemVolumeControl.setVolume(clampUnit(value))
+    }
+
     // MARK: - 设置空闲计时器
 
 #if canImport(UIKit)
@@ -1171,6 +1256,37 @@ struct VideoDetailPage: View {
         }
     }
 }
+
+#if canImport(UIKit)
+private struct SystemVolumeController {
+    private let volumeView: MPVolumeView
+    private let slider: UISlider?
+
+    init() {
+        let view = MPVolumeView(frame: .zero)
+        view.showsRouteButton = false
+        view.isHidden = true
+        volumeView = view
+        slider = view.subviews.compactMap { $0 as? UISlider }.first
+    }
+
+    var currentVolume: Double {
+        Double(AVAudioSession.sharedInstance().outputVolume)
+    }
+
+    func setVolume(_ value: Double) {
+        slider?.setValue(Float(value), animated: false)
+        slider?.sendActions(for: .valueChanged)
+    }
+}
+#else
+private struct SystemVolumeController {
+    var currentVolume: Double { 0.5 }
+    func setVolume(_ value: Double) {
+        _ = value
+    }
+}
+#endif
 
 private struct UserSpaceRoute: Identifiable, Hashable {
     let mid: Int
