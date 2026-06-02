@@ -754,6 +754,7 @@ struct VideoDetailPage: View {
         switch selectedTab {
         case .intro:
             introTabContent
+                .simultaneousGesture(tabSwipeGesture(for: .intro))
         case .comments:
             VideoCommentsTabView(
                 aid: viewModel.aid,
@@ -766,6 +767,7 @@ struct VideoDetailPage: View {
                 }
             )
             .background(Color(.systemBackground))
+            .highPriorityGesture(tabSwipeGesture(for: .comments))
         }
     }
 
@@ -1000,6 +1002,29 @@ struct VideoDetailPage: View {
             .frame(maxWidth: .infinity, alignment: .top)
         }
         .background(Color(.systemBackground))
+    }
+
+    private func tabSwipeGesture(for tab: VideoDetailTab) -> some Gesture {
+        DragGesture(minimumDistance: 20)
+            .onEnded { value in
+                let dx = value.translation.width
+                let dy = value.translation.height
+
+                guard abs(dx) > abs(dy), abs(dx) > 50 else { return }
+
+                switch tab {
+                case .intro:
+                    guard dx < 0 else { return }
+                    withAnimation(.easeInOut(duration: 0.2)) {
+                        selectedTab = .comments
+                    }
+                case .comments:
+                    guard dx > 0 else { return }
+                    withAnimation(.easeInOut(duration: 0.2)) {
+                        selectedTab = .intro
+                    }
+                }
+            }
     }
 
     // MARK: - 显示控制条并在需要时自动隐藏
