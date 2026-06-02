@@ -18,7 +18,7 @@ struct AboutView: View {
                     AppIconPreview()
 
                     Text(appName)
-                        .font(.title3)
+                        .font(.title2)
                         .fontWeight(.bold)
                         .foregroundStyle(.primary)
                 }
@@ -33,15 +33,15 @@ struct AboutView: View {
                             .foregroundStyle(.primary)
                         Spacer()
                         Text("BPTPW/PiliPod")
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(.primary)
                         Image(systemName: "arrow.up.right.square")
                             .font(.system(size: 13, weight: .semibold))
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(.primary)
                     }
                 }
             }
 
-            Section {
+            Section("登录数据") {
                 LoginImportView(title: "导入登录信息") {}
                     .foregroundStyle(.primary)
 
@@ -139,29 +139,18 @@ private struct AppIconPreview: View {
                 Image(uiImage: image)
                     .resizable()
                     .scaledToFill()
-            } else {
-                placeholder
             }
 #else
-            placeholder
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .fill(Color(.systemGray6))
 #endif
         }
-        .frame(width: 64, height: 64)
+        .frame(width: 72, height: 72)
         .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
         .overlay {
             RoundedRectangle(cornerRadius: 14, style: .continuous)
                 .stroke(Color.primary.opacity(0.08), lineWidth: 1)
         }
-    }
-
-    private var placeholder: some View {
-        RoundedRectangle(cornerRadius: 14, style: .continuous)
-            .fill(Color(.systemGray6))
-            .overlay {
-                Image(systemName: "app.fill")
-                    .font(.system(size: 24, weight: .semibold))
-                    .foregroundStyle(.secondary)
-            }
     }
 
 #if canImport(UIKit)
@@ -196,4 +185,8 @@ private struct LoginExportDocument: FileDocument {
     func fileWrapper(configuration: WriteConfiguration) throws -> FileWrapper {
         FileWrapper(regularFileWithContents: data)
     }
+}
+
+#Preview{
+    AboutView()
 }

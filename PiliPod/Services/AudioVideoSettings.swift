@@ -16,7 +16,7 @@ enum PreferredVideoQuality: Int, CaseIterable, Codable, Hashable {
 
     var title: String {
         switch self {
-        case .ultraHD8K: "8K超高清"
+        case .ultraHD8K: "8K"
         case .dolbyVision: "杜比视界"
         case .hdrVivid: "HDR真彩"
         case .ultraHD4K: "4K"
