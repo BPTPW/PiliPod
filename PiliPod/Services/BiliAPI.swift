@@ -464,6 +464,55 @@ class BiliAPI {
         return archiveData
     }
 
+    func fetchHistoryList(
+        max: Int? = nil,
+        business: String? = nil,
+        viewAt: Int? = nil,
+        type: String = "archive",
+        ps: Int = 20
+    ) async throws -> HistoryData {
+        var components = URLComponents(string: "https://api.bilibili.com/x/web-interface/history/cursor")
+        var queryItems: [URLQueryItem] = [
+            URLQueryItem(name: "type", value: type),
+            URLQueryItem(name: "ps", value: String(ps))
+        ]
+
+        if let max {
+            queryItems.append(URLQueryItem(name: "max", value: String(max)))
+        }
+        if let business, !business.isEmpty {
+            queryItems.append(URLQueryItem(name: "business", value: business))
+        }
+        if let viewAt {
+            queryItems.append(URLQueryItem(name: "view_at", value: String(viewAt)))
+        }
+
+        components?.queryItems = queryItems
+
+        guard let url = components?.url else {
+            throw APIError.invalidURL
+        }
+
+        let request = makeRequest(url: url)
+        let (data, response) = try await URLSession.shared.data(for: request)
+
+        guard let httpResponse = response as? HTTPURLResponse,
+              (200 ... 299).contains(httpResponse.statusCode)
+        else {
+            throw APIError.requestFailed
+        }
+
+        let decoded = try JSONDecoder().decode(HistoryResponse.self, from: data)
+        guard decoded.code == 0 else {
+            throw APIError.businessError(code: decoded.code, message: decoded.message)
+        }
+        guard let historyData = decoded.data else {
+            throw APIError.requestFailed
+        }
+
+        return historyData
+    }
+
     private func makeSpaceCommonParameters(mid: Int) -> [String: String] {
         [
             "build": "8430300",

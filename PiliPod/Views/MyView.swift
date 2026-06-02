@@ -11,6 +11,7 @@ struct MyView: View {
     @StateObject private var viewModel = MyViewModel()
     @ObservedObject private var loginSession = LoginSession.shared
     @State private var showLoginSheet = false
+    @State private var showHistory = false
 
     var body: some View {
         NavigationStack {
@@ -73,6 +74,9 @@ struct MyView: View {
                 } else {
                     viewModel.user = nil
                 }
+            }
+            .navigationDestination(isPresented: $showHistory) {
+                HistoryView()
             }
         }
     }
@@ -169,7 +173,8 @@ struct MyView: View {
 
             quickActionButton(
                 title: "观看记录",
-                systemImage: "memories"
+                systemImage: "memories",
+                action: { showHistory = true }
             )
 
             quickActionButton(
@@ -224,7 +229,12 @@ struct MyView: View {
     }
 
     private func quickActionButton(title: String, systemImage: String) -> some View {
+        quickActionButton(title: title, systemImage: systemImage, action: {})
+    }
+
+    private func quickActionButton(title: String, systemImage: String, action: @escaping () -> Void) -> some View {
         Button {
+            action()
         } label: {
             VStack(spacing: 8) {
                 Image(systemName: systemImage)

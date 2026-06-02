@@ -81,6 +81,25 @@ extension VideoItem {
         self.bottomRcmdReasonText = nil
     }
 
+    init(from history: HistoryItem) {
+        let historyDetail = history.history
+        let fallbackAid = history.kid ?? historyDetail?.oid ?? 0
+        let resolvedBvid = historyDetail?.bvid?.isEmpty == false
+            ? historyDetail?.bvid
+            : "av\(fallbackAid)"
+
+        self.bvid = resolvedBvid ?? "av\(fallbackAid)"
+        self.cid = historyDetail?.cid
+        self.cover = (history.cover ?? "").replacingOccurrences(of: "http://", with: "https://")
+        self.title = history.title ?? history.longTitle ?? history.showTitle ?? ""
+        self.playCount = "--"
+        self.danmakuCount = "--"
+        self.uploader = history.authorName ?? ""
+        self.duration = history.duration ?? max(history.progress ?? 0, 0)
+        self.publishTimeText = Self.formatTimestamp(history.viewAt)
+        self.bottomRcmdReasonText = history.badge
+    }
+
     static func formatCount(_ count: Int) -> String {
         if count >= 10000 {
             return String(
