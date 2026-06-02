@@ -9,9 +9,34 @@ import Foundation
 import Observation
 
 /// 推荐 API 模式（后续通过设置动态切换，当前固定为 App 版）
-enum RecommendAPIMode {
+enum RecommendAPIMode: String, CaseIterable, Codable {
     case web
     case app
+
+    var title: String {
+        switch self {
+        case .web: "Web"
+        case .app: "App"
+        }
+    }
+}
+
+enum RecommendSettingsStore {
+    private static let sourceKey = "pili.settings.recommend.source.v1"
+
+    static func loadSource() -> RecommendAPIMode {
+        guard
+            let rawValue = UserDefaults.standard.string(forKey: sourceKey),
+            let mode = RecommendAPIMode(rawValue: rawValue)
+        else {
+            return .app
+        }
+        return mode
+    }
+
+    static func saveSource(_ mode: RecommendAPIMode) {
+        UserDefaults.standard.set(mode.rawValue, forKey: sourceKey)
+    }
 }
 
 @Observable
@@ -27,8 +52,8 @@ class HomeViewModel {
     /// HomeView 据此在"新 / 旧"内容之间绘制 DividerWithText
     var refreshMarkerIndex: Int?
 
-    /// 当前使用的推荐 API 模式（后续由设置控制，现固定为 App 版）
-    private var apiMode: RecommendAPIMode = .app
+    /// 当前使用的推荐 API 模式
+    private var apiMode: RecommendAPIMode = RecommendSettingsStore.loadSource()
 
     // Web 推荐流状态
     private var freshIdx: Int = 1
@@ -56,33 +81,30 @@ class HomeViewModel {
         isLoading = true
         defer { isLoading = false }
 
-        switch apiMode {
-        case .web:
-            freshIdx = 1
-            brush = 0
-            do {
-                let videos = try await BiliAPI.shared.fetchRecommendVideos(
-                    freshIdx: freshIdx, freshType: 4, brush: brush
-                )
-                sections = [VideoSection(title: nil, videos: videos)]
-                hasLoaded = true
-            } catch { print(error) }
-
-        case .app:
-            appNextIdx = 0
-            do {
-                let (cards, nextIdx) = try await BiliAPI.shared.fetchAppRecommendFeed(
-                    idx: 0, flush: 1
-                )
-                feedCards = cards
-                appNextIdx = nextIdx
-                hasLoaded = true
-            } catch { print(error) }
-        }
+        loadCurrentModeFromSettings()
+        resetPagingState()
+        await fetchInitialVideosForCurrentMode()
+        hasLoaded = true
     }
 
     func refreshVideos() async {
         if isLoading { return }
+
+        let latestMode = RecommendSettingsStore.loadSource()
+        if latestMode != apiMode {
+            isLoading = true
+            defer { isLoading = false }
+
+            apiMode = latestMode
+            refreshMarkerIndex = nil
+            sections = []
+            feedCards = []
+            hasLoaded = false
+            resetPagingState()
+            await fetchInitialVideosForCurrentMode()
+            hasLoaded = true
+            return
+        }
 
         isLoading = true
         defer { isLoading = false }
@@ -140,6 +162,39 @@ class HomeViewModel {
                     idx: appNextIdx, flush: 0
                 )
                 feedCards.append(contentsOf: cards)
+                appNextIdx = nextIdx
+            } catch { print(error) }
+        }
+    }
+
+    private func loadCurrentModeFromSettings() {
+        apiMode = RecommendSettingsStore.loadSource()
+    }
+
+    private func resetPagingState() {
+        freshIdx = 1
+        brush = 0
+        appNextIdx = 0
+    }
+
+    private func fetchInitialVideosForCurrentMode() async {
+        switch apiMode {
+        case .web:
+            do {
+                let videos = try await BiliAPI.shared.fetchRecommendVideos(
+                    freshIdx: freshIdx, freshType: 4, brush: brush
+                )
+                sections = [VideoSection(title: nil, videos: videos)]
+                feedCards = []
+            } catch { print(error) }
+
+        case .app:
+            do {
+                let (cards, nextIdx) = try await BiliAPI.shared.fetchAppRecommendFeed(
+                    idx: 0, flush: 1
+                )
+                feedCards = cards
+                sections = []
                 appNextIdx = nextIdx
             } catch { print(error) }
         }

@@ -5,7 +5,7 @@ struct SettingsView: View {
         List {
             Section {
                 NavigationLink {
-                    SettingsPlaceholderView(title: "推荐流", systemImage: "square.stack.3d.up.fill")
+                    RecommendSettingsView()
                 } label: {
                     SettingsCategoryRow(
                         title: "推荐流",
@@ -48,6 +48,32 @@ struct SettingsView: View {
         .navigationTitle("设置")
         .navigationBarTitleDisplayMode(.inline)
         .listStyle(.insetGrouped)
+    }
+}
+
+private struct RecommendSettingsView: View {
+    @State private var selectedSource = RecommendSettingsStore.loadSource()
+
+    var body: some View {
+        Form {
+            Section {
+                Picker("推荐来源", selection: $selectedSource) {
+                    ForEach(RecommendAPIMode.allCases, id: \.self) { mode in
+                        Text(mode.title).tag(mode)
+                    }
+                }
+            } footer: {
+                Text("修改后会在下次手动刷新首页推荐流或重新启动应用后生效。")
+            }
+        }
+        .navigationTitle("推荐流")
+        .navigationBarTitleDisplayMode(.inline)
+        .onAppear {
+            selectedSource = RecommendSettingsStore.loadSource()
+        }
+        .onChange(of: selectedSource) { _, newValue in
+            RecommendSettingsStore.saveSource(newValue)
+        }
     }
 }
 
