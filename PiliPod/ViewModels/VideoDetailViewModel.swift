@@ -33,6 +33,9 @@ class VideoDetailViewModel {
     var danmakuElements: [Bilibili_Community_Service_Dm_V1_DanmakuElem] = []
     var danmakuIsLoading = false
     var danmakuError: String?
+    var skipSegments: [SkipSegment] = []
+    var skipSegmentsIsLoading = false
+    var skipSegmentsError: String?
     private var loadedDanmakuSegments: Set<Int> = []
     private var loadingDanmakuSegments: Set<Int> = []
     private var danmakuCID: Int = 0
@@ -100,6 +103,9 @@ class VideoDetailViewModel {
         danmakuElements = []
         danmakuIsLoading = false
         danmakuError = nil
+        skipSegments = []
+        skipSegmentsIsLoading = false
+        skipSegmentsError = nil
         loadedDanmakuSegments = []
         loadingDanmakuSegments = []
         danmakuCID = 0
@@ -154,6 +160,10 @@ class VideoDetailViewModel {
             await MainActor.run {
                 self.cid = playbackCid
                 self.initialSeekTime = playerInitialSeekTime
+            }
+
+            Task {
+                await loadSkipSegments(cid: playbackCid)
             }
 
             // 先加载第一包弹幕，供后续渲染层接入
@@ -431,6 +441,28 @@ class VideoDetailViewModel {
         }
 
         danmakuIsLoading = !loadingDanmakuSegments.isEmpty
+    }
+
+    @MainActor
+    func loadSkipSegments(cid: Int? = nil) async {
+        let targetCid = cid ?? self.cid
+        skipSegmentsIsLoading = true
+        skipSegmentsError = nil
+        
+        print("skipSegments")
+
+        do {
+            let segments = try await BiliAPI.shared.fetchSkipSegments(
+                videoID: bvid,
+                cid: targetCid > 0 ? targetCid : nil
+            )
+            skipSegments = segments.filter { $0.actionType == "skip" }
+        } catch {
+            skipSegments = []
+            skipSegmentsError = error.localizedDescription
+        }
+
+        skipSegmentsIsLoading = false
     }
 
     @MainActor

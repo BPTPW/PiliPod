@@ -25,3 +25,29 @@ struct CoinAddData: Codable {
 struct FavoriteDealData: Codable {
     let prompt: Bool?
 }
+
+struct SkipSegment: Codable, Identifiable {
+    let segment: [Double]
+    let cid: String
+    let segmentID: String
+    let category: String
+    let actionType: String
+    let locked: Int
+    let votes: Int
+    let videoDuration: Double
+    let description: String?
+
+    var id: String { segmentID }
+
+    enum CodingKeys: String, CodingKey {
+        case segment
+        case cid
+        case segmentID = "UUID"
+        case category
+        case actionType
+        case locked
+        case votes
+        case videoDuration
+        case description
+    }
+}

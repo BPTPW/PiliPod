@@ -71,7 +71,38 @@ struct VideoDetailPage: View {
     private let verticalBrightnessDragSensitivity: Double = 2.5
 
     private var heroID: String { "videoHero.\(video.bvid)" }
-    private var progressSegments: [ProgressSegment] { [] }
+    private var progressSegments: [ProgressSegment] {
+        let duration = resolvedVideoDuration
+        guard duration > 0 else { return [] }
+
+        return viewModel.skipSegments.compactMap { segment -> ProgressSegment? in
+            guard segment.segment.count >= 2 else { return nil }
+            let start = min(max(segment.segment[0], 0), duration)
+            let end = min(max(segment.segment[1], start), duration)
+            guard end > start else { return nil }
+            guard let color = progressColorForCategory(segment.category) else { return nil }
+
+            return ProgressSegment(
+                start: start / duration,
+                end: end / duration,
+                color: color,
+                opacity: 0.8
+            )
+        }
+    }
+
+    private var resolvedVideoDuration: TimeInterval {
+        if let playerDuration = viewModel.player?.duration, playerDuration > 0 {
+            return playerDuration
+        }
+        if let detailDuration = viewModel.videoDetail?.duration, detailDuration > 0 {
+            return TimeInterval(detailDuration)
+        }
+        if video.duration > 0 {
+            return TimeInterval(video.duration)
+        }
+        return 0
+    }
 
     init(video: VideoItem, namespace: Namespace.ID, onBack: @escaping () -> Void) {
         self.video = video
@@ -2331,9 +2362,37 @@ private struct PlayerControlsOverlay: View {
         let r = s % 60
         return String(format: "%02d:%02d", m, r)
     }
+
 }
 
 // MARK: - 视频进度条 (Segment-Friendly)
+
+private func progressColorForCategory(_ category: String) -> Color? {
+    switch category {
+    case "sponsor":
+        return .green
+    case "selfpromo":
+        return .yellow
+    case "interaction":
+        return .purple
+    case "poi_highlight":
+        return .pink
+    case "intro":
+        return .cyan
+    case "outro":
+        return .indigo
+    case "preview":
+        return .blue
+    case "padding":
+        return .black
+    case "filler":
+        return .purple
+    case "music_offtopic":
+        return .orange
+    default:
+        return nil
+    }
+}
 
 private struct ProgressSegment: Identifiable, Equatable {
     let id = UUID()
