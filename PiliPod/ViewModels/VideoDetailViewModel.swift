@@ -203,11 +203,21 @@ class VideoDetailViewModel {
                 cid: playbackCid
             )
             let options = DashStreamSelector.qualityOptions(from: playUrlResponse)
-            let defaultQuality = options.map(\.code).max()
+            let availableQualityCodes = options.map(\.code)
+            let playbackSettings = AudioVideoSettingsStore.load()
+            let preferredQuality = preferredQuality(for: playbackSettings)
+            let defaultQuality = DashStreamSelector.resolvePreferredQualityCode(
+                from: availableQualityCodes,
+                preferred: preferredQuality
+            )
 
-            // 选择最优 DASH 流（HEVC 优先）
+            // 选择最优 DASH 流（按设置的默认画质和编码优先级）
             guard let quality = defaultQuality,
-                  let stream = DashStreamSelector.selectStream(from: playUrlResponse, qualityCode: quality)
+                  let stream = DashStreamSelector.selectStream(
+                      from: playUrlResponse,
+                      qualityCode: quality,
+                      preferredCodec: playbackSettings.preferredCodec
+                  )
             else {
                 throw APIError.noVideoOrAudio
             }
@@ -258,7 +268,11 @@ class VideoDetailViewModel {
     func switchQuality(to code: Int) async {
         guard selectedQualityCode != code,
               let playUrlData,
-              let stream = DashStreamSelector.selectStream(from: playUrlData, qualityCode: code),
+              let stream = DashStreamSelector.selectStream(
+                  from: playUrlData,
+                  qualityCode: code,
+                  preferredCodec: AudioVideoSettingsStore.load().preferredCodec
+              ),
               let player
         else { return }
 
@@ -277,6 +291,13 @@ class VideoDetailViewModel {
             rate: resumeRate,
             shouldResume: shouldResume
         )
+    }
+
+    private func preferredQuality(for settings: AudioVideoSettings) -> PreferredVideoQuality {
+        if NetworkTypeMonitor.shared.isCellularConnection {
+            return settings.cellularDefaultQuality
+        }
+        return settings.defaultQuality
     }
 
     @MainActor

@@ -14,6 +14,7 @@ class MPVKitPlayer: NSObject {
     private weak var controller: MPVKitMetalViewController?
     private var displayLink: CADisplayLink?
     private var pendingStream: DashStream?
+    private let playbackSettings: AudioVideoSettings
 
     private(set) var isPlaying = false
     private(set) var currentTime: TimeInterval = 0
@@ -32,12 +33,14 @@ class MPVKitPlayer: NSObject {
             "User-Agent": "Mozilla/5.0 BiliIOS/1.0",
             "Referer": "https://www.bilibili.com/"
         ]
+        self.playbackSettings = AudioVideoSettingsStore.load()
         super.init()
     }
 
     func attach(_ controller: MPVKitMetalViewController) {
         self.controller = controller
         controller.applyHTTPHeaders(httpHeaders)
+        controller.applyPlaybackSettings(playbackSettings)
 
         if let stream = pendingStream {
             play(stream: stream)

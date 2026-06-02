@@ -13,6 +13,7 @@ final class MPVKitMetalViewController: UIViewController {
     private var metalLayer = MPVKitMetalLayer()
     private var mpv: OpaquePointer?
     private var pendingHeaders: [String: String] = [:]
+    private var pendingPlaybackSettings = AudioVideoSettingsStore.load()
     private var pendingVideoURL: URL?
     private var pendingAudioURL: URL?
     private var audioAdded = false
@@ -85,6 +86,10 @@ final class MPVKitMetalViewController: UIViewController {
         guard let mpv else { return }
 
         setHTTPHeaders(mpv, headers: headers)
+    }
+
+    func applyPlaybackSettings(_ settings: AudioVideoSettings) {
+        pendingPlaybackSettings = settings.clamped()
     }
 
     private func setHTTPHeaders(_ mpv: OpaquePointer, headers: [String: String]) {
@@ -198,7 +203,27 @@ final class MPVKitMetalViewController: UIViewController {
         checkError(mpv_set_option_string(mpv, "vo", "gpu-next"), context: "vo")
         checkError(mpv_set_option_string(mpv, "gpu-api", "vulkan"), context: "gpu-api")
         checkError(mpv_set_option_string(mpv, "gpu-context", "moltenvk"), context: "gpu-context")
-        checkError(mpv_set_option_string(mpv, "hwdec", "videotoolbox"), context: "hwdec")
+        let hwdecValue = pendingPlaybackSettings.hardwareDecodingEnabled ? "videotoolbox" : "no"
+        checkError(mpv_set_option_string(mpv, "hwdec", hwdecValue), context: "hwdec")
+        checkError(mpv_set_option_string(mpv, "cache", "auto"), context: "cache")
+        checkError(
+            mpv_set_option_string(mpv, "autosync", "\(pendingPlaybackSettings.autosync)"),
+            context: "autosync"
+        )
+        checkError(
+            mpv_set_option_string(mpv, "video-sync", pendingPlaybackSettings.videoSync.rawValue),
+            context: "video-sync"
+        )
+        if let bufferValue = pendingPlaybackSettings.bufferSize.mpvByteString {
+            checkError(
+                mpv_set_option_string(mpv, "demuxer-max-bytes", bufferValue),
+                context: "demuxer-max-bytes"
+            )
+            checkError(
+                mpv_set_option_string(mpv, "demuxer-max-back-bytes", bufferValue),
+                context: "demuxer-max-back-bytes"
+            )
+        }
         checkError(mpv_set_option_string(mpv, "video-rotate", "no"), context: "video-rotate")
         checkError(mpv_set_option_string(mpv, "keep-open", "yes"), context: "keep-open")
         if !pendingHeaders.isEmpty {

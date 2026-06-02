@@ -86,9 +86,42 @@ class DashStreamSelector {
         case 120: return "4K"
         case 125: return "HDR"
         case 126: return "杜比视界"
-        case 127: return "8K"
-        case 129: return "HDR Vivid"
+        case 127: return "8K超高清"
+        case 129: return "HDR真彩"
         default: return "\(code)P"
+        }
+    }
+
+    static func resolvePreferredQualityCode(
+        from availableCodes: [Int],
+        preferred: PreferredVideoQuality
+    ) -> Int? {
+        let order = PreferredVideoQuality.allCases.map(\.rawValue)
+        let available = Set(availableCodes)
+
+        guard let preferredIndex = order.firstIndex(of: preferred.rawValue) else {
+            return availableCodes.max()
+        }
+
+        for code in order[preferredIndex...] where available.contains(code) {
+            return code
+        }
+
+        for code in order[..<preferredIndex].reversed() where available.contains(code) {
+            return code
+        }
+
+        return availableCodes.max()
+    }
+
+    private static func codecPriorityOrder(for preferred: PreferredCodecOption) -> [CodecPriority] {
+        switch preferred {
+        case .hevc:
+            return [.hevc, .avc, .av1, .unknown]
+        case .avc:
+            return [.avc, .hevc, .av1, .unknown]
+        case .av1:
+            return [.av1, .hevc, .avc, .unknown]
         }
     }
 
@@ -102,14 +135,21 @@ class DashStreamSelector {
         }
     }
 
-    static func selectVideoStream(from videos: [DASHVideo], qualityCode: Int) -> DASHVideo? {
+    static func selectVideoStream(
+        from videos: [DASHVideo],
+        qualityCode: Int,
+        preferredCodec: PreferredCodecOption
+    ) -> DASHVideo? {
         let filtered = videos.filter { $0.id == qualityCode }
         guard !filtered.isEmpty else { return nil }
+        let codecOrder = codecPriorityOrder(for: preferredCodec)
         let sorted = filtered.sorted { video1, video2 in
             let priority1 = getCodecPriority(video1.codecs)
             let priority2 = getCodecPriority(video2.codecs)
-            if priority1.rawValue != priority2.rawValue {
-                return priority1.rawValue < priority2.rawValue
+            let order1 = codecOrder.firstIndex(of: priority1) ?? Int.max
+            let order2 = codecOrder.firstIndex(of: priority2) ?? Int.max
+            if order1 != order2 {
+                return order1 < order2
             }
             return video1.bandwidth > video2.bandwidth
         }
@@ -150,8 +190,16 @@ class DashStreamSelector {
         )
     }
 
-    static func selectStream(from data: PlayUrlResponse, qualityCode: Int) -> DashStream? {
-        guard let video = selectVideoStream(from: data.data.dash.video, qualityCode: qualityCode),
+    static func selectStream(
+        from data: PlayUrlResponse,
+        qualityCode: Int,
+        preferredCodec: PreferredCodecOption = .hevc
+    ) -> DashStream? {
+        guard let video = selectVideoStream(
+            from: data.data.dash.video,
+            qualityCode: qualityCode,
+            preferredCodec: preferredCodec
+        ),
               let audio = selectBestAudioStream(from: data.data.dash.audio),
               let videoURL = URL(string: video.baseUrl),
               let audioURL = URL(string: audio.baseUrl)
