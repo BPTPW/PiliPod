@@ -45,6 +45,16 @@ struct SettingsView: View {
                 }
 
                 NavigationLink {
+                    OtherSettingsView()
+                } label: {
+                    SettingsCategoryRow(
+                        title: "其他设置",
+                        systemImage: "ellipsis.circle.fill",
+                        tint: .teal
+                    )
+                }
+
+                NavigationLink {
                     AboutView()
                 } label: {
                     SettingsCategoryRow(
