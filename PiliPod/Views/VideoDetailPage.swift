@@ -75,7 +75,7 @@ struct VideoDetailPage: View {
         let duration = resolvedVideoDuration
         guard duration > 0 else { return [] }
 
-        return viewModel.skipSegments.compactMap { segment -> ProgressSegment? in
+        return viewModel.progressSkipSegments.compactMap { segment -> ProgressSegment? in
             guard segment.segment.count >= 2 else { return nil }
             let start = min(max(segment.segment[0], 0), duration)
             let end = min(max(segment.segment[1], start), duration)
@@ -89,6 +89,15 @@ struct VideoDetailPage: View {
                 opacity: 0.8
             )
         }
+    }
+
+    private var fullSegmentBanner: (text: String, color: Color)? {
+        for segment in viewModel.fullSegments {
+            if let banner = fullSegmentBannerInfo(for: segment.category) {
+                return banner
+            }
+        }
+        return nil
     }
 
     private var resolvedVideoDuration: TimeInterval {
@@ -890,6 +899,18 @@ struct VideoDetailPage: View {
                             )
                             .frame(width: 65, height: 25)
                         }
+                    }
+
+                    if let fullBanner = fullSegmentBanner {
+                        Text(fullBanner.text)
+                            .font(.system(size: 12, weight: .semibold))
+                            .foregroundStyle(.white)
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 6)
+                            .glassEffect(
+                                .regular.tint(fullBanner.color),
+                                in: RoundedRectangle(cornerRadius: 12, style: .continuous)
+                            )
                     }
 
                     // 视频标题
@@ -2389,6 +2410,35 @@ private func progressColorForCategory(_ category: String) -> Color? {
         return .purple
     case "music_offtopic":
         return .orange
+    default:
+        return nil
+    }
+}
+
+private func fullSegmentBannerInfo(for category: String) -> (text: String, color: Color)? {
+    switch category {
+    case "exclusive_access":
+        return ("独家访问/抢先体验", .yellow)
+    case "sponsor":
+        return ("赞助/恰饭", .green)
+    case "selfpromo":
+        return ("无偿/自我推广", .yellow)
+    case "interaction":
+        return ("互动提醒", .purple)
+    case "poi_highlight":
+        return ("精彩时刻", .pink)
+    case "intro":
+        return ("开场动画", .cyan)
+    case "outro":
+        return ("结束画面", .indigo)
+    case "preview":
+        return ("回顾/概要", .blue)
+    case "padding":
+        return ("填充内容", .black)
+    case "filler":
+        return ("闲聊/玩笑", .purple)
+    case "music_offtopic":
+        return ("非音乐部分", .orange)
     default:
         return nil
     }

@@ -36,6 +36,13 @@ class VideoDetailViewModel {
     var skipSegments: [SkipSegment] = []
     var skipSegmentsIsLoading = false
     var skipSegmentsError: String?
+    var progressSkipSegments: [SkipSegment] {
+        skipSegments.filter { $0.actionType == "skip" }
+    }
+
+    var fullSegments: [SkipSegment] {
+        skipSegments.filter { $0.actionType == "full" }
+    }
     private var loadedDanmakuSegments: Set<Int> = []
     private var loadingDanmakuSegments: Set<Int> = []
     private var danmakuCID: Int = 0
@@ -448,15 +455,13 @@ class VideoDetailViewModel {
         let targetCid = cid ?? self.cid
         skipSegmentsIsLoading = true
         skipSegmentsError = nil
-        
-        print("skipSegments")
 
         do {
             let segments = try await BiliAPI.shared.fetchSkipSegments(
                 videoID: bvid,
                 cid: targetCid > 0 ? targetCid : nil
             )
-            skipSegments = segments.filter { $0.actionType == "skip" }
+            skipSegments = segments
         } catch {
             skipSegments = []
             skipSegmentsError = error.localizedDescription
