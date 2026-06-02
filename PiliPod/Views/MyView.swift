@@ -6,16 +6,11 @@
 //
 
 import SwiftUI
-import UniformTypeIdentifiers
 
 struct MyView: View {
     @StateObject private var viewModel = MyViewModel()
     @ObservedObject private var loginSession = LoginSession.shared
     @State private var showLoginSheet = false
-    @State private var showExportSheet = false
-    @State private var exportDocument = LoginExportDocument(data: Data())
-    @State private var exportFilename = "login.json"
-    @State private var exportErrorMessage: String?
 
     var body: some View {
         NavigationStack {
@@ -42,21 +37,7 @@ struct MyView: View {
                 Spacer()
 
                 VStack(spacing: 12) {
-                    LoginImportView {
-                        Task {
-                            await viewModel.loadUser()
-                        }
-                    }
-                    .buttonStyle(.borderedProminent)
-                    .frame(maxWidth: .infinity)
-
                     if loginSession.isLogin {
-                        Button("导出登录数据") {
-                            prepareLoginExport()
-                        }
-                        .buttonStyle(.bordered)
-                        .frame(maxWidth: .infinity)
-
                         Button("退出登录") {
                             LoginImportService.clearLoginState()
                             viewModel.user = nil
@@ -89,24 +70,6 @@ struct MyView: View {
                 } else {
                     viewModel.user = nil
                 }
-            }
-            .fileExporter(
-                isPresented: $showExportSheet,
-                document: exportDocument,
-                contentType: .json,
-                defaultFilename: exportFilename
-            ) { result in
-                if case let .failure(error) = result {
-                    exportErrorMessage = error.localizedDescription
-                }
-            }
-            .alert("导出失败", isPresented: Binding(
-                get: { exportErrorMessage != nil },
-                set: { if !$0 { exportErrorMessage = nil } }
-            )) {
-                Button("确定", role: .cancel) {}
-            } message: {
-                Text(exportErrorMessage ?? "未知错误")
             }
         }
     }
@@ -183,45 +146,6 @@ struct MyView: View {
         }
     }
 
-    private func prepareLoginExport() {
-        guard let cookies = loginSession.cookies else { return }
-
-        let uid = cookies.DedeUserID
-        let loginType: [Int] = loginSession.type ?? [0, 1, 2, 3]
-
-        let cookieDict: [String: String] = [
-            "SESSDATA": cookies.SESSDATA,
-            "bili_jct": cookies.bili_jct,
-            "DedeUserID": cookies.DedeUserID,
-            "DedeUserID__ckMd5": "",
-            "sid": cookies.sid ?? "",
-            "buvid3": cookies.buvid3 ?? ""
-        ]
-
-        let userDict: [String: Any] = [
-            "cookies": cookieDict,
-            "accessKey": loginSession.accessKey ?? "",
-            "refresh": loginSession.refresh ?? "",
-            "type": loginType
-        ]
-
-        let payload: [String: Any] = [
-            uid: userDict
-        ]
-
-        do {
-            let data = try JSONSerialization.data(
-                withJSONObject: payload,
-                options: [.prettyPrinted, .sortedKeys]
-            )
-            exportDocument = LoginExportDocument(data: data)
-            exportFilename = "bili_login_\(uid).json"
-            showExportSheet = true
-        } catch {
-            exportErrorMessage = error.localizedDescription
-        }
-    }
-
     private func maxExperienceText(for user: UserCard) -> String {
         if user.levelInfo.nextExp == "--" {
             return "--"
@@ -269,22 +193,4 @@ struct MyView: View {
 
 #Preview {
     MyView()
-}
-
-private struct LoginExportDocument: FileDocument {
-    static var readableContentTypes: [UTType] { [.json] }
-
-    let data: Data
-
-    init(data: Data) {
-        self.data = data
-    }
-
-    init(configuration: ReadConfiguration) throws {
-        data = configuration.file.regularFileContents ?? Data()
-    }
-
-    func fileWrapper(configuration: WriteConfiguration) throws -> FileWrapper {
-        FileWrapper(regularFileWithContents: data)
-    }
 }

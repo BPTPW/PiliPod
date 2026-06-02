@@ -43,6 +43,16 @@ struct SettingsView: View {
                         tint: .green
                     )
                 }
+
+                NavigationLink {
+                    AboutView()
+                } label: {
+                    SettingsCategoryRow(
+                        title: "关于",
+                        systemImage: "info.circle.fill",
+                        tint: .gray
+                    )
+                }
             }
         }
         .navigationTitle("设置")
