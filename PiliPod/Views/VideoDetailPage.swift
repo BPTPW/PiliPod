@@ -71,6 +71,7 @@ struct VideoDetailPage: View {
     private let verticalBrightnessDragSensitivity: Double = 2.5
 
     private var heroID: String { "videoHero.\(video.bvid)" }
+    private var progressSegments: [ProgressSegment] { [] }
 
     init(video: VideoItem, namespace: Namespace.ID, onBack: @escaping () -> Void) {
         self.video = video
@@ -313,6 +314,18 @@ struct VideoDetailPage: View {
                                     }
                                 }
                                 .overlay {
+                                    if !isFullscreen && !controlsVisible {
+                                        ReadOnlyVideoProgressBar(
+                                            currentTime: player.currentTime,
+                                            duration: player.duration,
+                                            bufferedUntil: player.bufferedUntil,
+                                            segments: progressSegments
+                                        )
+                                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
+                                        .allowsHitTesting(false)
+                                    }
+                                }
+                                .overlay {
                                     PlayerControlsOverlay(
                                         showDebugPanel: $showDebugPanel,
                                         danmakuEnabled: $danmakuConfig.isEnabled,
@@ -333,7 +346,7 @@ struct VideoDetailPage: View {
                                         duration: player.duration,
                                         bufferedUntil: player.bufferedUntil,
                                         isPlaying: player.isPlaying,
-                                        segments: [],
+                                        segments: progressSegments,
                                         onBack: { handleBackAction() },
                                         onUserInteracted: {
                                             showControlsAndAutoHideIfNeeded(player: player, forceShow: true)
@@ -2351,60 +2364,19 @@ private struct VideoProgressBar: View {
     @GestureState private var isDragging = false
     @State private var dragProgress: Double? = nil
 
-    private var clampedProgress: Double {
-        guard duration > 0 else { return 0 }
-        return min(max(currentTime / duration, 0), 1)
-    }
-
-    private var clampedBufferedProgress: Double {
-        guard duration > 0 else { return 0 }
-        return min(max(bufferedUntil / duration, 0), 1)
-    }
-
-    private var effectiveProgress: Double {
-        dragProgress ?? clampedProgress
-    }
-
     var body: some View {
         GeometryReader { geo in
             let w = max(1, geo.size.width)
-            let h: CGFloat = 4
-            let knobSize: CGFloat = 10
-
-            ZStack(alignment: .leading) {
-                Capsule(style: .continuous)
-                    .fill(Color.white.opacity(0.2))
-                    .frame(height: h)
-
-                // 缓冲层：介于已播放/未播放之间的亮度
-                Capsule(style: .continuous)
-                    .fill(Color.white.opacity(0.5))
-                    .frame(width: w * max(clampedBufferedProgress, 0), height: h)
-
-                // 分段底色层（后续你可以把章节/高光片段塞进 segments）
-                ForEach(segments) { seg in
-                    let s = min(max(seg.start, 0), 1)
-                    let e = min(max(seg.end, 0), 1)
-                    if e > s {
-                        Capsule(style: .continuous)
-                            .fill(seg.color.opacity(seg.opacity))
-                            .frame(width: w * (e - s), height: h)
-                            .offset(x: w * s)
-                    }
-                }
-
-                Capsule(style: .continuous)
-                    .fill(Color.white.opacity(0.95))
-                    .frame(width: w * effectiveProgress, height: h)
-
-                // 小圆点，接近 iOS 的轻量样式（显隐跟随 controls）
-                Circle()
-                    .fill(Color.white)
-                    .frame(width: knobSize, height: knobSize)
-                    .shadow(color: .black.opacity(0.35), radius: 6, x: 0, y: 2)
-                    .offset(x: w * effectiveProgress - knobSize / 2)
-                    .opacity(isDragging ? 1 : 0.9)
-            }
+            VideoProgressTrack(
+                width: w,
+                height: 4,
+                playedProgress: dragProgress ?? normalizedProgress(currentTime, duration: duration),
+                bufferedProgress: normalizedProgress(bufferedUntil, duration: duration),
+                segments: segments,
+                playedColor: Color.white.opacity(0.95),
+                showsKnob: true,
+                knobOpacity: isDragging ? 1 : 0.9
+            )
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
             .contentShape(Rectangle())
             .gesture(
@@ -2436,6 +2408,85 @@ private struct VideoProgressBar: View {
         .padding(.vertical, 6)
         .frame(maxWidth: .infinity)
     }
+}
+
+private struct ReadOnlyVideoProgressBar: View {
+    let currentTime: TimeInterval
+    let duration: TimeInterval
+    let bufferedUntil: TimeInterval
+    let segments: [ProgressSegment]
+
+    var body: some View {
+        GeometryReader { geo in
+            VideoProgressTrack(
+                width: max(1, geo.size.width),
+                height: 2,
+                playedProgress: normalizedProgress(currentTime, duration: duration),
+                bufferedProgress: normalizedProgress(bufferedUntil, duration: duration),
+                segments: segments,
+                playedColor: Color("BiliPink"),
+                showsKnob: false
+            )
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
+        }
+        .frame(height: 2)
+    }
+}
+
+private struct VideoProgressTrack: View {
+    let width: CGFloat
+    let height: CGFloat
+    let playedProgress: Double
+    let bufferedProgress: Double
+    let segments: [ProgressSegment]
+    let playedColor: Color
+    let showsKnob: Bool
+    var knobOpacity: Double = 1
+
+    var body: some View {
+        let clampedPlayedProgress = min(max(playedProgress, 0), 1)
+        let clampedBufferedProgress = min(max(bufferedProgress, 0), 1)
+        let knobSize: CGFloat = 10
+
+        ZStack(alignment: .leading) {
+            Capsule(style: .continuous)
+                .fill(Color.white.opacity(0.2))
+                .frame(height: height)
+
+            Capsule(style: .continuous)
+                .fill(Color.white.opacity(0.5))
+                .frame(width: width * clampedBufferedProgress, height: height)
+
+            ForEach(segments) { seg in
+                let s = min(max(seg.start, 0), 1)
+                let e = min(max(seg.end, 0), 1)
+                if e > s {
+                    Capsule(style: .continuous)
+                        .fill(seg.color.opacity(seg.opacity))
+                        .frame(width: width * (e - s), height: height)
+                        .offset(x: width * s)
+                }
+            }
+
+            Capsule(style: .continuous)
+                .fill(playedColor)
+                .frame(width: width * clampedPlayedProgress, height: height)
+
+            if showsKnob {
+                Circle()
+                    .fill(Color.white)
+                    .frame(width: knobSize, height: knobSize)
+                    .shadow(color: .black.opacity(0.35), radius: 6, x: 0, y: 2)
+                    .offset(x: width * clampedPlayedProgress - knobSize / 2)
+                    .opacity(knobOpacity)
+            }
+        }
+    }
+}
+
+private func normalizedProgress(_ value: TimeInterval, duration: TimeInterval) -> Double {
+    guard duration > 0 else { return 0 }
+    return min(max(value / duration, 0), 1)
 }
 
 // MARK: - DASH 流详情窗口
