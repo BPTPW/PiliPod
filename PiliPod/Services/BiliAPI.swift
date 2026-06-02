@@ -800,6 +800,22 @@ class BiliAPI {
 
         return response.data
     }
+    
+    // MARK: - 获取当前用户状态（动态/关注/粉丝）
+
+    func fetchMyStat() async throws -> MyStat {
+        let url = URL(string: "https://api.bilibili.com/x/web-interface/nav/stat")!
+        let request = makeRequest(url: url)
+
+        let (data, _) = try await URLSession.shared.data(for: request)
+
+        let response = try JSONDecoder().decode(
+            MyStatResponse.self,
+            from: data
+        )
+
+        return response.data
+    }
 
     // MARK: - 获取用户卡片
 
@@ -1335,6 +1351,22 @@ enum APIError: LocalizedError {
 
 struct NavResponse: Codable {
     let data: UserCard
+}
+
+struct MyStatResponse: Codable {
+    let data: MyStat
+}
+
+struct MyStat: Codable {
+    let following: Int
+    let follower: Int
+    let dynamicCount: Int
+
+    enum CodingKeys: String, CodingKey {
+        case following
+        case follower
+        case dynamicCount = "dynamic_count"
+    }
 }
 
 private struct EmptyCodable: Codable {}

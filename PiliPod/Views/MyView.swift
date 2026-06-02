@@ -20,43 +20,24 @@ struct MyView: View {
     var body: some View {
         NavigationStack {
             VStack(spacing: 20) {
-                Spacer()
+                // 顶部按钮
+                HStack {
+                    Spacer()
+                    Button {
 
-                if let user = viewModel.user {
-                    NavigationLink {
-                        UserSpaceView(mid: Int(user.mid))
                     } label: {
-                        AsyncImage(url: URL(string: user.face)) { image in
-                            image
-                                .resizable()
-                                .scaledToFill()
-                        } placeholder: {
-                            ProgressView()
-                        }
-                        .frame(width: 84, height: 84)
-                        .clipShape(Circle())
+                        Image(systemName: "gear")
+                            .frame(width: 20, height: 20)
+                            .padding(10)
                     }
-                    .buttonStyle(.plain)
-
-                    Text(user.name)
-                        .font(.title2)
-                        .fontWeight(.semibold)
-
-                    Text("UID：\(String(user.mid))")
-                        .foregroundStyle(.secondary)
-                } else {
-                    Image(systemName: "person.crop.circle")
-                        .font(.system(size: 72))
-                        .foregroundStyle(.secondary)
-
-                    Text(loginSession.isLogin ? "正在加载个人信息…" : "当前未登录")
-                        .font(.headline)
-
-                    Text("导入登录 JSON 后即可同步账号状态。")
-                        .foregroundStyle(.secondary)
-                        .multilineTextAlignment(.center)
-                        .padding(.horizontal)
+                    .tint(.primary)
+                    .glassEffect(.regular.interactive(), in: .circle)
                 }
+                .padding(.horizontal, 30)
+                .padding(.top, 10)
+
+                headerView
+                    .padding(.horizontal, 30)
 
                 Spacer()
 
@@ -94,7 +75,6 @@ struct MyView: View {
                 .padding(.horizontal)
                 .padding(.bottom, 20)
             }
-            .navigationTitle("我的")
             .task {
                 await viewModel.loadUser()
             }
@@ -131,24 +111,102 @@ struct MyView: View {
         }
     }
 
+    @ViewBuilder
+    private var headerView: some View {
+        if let user = viewModel.user {
+            NavigationLink {
+                UserSpaceView(mid: Int(user.mid))
+            } label: {
+                HStack(alignment: .top, spacing: 14) {
+                    AsyncImage(url: URL(string: user.face)) { image in
+                        image
+                            .resizable()
+                            .scaledToFill()
+                    } placeholder: {
+                        ProgressView()
+                    }
+                    .frame(width: 56, height: 56)
+                    .clipShape(Circle())
+
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text(user.name)
+                            .font(.title3)
+                            .fontWeight(.semibold)
+                            .foregroundStyle(.primary)
+
+                        HStack(spacing: 12) {
+                            Text("硬币 \(formattedMoney(user.money))")
+                            Text("经验 \(user.levelInfo.currentExp)/\(maxExperienceText(for: user))")
+                        }
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+
+                        ProgressView(value: experienceProgress(for: user))
+                            .tint(Color("BiliPink"))
+                            .progressViewStyle(.linear)
+                    }
+
+                    Spacer(minLength: 0)
+                }
+            }
+            .buttonStyle(.plain)
+        } else {
+            HStack(alignment: .top, spacing: 14) {
+                Image(systemName: "person.crop.circle")
+                    .font(.system(size: 50))
+                    .foregroundStyle(.secondary)
+
+                VStack(alignment: .leading, spacing: 8) {
+                    Text(loginSession.isLogin ? "正在加载个人信息…" : "当前未登录")
+                        .font(.title3)
+                        .fontWeight(.semibold)
+
+                    Text("导入登录 JSON 后即可同步账号状态。")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+
+                Spacer(minLength: 0)
+            }
+        }
+        if let stat = viewModel.stat {
+            HStack {
+                Spacer()
+                statItem(value: stat.dynamicCount, title: "动态")
+                Spacer()
+                statItem(value: stat.following, title: "关注")
+                Spacer()
+                statItem(value: stat.follower, title: "粉丝")
+                Spacer()
+            }
+            .padding(.top, 2)
+        }
+    }
+
     private func prepareLoginExport() {
         guard let cookies = loginSession.cookies else { return }
 
         let uid = cookies.DedeUserID
+        let loginType: [Int] = loginSession.type ?? [0, 1, 2, 3]
+
+        let cookieDict: [String: String] = [
+            "SESSDATA": cookies.SESSDATA,
+            "bili_jct": cookies.bili_jct,
+            "DedeUserID": cookies.DedeUserID,
+            "DedeUserID__ckMd5": "",
+            "sid": cookies.sid ?? "",
+            "buvid3": cookies.buvid3 ?? ""
+        ]
+
+        let userDict: [String: Any] = [
+            "cookies": cookieDict,
+            "accessKey": loginSession.accessKey ?? "",
+            "refresh": loginSession.refresh ?? "",
+            "type": loginType
+        ]
+
         let payload: [String: Any] = [
-            uid: [
-                "cookies": [
-                    "SESSDATA": cookies.SESSDATA,
-                    "bili_jct": cookies.bili_jct,
-                    "DedeUserID": cookies.DedeUserID,
-                    "DedeUserID__ckMd5": "",
-                    "sid": cookies.sid ?? "",
-                    "buvid3": cookies.buvid3 ?? ""
-                ],
-                "accessKey": loginSession.accessKey ?? "",
-                "refresh": loginSession.refresh ?? "",
-                "type": loginSession.type ?? [0, 1, 2, 3]
-            ]
+            uid: userDict
         ]
 
         do {
@@ -162,6 +220,50 @@ struct MyView: View {
         } catch {
             exportErrorMessage = error.localizedDescription
         }
+    }
+
+    private func maxExperienceText(for user: UserCard) -> String {
+        if user.levelInfo.nextExp == "--" {
+            return "--"
+        }
+        return user.levelInfo.nextExp
+    }
+
+    private func experienceProgress(for user: UserCard) -> Double {
+        if user.levelInfo.nextExp == "--" {
+            return 1
+        }
+
+        guard let nextExp = Double(user.levelInfo.nextExp) else {
+            return 0
+        }
+
+        let minExp = Double(user.levelInfo.currentMin)
+        let currentExp = Double(user.levelInfo.currentExp)
+        let range = max(nextExp - minExp, 1)
+        let progress = (currentExp - minExp) / range
+        return min(max(progress, 0), 1)
+    }
+
+    private func formattedMoney(_ money: Double) -> String {
+        if money.rounded() == money {
+            return String(Int(money))
+        }
+        return money.formatted(.number.precision(.fractionLength(0...1)))
+    }
+
+    private func statItem(value: Int, title: String) -> some View {
+        VStack(spacing: 2) {
+            Text("\(value)")
+                .font(.subheadline)
+                .fontWeight(.semibold)
+                .foregroundStyle(.primary)
+
+            Text(title)
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+        }
+        .frame(minWidth: 44)
     }
 }
 

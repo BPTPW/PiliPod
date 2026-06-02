@@ -11,15 +11,21 @@ import Foundation
 @MainActor
 final class MyViewModel: ObservableObject {
     @Published var user: UserCard?
+    @Published var stat: MyStat?
 
     func loadUser() async {
         guard LoginSession.shared.isLogin else {
             user = nil
+            stat = nil
             return
         }
 
         do {
-            user = try await BiliAPI.shared.fetchMyInfo()
+            async let userInfo = BiliAPI.shared.fetchMyInfo()
+            async let userStat = BiliAPI.shared.fetchMyStat()
+
+            user = try await userInfo
+            stat = try await userStat
         } catch {
             print(error)
         }
