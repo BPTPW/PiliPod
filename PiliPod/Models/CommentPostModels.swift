@@ -25,7 +25,7 @@ struct CommentPictureUploadPayload: Codable {
     let imgSrc: String
     let imgWidth: Int
     let imgHeight: Int
-    let imgSize: Int
+    let imgSize: Double
 
     enum CodingKeys: String, CodingKey {
         case imgSrc = "img_src"
