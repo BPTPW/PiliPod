@@ -1339,7 +1339,7 @@ class BiliAPI {
         cid: Int? = nil
     ) async throws -> [SkipSegment] {
         var components = URLComponents(
-            string: "https://bsbsb.top/api/skipSegments"
+            string: "https://www.bsbsb.top/api/skipSegments"
         )
         var queryItems = [URLQueryItem(name: "videoID", value: videoID)]
         if let cid, cid > 0 {
