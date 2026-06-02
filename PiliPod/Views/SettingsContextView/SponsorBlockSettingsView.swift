@@ -108,9 +108,9 @@ private struct SponsorBlockSettingsView: View {
             } header: {
                 Text("用户")
             } footer: {
-                VStack{
-                    Text("私人ID可以自行设置，要求至少为30个字符长度的纯字符串，首次启动时会生成随机字符串。")
-                    Text("私人ID应该被保密。如果他人获得了你的私人ID，他就可以冒充您。服务器不会保存任何私人ID，如果你不幸弄丢了私人ID，那就再也没办法找回了。")
+                VStack(alignment: .leading){
+                    Text("• 私人ID可以自行设置，要求至少为30个字符长度的纯字符串，首次启动时会生成随机字符串。")
+                    Text("• 私人ID应该被保密。如果他人获得了你的私人ID，他就可以冒充您。服务器不会保存任何私人ID，如果你不幸弄丢了私人ID，那就再也没办法找回了。")
                 }
             }
 
@@ -142,9 +142,9 @@ private struct SponsorBlockSettingsView: View {
                             .autocorrectionDisabled()
 #endif
                     } footer: {
-                        VStack{
-                            Text("私人ID可以自行设置，要求至少为30个字符长度的纯字符串。")
-                            Text("私人ID应该被保密。如果他人获得了你的私人ID，他就可以冒充您。服务器不会保存任何私人ID，如果你不幸弄丢了私人ID，那就再也没办法找回了。")
+                        VStack(alignment: .leading){
+                            Text("• 私人ID可以自行设置，要求至少为30个字符长度的纯字符串。")
+                            Text("• 私人ID应该被保密。如果他人获得了你的私人ID，他就可以冒充您。服务器不会保存任何私人ID，如果你不幸弄丢了私人ID，那就再也没办法找回了。")
                         }
                     }
                 }
