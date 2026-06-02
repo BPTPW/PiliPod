@@ -120,13 +120,13 @@ struct HomeView: View {
                     ScrollView(.horizontal, showsIndicators: false) {
                         HStack(spacing: 24) {
                             ForEach(tabs, id: \.self) { tab in
-                                VStack(spacing: 6) {
+                                VStack(spacing: 4) {
                                     Text(tab)
                                         .font(.system(size: 16, weight: selectedTab == tab ? .semibold : .regular))
                                         .foregroundStyle(selectedTab == tab ? .primary : .secondary)
 
                                     Capsule()
-                                        .fill(selectedTab == tab ? Color.pink : Color.clear)
+                                        .fill(selectedTab == tab ? .biliPink : .clear)
                                         .frame(height: 3)
                                 }
                                 .onTapGesture {
