@@ -11,7 +11,7 @@ struct CommentImageUploadData: Codable {
     let imageURL: String
     let imageWidth: Int
     let imageHeight: Int
-    let imgSize: Int
+    let imgSize: Double
 
     enum CodingKeys: String, CodingKey {
         case imageURL = "image_url"

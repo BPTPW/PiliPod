@@ -27,6 +27,7 @@ struct VideoCommentsTabView: View {
     @State private var detailIsLoadingMore = false
     @State private var showComposer = false
     @State private var composerDetent: PresentationDetent = .fraction(0.5)
+    @State private var composerContext: ComposerContext = .mainComment
 
     var body: some View {
         ZStack(alignment: .bottomTrailing) {
@@ -106,37 +107,38 @@ struct VideoCommentsTabView: View {
                 }
             }
 
-            if !isInDetailMode {
-                Button {
-                    showComposer = true
-                } label: {
-                    Image(systemName: "square.and.pencil")
-                        .foregroundStyle(.primary)
-                        .padding(14)
-                        .glassEffect(
-                            .regular.interactive(),
-                            in: Circle()
-                        )
-                }
-                .tint(.primary)
-                .padding(.trailing, 16)
-                .padding(.bottom, 16)
+            Button {
+                composerContext = defaultComposerContext
+                composerDetent = .fraction(0.5)
+                showComposer = true
+            } label: {
+                Image(systemName: "square.and.pencil")
+                    .foregroundStyle(.primary)
+                    .frame(width: 16, height: 16)
+                    .padding(14)
+                    .glassEffect(
+                        .regular.interactive(),
+                        in: Circle()
+                    )
             }
+            .tint(.primary)
+            .padding(.trailing, 16)
+            .padding(.bottom, 16)
         }
         .sheet(isPresented: $showComposer) {
             CommentComposerSheet(
                 aid: aid,
+                titleText: composerContext.titleText,
+                placeholderText: composerContext.placeholderText,
+                rootRpid: composerContext.rootRpid,
+                parentRpid: composerContext.parentRpid,
                 onDismiss: { showComposer = false },
                 onEmotePanelVisibilityChanged: { shown in
                     composerDetent = shown ? .fraction(0.78) : .fraction(0.5)
                 },
                 onPosted: {
                     Task { @MainActor in
-                        hasLoaded = false
-                        hasMore = true
-                        nextCursor = 0
-                        comments = []
-                        await loadComments()
+                        await refreshCommentsAfterPosting()
                     }
                 }
             )
@@ -156,6 +158,13 @@ struct VideoCommentsTabView: View {
 
     private var isInDetailMode: Bool {
         detailRootComment != nil
+    }
+
+    private var defaultComposerContext: ComposerContext {
+        if let root = detailRootComment {
+            return .replyToRoot(root)
+        }
+        return .mainComment
     }
 
     @ViewBuilder
@@ -245,6 +254,11 @@ struct VideoCommentsTabView: View {
                             comment: reply,
                             onTapAvatar: onOpenUserSpace,
                             onTapReplyUser: onOpenUserSpace,
+                            onTapComment: { tapped in
+                                composerContext = .replyToChild(root: root, reply: tapped)
+                                composerDetent = .fraction(0.5)
+                                showComposer = true
+                            },
                             onTapLike: { tapped in
                                 Task { @MainActor in
                                     await toggleLike(for: tapped)
@@ -382,6 +396,32 @@ struct VideoCommentsTabView: View {
         detailIsLoading = false
     }
 
+    @MainActor
+    private func refreshCommentsAfterPosting() async {
+        try? await Task.sleep(for: .milliseconds(450))
+
+        if let root = detailRootComment {
+            let currentRootRpid = root.rpid
+            hasLoaded = false
+            hasMore = true
+            nextCursor = 0
+            comments = []
+            await loadComments()
+
+            if let refreshedRoot = comments.first(where: { $0.rpid == currentRootRpid }) {
+                await openDetailMode(with: refreshedRoot)
+            } else {
+                await openDetailMode(with: root)
+            }
+        } else {
+            hasLoaded = false
+            hasMore = true
+            nextCursor = 0
+            comments = []
+            await loadComments()
+        }
+    }
+
     private func toCommentItem(_ reply: Bilibili_Main_Community_Reply_V1_ReplyInfo) -> CommentItem {
         let childReplies = reply.replies.prefix(2).map { child in
             CommentReplyItem(
@@ -515,5 +555,55 @@ struct VideoCommentsTabView: View {
 
     private func normalizedHTTPSURLString(_ raw: String) -> String {
         raw.replacingOccurrences(of: "http://", with: "https://")
+    }
+}
+
+private enum ComposerContext {
+    case mainComment
+    case replyToRoot(CommentItem)
+    case replyToChild(root: CommentItem, reply: CommentItem)
+
+    var titleText: String {
+        switch self {
+        case .mainComment:
+            return "发送评论"
+        case .replyToRoot(let root):
+            return "回复 @\(root.username)"
+        case .replyToChild(_, let reply):
+            return "回复 @\(reply.username)"
+        }
+    }
+
+    var placeholderText: String {
+        switch self {
+        case .mainComment:
+            return "说点什么吧…"
+        case .replyToRoot(let root):
+            return "回复 @\(root.username)"
+        case .replyToChild(_, let reply):
+            return "回复 @\(reply.username)"
+        }
+    }
+
+    var rootRpid: Int? {
+        switch self {
+        case .mainComment:
+            return nil
+        case .replyToRoot(let root):
+            return root.rpid
+        case .replyToChild(let root, _):
+            return root.rpid
+        }
+    }
+
+    var parentRpid: Int? {
+        switch self {
+        case .mainComment:
+            return nil
+        case .replyToRoot(let root):
+            return root.rpid
+        case .replyToChild(_, let reply):
+            return reply.rpid
+        }
     }
 }

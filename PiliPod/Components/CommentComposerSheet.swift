@@ -11,6 +11,10 @@ import UIKit
 
 struct CommentComposerSheet: View {
     let aid: Int
+    let titleText: String
+    let placeholderText: String
+    let rootRpid: Int?
+    let parentRpid: Int?
     let onDismiss: () -> Void
     let onEmotePanelVisibilityChanged: (Bool) -> Void
     let onPosted: () -> Void
@@ -47,7 +51,7 @@ struct CommentComposerSheet: View {
                 )
                 .overlay(alignment: .topLeading) {
                     if text.isEmpty {
-                        Text("说点什么吧…")
+                        Text(placeholderText)
                             .foregroundStyle(.secondary)
                             .padding(.horizontal, 16)
                             .padding(.vertical, 18)
@@ -139,7 +143,7 @@ struct CommentComposerSheet: View {
             }
             .animation(.easeInOut(duration: 0.18), value: isEmotePanelShown)
             .padding(16)
-            .navigationTitle("发送评论")
+            .navigationTitle(titleText)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
@@ -326,7 +330,9 @@ struct CommentComposerSheet: View {
             _ = try await BiliAPI.shared.addVideoComment(
                 oid: aid,
                 message: text.trimmingCharacters(in: .whitespacesAndNewlines),
-                pictures: picturePayloads
+                pictures: picturePayloads,
+                root: rootRpid,
+                parent: parentRpid
             )
             onPosted()
             onDismiss()
