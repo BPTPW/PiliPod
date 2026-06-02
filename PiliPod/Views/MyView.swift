@@ -34,6 +34,9 @@ struct MyView: View {
                 headerView
                     .padding(.horizontal, 30)
 
+                quickActionRow
+                    .padding(.horizontal, 30)
+
                 Spacer()
 
                 VStack(spacing: 12) {
@@ -143,6 +146,36 @@ struct MyView: View {
                 Spacer()
             }
             .padding(.top, 2)
+        }else{
+            HStack {
+                Spacer()
+                statItem(value: 0, title: "动态")
+                Spacer()
+                statItem(value: 0, title: "关注")
+                Spacer()
+                statItem(value: 0, title: "粉丝")
+                Spacer()
+            }
+            .padding(.top, 2)
+        }
+    }
+
+    private var quickActionRow: some View {
+        HStack(spacing: 12) {
+            quickActionButton(
+                title: "离线缓存",
+                systemImage: "square.and.arrow.down"
+            )
+
+            quickActionButton(
+                title: "观看记录",
+                systemImage: "memories"
+            )
+
+            quickActionButton(
+                title: "稍后再看",
+                systemImage: "clock.badge"
+            )
         }
     }
 
@@ -188,6 +221,26 @@ struct MyView: View {
                 .foregroundStyle(.secondary)
         }
         .frame(minWidth: 44)
+    }
+
+    private func quickActionButton(title: String, systemImage: String) -> some View {
+        Button {
+        } label: {
+            VStack(spacing: 8) {
+                Image(systemName: systemImage)
+                    .font(.system(size: 20, weight: .medium))
+                    .foregroundStyle(.primary)
+
+                Text(title)
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+            }
+            .frame(maxWidth: .infinity)
+            .frame(height: 72)
+        }
+        .buttonStyle(.plain)
+        .glassEffect(.regular.interactive(), in: RoundedRectangle(cornerRadius: 18, style: .continuous))
     }
 }
 
