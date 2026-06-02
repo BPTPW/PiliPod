@@ -23,8 +23,8 @@ struct MyView: View {
                 // 顶部按钮
                 HStack {
                     Spacer()
-                    Button {
-
+                    NavigationLink {
+                        SettingsView()
                     } label: {
                         Image(systemName: "gear")
                             .frame(width: 20, height: 20)
