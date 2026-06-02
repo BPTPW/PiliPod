@@ -780,7 +780,7 @@ struct VideoDetailPage: View {
                 }
             )
             .background(Color(.systemBackground))
-            .highPriorityGesture(tabSwipeGesture(for: .comments))
+            .simultaneousGesture(tabSwipeGesture(for: .comments))
         }
     }
 
