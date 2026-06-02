@@ -70,7 +70,7 @@ enum SponsorBlockCategory: String, Codable, CaseIterable, Hashable, Identifiable
         case .selfpromo:
             return .yellow
         case .exclusiveAccess:
-            return .yellow
+            return .mint
         case .interaction:
             return .purple
         case .poiHighlight:
@@ -279,5 +279,22 @@ enum SponsorBlockAPI {
         }
 
         return try JSONDecoder().decode(SponsorBlockUserInfo.self, from: data)
+    }
+
+    static func markSegmentViewed(uuid: String) async {
+        guard var components = URLComponents(string: "https://bsbsb.top/api/viewedVideoSponsorTime") else {
+            return
+        }
+        components.queryItems = [
+            URLQueryItem(name: "UUID", value: uuid)
+        ]
+
+        guard let url = components.url else { return }
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.timeoutInterval = 5
+
+        _ = try? await URLSession.shared.data(for: request)
     }
 }

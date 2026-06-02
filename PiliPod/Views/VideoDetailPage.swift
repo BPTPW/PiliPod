@@ -13,6 +13,17 @@ import MediaPlayer
 #endif
 
 struct VideoDetailPage: View {
+    private struct PlaybackSponsorSegment: Identifiable, Equatable {
+        let id: String
+        let uuid: String
+        let category: SponsorBlockCategory
+        let behavior: SponsorBlockSegmentBehavior
+        let start: TimeInterval
+        let end: TimeInterval
+
+        var displayTitle: String { category.title }
+    }
+
     private enum FullscreenTrigger {
         case none
         case manual
@@ -63,6 +74,10 @@ struct VideoDetailPage: View {
     @State private var lastDanmakuPrefetchSegment = 0
     @State private var selectedTab: VideoDetailTab = .intro
     @State private var toastMessage: String?
+    @State private var sponsorBlockSettings = SponsorBlockSettingsStore.load()
+    @State private var skippedSponsorSegmentIDs: Set<String> = []
+    @State private var hiddenManualSponsorSegmentIDs: Set<String> = []
+    @State private var manualSkipSegment: PlaybackSponsorSegment?
 
     let video: VideoItem
     let namespace: Namespace.ID
@@ -73,18 +88,14 @@ struct VideoDetailPage: View {
     private var heroID: String { "videoHero.\(video.bvid)" }
     private var progressSegments: [ProgressSegment] {
         let duration = resolvedVideoDuration
-        guard duration > 0 else { return [] }
+        guard duration > 0, sponsorBlockSettings.isEnabled else { return [] }
 
-        return viewModel.progressSkipSegments.compactMap { segment -> ProgressSegment? in
-            guard segment.segment.count >= 2 else { return nil }
-            let start = min(max(segment.segment[0], 0), duration)
-            let end = min(max(segment.segment[1], start), duration)
-            guard end > start else { return nil }
-            guard let color = progressColorForCategory(segment.category) else { return nil }
+        return playableSponsorSegments.compactMap { segment -> ProgressSegment? in
+            guard let color = progressColorForCategory(segment.category.rawValue) else { return nil }
 
             return ProgressSegment(
-                start: start / duration,
-                end: end / duration,
+                start: segment.start / duration,
+                end: segment.end / duration,
                 color: color,
                 opacity: 0.8
             )
@@ -92,12 +103,39 @@ struct VideoDetailPage: View {
     }
 
     private var fullSegmentBanner: (text: String, color: Color)? {
+        guard sponsorBlockSettings.isEnabled else { return nil }
         for segment in viewModel.fullSegments {
             if let banner = fullSegmentBannerInfo(for: segment.category) {
                 return banner
             }
         }
         return nil
+    }
+
+    private var playableSponsorSegments: [PlaybackSponsorSegment] {
+        guard sponsorBlockSettings.isEnabled else { return [] }
+        let duration = resolvedVideoDuration
+        guard duration > 0 else { return [] }
+
+        return viewModel.progressSkipSegments.compactMap { segment -> PlaybackSponsorSegment? in
+            guard let category = SponsorBlockCategory(rawValue: segment.category) else { return nil }
+            let behavior = sponsorBlockSettings.behavior(for: category)
+            guard behavior != .disabled else { return nil }
+            guard segment.segment.count >= 2 else { return nil }
+
+            let start = min(max(segment.segment[0], 0), duration)
+            let end = min(max(segment.segment[1], start), duration)
+            guard end > start else { return nil }
+
+            return PlaybackSponsorSegment(
+                id: segment.segmentID,
+                uuid: segment.segmentID,
+                category: category,
+                behavior: behavior,
+                start: start,
+                end: end
+            )
+        }
     }
 
     private var resolvedVideoDuration: TimeInterval {
@@ -454,6 +492,26 @@ struct VideoDetailPage: View {
                                             .transition(.opacity)
                                     }
                                 }
+                                .overlay(alignment: .bottomLeading) {
+                                    if let manualSkipSegment {
+                                        Button {
+                                            performManualSponsorSkip(for: manualSkipSegment, player: player)
+                                        } label: {
+                                            Text("跳过：\(manualSkipSegment.displayTitle)")
+                                                .font(.system(size: 13, weight: .semibold))
+                                                .foregroundStyle(.white)
+                                                .padding(.horizontal, 14)
+                                                .padding(.vertical, 9)
+                                                .glassEffect(
+                                                    .regular,
+                                                    in: Capsule()
+                                                )
+                                        }
+                                        .padding(.leading, 16)
+                                        .padding(.bottom, max(geo.size.height / 3, 72))
+                                        .transition(.move(edge: .leading).combined(with: .opacity))
+                                    }
+                                }
                                 .overlay {
                                     if isBrightnessAdjusting {
                                         HStack(alignment: .center, spacing: 10) {
@@ -523,6 +581,7 @@ struct VideoDetailPage: View {
                                     }
                                 }
                                 .onChange(of: player.currentTime) { _, newTime in
+                                    handleSponsorSegmentPlayback(currentTime: newTime, player: player)
                                     let segment = max(1, Int(newTime / 360.0) + 1)
                                     guard segment != lastDanmakuPrefetchSegment else { return }
                                     lastDanmakuPrefetchSegment = segment
@@ -679,9 +738,16 @@ struct VideoDetailPage: View {
         }
         .onAppear {
             danmakuConfig = DanmakuConfigStore.load()
+            sponsorBlockSettings = SponsorBlockSettingsStore.load()
+            skippedSponsorSegmentIDs = []
+            hiddenManualSponsorSegmentIDs = []
+            manualSkipSegment = nil
 #if canImport(UIKit)
             setIdleTimerDisabled(bindableViewModel.player?.isPlaying == true)
 #endif
+        }
+        .onChange(of: sponsorBlockSettings) { _, newValue in
+            sponsorBlockSettings = newValue.clamped()
         }
         .onChange(of: danmakuConfig) { _, newValue in
             danmakuConfig = newValue.clamped()
@@ -689,6 +755,7 @@ struct VideoDetailPage: View {
         }
         .task {
             lastDanmakuPrefetchSegment = 0
+            sponsorBlockSettings = SponsorBlockSettingsStore.load()
             await bindableViewModel.loadVideoData()
 
             // 加载完成后启动历史上报
@@ -1173,6 +1240,62 @@ struct VideoDetailPage: View {
         return String(format: "%02d:%02d", m, r)
     }
 
+    private func handleSponsorSegmentPlayback(currentTime: TimeInterval, player: MPVKitPlayer) {
+        guard sponsorBlockSettings.isEnabled else {
+            manualSkipSegment = nil
+            return
+        }
+
+        let activeSegments = playableSponsorSegments.filter { segment in
+            currentTime >= segment.start && currentTime < segment.end
+        }
+
+        if let autoSegment = activeSegments.first(where: {
+            $0.behavior == .autoSkip && !skippedSponsorSegmentIDs.contains($0.id)
+        }) {
+            performAutoSponsorSkip(for: autoSegment, player: player)
+            return
+        }
+
+        if let manualSegment = activeSegments.first(where: {
+            $0.behavior == .manualSkip &&
+            !skippedSponsorSegmentIDs.contains($0.id) &&
+            !hiddenManualSponsorSegmentIDs.contains($0.id)
+        }) {
+            manualSkipSegment = manualSegment
+        } else {
+            manualSkipSegment = nil
+        }
+    }
+
+    private func performAutoSponsorSkip(for segment: PlaybackSponsorSegment, player: MPVKitPlayer) {
+        skippedSponsorSegmentIDs.insert(segment.id)
+        hiddenManualSponsorSegmentIDs.insert(segment.id)
+        manualSkipSegment = nil
+        toastMessage = "已自动跳过片段"
+        player.seek(to: segment.end)
+        Task {
+            await viewModel.preloadDanmakuIfNeeded(currentTime: segment.end)
+            await markSponsorSegmentIfNeeded(segment)
+        }
+    }
+
+    private func performManualSponsorSkip(for segment: PlaybackSponsorSegment, player: MPVKitPlayer) {
+        skippedSponsorSegmentIDs.insert(segment.id)
+        hiddenManualSponsorSegmentIDs.insert(segment.id)
+        manualSkipSegment = nil
+        player.seek(to: segment.end)
+        Task {
+            await viewModel.preloadDanmakuIfNeeded(currentTime: segment.end)
+            await markSponsorSegmentIfNeeded(segment)
+        }
+    }
+
+    private func markSponsorSegmentIfNeeded(_ segment: PlaybackSponsorSegment) async {
+        guard sponsorBlockSettings.shouldTrackSkipCount else { return }
+        await SponsorBlockAPI.markSegmentViewed(uuid: segment.uuid)
+    }
+
     private func activeSeekPreviewTime(duration: TimeInterval) -> TimeInterval? {
         if let horizontalSeekPreviewTime {
             return clampSeekTime(horizontalSeekPreviewTime, duration: duration)
@@ -1339,8 +1462,8 @@ struct VideoDetailPage: View {
         Task { @MainActor in
             viewModel.player?.refreshVideoOutput()
             // 多次刷新保证成功
-            // try? await Task.sleep(nanoseconds: 30000000)
-            // viewModel.player?.refreshVideoOutput()
+            try? await Task.sleep(nanoseconds: 80000000)
+            viewModel.player?.refreshVideoOutput()
             // try? await Task.sleep(nanoseconds: 30000000)
             // viewModel.player?.refreshVideoOutput()
         }
@@ -2418,7 +2541,7 @@ private func progressColorForCategory(_ category: String) -> Color? {
 private func fullSegmentBannerInfo(for category: String) -> (text: String, color: Color)? {
     switch category {
     case "exclusive_access":
-        return ("独家访问/抢先体验", .yellow)
+        return ("独家访问/抢先体验", .mint)
     case "sponsor":
         return ("赞助/恰饭", .green)
     case "selfpromo":

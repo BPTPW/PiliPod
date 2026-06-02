@@ -169,8 +169,10 @@ class VideoDetailViewModel {
                 self.initialSeekTime = playerInitialSeekTime
             }
 
-            Task {
-                await loadSkipSegments(cid: playbackCid)
+            if SponsorBlockSettingsStore.load().isEnabled {
+                Task {
+                    await loadSkipSegments(cid: playbackCid)
+                }
             }
 
             // 先加载第一包弹幕，供后续渲染层接入
