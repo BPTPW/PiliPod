@@ -499,16 +499,17 @@ struct VideoDetailPage: View {
                                         } label: {
                                             Text("跳过：\(manualSkipSegment.displayTitle)")
                                                 .font(.system(size: 13, weight: .semibold))
-                                                .foregroundStyle(.white)
+                                                .foregroundStyle(.primary)
                                                 .padding(.horizontal, 14)
                                                 .padding(.vertical, 9)
                                                 .glassEffect(
-                                                    .regular,
+                                                    .regular.interactive(),
                                                     in: Capsule()
                                                 )
                                         }
+                                        .tint(.primary)
                                         .padding(.leading, 16)
-                                        .padding(.bottom, max(geo.size.height / 3, 72))
+                                        .padding(.bottom, isFullscreen ? 120 : 50)
                                         .transition(.move(edge: .leading).combined(with: .opacity))
                                     }
                                 }
