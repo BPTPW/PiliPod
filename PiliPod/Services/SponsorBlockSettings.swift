@@ -298,4 +298,50 @@ enum SponsorBlockAPI {
 
         _ = try? await URLSession.shared.data(for: request)
     }
+
+    static func voteOnSegment(uuid: String, userID: String, type: Int) async throws {
+        guard let url = URL(string: "https://www.bsbsb.top/api/voteOnSponsorTime") else {
+            throw URLError(.badURL)
+        }
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.timeoutInterval = 8
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.httpBody = try JSONSerialization.data(withJSONObject: [
+            "UUID": uuid,
+            "userID": userID,
+            "type": type
+        ])
+
+        let (_, response) = try await URLSession.shared.data(for: request)
+        guard let httpResponse = response as? HTTPURLResponse,
+              httpResponse.statusCode == 200
+        else {
+            throw URLError(.badServerResponse)
+        }
+    }
+
+    static func changeSegmentCategory(uuid: String, userID: String, category: String) async throws {
+        guard let url = URL(string: "https://www.bsbsb.top/api/voteOnSponsorTime") else {
+            throw URLError(.badURL)
+        }
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.timeoutInterval = 8
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.httpBody = try JSONSerialization.data(withJSONObject: [
+            "UUID": uuid,
+            "userID": userID,
+            "category": category
+        ])
+
+        let (_, response) = try await URLSession.shared.data(for: request)
+        guard let httpResponse = response as? HTTPURLResponse,
+              httpResponse.statusCode == 200
+        else {
+            throw URLError(.badServerResponse)
+        }
+    }
 }
