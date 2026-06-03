@@ -51,3 +51,17 @@ struct SkipSegment: Codable, Identifiable {
         case description
     }
 }
+
+struct SubmittedSkipSegment: Codable, Identifiable {
+    let segmentID: String
+    let category: String
+    let segment: [Double]
+
+    var id: String { segmentID }
+
+    enum CodingKeys: String, CodingKey {
+        case segmentID = "UUID"
+        case category
+        case segment
+    }
+}

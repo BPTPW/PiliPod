@@ -193,6 +193,12 @@ struct SponsorBlockUserInfo: Codable {
     let viewCount: Int
 }
 
+struct SubmitSkipSegmentRequestItem {
+    let segment: [Double]
+    let category: String
+    let actionType: String
+}
+
 enum SponsorBlockServerStatus: Equatable {
     case idle
     case loading
@@ -380,5 +386,46 @@ enum SponsorBlockAPI {
         else {
             throw URLError(.badServerResponse)
         }
+    }
+
+    static func submitSegments(
+        videoID: String,
+        cid: String,
+        userID: String,
+        videoDuration: Double,
+        segments: [SubmitSkipSegmentRequestItem]
+    ) async throws -> [SubmittedSkipSegment] {
+        guard let url = URL(string: "https://www.bsbsb.top/api/skipSegments") else {
+            throw URLError(.badURL)
+        }
+
+        let payload: [String: Any] = [
+            "videoID": videoID,
+            "cid": cid,
+            "userID": userID,
+            "videoDuration": videoDuration,
+            "segments": segments.map { item in
+                [
+                    "segment": item.segment,
+                    "category": item.category,
+                    "actionType": item.actionType
+                ]
+            }
+        ]
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.timeoutInterval = 10
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.httpBody = try JSONSerialization.data(withJSONObject: payload)
+
+        let (data, response) = try await URLSession.shared.data(for: request)
+        guard let httpResponse = response as? HTTPURLResponse,
+              httpResponse.statusCode == 200
+        else {
+            throw URLError(.badServerResponse)
+        }
+
+        return try JSONDecoder().decode([SubmittedSkipSegment].self, from: data)
     }
 }

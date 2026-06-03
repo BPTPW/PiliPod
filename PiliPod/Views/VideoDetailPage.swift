@@ -13,6 +13,28 @@ import MediaPlayer
 #endif
 
 struct VideoDetailPage: View {
+    enum SponsorBlockDraftActionType: String, CaseIterable, Hashable {
+        case skip
+        case fill
+
+        var title: String {
+            switch self {
+            case .skip:
+                return "跳过"
+            case .fill:
+                return "整个视频"
+            }
+        }
+    }
+
+    struct SponsorBlockDraftSegment: Identifiable, Equatable {
+        let id = UUID()
+        var start: TimeInterval = 0
+        var end: TimeInterval = 0
+        var category: SponsorBlockCategory = .sponsor
+        var actionType: SponsorBlockDraftActionType = .skip
+    }
+
     private struct PlaybackSponsorSegment: Identifiable, Equatable {
         let id: String
         let uuid: String
@@ -81,6 +103,11 @@ struct VideoDetailPage: View {
     @State private var showsSponsorList = false
     @State private var sponsorSegmentVotes: [String: SponsorBlockVoteSelection] = [:]
     @State private var sponsorSegmentCategoryOverrides: [String: SponsorBlockCategory] = [:]
+    @State private var showsSponsorSubmitSheet = false
+    @State private var sponsorDraftSegments: [SponsorBlockDraftSegment] = []
+    @State private var sponsorSubmitErrorText: String?
+    @State private var sponsorIsSubmitting = false
+    @State private var previewDraftSegmentID: SponsorBlockDraftSegment.ID?
 
     let video: VideoItem
     let namespace: Namespace.ID
@@ -160,6 +187,11 @@ struct VideoDetailPage: View {
 
     private var showsSponsorInfoButton: Bool {
         sponsorBlockSettings.isEnabled && !allSponsorSegments.isEmpty
+    }
+
+    private var previewDraftSegment: SponsorBlockDraftSegment? {
+        guard let previewDraftSegmentID else { return nil }
+        return sponsorDraftSegments.first(where: { $0.id == previewDraftSegmentID })
     }
 
     private var resolvedVideoDuration: TimeInterval {
@@ -441,6 +473,11 @@ struct VideoDetailPage: View {
                                         onShowSponsorSegments: {
                                             showsSponsorList.toggle()
                                         },
+                                        onShowSponsorSubmit: {
+                                            withAnimation(.spring(response: 0.32, dampingFraction: 0.88)) {
+                                                openSponsorSubmitDrawer()
+                                            }
+                                        },
                                         isFullscreen: isFullscreen,
                                         isFullscreenDanmakuPanelVisible: isFullscreenDanmakuPanelVisible,
                                         qualityOptions: bindableViewModel.qualityOptions,
@@ -679,8 +716,75 @@ struct VideoDetailPage: View {
                     }
 
                     if !isFullscreen {
-                        tabBar
-                        tabContent
+                        ZStack(alignment: .bottom) {
+                            VStack(spacing: 0) {
+                                tabBar
+                                tabContent
+                            }
+
+                            if let player = bindableViewModel.player, showsSponsorSubmitSheet {
+                                SponsorBlockSubmitDrawer(
+                                    segments: $sponsorDraftSegments,
+                                    errorText: sponsorSubmitErrorText,
+                                    isSubmitting: sponsorIsSubmitting,
+                                    currentPlayerTime: player.currentTime,
+                                    videoDuration: max(player.duration, resolvedVideoDuration),
+                                    onClose: {
+                                        withAnimation(.spring(response: 0.32, dampingFraction: 0.88)) {
+                                            showsSponsorSubmitSheet = false
+                                        }
+                                    },
+                                    onSubmit: {
+                                        submitSponsorDraftSegments()
+                                    },
+                                    onSetStartToCurrent: { id in
+                                        updateSponsorDraftSegment(id: id) { draft in
+                                            draft.start = player.currentTime
+                                            if draft.end < draft.start {
+                                                draft.end = draft.start
+                                            }
+                                        }
+                                    },
+                                    onSetEndToCurrent: { id in
+                                        updateSponsorDraftSegment(id: id) { draft in
+                                            draft.end = player.currentTime
+                                            if draft.end < draft.start {
+                                                draft.start = draft.end
+                                            }
+                                        }
+                                    },
+                                    onSetStartToBoundary: { id in
+                                        updateSponsorDraftSegment(id: id) { draft in
+                                            draft.start = 0
+                                            if draft.end < draft.start {
+                                                draft.end = draft.start
+                                            }
+                                        }
+                                    },
+                                    onSetEndToBoundary: { id in
+                                        updateSponsorDraftSegment(id: id) { draft in
+                                            let end = max(player.duration, resolvedVideoDuration)
+                                            draft.end = end
+                                            if draft.end < draft.start {
+                                                draft.start = draft.end
+                                            }
+                                        }
+                                    },
+                                    onPreview: { id in
+                                        previewSponsorDraftSegment(id: id, player: player)
+                                    },
+                                    onDelete: { id in
+                                        removeSponsorDraftSegment(id: id)
+                                    },
+                                    onAddSegment: {
+                                        sponsorDraftSegments.append(SponsorBlockDraftSegment())
+                                    }
+                                )
+                                .transition(.move(edge: .bottom).combined(with: .opacity))
+                                .zIndex(1)
+                            }
+                        }
+                        .animation(.spring(response: 0.32, dampingFraction: 0.88), value: showsSponsorSubmitSheet)
                     }
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: isFullscreen ? .center : .top)
@@ -798,6 +902,11 @@ struct VideoDetailPage: View {
             showsSponsorList = false
             sponsorSegmentVotes = [:]
             sponsorSegmentCategoryOverrides = [:]
+            showsSponsorSubmitSheet = false
+            sponsorDraftSegments = []
+            sponsorSubmitErrorText = nil
+            sponsorIsSubmitting = false
+            previewDraftSegmentID = nil
             ensureSponsorSegmentsLoadedIfNeeded()
 #if canImport(UIKit)
             setIdleTimerDisabled(bindableViewModel.player?.isPlaying == true)
@@ -1302,6 +1411,21 @@ struct VideoDetailPage: View {
     }
 
     private func handleSponsorSegmentPlayback(currentTime: TimeInterval, player: MPVKitPlayer) {
+        if let previewDraftSegment {
+            if previewDraftSegment.actionType == .skip,
+               currentTime >= previewDraftSegment.start,
+               currentTime < previewDraftSegment.end
+            {
+                previewDraftSegmentID = nil
+                player.seek(to: previewDraftSegment.end)
+                return
+            }
+
+            if currentTime >= previewDraftSegment.end {
+                previewDraftSegmentID = nil
+            }
+        }
+
         guard sponsorBlockSettings.isEnabled else {
             manualSkipSegment = nil
             return
@@ -1433,6 +1557,101 @@ struct VideoDetailPage: View {
 
         Task { @MainActor in
             await viewModel.loadSkipSegments()
+        }
+    }
+
+    private func openSponsorSubmitDrawer() {
+        if sponsorDraftSegments.isEmpty {
+            sponsorDraftSegments = [SponsorBlockDraftSegment()]
+        }
+        sponsorSubmitErrorText = nil
+        showsSponsorSubmitSheet = true
+    }
+
+    private func updateSponsorDraftSegment(
+        id: SponsorBlockDraftSegment.ID,
+        mutate: (inout SponsorBlockDraftSegment) -> Void
+    ) {
+        guard let index = sponsorDraftSegments.firstIndex(where: { $0.id == id }) else { return }
+        var draft = sponsorDraftSegments[index]
+        mutate(&draft)
+        draft.start = max(0, draft.start)
+        draft.end = max(0, draft.end)
+        sponsorDraftSegments[index] = draft
+    }
+
+    private func removeSponsorDraftSegment(id: SponsorBlockDraftSegment.ID) {
+        sponsorDraftSegments.removeAll { $0.id == id }
+        if sponsorDraftSegments.isEmpty {
+            sponsorDraftSegments = [SponsorBlockDraftSegment()]
+        }
+        if previewDraftSegmentID == id {
+            previewDraftSegmentID = nil
+        }
+    }
+
+    private func previewSponsorDraftSegment(id: SponsorBlockDraftSegment.ID, player: MPVKitPlayer) {
+        guard let draft = sponsorDraftSegments.first(where: { $0.id == id }) else { return }
+        previewDraftSegmentID = id
+        player.seek(to: max(0, draft.start - 3))
+        player.resume()
+    }
+
+    private func submitSponsorDraftSegments() {
+        guard let userID = sponsorBlockSettings.userID, !userID.isEmpty else {
+            sponsorSubmitErrorText = "缺少用户ID"
+            return
+        }
+
+        let cidValue = viewModel.cid > 0 ? String(viewModel.cid) : String(video.cid ?? 0)
+        guard !cidValue.isEmpty, cidValue != "0" else {
+            sponsorSubmitErrorText = "缺少CID"
+            return
+        }
+
+        let duration = max(resolvedVideoDuration, viewModel.player?.duration ?? 0)
+        guard duration > 0 else {
+            sponsorSubmitErrorText = "视频时长无效"
+            return
+        }
+
+        let payload = sponsorDraftSegments.map { draft in
+            SubmitSkipSegmentRequestItem(
+                segment: [min(draft.start, draft.end), max(draft.start, draft.end)],
+                category: draft.category.rawValue,
+                actionType: draft.actionType.rawValue
+            )
+        }
+
+        sponsorIsSubmitting = true
+        sponsorSubmitErrorText = nil
+
+        Task {
+            do {
+                _ = try await SponsorBlockAPI.submitSegments(
+                    videoID: video.bvid,
+                    cid: cidValue,
+                    userID: userID,
+                    videoDuration: duration,
+                    segments: payload
+                )
+                await MainActor.run {
+                    sponsorIsSubmitting = false
+                    sponsorDraftSegments = [SponsorBlockDraftSegment()]
+                    previewDraftSegmentID = nil
+                    withAnimation(.spring(response: 0.32, dampingFraction: 0.88)) {
+                        showsSponsorSubmitSheet = false
+                    }
+                    Task { @MainActor in
+                        await viewModel.loadSkipSegments()
+                    }
+                }
+            } catch {
+                await MainActor.run {
+                    sponsorIsSubmitting = false
+                    sponsorSubmitErrorText = error.localizedDescription
+                }
+            }
         }
     }
 
@@ -2388,6 +2607,7 @@ private struct PlayerControlsOverlay: View {
 
     let onShowDanmakuSettings: () -> Void
     let onShowSponsorSegments: () -> Void
+    let onShowSponsorSubmit: () -> Void
     let isFullscreen: Bool
     let isFullscreenDanmakuPanelVisible: Bool
     let qualityOptions: [VideoQualityOption]
@@ -2444,25 +2664,44 @@ private struct PlayerControlsOverlay: View {
 
             Spacer()
 
-            if showsSponsorButton {
-                if showsSponsorInfoButton {
-                    Button(action: {
-                        onUserInteracted()
-                        onShowSponsorSegments()
-                    }) {
-                        Image("SponsorBlockerInfo")
-                            .renderingMode(.template)
-                            .resizable()
-                            .scaledToFit()
-                            .frame(width: 16, height: 16)
-                            .foregroundColor(.primary)
-                            .frame(width: 32, height: 32)
-                    }
-                    .glassEffect(
-                        .regular.interactive(),
-                        in: .circle
-                    )
+            // 空降助手-标记片段 按钮
+            if showsSponsorButton && !isFullscreen {
+                Button(action: {
+                    onUserInteracted()
+                    onShowSponsorSubmit()
+                }) {
+                    Image("SponsorBlockerStart")
+                        .renderingMode(.template)
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: 16, height: 16)
+                        .foregroundColor(.primary)
+                        .frame(width: 32, height: 32)
                 }
+                .glassEffect(
+                    .regular.interactive(),
+                    in: .circle
+                )
+            }
+            
+            // 空降助手-列表 按钮
+            if showsSponsorButton && showsSponsorInfoButton {
+                Button(action: {
+                    onUserInteracted()
+                    onShowSponsorSegments()
+                }) {
+                    Image("SponsorBlockerInfo")
+                        .renderingMode(.template)
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: 16, height: 16)
+                        .foregroundColor(.primary)
+                        .frame(width: 32, height: 32)
+                }
+                .glassEffect(
+                    .regular.interactive(),
+                    in: .circle
+                )
             }
             
             if !isFullscreen {
@@ -2670,152 +2909,7 @@ private struct PlayerControlsOverlay: View {
     }
 
 }
-
 // MARK: - 视频进度条 (Segment-Friendly)
-
-private enum SponsorBlockVoteSelection: Equatable {
-    case none
-    case upvoted
-    case downvoted
-}
-
-private struct SponsorBlockSegmentsSheet: View {
-    let segments: [SkipSegment]
-    let settings: SponsorBlockSettings
-    let categoryOverrides: [String: SponsorBlockCategory]
-    let voteSelections: [String: SponsorBlockVoteSelection]
-    let onVote: (SkipSegment, SponsorBlockVoteSelection) -> Void
-    let onChangeCategory: (SkipSegment, SponsorBlockCategory) -> Void
-    let onSkipToSegmentEnd: (SkipSegment) -> Void
-
-    var body: some View {
-        List {
-            if segments.isEmpty {
-                ContentUnavailableView("暂无片段", systemImage: "list.bullet.rectangle")
-            } else {
-                ForEach(segments) { segment in
-                    SponsorBlockSegmentRow(
-                        segment: segment,
-                        category: categoryOverrides[segment.segmentID] ?? SponsorBlockCategory(rawValue: segment.category),
-                        behaviorTitle: behaviorTitle(for: segment),
-                        voteSelection: voteSelections[segment.segmentID] ?? .none,
-                        onVote: { vote in
-                            onVote(segment, vote)
-                        },
-                        onChangeCategory: { category in
-                            onChangeCategory(segment, category)
-                        },
-                        onSkip: {
-                            onSkipToSegmentEnd(segment)
-                        }
-                    )
-                    .listRowInsets(EdgeInsets(top: 6, leading: 16, bottom: 6, trailing: 16))
-                    .listRowBackground(Color.clear)
-                }
-            }
-        }
-        .navigationTitle("空降助手片段")
-        .navigationBarTitleDisplayMode(.inline)
-        .listStyle(.plain)
-    }
-
-    private func behaviorTitle(for segment: SkipSegment) -> String {
-        guard let category = categoryOverrides[segment.segmentID] ?? SponsorBlockCategory(rawValue: segment.category) else {
-            return "未知"
-        }
-        return settings.behavior(for: category).title
-    }
-}
-
-private struct SponsorBlockSegmentRow: View {
-    let segment: SkipSegment
-    let category: SponsorBlockCategory?
-    let behaviorTitle: String
-    let voteSelection: SponsorBlockVoteSelection
-    let onVote: (SponsorBlockVoteSelection) -> Void
-    let onChangeCategory: (SponsorBlockCategory) -> Void
-    let onSkip: () -> Void
-
-    var body: some View {
-        HStack(alignment: .center, spacing: 12) {
-            VStack(alignment: .leading, spacing: 6) {
-                if let category {
-                    Text(category.title)
-                        .font(.system(size: 13, weight: .semibold))
-                        .foregroundStyle(.white)
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 5)
-                        .glassEffect(
-                            .regular.tint(category.color),
-                            in: RoundedRectangle(cornerRadius: 10, style: .continuous)
-                        )
-                } else {
-                    Text(segment.category)
-                        .font(.system(size: 11, weight: .semibold))
-                        .foregroundStyle(.primary)
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 5)
-                        .glassEffect(
-                            .regular.tint(.gray),
-                            in: RoundedRectangle(cornerRadius: 10, style: .continuous)
-                        )
-                }
-
-                Text(segmentTimeText)
-                    .font(.system(size: 11, weight: .medium, design: .monospaced))
-                    .foregroundStyle(.primary.opacity(0.8))
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-
-            Text(behaviorTitle)
-                .font(.system(size: 13, weight: .medium))
-                .foregroundStyle(.primary.opacity(0.85))
-
-            Button {
-                onVote(.upvoted)
-            } label: {
-                Image(systemName: voteSelection == .upvoted ? "hand.thumbsup.fill" : "hand.thumbsup")
-                    .foregroundStyle(voteSelection == .upvoted ? Color("BiliPink") : .primary)
-            }
-            .buttonStyle(.plain)
-
-            Button {
-                onVote(.downvoted)
-            } label: {
-                Image(systemName: voteSelection == .downvoted ? "hand.thumbsdown.fill" : "hand.thumbsdown")
-                    .foregroundStyle(voteSelection == .downvoted ? Color("BiliPink") : .primary)
-            }
-            .buttonStyle(.plain)
-
-            Menu {
-                ForEach(SponsorBlockCategory.allCases) { category in
-                    Button(category.title) {
-                        onChangeCategory(category)
-                    }
-                }
-            } label: {
-                Image(systemName: "arrow.trianglehead.2.clockwise")
-                    .foregroundStyle(.primary)
-            }
-            .tint(.primary)
-            .buttonStyle(.plain)
-
-            Button(action: onSkip) {
-                Image(systemName: "forward.end")
-                    .foregroundStyle(.primary)
-            }
-            .buttonStyle(.plain)
-        }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 10)
-    }
-
-    private var segmentTimeText: String {
-        let start = segment.segment.first ?? 0
-        let end = segment.segment.count >= 2 ? segment.segment[1] : start
-        return "\(formatSegmentTime(start)) 至 \(formatSegmentTime(end))"
-    }
-}
 
 private func progressColorForCategory(_ category: String) -> Color? {
     switch category {
@@ -2873,7 +2967,7 @@ private func fullSegmentBannerInfo(for category: String) -> (text: String, color
     }
 }
 
-private func formatSegmentTime(_ seconds: TimeInterval) -> String {
+func formatSegmentTime(_ seconds: TimeInterval) -> String {
     let safeSeconds = max(0, Int(seconds.rounded(.down)))
     let hours = safeSeconds / 3600
     let minutes = (safeSeconds % 3600) / 60
