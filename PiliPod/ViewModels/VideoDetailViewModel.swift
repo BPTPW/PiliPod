@@ -459,7 +459,7 @@ class VideoDetailViewModel {
         skipSegmentsError = nil
 
         do {
-            let segments = try await BiliAPI.shared.fetchSkipSegments(
+            let segments = try await SponsorBlockAPI.fetchSkipSegments(
                 videoID: bvid,
                 cid: targetCid > 0 ? targetCid : nil
             )

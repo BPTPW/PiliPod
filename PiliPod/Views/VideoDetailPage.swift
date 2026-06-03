@@ -78,7 +78,7 @@ struct VideoDetailPage: View {
     @State private var skippedSponsorSegmentIDs: Set<String> = []
     @State private var hiddenManualSponsorSegmentIDs: Set<String> = []
     @State private var manualSkipSegment: PlaybackSponsorSegment?
-    @State private var isSponsorSegmentsDrawerVisible = false
+    @State private var showsSponsorList = false
     @State private var sponsorSegmentVotes: [String: SponsorBlockVoteSelection] = [:]
     @State private var sponsorSegmentCategoryOverrides: [String: SponsorBlockCategory] = [:]
 
@@ -152,6 +152,14 @@ struct VideoDetailPage: View {
             }
             return lhsStart < rhsStart
         }
+    }
+
+    private var showsSponsorButton: Bool {
+        sponsorBlockSettings.isEnabled
+    }
+
+    private var showsSponsorInfoButton: Bool {
+        sponsorBlockSettings.isEnabled && !allSponsorSegments.isEmpty
     }
 
     private var resolvedVideoDuration: TimeInterval {
@@ -431,7 +439,7 @@ struct VideoDetailPage: View {
                                             }
                                         },
                                         onShowSponsorSegments: {
-                                            isSponsorSegmentsDrawerVisible.toggle()
+                                            showsSponsorList.toggle()
                                         },
                                         isFullscreen: isFullscreen,
                                         isFullscreenDanmakuPanelVisible: isFullscreenDanmakuPanelVisible,
@@ -439,7 +447,8 @@ struct VideoDetailPage: View {
                                         selectedQualityCode: bindableViewModel.selectedQualityCode,
                                         selectedPlaybackRate: bindableViewModel.selectedPlaybackRate,
                                         isVisible: controlsVisible,
-                                        showsSponsorButton: sponsorBlockSettings.isEnabled,
+                                        showsSponsorButton: showsSponsorButton,
+                                        showsSponsorInfoButton: showsSponsorInfoButton,
                                         currentTime: player.currentTime,
                                         duration: player.duration,
                                         bufferedUntil: player.bufferedUntil,
@@ -730,7 +739,7 @@ struct VideoDetailPage: View {
                     )
                     .presentationDetents([.medium, .large])
                 }
-                .sheet(isPresented: $isSponsorSegmentsDrawerVisible) {
+                .sheet(isPresented: $showsSponsorList) {
                     NavigationStack {
                         SponsorBlockSegmentsSheet(
                             segments: allSponsorSegments,
@@ -786,7 +795,7 @@ struct VideoDetailPage: View {
             skippedSponsorSegmentIDs = []
             hiddenManualSponsorSegmentIDs = []
             manualSkipSegment = nil
-            isSponsorSegmentsDrawerVisible = false
+            showsSponsorList = false
             sponsorSegmentVotes = [:]
             sponsorSegmentCategoryOverrides = [:]
             ensureSponsorSegmentsLoadedIfNeeded()
@@ -2386,6 +2395,7 @@ private struct PlayerControlsOverlay: View {
     let selectedPlaybackRate: Double
     let isVisible: Bool
     let showsSponsorButton: Bool
+    let showsSponsorInfoButton: Bool
     let currentTime: TimeInterval
     let duration: TimeInterval
     let bufferedUntil: TimeInterval
@@ -2435,22 +2445,24 @@ private struct PlayerControlsOverlay: View {
             Spacer()
 
             if showsSponsorButton {
-                Button(action: {
-                    onUserInteracted()
-                    onShowSponsorSegments()
-                }) {
-                    Image("SponsorBlockerInfo")
-                        .renderingMode(.template)
-                        .resizable()
-                        .scaledToFit()
-                        .frame(width: 16, height: 16)
-                        .foregroundColor(.primary)
-                        .frame(width: 32, height: 32)
+                if showsSponsorInfoButton {
+                    Button(action: {
+                        onUserInteracted()
+                        onShowSponsorSegments()
+                    }) {
+                        Image("SponsorBlockerInfo")
+                            .renderingMode(.template)
+                            .resizable()
+                            .scaledToFit()
+                            .frame(width: 16, height: 16)
+                            .foregroundColor(.primary)
+                            .frame(width: 32, height: 32)
+                    }
+                    .glassEffect(
+                        .regular.interactive(),
+                        in: .circle
+                    )
                 }
-                .glassEffect(
-                    .regular.interactive(),
-                    in: .circle
-                )
             }
             
             if !isFullscreen {
