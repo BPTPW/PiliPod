@@ -1332,43 +1332,6 @@ class BiliAPI {
         return try Bilibili_Community_Service_Dm_V1_DmSegMobileReply(serializedBytes: data)
     }
 
-    // MARK: - 获取 SponsorBlock 跳过片段
-
-    func fetchSkipSegments(
-        videoID: String,
-        cid: Int? = nil
-    ) async throws -> [SkipSegment] {
-        var components = URLComponents(
-            string: "https://www.bsbsb.top/api/skipSegments"
-        )
-        var queryItems = [URLQueryItem(name: "videoID", value: videoID)]
-        if let cid, cid > 0 {
-            queryItems.append(URLQueryItem(name: "cid", value: String(cid)))
-        }
-        components?.queryItems = queryItems
-
-        guard let url = components?.url else {
-            throw APIError.invalidURL
-        }
-
-        let request = makeRequest(url: url)
-        let (data, response) = try await URLSession.shared.data(for: request)
-
-        guard let httpResponse = response as? HTTPURLResponse else {
-            throw APIError.requestFailed
-        }
-
-        if httpResponse.statusCode == 404 {
-            return []
-        }
-
-        guard (200 ... 299).contains(httpResponse.statusCode) else {
-            throw APIError.requestFailed
-        }
-
-        return try JSONDecoder().decode([SkipSegment].self, from: data)
-    }
-
     // sign 创建
 
     private func generateSign(for parameters: [String: String]) -> String {

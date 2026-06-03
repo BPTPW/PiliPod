@@ -231,6 +231,43 @@ enum SponsorBlockServerStatus: Equatable {
 }
 
 enum SponsorBlockAPI {
+    static func fetchSkipSegments(
+        videoID: String,
+        cid: Int? = nil
+    ) async throws -> [SkipSegment] {
+        guard var components = URLComponents(string: "https://www.bsbsb.top/api/skipSegments") else {
+            throw URLError(.badURL)
+        }
+
+        var queryItems = [URLQueryItem(name: "videoID", value: videoID)]
+        if let cid, cid > 0 {
+            queryItems.append(URLQueryItem(name: "cid", value: String(cid)))
+        }
+        components.queryItems = queryItems
+
+        guard let url = components.url else {
+            throw URLError(.badURL)
+        }
+
+        var request = URLRequest(url: url)
+        request.timeoutInterval = 8
+
+        let (data, response) = try await URLSession.shared.data(for: request)
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw URLError(.badServerResponse)
+        }
+
+        if httpResponse.statusCode == 404 {
+            return []
+        }
+
+        guard (200 ... 299).contains(httpResponse.statusCode) else {
+            throw URLError(.badServerResponse)
+        }
+
+        return try JSONDecoder().decode([SkipSegment].self, from: data)
+    }
+
     static func fetchStatus() async -> SponsorBlockServerStatus {
         guard let url = URL(string: "https://www.bsbsb.top/api/status/") else {
             return .failed
