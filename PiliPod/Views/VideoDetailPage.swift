@@ -2765,6 +2765,7 @@ private struct SponsorBlockSegmentRow: View {
                 Image(systemName: voteSelection == .upvoted ? "hand.thumbsup.fill" : "hand.thumbsup")
                     .foregroundStyle(voteSelection == .upvoted ? Color("BiliPink") : .primary)
             }
+            .buttonStyle(.plain)
 
             Button {
                 onVote(.downvoted)
@@ -2772,6 +2773,7 @@ private struct SponsorBlockSegmentRow: View {
                 Image(systemName: voteSelection == .downvoted ? "hand.thumbsdown.fill" : "hand.thumbsdown")
                     .foregroundStyle(voteSelection == .downvoted ? Color("BiliPink") : .primary)
             }
+            .buttonStyle(.plain)
 
             Menu {
                 ForEach(SponsorBlockCategory.allCases) { category in
@@ -2784,11 +2786,13 @@ private struct SponsorBlockSegmentRow: View {
                     .foregroundStyle(.primary)
             }
             .tint(.primary)
+            .buttonStyle(.plain)
 
             Button(action: onSkip) {
                 Image(systemName: "forward.end")
                     .foregroundStyle(.primary)
             }
+            .buttonStyle(.plain)
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 10)
