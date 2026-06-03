@@ -2303,7 +2303,7 @@ private struct PlayerControlsOverlay: View {
             Spacer()
 
             if !isFullscreen {
-                // 弹幕设置按钮
+                // 右上角弹幕设置按钮
                 Button(action: {
                     onUserInteracted()
                     onShowDanmakuSettings()
@@ -2321,23 +2321,21 @@ private struct PlayerControlsOverlay: View {
                     in: .circle
                 )
             }
-
-            if !isFullscreen {
-                // 右上角更多
-                Button(action: {
-                    onUserInteracted()
-                    showDebugPanel.toggle()
-                }) {
-                    Image(systemName: "ellipsis")
-                        .font(.system(size: 16, weight: .semibold))
-                        .foregroundColor(.primary)
-                        .frame(width: 40, height: 40)
-                }
-                .glassEffect(
-                    .regular.interactive(),
-                    in: .circle
-                )
+            
+            // 右上角更多
+            Button(action: {
+                onUserInteracted()
+                showDebugPanel.toggle()
+            }) {
+                Image(systemName: "ellipsis")
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundColor(.primary)
+                    .frame(width: 40, height: 40)
             }
+            .glassEffect(
+                .regular.interactive(),
+                in: .circle
+            )
         }
         .padding(12)
     }
