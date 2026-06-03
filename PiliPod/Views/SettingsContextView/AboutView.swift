@@ -6,10 +6,12 @@ import UIKit
 
 struct AboutView: View {
     @ObservedObject private var loginSession = LoginSession.shared
+    @State private var showSettingsImportSheet = false
     @State private var showExportSheet = false
-    @State private var exportDocument = LoginExportDocument(data: Data())
-    @State private var exportFilename = "BiliPod-login.json"
+    @State private var exportDocument = JSONExportDocument(data: Data())
+    @State private var exportFilename = "PiliPod-export.json"
     @State private var exportErrorMessage: String?
+    @State private var settingsTransferMessage: String?
 
     var body: some View {
         List {
@@ -51,10 +53,40 @@ struct AboutView: View {
                 .foregroundStyle(.primary)
                 .disabled(!loginSession.isLogin)
             }
+
+            Section {
+                Button("导入设置数据") {
+                    showSettingsImportSheet = true
+                }
+                .foregroundStyle(.primary)
+
+                Button("导出设置数据") {
+                    prepareSettingsExport()
+                }
+                .foregroundStyle(.primary)
+            } header: {
+                Text("设置数据")
+            }
         }
         .navigationTitle("关于")
         .navigationBarTitleDisplayMode(.inline)
         .listStyle(.insetGrouped)
+        .fileImporter(
+            isPresented: $showSettingsImportSheet,
+            allowedContentTypes: [.json]
+        ) { result in
+            switch result {
+            case .success(let url):
+                do {
+                    try AppSettingsBackupService.importFrom(url: url)
+                    settingsTransferMessage = "设置已导入。当前打开的设置页可能需要重新进入后刷新显示。"
+                } catch {
+                    settingsTransferMessage = error.localizedDescription
+                }
+            case .failure(let error):
+                settingsTransferMessage = error.localizedDescription
+            }
+        }
         .fileExporter(
             isPresented: $showExportSheet,
             document: exportDocument,
@@ -73,6 +105,14 @@ struct AboutView: View {
         } message: {
             Text(exportErrorMessage ?? "未知错误")
         }
+        .alert("设置数据", isPresented: Binding(
+            get: { settingsTransferMessage != nil },
+            set: { if !$0 { settingsTransferMessage = nil } }
+        )) {
+            Button("确定", role: .cancel) {}
+        } message: {
+            Text(settingsTransferMessage ?? "未知错误")
+        }
     }
 
     private var appName: String {
@@ -89,6 +129,17 @@ struct AboutView: View {
 
     private var sourceRepositoryURL: URL {
         URL(string: "https://github.com/BPTPW/PiliPod/")!
+    }
+
+    private func prepareSettingsExport() {
+        do {
+            let data = try AppSettingsBackupService.exportData()
+            exportDocument = JSONExportDocument(data: data)
+            exportFilename = "PiliPod-settings.json"
+            showExportSheet = true
+        } catch {
+            settingsTransferMessage = error.localizedDescription
+        }
     }
 
     private func prepareLoginExport() {
@@ -122,7 +173,7 @@ struct AboutView: View {
                 withJSONObject: payload,
                 options: [.prettyPrinted, .sortedKeys]
             )
-            exportDocument = LoginExportDocument(data: data)
+            exportDocument = JSONExportDocument(data: data)
             exportFilename = "bili_login_\(uid).json"
             showExportSheet = true
         } catch {
@@ -169,7 +220,7 @@ private struct AppIconPreview: View {
 #endif
 }
 
-private struct LoginExportDocument: FileDocument {
+private struct JSONExportDocument: FileDocument {
     static var readableContentTypes: [UTType] { [.json] }
 
     let data: Data
