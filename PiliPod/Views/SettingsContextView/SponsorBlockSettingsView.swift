@@ -57,6 +57,11 @@ private struct SponsorBlockSettingsView: View {
                 Text(footerText)
             }
 
+            Section {
+                Toggle("跳过提示", isOn: $settings.showsSkipToast)
+                    .tint(Color("BiliPink"))
+            }
+
             Section("您的数据") {
                 if isLoadingUserInfo {
                     HStack {

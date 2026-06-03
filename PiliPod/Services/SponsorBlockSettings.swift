@@ -121,6 +121,7 @@ enum SponsorBlockCategory: String, Codable, CaseIterable, Hashable, Identifiable
 struct SponsorBlockSettings: Codable, Equatable {
     var isEnabled = false
     var shouldTrackSkipCount = true
+    var showsSkipToast = true
     var userID: String?
     var behaviors: [String: SponsorBlockSegmentBehavior] = [:]
 

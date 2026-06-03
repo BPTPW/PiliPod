@@ -1273,7 +1273,9 @@ struct VideoDetailPage: View {
         skippedSponsorSegmentIDs.insert(segment.id)
         hiddenManualSponsorSegmentIDs.insert(segment.id)
         manualSkipSegment = nil
-        toastMessage = "已自动跳过片段"
+        if sponsorBlockSettings.showsSkipToast {
+            toastMessage = "已自动跳过片段"
+        }
         player.seek(to: segment.end)
         Task {
             await viewModel.preloadDanmakuIfNeeded(currentTime: segment.end)
