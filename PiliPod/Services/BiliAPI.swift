@@ -1376,6 +1376,31 @@ class BiliAPI {
         }
     }
 
+    func fetchWatchLaterList() async throws -> WatchLaterData {
+        guard let url = URL(string: "https://api.bilibili.com/x/v2/history/toview") else {
+            throw APIError.invalidURL
+        }
+
+        let request = makeRequest(url: url)
+        let (data, response) = try await URLSession.shared.data(for: request)
+
+        guard let httpResponse = response as? HTTPURLResponse,
+              (200 ... 299).contains(httpResponse.statusCode)
+        else {
+            throw APIError.requestFailed
+        }
+
+        let decoded = try JSONDecoder().decode(WatchLaterResponse.self, from: data)
+        guard decoded.code == 0 else {
+            throw APIError.businessError(code: decoded.code, message: decoded.message)
+        }
+        guard let watchLaterData = decoded.data else {
+            throw APIError.requestFailed
+        }
+
+        return watchLaterData
+    }
+
     // MARK: - 播放链接
 
     func fetchPlayUrl(
