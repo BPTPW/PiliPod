@@ -8,8 +8,8 @@
 import Observation
 import SwiftUI
 #if canImport(UIKit)
-import UIKit
 import MediaPlayer
+import UIKit
 #endif
 
 struct VideoDetailPage: View {
@@ -389,7 +389,7 @@ struct VideoDetailPage: View {
                                             }
                                         }
                                         .onEnded { _ in
-                                            if dragInteractionMode == .horizontalSeek && isHorizontalSeeking {
+                                            if dragInteractionMode == .horizontalSeek, isHorizontalSeeking {
                                                 if let seekTarget = horizontalSeekPreviewTime {
                                                     player.seek(to: seekTarget)
                                                     Task {
@@ -1444,8 +1444,8 @@ struct VideoDetailPage: View {
 
         if let manualSegment = activeSegments.first(where: {
             $0.behavior == .manualSkip &&
-            !skippedSponsorSegmentIDs.contains($0.id) &&
-            !hiddenManualSponsorSegmentIDs.contains($0.id)
+                !skippedSponsorSegmentIDs.contains($0.id) &&
+                !hiddenManualSponsorSegmentIDs.contains($0.id)
         }) {
             manualSkipSegment = manualSegment
         } else {
@@ -2032,7 +2032,7 @@ private struct VideoActionButton: View {
     ) {
         self.title = title
         self.systemImage = systemImage
-        self.assetImage = nil
+        assetImage = nil
         self.isActive = isActive
         self.isDisabled = isDisabled
         self.onTap = onTap
@@ -2046,7 +2046,7 @@ private struct VideoActionButton: View {
         onTap: @escaping () -> Void
     ) {
         self.title = title
-        self.systemImage = nil
+        systemImage = nil
         self.assetImage = assetImage
         self.isActive = isActive
         self.isDisabled = isDisabled
@@ -2683,7 +2683,7 @@ private struct PlayerControlsOverlay: View {
                     in: .circle
                 )
             }
-            
+
             // 空降助手-列表 按钮
             if showsSponsorButton && showsSponsorInfoButton {
                 Button(action: {
@@ -2703,7 +2703,7 @@ private struct PlayerControlsOverlay: View {
                     in: .circle
                 )
             }
-            
+
             if !isFullscreen {
                 // 右上角弹幕设置按钮
                 Button(action: {
@@ -2723,7 +2723,7 @@ private struct PlayerControlsOverlay: View {
                     in: .circle
                 )
             }
-            
+
             // 右上角更多
             Button(action: {
                 onUserInteracted()
@@ -2907,8 +2907,8 @@ private struct PlayerControlsOverlay: View {
         let r = s % 60
         return String(format: "%02d:%02d", m, r)
     }
-
 }
+
 // MARK: - 视频进度条 (Segment-Friendly)
 
 private func progressColorForCategory(_ category: String) -> Color? {

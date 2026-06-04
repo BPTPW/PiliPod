@@ -150,7 +150,7 @@ struct MyView: View {
                 Spacer()
             }
             .padding(.top, 2)
-        }else{
+        } else {
             HStack {
                 Spacer()
                 statItem(value: 0, title: "动态")
@@ -211,7 +211,7 @@ struct MyView: View {
         if money.rounded() == money {
             return String(Int(money))
         }
-        return money.formatted(.number.precision(.fractionLength(0...1)))
+        return money.formatted(.number.precision(.fractionLength(0 ... 1)))
     }
 
     private func statItem(value: Int, title: String) -> some View {

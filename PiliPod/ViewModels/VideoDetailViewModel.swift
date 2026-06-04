@@ -43,6 +43,7 @@ class VideoDetailViewModel {
     var fullSegments: [SkipSegment] {
         skipSegments.filter { $0.actionType == "full" }
     }
+
     private var loadedDanmakuSegments: Set<Int> = []
     private var loadingDanmakuSegments: Set<Int> = []
     private var danmakuCID: Int = 0

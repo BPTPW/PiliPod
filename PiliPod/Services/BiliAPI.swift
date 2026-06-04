@@ -849,7 +849,7 @@ class BiliAPI {
 
         return response.data
     }
-    
+
     // MARK: - 获取当前用户状态（动态/关注/粉丝）
 
     func fetchMyStat() async throws -> MyStat {
