@@ -96,7 +96,7 @@ extension VideoItem {
         self.danmakuCount = "--"
         self.uploader = history.authorName ?? ""
         self.duration = history.duration ?? max(history.progress ?? 0, 0)
-        self.publishTimeText = Self.formatTimestamp(history.viewAt)
+        self.publishTimeText = Self.formatHistoryTimestamp(history.viewAt)
         self.bottomRcmdReasonText = history.badge
     }
 
@@ -122,5 +122,28 @@ extension VideoItem {
         formatter.timeZone = TimeZone.current
 
         return formatter.string(from: Date(timeIntervalSince1970: TimeInterval(timestamp)))
+    }
+
+    static func formatHistoryTimestamp(_ timestamp: Int?) -> String {
+        guard let timestamp else {
+            return "--"
+        }
+
+        let date = Date(timeIntervalSince1970: TimeInterval(timestamp))
+        let calendar = Calendar.current
+        let now = Date()
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "zh_CN")
+        formatter.timeZone = TimeZone.current
+
+        if calendar.isDate(date, inSameDayAs: now) {
+            formatter.dateFormat = "HH:mm"
+        } else if calendar.component(.year, from: date) == calendar.component(.year, from: now) {
+            formatter.dateFormat = "MM-dd HH:mm"
+        } else {
+            formatter.dateFormat = "yyyy-MM-dd HH:mm"
+        }
+
+        return formatter.string(from: date)
     }
 }

@@ -14,6 +14,9 @@ struct VideoCardSingleView: View {
 
     private var heroID: String { "videoHero.\(video.bvid)" }
     private let cornerRadius: CGFloat = 18
+    private var shouldShowStats: Bool {
+        !(video.playCount == "--" && video.danmakuCount == "--")
+    }
 
     var body: some View {
         Button(action: onTap) {
@@ -57,22 +60,36 @@ struct VideoCardSingleView: View {
 
                     // 右侧底部：从下往上 = 播放弹幕 / 发布时间 UP主
                     VStack(alignment: .leading, spacing: 4) {
-                        HStack(spacing: video.uploader == "" ? 0 : 10) {
-                            Text(video.uploader)
-                                .font(.system(size: 12))
-                                .foregroundStyle(.secondary)
+                        if shouldShowStats {
+                            HStack(spacing: video.uploader == "" ? 0 : 10) {
+                                Text(video.uploader)
+                                    .font(.system(size: 12))
+                                    .foregroundStyle(.secondary)
 
+                                Text(video.publishTimeText)
+                                    .font(.system(size: 11))
+                                    .foregroundStyle(.secondary)
+                            }
+                        } else {
+                            if !video.uploader.isEmpty {
+                                Text(video.uploader)
+                                    .font(.system(size: 12))
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
+
+                        if shouldShowStats {
+                            HStack(spacing: 10) {
+                                Label(video.playCount, systemImage: "play.fill")
+                                Label(video.danmakuCount, systemImage: "text.bubble.fill")
+                            }
+                            .font(.system(size: 11))
+                            .foregroundStyle(.secondary)
+                        } else {
                             Text(video.publishTimeText)
                                 .font(.system(size: 11))
                                 .foregroundStyle(.secondary)
                         }
-
-                        HStack(spacing: 10) {
-                            Label(video.playCount, systemImage: "play.fill")
-                            Label(video.danmakuCount, systemImage: "text.bubble.fill")
-                        }
-                        .font(.system(size: 11))
-                        .foregroundStyle(.secondary)
                     }
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)

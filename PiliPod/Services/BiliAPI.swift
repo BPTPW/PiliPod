@@ -463,6 +463,8 @@ class BiliAPI {
 
         return archiveData
     }
+    
+    // MARK: - 获取历史记录
 
     func fetchHistoryList(
         max: Int? = nil,
@@ -642,6 +644,8 @@ class BiliAPI {
         }
         return payload
     }
+    
+    // MARK: - 发送评论
 
     func addVideoComment(
         oid: Int,
@@ -1332,7 +1336,7 @@ class BiliAPI {
         return try Bilibili_Community_Service_Dm_V1_DmSegMobileReply(serializedBytes: data)
     }
 
-    // sign 创建
+    // MARK: - sign 创建
 
     private func generateSign(for parameters: [String: String]) -> String {
         var validParams = parameters
@@ -1349,7 +1353,7 @@ class BiliAPI {
         return digest.map { String(format: "%02hhx", $0) }.joined()
     }
 
-    // 请求体顺序：其他 key 按字典序，最后固定 appkey、ts、sign
+    // MARK: - 请求体顺序：其他 key 按字典序，最后固定 appkey、ts、sign
     private func makeOrderedBodyString(from parameters: [String: String]) -> String {
         let tailKeys = ["appkey", "ts", "sign"]
         let sortedOtherKeys = parameters.keys
