@@ -19,6 +19,7 @@ struct FullscreenImageViewer: View {
     @State private var dragOffsetY: CGFloat = 0
     @State private var zoomScale: CGFloat = 1
     @State private var currentImage: UIImage?
+    @State private var toastMessage: String?
 
     var body: some View {
         ZStack(alignment: .topTrailing) {
@@ -89,6 +90,7 @@ struct FullscreenImageViewer: View {
             }
         }
         .statusBarHidden(true)
+        .toast(message: $toastMessage)
     }
 
     private var backgroundOpacity: Double {
@@ -100,8 +102,13 @@ struct FullscreenImageViewer: View {
         guard let image = currentImage else { return }
         PHPhotoLibrary.requestAuthorization(for: .addOnly) { status in
             guard status == .authorized || status == .limited else { return }
-            PHPhotoLibrary.shared().performChanges {
+            PHPhotoLibrary.shared().performChanges({
                 PHAssetChangeRequest.creationRequestForAsset(from: image)
+            }) { success, _ in
+                guard success else { return }
+                Task { @MainActor in
+                    toastMessage = "保存成功"
+                }
             }
         }
     }
