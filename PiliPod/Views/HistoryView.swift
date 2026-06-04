@@ -47,6 +47,7 @@ struct HistoryView: View {
         .background(Color(.systemBackground))
         .navigationTitle("观看记录")
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar(.hidden, for: .tabBar)
         .navigationDestination(item: $selectedVideo) { video in
             if #available(iOS 18.0, *) {
                 VideoDetailPage(

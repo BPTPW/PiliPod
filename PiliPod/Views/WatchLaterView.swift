@@ -39,6 +39,7 @@ struct WatchLaterView: View {
         .background(Color(.systemBackground))
         .navigationTitle("稍后再看")
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar(.hidden, for: .tabBar)
         .navigationDestination(item: $selectedVideo) { video in
             if #available(iOS 18.0, *) {
                 VideoDetailPage(
