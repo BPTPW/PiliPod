@@ -29,6 +29,7 @@ struct SearchView: View {
     @State private var isSearching = false
     @State private var searchErrorMessage: String?
     @State private var selectedVideo: VideoItem?
+    @State private var selectedUserSpaceRoute: SearchUserSpaceRoute?
     @Namespace private var videoHeroNamespace
 
     private let columns = [
@@ -117,6 +118,12 @@ struct SearchView: View {
                     onBack: { selectedVideo = nil }
                 )
             }
+        }
+        .navigationDestination(item: $selectedUserSpaceRoute) { route in
+            UserSpaceView(
+                mid: route.mid,
+                onBack: { selectedUserSpaceRoute = nil }
+            )
         }
         .task {
             await focusSearchField()
@@ -339,7 +346,9 @@ struct SearchView: View {
                         SearchUserLargeCardView(
                             user: user.cardUser,
                             videos: user.previewVideos,
-                            onUserTap: {},
+                            onUserTap: {
+                                selectedUserSpaceRoute = SearchUserSpaceRoute(mid: Int(user.mid))
+                            },
                             onVideoTap: { previewVideo in
                                 if let source = user.res.first(where: { $0.bvid == previewVideo.id }) {
                                     selectedVideo = source.toVideoItem(uploader: user.uname)
@@ -436,6 +445,12 @@ struct SearchView: View {
         try? await Task.sleep(for: .milliseconds(150))
         isSearchFieldFocused = true
     }
+}
+
+private struct SearchUserSpaceRoute: Identifiable, Hashable {
+    let mid: Int
+
+    var id: Int { mid }
 }
 
 #Preview {
