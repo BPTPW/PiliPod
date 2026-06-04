@@ -13,6 +13,60 @@ struct AppSettingsBackupPayload: Codable {
         var audioVideo: AudioVideoSettings?
         var danmaku: DanmakuEngineConfig?
         var sponsorBlock: SponsorBlockSettings?
+
+        private enum CodingKeys: String, CodingKey {
+            case recommendSource
+            case audioVideo
+            case danmaku
+            case sponsorBlock
+        }
+
+        init(
+            recommendSource: RecommendAPIMode? = nil,
+            audioVideo: AudioVideoSettings? = nil,
+            danmaku: DanmakuEngineConfig? = nil,
+            sponsorBlock: SponsorBlockSettings? = nil
+        ) {
+            self.recommendSource = recommendSource
+            self.audioVideo = audioVideo
+            self.danmaku = danmaku
+            self.sponsorBlock = sponsorBlock
+        }
+
+        init(from decoder: Decoder) throws {
+            let container = try decoder.container(keyedBy: CodingKeys.self)
+            recommendSource = try container.decodeIfPresent(RecommendAPIMode.self, forKey: .recommendSource)
+            audioVideo = try container.decodeIfPresent(AudioVideoSettings.self, forKey: .audioVideo)
+            danmaku = try container.decodeIfPresent(DanmakuEngineConfig.self, forKey: .danmaku)
+            sponsorBlock = try container.decodeIfPresent(SponsorBlockSettings.self, forKey: .sponsorBlock)
+        }
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case appIdentifier
+        case schemaVersion
+        case exportedAt
+        case settings
+    }
+
+    init(
+        appIdentifier: String = "PiliPod",
+        schemaVersion: Int = 1,
+        exportedAt: Date = Date(),
+        settings: SettingsSnapshot
+    ) {
+        self.appIdentifier = appIdentifier
+        self.schemaVersion = schemaVersion
+        self.exportedAt = exportedAt
+        self.settings = settings
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        appIdentifier = try container.decodeIfPresent(String.self, forKey: .appIdentifier) ?? "PiliPod"
+        schemaVersion = try container.decodeIfPresent(Int.self, forKey: .schemaVersion) ?? 1
+        exportedAt = try container.decodeIfPresent(Date.self, forKey: .exportedAt) ?? Date()
+        settings = try container.decodeIfPresent(SettingsSnapshot.self, forKey: .settings) ?? SettingsSnapshot()
     }
 }
 

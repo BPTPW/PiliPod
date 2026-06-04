@@ -79,7 +79,7 @@ struct AboutView: View {
             case .success(let url):
                 do {
                     try AppSettingsBackupService.importFrom(url: url)
-                    settingsTransferMessage = "设置已导入。当前打开的设置页可能需要重新进入后刷新显示。"
+                    settingsTransferMessage = "设置已导入。当前打开的设置页可能需要重新进入后显示。"
                 } catch {
                     settingsTransferMessage = error.localizedDescription
                 }

@@ -74,6 +74,28 @@ extension DanmakuEngineConfig: Codable {
         case staticDuration
         case lineHeightMultiplier
     }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        isEnabled = try container.decodeIfPresent(Bool.self, forKey: .isEnabled) ?? true
+        blockLevel = try container.decodeIfPresent(Int.self, forKey: .blockLevel) ?? 0
+        blockScroll = try container.decodeIfPresent(Bool.self, forKey: .blockScroll) ?? false
+        blockTop = try container.decodeIfPresent(Bool.self, forKey: .blockTop) ?? false
+        blockBottom = try container.decodeIfPresent(Bool.self, forKey: .blockBottom) ?? false
+        blockColorful = try container.decodeIfPresent(Bool.self, forKey: .blockColorful) ?? false
+        allowOverlapWhenMassive = try container.decodeIfPresent(Bool.self, forKey: .allowOverlapWhenMassive) ?? false
+        forceAllScroll = try container.decodeIfPresent(Bool.self, forKey: .forceAllScroll) ?? false
+        topRegionRatio = try container.decodeIfPresent(Double.self, forKey: .topRegionRatio) ?? 1.0
+        bottomRegionRatio = try container.decodeIfPresent(Double.self, forKey: .bottomRegionRatio) ?? 1.0
+        opacity = try container.decodeIfPresent(Double.self, forKey: .opacity) ?? 1.0
+        fontWeightValue = try container.decodeIfPresent(Int.self, forKey: .fontWeightValue) ?? 6
+        strokeWidth = try container.decodeIfPresent(Double.self, forKey: .strokeWidth) ?? 0.8
+        fontScale = try container.decodeIfPresent(Double.self, forKey: .fontScale) ?? 1.0
+        fullscreenFontScale = try container.decodeIfPresent(Double.self, forKey: .fullscreenFontScale) ?? 1.2
+        scrollDuration = try container.decodeIfPresent(Double.self, forKey: .scrollDuration) ?? 7.0
+        staticDuration = try container.decodeIfPresent(Double.self, forKey: .staticDuration) ?? 4.0
+        lineHeightMultiplier = try container.decodeIfPresent(Double.self, forKey: .lineHeightMultiplier) ?? 1.6
+    }
 }
 
 enum DanmakuConfigStore {

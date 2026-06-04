@@ -107,10 +107,33 @@ struct AudioVideoSettings: Codable, Equatable {
     var autosync: Int = 0
     var videoSync: MPVVideoSyncOption = .audio
 
+    private enum CodingKeys: String, CodingKey {
+        case hardwareDecodingEnabled
+        case defaultQuality
+        case cellularDefaultQuality
+        case bufferSize
+        case preferredCodec
+        case autosync
+        case videoSync
+    }
+
     func clamped() -> AudioVideoSettings {
         var settings = self
         settings.autosync = min(max(settings.autosync, 0), 10000)
         return settings
+    }
+
+    init() {}
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        hardwareDecodingEnabled = try container.decodeIfPresent(Bool.self, forKey: .hardwareDecodingEnabled) ?? true
+        defaultQuality = try container.decodeIfPresent(PreferredVideoQuality.self, forKey: .defaultQuality) ?? .ultraHD4K
+        cellularDefaultQuality = try container.decodeIfPresent(PreferredVideoQuality.self, forKey: .cellularDefaultQuality) ?? .ultraHD4K
+        bufferSize = try container.decodeIfPresent(VideoBufferSizeOption.self, forKey: .bufferSize) ?? .auto
+        preferredCodec = try container.decodeIfPresent(PreferredCodecOption.self, forKey: .preferredCodec) ?? .hevc
+        autosync = try container.decodeIfPresent(Int.self, forKey: .autosync) ?? 0
+        videoSync = try container.decodeIfPresent(MPVVideoSyncOption.self, forKey: .videoSync) ?? .audio
     }
 }
 

@@ -129,6 +129,16 @@ struct SponsorBlockSettings: Codable, Equatable {
     var userID: String?
     var behaviors: [String: SponsorBlockSegmentBehavior] = [:]
 
+    private enum CodingKeys: String, CodingKey {
+        case isEnabled
+        case shouldTrackSkipCount
+        case showsSkipToast
+        case showsVideoLabelOnCover
+        case serverBaseURL
+        case userID
+        case behaviors
+    }
+
     func clamped() -> SponsorBlockSettings {
         var copy = self
         var normalized: [String: SponsorBlockSegmentBehavior] = [:]
@@ -161,6 +171,19 @@ struct SponsorBlockSettings: Codable, Equatable {
 
     mutating func setBehavior(_ behavior: SponsorBlockSegmentBehavior, for category: SponsorBlockCategory) {
         behaviors[category.rawValue] = behavior
+    }
+
+    init() {}
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        isEnabled = try container.decodeIfPresent(Bool.self, forKey: .isEnabled) ?? false
+        shouldTrackSkipCount = try container.decodeIfPresent(Bool.self, forKey: .shouldTrackSkipCount) ?? true
+        showsSkipToast = try container.decodeIfPresent(Bool.self, forKey: .showsSkipToast) ?? true
+        showsVideoLabelOnCover = try container.decodeIfPresent(Bool.self, forKey: .showsVideoLabelOnCover) ?? true
+        serverBaseURL = try container.decodeIfPresent(String.self, forKey: .serverBaseURL) ?? SponsorBlockSettings.defaultServerBaseURL
+        userID = try container.decodeIfPresent(String.self, forKey: .userID)
+        behaviors = try container.decodeIfPresent([String: SponsorBlockSegmentBehavior].self, forKey: .behaviors) ?? [:]
     }
 }
 
