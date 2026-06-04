@@ -30,6 +30,7 @@ struct SearchView: View {
     @State private var searchModules: [SearchComprehensiveModule] = []
     @State private var isSearching = false
     @State private var searchErrorMessage: String?
+    @State private var didPerformInitialAutoFocus = false
     @State private var videoResults: [SearchComprehensiveVideo] = []
     @State private var userResults: [SearchComprehensiveUser] = []
     @State private var videoCurrentPage = 0
@@ -134,8 +135,12 @@ struct SearchView: View {
                 onBack: { selectedUserSpaceRoute = nil }
             )
         }
-        .task {
-            await focusSearchField()
+        .onAppear {
+            guard !didPerformInitialAutoFocus else { return }
+            didPerformInitialAutoFocus = true
+            Task {
+                await focusSearchField()
+            }
         }
         .task {
             await loadDiscovery()
@@ -274,7 +279,7 @@ struct SearchView: View {
             .padding(.top, 20)
             .padding(.bottom, 30)
         }
-        .scrollDismissesKeyboard(.interactively)
+        .scrollDismissesKeyboard(.immediately)
         .background(Color(.systemBackground))
     }
 
@@ -349,7 +354,7 @@ struct SearchView: View {
                 }
             }
         }
-        .scrollDismissesKeyboard(.interactively)
+        .scrollDismissesKeyboard(.immediately)
         .background(Color(.systemBackground))
     }
 
