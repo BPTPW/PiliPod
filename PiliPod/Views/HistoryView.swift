@@ -26,6 +26,7 @@ struct HistoryView: View {
                         ForEach(viewModel.videos) { video in
                             VideoCardSingleView(
                                 video: video,
+                                progress: video.progressSeconds,
                                 namespace: videoHeroNamespace,
                                 onTap: { selectedVideo = video }
                             )

@@ -118,6 +118,7 @@ struct VideoCardView: View {
                     danmakuCount: "345",
                     uploader: "测试UP主",
                     duration: 325,
+                    progressSeconds: nil,
                     publishTimeText: "2026-05-25",
                     bottomRcmdReasonText: "已关注"
                 ),

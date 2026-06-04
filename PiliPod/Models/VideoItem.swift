@@ -17,6 +17,7 @@ struct VideoItem: Identifiable, Hashable {
     let danmakuCount: String
     let uploader: String
     let duration: Int
+    let progressSeconds: Int?
     let publishTimeText: String
     let bottomRcmdReasonText: String?
 
@@ -52,6 +53,7 @@ extension VideoItem {
         self.uploader = video.owner.name
 
         self.duration = video.duration
+        self.progressSeconds = nil
 
         self.publishTimeText = Self.formatTimestamp(video.pubdate)
         self.bottomRcmdReasonText = nil
@@ -76,6 +78,7 @@ extension VideoItem {
         self.uploader = video.owner.name
 
         self.duration = video.duration
+        self.progressSeconds = nil
 
         self.publishTimeText = Self.formatTimestamp(video.pubdate)
         self.bottomRcmdReasonText = nil
@@ -96,6 +99,7 @@ extension VideoItem {
         self.danmakuCount = "--"
         self.uploader = history.authorName ?? ""
         self.duration = history.duration ?? max(history.progress ?? 0, 0)
+        self.progressSeconds = history.progress
         self.publishTimeText = Self.formatHistoryTimestamp(history.viewAt)
         self.bottomRcmdReasonText = history.badge
     }

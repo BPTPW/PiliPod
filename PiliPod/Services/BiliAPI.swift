@@ -808,6 +808,7 @@ class BiliAPI {
                     danmakuCount: danmakuCount,
                     uploader: upName,
                     duration: duration,
+                    progressSeconds: nil,
                     publishTimeText: publishTimeText,
                     bottomRcmdReasonText: bottomRcmdReasonText
                 )

@@ -3298,6 +3298,7 @@ struct URIRow: View {
                     danmakuCount: "345",
                     uploader: "还有下次的叭",
                     duration: 325,
+                    progressSeconds: nil,
                     publishTimeText: "2026-05-25",
                     bottomRcmdReasonText: nil
                 ),

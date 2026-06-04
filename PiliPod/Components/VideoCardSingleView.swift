@@ -9,6 +9,7 @@ import SwiftUI
 
 struct VideoCardSingleView: View {
     let video: VideoItem
+    let progress: Int?
     let namespace: Namespace.ID
     let onTap: () -> Void
 
@@ -16,6 +17,21 @@ struct VideoCardSingleView: View {
     private let cornerRadius: CGFloat = 18
     private var shouldShowStats: Bool {
         !(video.playCount == "--" && video.danmakuCount == "--")
+    }
+    private var progressRatio: CGFloat {
+        guard let progress, video.duration > 0 else { return 0 }
+        return min(max(CGFloat(progress) / CGFloat(video.duration), 0), 1)
+    }
+    private var durationBadgeText: String {
+        guard let progress else { return video.durationFormatted }
+        return "\(Self.formatDuration(progress))/\(video.durationFormatted)"
+    }
+
+    init(video: VideoItem, progress: Int? = nil, namespace: Namespace.ID, onTap: @escaping () -> Void) {
+        self.video = video
+        self.progress = progress
+        self.namespace = namespace
+        self.onTap = onTap
     }
 
     var body: some View {
@@ -34,7 +50,7 @@ struct VideoCardSingleView: View {
                     .frame(width: 140, height: 88)
                     .clipped()
 
-                    Text(video.durationFormatted)
+                    Text(durationBadgeText)
                         .font(.system(size: 11, weight: .medium))
                         .foregroundStyle(.primary)
                         .padding(.horizontal, 6)
@@ -104,6 +120,17 @@ struct VideoCardSingleView: View {
                             .stroke(Color.white.opacity(0.14), lineWidth: 1)
                     }
             )
+            .overlay(alignment: .bottomLeading) {
+                if progress != nil {
+                    GeometryReader { proxy in
+                        Rectangle()
+                            .fill(Color("BiliPink"))
+                            .frame(width: proxy.size.width * progressRatio, height: 2)
+                            .frame(maxHeight: .infinity, alignment: .bottomLeading)
+                    }
+                    .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
+                }
+            }
             .shadow(color: .black.opacity(0.10), radius: 18, y: 10)
             .shadow(color: .black.opacity(0.06), radius: 6, y: 2)
         }
@@ -126,9 +153,11 @@ struct VideoCardSingleView: View {
                     danmakuCount: "345",
                     uploader: "测试UP主",
                     duration: 325,
+                    progressSeconds: 120,
                     publishTimeText: "2026-05-25",
                     bottomRcmdReasonText: nil
                 ),
+                progress: 120,
                 namespace: ns,
                 onTap: {}
             )
@@ -137,6 +166,19 @@ struct VideoCardSingleView: View {
     }
 
     return PreviewWrapper()
+}
+
+private extension VideoCardSingleView {
+    static func formatDuration(_ seconds: Int) -> String {
+        let sanitized = max(seconds, 0)
+        let h = sanitized / 3600
+        let m = (sanitized % 3600) / 60
+        let s = sanitized % 60
+        if h > 0 {
+            return String(format: "%d:%02d:%02d", h, m, s)
+        }
+        return String(format: "%02d:%02d", m, s)
+    }
 }
 
 private extension View {
