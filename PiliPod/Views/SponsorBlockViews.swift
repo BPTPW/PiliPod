@@ -47,7 +47,7 @@ struct SponsorBlockSubmitDrawer: View {
                             .frame(width: 40, height: 40)
                     } else {
                         Image(systemName: "checkmark")
-                            .foregroundStyle(.blue)
+                            .foregroundStyle(.white)
                             .frame(width: 40, height: 40)
                     }
                 }
