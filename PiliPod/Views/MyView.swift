@@ -12,6 +12,7 @@ struct MyView: View {
     @ObservedObject private var loginSession = LoginSession.shared
     @State private var showLoginSheet = false
     @State private var showHistory = false
+    @State private var showWatchLater = false
 
     var body: some View {
         NavigationStack {
@@ -77,6 +78,9 @@ struct MyView: View {
             }
             .navigationDestination(isPresented: $showHistory) {
                 HistoryView()
+            }
+            .navigationDestination(isPresented: $showWatchLater) {
+                WatchLaterView()
             }
         }
     }
@@ -179,7 +183,8 @@ struct MyView: View {
 
             quickActionButton(
                 title: "稍后再看",
-                systemImage: "clock.badge"
+                systemImage: "clock.badge",
+                action: { showWatchLater = true }
             )
         }
     }
