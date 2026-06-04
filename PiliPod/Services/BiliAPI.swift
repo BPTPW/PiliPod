@@ -1316,7 +1316,8 @@ class BiliAPI {
             throw APIError.invalidURL
         }
 
-        let request = makeRequest(url: url)
+        let signedURL = try await BiliWbiSigner.shared.sign(url: url)
+        let request = makeRequest(url: signedURL)
         let (data, _) = try await URLSession.shared.data(for: request)
 
         let response = try JSONDecoder().decode(
