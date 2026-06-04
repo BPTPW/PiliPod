@@ -72,6 +72,7 @@ class VideoDetailViewModel {
     var initialSeekTime: Double?
 
     private var historyReportTimer: Timer?
+    private var historyReportStartTask: Task<Void, Never>?
     private var lastReportedProgress = 0
     private var playerRebuildToken = UUID()
     private var isRebuildingPlayer = false
@@ -125,6 +126,7 @@ class VideoDetailViewModel {
         likeCount = 0
         coinCount = 0
         favoriteCount = 0
+        lastReportedProgress = 0
 
         do {
             // 获取视频详情
@@ -264,15 +266,6 @@ class VideoDetailViewModel {
                 await MainActor.run {
                     self.player?.seek(to: seekTo)
                 }
-            }
-
-            // 上报播放历史（进入时）
-            Task {
-                try? await BiliAPI.shared.reportHistory(
-                    aid: detail.aid,
-                    cid: playbackCid,
-                    progress: Int(seekTime ?? 0)
-                )
             }
         } catch {
             print("视频加载出现错误: ")
@@ -697,17 +690,23 @@ class VideoDetailViewModel {
     // MARK: - History Report
 
     func startHistoryReporting() {
-        guard let player = player else { return }
+        historyReportStartTask?.cancel()
+        historyReportTimer?.invalidate()
+        historyReportTimer = nil
 
-        // 先上报一次
-        reportHistoryIfNeeded(with: player)
+        historyReportStartTask = Task { @MainActor [weak self] in
+            try? await Task.sleep(nanoseconds: 1_000_000_000)
+            guard let self, !Task.isCancelled, let player = self.player else { return }
 
-        // 设置定时器，每 15 秒上报一次
-        historyReportTimer = Timer.scheduledTimer(
-            withTimeInterval: 15,
-            repeats: true
-        ) { [weak self] _ in
-            self?.reportHistoryIfNeeded(with: player)
+            self.reportHistoryIfNeeded(with: player)
+
+            self.historyReportTimer = Timer.scheduledTimer(
+                withTimeInterval: 15,
+                repeats: true
+            ) { [weak self] _ in
+                guard let self, let currentPlayer = self.player else { return }
+                self.reportHistoryIfNeeded(with: currentPlayer)
+            }
         }
     }
 
@@ -729,6 +728,8 @@ class VideoDetailViewModel {
     }
 
     func stopHistoryReporting(with player: MPVKitPlayer) {
+        historyReportStartTask?.cancel()
+        historyReportStartTask = nil
         historyReportTimer?.invalidate()
         historyReportTimer = nil
 
@@ -747,6 +748,7 @@ class VideoDetailViewModel {
     // MARK: - Cleanup
 
     deinit {
+        historyReportStartTask?.cancel()
         historyReportTimer?.invalidate()
         player?.stop()
     }
