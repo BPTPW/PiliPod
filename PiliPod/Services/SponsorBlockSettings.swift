@@ -119,9 +119,12 @@ enum SponsorBlockCategory: String, Codable, CaseIterable, Hashable, Identifiable
 }
 
 struct SponsorBlockSettings: Codable, Equatable {
+    static let defaultServerBaseURL = "https://www.bsbsb.top"
+
     var isEnabled = false
     var shouldTrackSkipCount = true
     var showsSkipToast = true
+    var serverBaseURL = SponsorBlockSettings.defaultServerBaseURL
     var userID: String?
     var behaviors: [String: SponsorBlockSegmentBehavior] = [:]
 
@@ -132,6 +135,13 @@ struct SponsorBlockSettings: Codable, Equatable {
             normalized[category.rawValue] = behaviors[category.rawValue] ?? category.defaultBehavior
         }
         copy.behaviors = normalized
+
+        let trimmedBaseURL = copy.serverBaseURL.trimmingCharacters(in: .whitespacesAndNewlines)
+        if trimmedBaseURL.isEmpty {
+            copy.serverBaseURL = SponsorBlockSettings.defaultServerBaseURL
+        } else {
+            copy.serverBaseURL = normalizedSponsorBlockBaseURL(trimmedBaseURL) ?? SponsorBlockSettings.defaultServerBaseURL
+        }
 
         if let userID = copy.userID?.trimmingCharacters(in: .whitespacesAndNewlines),
            !userID.isEmpty
@@ -151,6 +161,35 @@ struct SponsorBlockSettings: Codable, Equatable {
     mutating func setBehavior(_ behavior: SponsorBlockSegmentBehavior, for category: SponsorBlockCategory) {
         behaviors[category.rawValue] = behavior
     }
+}
+
+private func normalizedSponsorBlockBaseURL(_ rawValue: String) -> String? {
+    var candidate = rawValue.trimmingCharacters(in: .whitespacesAndNewlines)
+    guard !candidate.isEmpty else { return nil }
+
+    if !candidate.contains("://") {
+        candidate = "https://" + candidate
+    }
+
+    guard var components = URLComponents(string: candidate) else { return nil }
+    components.path = ""
+    components.query = nil
+    components.fragment = nil
+
+    guard let scheme = components.scheme?.lowercased(),
+          let host = components.host?.lowercased(),
+          !host.isEmpty
+    else {
+        return nil
+    }
+
+    components.scheme = scheme
+    components.host = host
+
+    if let port = components.port {
+        return "\(scheme)://\(host):\(port)"
+    }
+    return "\(scheme)://\(host)"
 }
 
 enum SponsorBlockSettingsStore {
@@ -237,11 +276,22 @@ enum SponsorBlockServerStatus: Equatable {
 }
 
 enum SponsorBlockAPI {
+    private static var baseURLString: String {
+        SponsorBlockSettingsStore.load().serverBaseURL
+    }
+
+    private static func endpointURL(_ path: String) -> URL? {
+        guard let baseURL = URL(string: baseURLString) else { return nil }
+        return URL(string: path, relativeTo: baseURL)?.absoluteURL
+    }
+
     static func fetchSkipSegments(
         videoID: String,
         cid: Int? = nil
     ) async throws -> [SkipSegment] {
-        guard var components = URLComponents(string: "https://www.bsbsb.top/api/skipSegments") else {
+        guard let endpoint = endpointURL("/api/skipSegments"),
+              var components = URLComponents(url: endpoint, resolvingAgainstBaseURL: false)
+        else {
             throw URLError(.badURL)
         }
 
@@ -275,7 +325,7 @@ enum SponsorBlockAPI {
     }
 
     static func fetchStatus() async -> SponsorBlockServerStatus {
-        guard let url = URL(string: "https://www.bsbsb.top/api/status/") else {
+        guard let url = endpointURL("/api/status/") else {
             return .failed
         }
 
@@ -299,7 +349,9 @@ enum SponsorBlockAPI {
     }
 
     static func fetchUserInfo(userID: String) async throws -> SponsorBlockUserInfo {
-        guard var components = URLComponents(string: "https://www.bsbsb.top/api/userInfo") else {
+        guard let endpoint = endpointURL("/api/userInfo"),
+              var components = URLComponents(url: endpoint, resolvingAgainstBaseURL: false)
+        else {
             throw URLError(.badURL)
         }
 
@@ -326,7 +378,9 @@ enum SponsorBlockAPI {
     }
 
     static func markSegmentViewed(uuid: String) async {
-        guard var components = URLComponents(string: "https://bsbsb.top/api/viewedVideoSponsorTime") else {
+        guard let endpoint = endpointURL("/api/viewedVideoSponsorTime"),
+              var components = URLComponents(url: endpoint, resolvingAgainstBaseURL: false)
+        else {
             return
         }
         components.queryItems = [
@@ -343,7 +397,7 @@ enum SponsorBlockAPI {
     }
 
     static func voteOnSegment(uuid: String, userID: String, type: Int) async throws {
-        guard let url = URL(string: "https://www.bsbsb.top/api/voteOnSponsorTime") else {
+        guard let url = endpointURL("/api/voteOnSponsorTime") else {
             throw URLError(.badURL)
         }
 
@@ -366,7 +420,7 @@ enum SponsorBlockAPI {
     }
 
     static func changeSegmentCategory(uuid: String, userID: String, category: String) async throws {
-        guard let url = URL(string: "https://www.bsbsb.top/api/voteOnSponsorTime") else {
+        guard let url = endpointURL("/api/voteOnSponsorTime") else {
             throw URLError(.badURL)
         }
 
@@ -395,7 +449,7 @@ enum SponsorBlockAPI {
         videoDuration: Double,
         segments: [SubmitSkipSegmentRequestItem]
     ) async throws -> [SubmittedSkipSegment] {
-        guard let url = URL(string: "https://www.bsbsb.top/api/skipSegments") else {
+        guard let url = endpointURL("/api/skipSegments") else {
             throw URLError(.badURL)
         }
 

@@ -31,7 +31,7 @@ private struct SponsorBlockSettingsView: View {
     @State private var isEditingUserID = false
     @State private var draftUserID = ""
 
-    private let footerText = "此功能追踪您跳过了哪些片段，让用户知道他们提交的片段帮助了多少人。同时点赞会作为依据，确保垃圾信息不会污染数据库。在您每次跳过片段时，我们都会向服务器发送一条消息。希望大家开启此项设置，以便得到更准确的统计数据。:)"
+    private let footerText = "此功能追踪你跳过了哪些片段，让用户知道他们提交的片段帮助了多少人。同时点赞会作为依据，确保垃圾信息不会污染数据库。在你每次跳过片段时，我们都会向服务器发送一条消息。希望大家开启此项设置，以便得到更准确的统计数据。:)"
 
     var body: some View {
         Form {
@@ -62,7 +62,7 @@ private struct SponsorBlockSettingsView: View {
                     .tint(Color("BiliPink"))
             }
 
-            Section("您的数据") {
+            Section("你的数据") {
                 if isLoadingUserInfo {
                     HStack {
                         ProgressView()
@@ -71,7 +71,7 @@ private struct SponsorBlockSettingsView: View {
                     }
                 } else if let userInfo {
                     VStack(alignment: .leading, spacing: 6) {
-                        Text("您提交了 \(userInfo.segmentCount) 片段")
+                        Text("你提交了 \(userInfo.segmentCount) 片段")
                         Text("为大家节省了 \(formatCount(userInfo.viewCount)) 片段")
                         Text("(\(formatLifeTime(userInfo.minutesSaved)) 的生命)")
                             .foregroundStyle(.secondary)
@@ -115,10 +115,30 @@ private struct SponsorBlockSettingsView: View {
             } footer: {
                 VStack(alignment: .leading){
                     Text("• 私人ID可以自行设置，要求至少为30个字符长度的纯字符串，首次启动时会生成随机字符串。")
-                    Text("• 私人ID应该被保密。如果他人获得了你的私人ID，他就可以冒充您。服务器不会保存任何私人ID，如果你不幸弄丢了私人ID，那就再也没办法找回了。")
+                    Text("• 私人ID应该被保密。如果他人获得了你的私人ID，他就可以冒充你。服务器不会保存任何私人ID，如果你不幸弄丢了私人ID，那就再也没办法找回了。")
                 }
             }
 
+            Section {
+                HStack {
+                    Text("服务器地址")
+                    Spacer()
+                    TextField("https://www.bsbsb.top", text: $settings.serverBaseURL)
+                        .textInputAutocapitalization(.never)
+#if canImport(UIKit)
+                        .autocorrectionDisabled()
+#endif
+                        .multilineTextAlignment(.trailing)
+                        .foregroundStyle(.secondary)
+                }
+
+                Button("重置") {
+                    settings.serverBaseURL = SponsorBlockSettings.defaultServerBaseURL
+                }
+            } footer: {
+                Text("不建议更改，除非你有自己的服务器。")
+            }
+            
             Section {
                 Button {
                     guard let url = URL(string: "https://github.com/hanydd/BilibiliSponsorBlock") else { return }
@@ -137,6 +157,12 @@ private struct SponsorBlockSettingsView: View {
         .onChange(of: settings.userID) { _, _ in
             Task { await refreshUserInfoIfNeeded() }
         }
+        .onChange(of: settings.serverBaseURL) { _, _ in
+            Task {
+                await refreshServerStatus()
+                await refreshUserInfoIfNeeded()
+            }
+        }
         .sheet(isPresented: $isEditingUserID) {
             NavigationStack {
                 Form {
@@ -147,10 +173,7 @@ private struct SponsorBlockSettingsView: View {
                             .autocorrectionDisabled()
 #endif
                     } footer: {
-                        VStack(alignment: .leading){
-                            Text("• 私人ID可以自行设置，要求至少为30个字符长度的纯字符串。")
-                            Text("• 私人ID应该被保密。如果他人获得了你的私人ID，他就可以冒充您。服务器不会保存任何私人ID，如果你不幸弄丢了私人ID，那就再也没办法找回了。")
-                        }
+                        Text("请输入至少为30个字符长度的纯字符串。")
                     }
                 }
                 .navigationTitle("编辑用户ID")
