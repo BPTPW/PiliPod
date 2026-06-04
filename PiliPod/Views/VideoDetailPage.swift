@@ -108,6 +108,9 @@ struct VideoDetailPage: View {
     @State private var sponsorSubmitErrorText: String?
     @State private var sponsorIsSubmitting = false
     @State private var previewDraftSegmentID: SponsorBlockDraftSegment.ID?
+#if canImport(UIKit)
+    @State private var preferredFullscreenOrientation: UIInterfaceOrientation = .landscapeRight
+#endif
 
     let video: VideoItem
     let namespace: Namespace.ID
@@ -965,6 +968,11 @@ struct VideoDetailPage: View {
             )) { _ in
                 handleDeviceOrientationChange()
             }
+            .onReceive(NotificationCenter.default.publisher(
+                for: UIApplication.didBecomeActiveNotification
+            )) { _ in
+                restoreFullscreenOrientationIfNeeded()
+            }
 #endif
             .navigationDestination(item: $selectedRelatedVideo) { relatedVideo in
                 if #available(iOS 18.0, *) {
@@ -1747,18 +1755,57 @@ struct VideoDetailPage: View {
 
 #if canImport(UIKit)
     private func updateDeviceOrientationForFullscreen(isFullscreen: Bool) {
+        updateDeviceOrientationForFullscreen(
+            isFullscreen: isFullscreen,
+            orientation: preferredFullscreenOrientation
+        )
+    }
+
+    private func updateDeviceOrientationForFullscreen(
+        isFullscreen: Bool,
+        orientation: UIInterfaceOrientation
+    ) {
         guard let scene = UIApplication.shared.connectedScenes.first as? UIWindowScene else { return }
+        let targetOrientationMask: UIInterfaceOrientationMask
+        if isFullscreen {
+            targetOrientationMask = orientation == .landscapeLeft ? .landscapeLeft : .landscapeRight
+        } else {
+            targetOrientationMask = .portrait
+        }
         let prefs = UIWindowScene.GeometryPreferences.iOS(
-            interfaceOrientations: isFullscreen ? .landscapeRight : .portrait
+            interfaceOrientations: targetOrientationMask
         )
         scene.requestGeometryUpdate(prefs) { error in
             print("requestGeometryUpdate failed: \(error.localizedDescription)")
         }
     }
+
+    private func currentInterfaceOrientation() -> UIInterfaceOrientation? {
+        (UIApplication.shared.connectedScenes.first as? UIWindowScene)?.interfaceOrientation
+    }
+
+    private func updatePreferredFullscreenOrientation(from orientation: UIInterfaceOrientation?) {
+        guard let orientation, orientation.isLandscape else { return }
+        preferredFullscreenOrientation = orientation == .landscapeLeft ? .landscapeLeft : .landscapeRight
+    }
+
+    private func restoreFullscreenOrientationIfNeeded() {
+        guard isFullscreen else { return }
+        updateDeviceOrientationForFullscreen(
+            isFullscreen: true,
+            orientation: preferredFullscreenOrientation
+        )
+        refreshPlayerLayoutAfterFullscreenChange()
+    }
 #endif
 
     private func toggleFullscreenManually() {
         let willEnterFullscreen = !isFullscreen
+#if canImport(UIKit)
+        if willEnterFullscreen {
+            updatePreferredFullscreenOrientation(from: currentInterfaceOrientation())
+        }
+#endif
         withAnimation(.easeInOut(duration: 0.2)) {
             isFullscreen = willEnterFullscreen
             fullscreenTrigger = willEnterFullscreen ? .manual : .none
@@ -1778,6 +1825,7 @@ struct VideoDetailPage: View {
         guard let scene = UIApplication.shared.connectedScenes.first as? UIWindowScene else { return }
         let interfaceOrientation = scene.interfaceOrientation
         if interfaceOrientation.isLandscape {
+            updatePreferredFullscreenOrientation(from: interfaceOrientation)
             if !isFullscreen {
                 withAnimation(.easeInOut(duration: 0.2)) {
                     isFullscreen = true
