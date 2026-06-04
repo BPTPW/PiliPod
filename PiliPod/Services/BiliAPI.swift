@@ -580,6 +580,44 @@ class BiliAPI {
         return decoded.data?.list ?? []
     }
 
+    // MARK: - 综合搜索
+
+    func fetchComprehensiveSearch(keyword: String) async throws -> [SearchComprehensiveModule] {
+        var components = URLComponents(
+            string: "https://api.bilibili.com/x/web-interface/wbi/search/all/v2"
+        )
+        components?.queryItems = [
+            URLQueryItem(name: "keyword", value: keyword)
+        ]
+
+        guard let url = components?.url else {
+            throw APIError.invalidURL
+        }
+
+        let signedURL = try await BiliWbiSigner.shared.sign(url: url)
+        var request = makeRequest(url: signedURL)
+        request.setValue("https://www.bilibili.com", forHTTPHeaderField: "Referer")
+        request.setValue(
+            "Mozilla/5.0 (iPhone; CPU iPhone OS 18_2 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.2 Mobile/15E148 Safari/604.1",
+            forHTTPHeaderField: "User-Agent"
+        )
+
+        let (data, response) = try await URLSession.shared.data(for: request)
+
+        guard let httpResponse = response as? HTTPURLResponse,
+              (200 ... 299).contains(httpResponse.statusCode)
+        else {
+            throw APIError.requestFailed
+        }
+
+        let decoded = try JSONDecoder().decode(SearchComprehensiveResponse.self, from: data)
+        guard decoded.code == 0 else {
+            throw APIError.businessError(code: decoded.code, message: decoded.message)
+        }
+
+        return decoded.data?.result.filter(\.hasSupportedContent) ?? []
+    }
+
     private func makeSpaceCommonParameters(mid: Int) -> [String: String] {
         [
             "build": "8430300",
