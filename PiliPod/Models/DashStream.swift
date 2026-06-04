@@ -12,6 +12,7 @@ import Foundation
 struct DashStream {
     let videoURL: URL
     let audioURL: URL
+    let qualityCode: Int
     let videoCodec: String
     let audioCodec: String
     let width: Int
@@ -180,6 +181,7 @@ class DashStreamSelector {
         return DashStream(
             videoURL: videoURL,
             audioURL: audioURL,
+            qualityCode: video.id,
             videoCodec: video.codecs,
             audioCodec: audio.codecs,
             width: video.width,
@@ -214,6 +216,7 @@ class DashStreamSelector {
         return DashStream(
             videoURL: videoURL,
             audioURL: audioURL,
+            qualityCode: video.id,
             videoCodec: video.codecs,
             audioCodec: audio.codecs,
             width: video.width,

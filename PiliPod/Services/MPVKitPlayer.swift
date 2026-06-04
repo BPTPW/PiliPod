@@ -9,6 +9,37 @@ import Foundation
 import Observation
 import UIKit
 
+struct HDRPlaybackDiagnostics: Equatable {
+    var isEnabledInSettings = false
+    var prefersEDROutput = false
+    var requestsExtendedRange = false
+    var currentEDRHeadroom: CGFloat = 1.0
+    var potentialEDRHeadroom: CGFloat = 1.0
+    var displayGamut = ""
+    var displayColorSpace = ""
+    var toneMapping = ""
+    var videoPrimaries = ""
+    var videoGamma = ""
+    var videoPixelFormat = ""
+    var videoHardwarePixelFormat = ""
+    var videoColorLevels = ""
+    var videoColorMatrix = ""
+    var videoSignalPeak = ""
+
+    var likelyHDRSource: Bool {
+        let gamma = videoGamma.lowercased()
+        let primaries = videoPrimaries.lowercased()
+        return gamma.contains("pq")
+            || gamma.contains("hlg")
+            || primaries.contains("bt.2020")
+            || primaries.contains("bt2020")
+    }
+
+    var extendedRangeActive: Bool {
+        requestsExtendedRange && currentEDRHeadroom > 1.0
+    }
+}
+
 @Observable
 class MPVKitPlayer: NSObject {
     private weak var controller: MPVKitMetalViewController?
@@ -20,6 +51,7 @@ class MPVKitPlayer: NSObject {
     private(set) var currentTime: TimeInterval = 0
     private(set) var duration: TimeInterval = 0
     private(set) var bufferedUntil: TimeInterval = 0
+    private(set) var hdrDiagnostics = HDRPlaybackDiagnostics()
 
     var videoCodec: String { controller?.videoCodec() ?? "" }
     var audioCodec: String { controller?.audioCodec() ?? "" }
@@ -35,6 +67,8 @@ class MPVKitPlayer: NSObject {
         ]
         self.playbackSettings = AudioVideoSettingsStore.load()
         super.init()
+        hdrDiagnostics.isEnabledInSettings = playbackSettings.highDynamicRangeEnabled
+        hdrDiagnostics.prefersEDROutput = playbackSettings.prefersEDROutput
     }
 
     func attach(_ controller: MPVKitMetalViewController) {
@@ -138,6 +172,23 @@ class MPVKitPlayer: NSObject {
         }
 
         isPlaying = !controller.isPaused()
+        hdrDiagnostics = HDRPlaybackDiagnostics(
+            isEnabledInSettings: playbackSettings.highDynamicRangeEnabled,
+            prefersEDROutput: playbackSettings.prefersEDROutput,
+            requestsExtendedRange: controller.isExtendedDynamicRangeRequested(),
+            currentEDRHeadroom: controller.currentEDRHeadroom(),
+            potentialEDRHeadroom: controller.potentialEDRHeadroom(),
+            displayGamut: controller.displayGamut(),
+            displayColorSpace: controller.displayColorSpaceName(),
+            toneMapping: controller.currentToneMapping(),
+            videoPrimaries: controller.videoPrimaries(),
+            videoGamma: controller.videoGamma(),
+            videoPixelFormat: controller.videoPixelFormat(),
+            videoHardwarePixelFormat: controller.videoHardwarePixelFormat(),
+            videoColorLevels: controller.videoColorLevels(),
+            videoColorMatrix: controller.videoColorMatrix(),
+            videoSignalPeak: controller.videoSignalPeak()
+        )
     }
 
     deinit {

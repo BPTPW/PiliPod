@@ -875,6 +875,7 @@ struct VideoDetailPage: View {
                     DashStreamDebugPanel(
                         stream: stream,
                         player: bindableViewModel.player,
+                        selectedQualityCode: bindableViewModel.selectedQualityCode,
                         onDismiss: { showDebugPanel = false }
                     )
                 }
@@ -3187,6 +3188,7 @@ private func normalizedProgress(_ value: TimeInterval, duration: TimeInterval) -
 struct DashStreamDebugPanel: View {
     let stream: DashStream
     let player: MPVKitPlayer?
+    let selectedQualityCode: Int?
     let onDismiss: () -> Void
 
     var body: some View {
@@ -3214,6 +3216,12 @@ struct DashStreamDebugPanel: View {
                     VStack(alignment: .leading, spacing: 12) {
                         VStack(alignment: .leading, spacing: 8) {
                             Text("视频参数").font(.subheadline).fontWeight(.semibold).foregroundColor(.secondary)
+                            InfoRow(
+                                "画质",
+                                qualityDescription(
+                                    selectedQualityCode ?? stream.qualityCode
+                                )
+                            )
                             InfoRow("分辨率", "\(stream.width)×\(stream.height)")
                             InfoRow("宽高比", String(format: "%.2f:1", stream.aspectRatio))
                             InfoRow("帧率", "\(stream.fps) fps")
@@ -3261,6 +3269,34 @@ struct DashStreamDebugPanel: View {
                                 InfoRow("视频解码器", player.videoCodec.isEmpty ? "—" : player.videoCodec)
                                 InfoRow("音频解码器", player.audioCodec.isEmpty ? "—" : player.audioCodec)
                             }
+
+                            Divider()
+
+                            VStack(alignment: .leading, spacing: 8) {
+                                Text("高动态视频").font(.subheadline).fontWeight(.semibold).foregroundColor(.secondary)
+                                InfoRow("显示增强", player.hdrDiagnostics.isEnabledInSettings ? "已开启" : "已关闭")
+                                InfoRow("视频类型", dynamicRangeSourceLabel(for: player.hdrDiagnostics))
+                                InfoRow("高动态显示请求", player.hdrDiagnostics.requestsExtendedRange ? "已开启" : "未开启")
+                                InfoRow("高动态显示状态", player.hdrDiagnostics.extendedRangeActive ? "生效中" : "未生效")
+                                InfoRow(
+                                    "当前 / 最大高光余量",
+                                    String(
+                                        format: "%.2f / %.2f",
+                                        player.hdrDiagnostics.currentEDRHeadroom,
+                                        player.hdrDiagnostics.potentialEDRHeadroom
+                                    )
+                                )
+                                InfoRow("显示色域", fallback(player.hdrDiagnostics.displayGamut))
+                                InfoRow("显示空间", fallback(player.hdrDiagnostics.displayColorSpace))
+                                InfoRow("亮度映射", fallback(player.hdrDiagnostics.toneMapping))
+                                InfoRow("视频色域", fallback(player.hdrDiagnostics.videoPrimaries))
+                                InfoRow("亮度曲线", fallback(player.hdrDiagnostics.videoGamma))
+                                InfoRow("色阶范围", fallback(player.hdrDiagnostics.videoColorLevels))
+                                InfoRow("色彩矩阵", fallback(player.hdrDiagnostics.videoColorMatrix))
+                                InfoRow("解码像素格式", fallback(player.hdrDiagnostics.videoPixelFormat))
+                                InfoRow("硬件像素格式", fallback(player.hdrDiagnostics.videoHardwarePixelFormat))
+                                InfoRow("峰值亮度估计", fallback(player.hdrDiagnostics.videoSignalPeak))
+                            }
                         }
                     }
                 }
@@ -3279,12 +3315,24 @@ struct DashStreamDebugPanel: View {
         return String(format: "%.2f Kbps", kbps)
     }
 
+    private func qualityDescription(_ code: Int) -> String {
+        "\(DashStreamSelector.qualityLabel(for: code)) (\(code))"
+    }
+
     // MARK: - 格式化时间
 
     private func formatTime(_ seconds: TimeInterval) -> String {
         let mins = Int(seconds) / 60
         let secs = Int(seconds) % 60
         return String(format: "%d:%02d", mins, secs)
+    }
+
+    private func dynamicRangeSourceLabel(for diagnostics: HDRPlaybackDiagnostics) -> String {
+        diagnostics.likelyHDRSource ? "HDR / 杜比视界" : "标准动态范围"
+    }
+
+    private func fallback(_ value: String) -> String {
+        value.isEmpty ? "—" : value
     }
 }
 
