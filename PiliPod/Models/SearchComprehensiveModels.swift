@@ -86,6 +86,25 @@ struct SearchComprehensiveUser: Decodable, Identifiable {
             )
         }
     }
+
+    enum CodingKeys: String, CodingKey {
+        case mid
+        case uname
+        case fans
+        case videos
+        case upic
+        case res
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        mid = try container.decode(Int64.self, forKey: .mid)
+        uname = try container.decode(String.self, forKey: .uname)
+        fans = try container.decodeIfPresent(Int.self, forKey: .fans) ?? 0
+        videos = try container.decodeIfPresent(Int.self, forKey: .videos) ?? 0
+        upic = try container.decodeIfPresent(String.self, forKey: .upic) ?? ""
+        res = try container.decodeIfPresent([SearchComprehensiveUserVideo].self, forKey: .res) ?? []
+    }
 }
 
 struct SearchComprehensiveUserVideo: Decodable, Identifiable {

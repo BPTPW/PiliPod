@@ -8,6 +8,8 @@
 import SwiftUI
 
 struct SearchView: View {
+    private let searchResultsTopID = "searchResultsTop"
+
     private enum SearchTab: String, CaseIterable, Identifiable {
         case comprehensive = "综合"
         case video = "视频"
@@ -28,6 +30,13 @@ struct SearchView: View {
     @State private var searchModules: [SearchComprehensiveModule] = []
     @State private var isSearching = false
     @State private var searchErrorMessage: String?
+    @State private var videoResults: [SearchComprehensiveVideo] = []
+    @State private var userResults: [SearchComprehensiveUser] = []
+    @State private var videoCurrentPage = 0
+    @State private var userCurrentPage = 0
+    @State private var videoHasMorePages = false
+    @State private var userHasMorePages = false
+    @State private var isLoadingMore = false
     @State private var selectedVideo: VideoItem?
     @State private var selectedUserSpaceRoute: SearchUserSpaceRoute?
     @Namespace private var videoHeroNamespace
@@ -137,17 +146,6 @@ struct SearchView: View {
         activeSearchKeyword != nil
     }
 
-    private var filteredModules: [SearchComprehensiveModule] {
-        switch selectedTab {
-        case .comprehensive:
-            return searchModules
-        case .video:
-            return searchModules.filter { $0.resultType == "video" && !$0.videos.isEmpty }
-        case .user:
-            return searchModules.filter { $0.resultType == "bili_user" && !$0.users.isEmpty }
-        }
-    }
-
     private var resultTabs: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 24) {
@@ -165,6 +163,9 @@ struct SearchView: View {
                     .onTapGesture {
                         withAnimation(.easeInOut(duration: 0.2)) {
                             selectedTab = tab
+                        }
+                        Task {
+                            await loadSelectedTabIfNeeded()
                         }
                     }
                 }
@@ -278,33 +279,89 @@ struct SearchView: View {
     }
 
     private var searchResultsContent: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 16) {
-                if isSearching {
-                    ProgressView("搜索中…")
-                        .frame(maxWidth: .infinity, minHeight: 220)
-                } else if let searchErrorMessage {
-                    Text(searchErrorMessage)
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                        .frame(maxWidth: .infinity, minHeight: 220)
-                } else if filteredModules.isEmpty {
-                    Text("没有找到相关结果")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                        .frame(maxWidth: .infinity, minHeight: 220)
-                } else {
-                    ForEach(filteredModules) { module in
-                        resultModuleView(module)
+        ScrollViewReader { proxy in
+            ScrollView {
+                LazyVStack(alignment: .leading, spacing: 16) {
+                    Color.clear
+                        .frame(height: 1)
+                        .id(searchResultsTopID)
+
+                    if isSearching {
+                        ProgressView("搜索中…")
+                            .frame(maxWidth: .infinity, minHeight: 220)
+                    } else if let searchErrorMessage {
+                        Text(searchErrorMessage)
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                            .frame(maxWidth: .infinity, minHeight: 220)
+                    } else if isCurrentTabEmpty {
+                        Text("没有找到相关结果")
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                            .frame(maxWidth: .infinity, minHeight: 220)
+                    } else {
+                        switch selectedTab {
+                        case .comprehensive:
+                            ForEach(searchModules) { module in
+                                resultModuleView(module)
+                            }
+                        case .video:
+                            VStack(spacing: 12) {
+                                ForEach(videoResults) { video in
+                                    VideoCardSingleView(
+                                        video: video.toVideoItem(),
+                                        namespace: videoHeroNamespace,
+                                        onTap: { selectedVideo = video.toVideoItem() }
+                                    )
+                                }
+                            }
+                        case .user:
+                            VStack(spacing: 14) {
+                                ForEach(userResults) { user in
+                                    SearchUserSmallCardView(
+                                        user: user.cardUser,
+                                        onTap: {
+                                            selectedUserSpaceRoute = SearchUserSpaceRoute(mid: Int(user.mid))
+                                        }
+                                    )
+                                }
+                            }
+                        }
+
+                        if shouldShowPaginationSentinel {
+                            paginationSentinel
+                        }
+
+                        if isLoadingMore {
+                            ProgressView()
+                                .frame(maxWidth: .infinity)
+                                .padding(.top, 4)
+                        }
                     }
                 }
+                .padding(.horizontal, 16)
+                .padding(.top, 16)
+                .padding(.bottom, 30)
             }
-            .padding(.horizontal, 16)
-            .padding(.top, 16)
-            .padding(.bottom, 30)
+            .onChange(of: selectedTab) { _ in
+                withAnimation(.easeInOut(duration: 0.2)) {
+                    proxy.scrollTo(searchResultsTopID, anchor: .top)
+                }
+            }
         }
         .scrollDismissesKeyboard(.interactively)
         .background(Color(.systemBackground))
+    }
+
+    private var shouldShowPaginationSentinel: Bool {
+        switch selectedTab {
+        case .comprehensive:
+            return false
+        case .video:
+            return videoHasMorePages && !videoResults.isEmpty
+        case .user:
+            return userHasMorePages && !userResults.isEmpty
+        }
     }
 
     private func discoverySection<Content: View>(
@@ -318,6 +375,25 @@ struct SearchView: View {
 
             content()
         }
+    }
+
+    private var isCurrentTabEmpty: Bool {
+        switch selectedTab {
+        case .comprehensive:
+            return searchModules.isEmpty
+        case .video:
+            return videoResults.isEmpty
+        case .user:
+            return userResults.isEmpty
+        }
+    }
+
+    private var paginationSentinel: some View {
+        Color.clear
+            .frame(height: 1)
+            .onAppear {
+                Task { await loadMoreIfNeeded() }
+            }
     }
 
     private func discoveryChip<Content: View>(
@@ -386,6 +462,7 @@ struct SearchView: View {
         activeSearchKeyword = keyword
         selectedTab = .comprehensive
         isSearchFieldFocused = false
+        resetTypedSearchState()
 
         Task {
             await performSearch(keyword: keyword)
@@ -398,6 +475,7 @@ struct SearchView: View {
         searchModules = []
         searchErrorMessage = nil
         selectedTab = .comprehensive
+        resetTypedSearchState()
         isSearchFieldFocused = true
     }
 
@@ -438,6 +516,106 @@ struct SearchView: View {
         }
 
         isSearching = false
+    }
+
+    @MainActor
+    private func loadSelectedTabIfNeeded() async {
+        guard let keyword = activeSearchKeyword, !isSearching else { return }
+
+        switch selectedTab {
+        case .comprehensive:
+            return
+        case .video where videoResults.isEmpty:
+            await loadTypedVideoSearch(keyword: keyword, page: 1, append: false)
+        case .user where userResults.isEmpty:
+            await loadTypedUserSearch(keyword: keyword, page: 1, append: false)
+        default:
+            return
+        }
+    }
+
+    @MainActor
+    private func loadMoreIfNeeded() async {
+        guard let keyword = activeSearchKeyword, !isSearching, !isLoadingMore else { return }
+
+        switch selectedTab {
+        case .comprehensive:
+            return
+        case .video:
+            guard videoHasMorePages else { return }
+            await loadTypedVideoSearch(keyword: keyword, page: videoCurrentPage + 1, append: true)
+        case .user:
+            guard userHasMorePages else { return }
+            await loadTypedUserSearch(keyword: keyword, page: userCurrentPage + 1, append: true)
+        }
+    }
+
+    @MainActor
+    private func loadTypedVideoSearch(keyword: String, page: Int, append: Bool) async {
+        if append {
+            isLoadingMore = true
+        } else {
+            isSearching = true
+            searchErrorMessage = nil
+        }
+
+        do {
+            let payload = try await BiliAPI.shared.fetchTypedVideoSearch(keyword: keyword, page: page)
+            if append {
+                videoResults.append(contentsOf: payload.result)
+            } else {
+                videoResults = payload.result
+            }
+            videoCurrentPage = payload.page
+            videoHasMorePages = payload.page < payload.numPages
+        } catch {
+            if !append {
+                videoResults = []
+                searchErrorMessage = error.localizedDescription
+            }
+        }
+
+        isSearching = false
+        isLoadingMore = false
+    }
+
+    @MainActor
+    private func loadTypedUserSearch(keyword: String, page: Int, append: Bool) async {
+        if append {
+            isLoadingMore = true
+        } else {
+            isSearching = true
+            searchErrorMessage = nil
+        }
+
+        do {
+            let payload = try await BiliAPI.shared.fetchTypedUserSearch(keyword: keyword, page: page)
+            if append {
+                userResults.append(contentsOf: payload.result)
+            } else {
+                userResults = payload.result
+            }
+            userCurrentPage = payload.page
+            userHasMorePages = payload.page < payload.numPages
+        } catch {
+            if !append {
+                userResults = []
+                searchErrorMessage = error.localizedDescription
+            }
+        }
+
+        isSearching = false
+        isLoadingMore = false
+    }
+
+    private func resetTypedSearchState() {
+        videoResults = []
+        userResults = []
+        videoCurrentPage = 0
+        userCurrentPage = 0
+        videoHasMorePages = false
+        userHasMorePages = false
+        isLoadingMore = false
     }
 
     @MainActor
