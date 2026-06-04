@@ -13,6 +13,8 @@ struct VideoCardView: View {
     let thumbnailWidth: CGFloat
     let onTap: () -> Void
 
+    @State private var sponsorLabel: SponsorBlockVideoLabel?
+
     private var heroID: String { "videoHero.\(video.bvid)" }
     private let cornerRadius: CGFloat = 18
     private var thumbnailHeight: CGFloat { thumbnailWidth * 10 / 16 }
@@ -43,6 +45,24 @@ struct VideoCardView: View {
                             in: .capsule
                         )
                         .padding(6)
+                }
+                .overlay(alignment: .topLeading) {
+                    if let sponsorLabel,
+                       let tint = sponsorBlockTintColor(for: sponsorLabel.category)
+                    {
+                        Image("SponsorBlockerStart")
+                            .renderingMode(.template)
+                            .resizable()
+                            .scaledToFit()
+                            .frame(width: 14, height: 14)
+                            .foregroundStyle(.white)
+                            .frame(width: 28, height: 28)
+                            .glassEffect(
+                                .regular.tint(tint),
+                                in: .circle
+                            )
+                            .padding(6)
+                    }
                 }
                 .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
                 .heroTransitionSource(id: heroID, in: namespace)
@@ -100,6 +120,9 @@ struct VideoCardView: View {
             .frame(width: thumbnailWidth, alignment: .leading)
         }
         .buttonStyle(.plain)
+        .task(id: video.bvid) {
+            sponsorLabel = await SponsorBlockAPI.fetchPrimaryVideoLabelIfAvailable(videoID: video.bvid)
+        }
     }
 }
 
@@ -142,4 +165,8 @@ private extension View {
             matchedGeometryEffect(id: id, in: namespace)
         }
     }
+}
+
+private func sponsorBlockTintColor(for category: String) -> Color? {
+    SponsorBlockCategory(rawValue: category)?.color
 }

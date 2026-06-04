@@ -124,6 +124,7 @@ struct SponsorBlockSettings: Codable, Equatable {
     var isEnabled = false
     var shouldTrackSkipCount = true
     var showsSkipToast = true
+    var showsVideoLabelOnCover = true
     var serverBaseURL = SponsorBlockSettings.defaultServerBaseURL
     var userID: String?
     var behaviors: [String: SponsorBlockSegmentBehavior] = [:]
@@ -232,6 +233,26 @@ struct SponsorBlockUserInfo: Codable {
     let viewCount: Int
 }
 
+struct SponsorBlockVideoLabel: Codable, Identifiable {
+    let cid: String
+    let category: String
+    let uuid: String
+    let locked: Int
+    let votes: Int
+    let videoDuration: Double
+
+    var id: String { uuid }
+
+    enum CodingKeys: String, CodingKey {
+        case cid
+        case category
+        case uuid = "UUID"
+        case locked
+        case votes
+        case videoDuration
+    }
+}
+
 struct SubmitSkipSegmentRequestItem {
     let segment: [Double]
     let category: String
@@ -276,6 +297,33 @@ enum SponsorBlockServerStatus: Equatable {
 }
 
 enum SponsorBlockAPI {
+    private actor VideoLabelCache {
+        var results: [String: SponsorBlockVideoLabel?] = [:]
+        var tasks: [String: Task<SponsorBlockVideoLabel?, Never>] = [:]
+
+        func cachedValue(for videoID: String) -> SponsorBlockVideoLabel?? {
+            if let value = results[videoID] {
+                return .some(value)
+            }
+            return nil
+        }
+
+        func task(for videoID: String) -> Task<SponsorBlockVideoLabel?, Never>? {
+            tasks[videoID]
+        }
+
+        func setTask(_ task: Task<SponsorBlockVideoLabel?, Never>, for videoID: String) {
+            tasks[videoID] = task
+        }
+
+        func finish(videoID: String, result: SponsorBlockVideoLabel?) {
+            results[videoID] = result
+            tasks[videoID] = nil
+        }
+    }
+
+    private static let videoLabelCache = VideoLabelCache()
+
     private static var baseURLString: String {
         SponsorBlockSettingsStore.load().serverBaseURL
     }
@@ -283,6 +331,28 @@ enum SponsorBlockAPI {
     private static func endpointURL(_ path: String) -> URL? {
         guard let baseURL = URL(string: baseURLString) else { return nil }
         return URL(string: path, relativeTo: baseURL)?.absoluteURL
+    }
+
+    static func fetchPrimaryVideoLabelIfAvailable(videoID: String) async -> SponsorBlockVideoLabel? {
+        let settings = SponsorBlockSettingsStore.load()
+        guard settings.isEnabled, settings.showsVideoLabelOnCover, videoID.hasPrefix("BV"), videoID.count > 2 else { return nil }
+
+        if let cached = await videoLabelCache.cachedValue(for: videoID) {
+            return cached
+        }
+
+        if let existingTask = await videoLabelCache.task(for: videoID) {
+            return await existingTask.value
+        }
+
+        let task = Task<SponsorBlockVideoLabel?, Never> {
+            let result = try? await fetchVideoLabels(videoID: videoID).first
+            await videoLabelCache.finish(videoID: videoID, result: result)
+            return result
+        }
+
+        await videoLabelCache.setTask(task, for: videoID)
+        return await task.value
     }
 
     static func fetchSkipSegments(
@@ -375,6 +445,34 @@ enum SponsorBlockAPI {
         }
 
         return try JSONDecoder().decode(SponsorBlockUserInfo.self, from: data)
+    }
+
+    private static func fetchVideoLabels(videoID: String) async throws -> [SponsorBlockVideoLabel] {
+        guard let endpoint = endpointURL("/api/videoLabels"),
+              var components = URLComponents(url: endpoint, resolvingAgainstBaseURL: false)
+        else {
+            throw URLError(.badURL)
+        }
+
+        components.queryItems = [
+            URLQueryItem(name: "videoID", value: videoID)
+        ]
+
+        guard let url = components.url else {
+            throw URLError(.badURL)
+        }
+
+        var request = URLRequest(url: url)
+        request.timeoutInterval = 6
+
+        let (data, response) = try await URLSession.shared.data(for: request)
+        guard let httpResponse = response as? HTTPURLResponse,
+              (200 ... 299).contains(httpResponse.statusCode)
+        else {
+            throw URLError(.badServerResponse)
+        }
+
+        return try JSONDecoder().decode([SponsorBlockVideoLabel].self, from: data)
     }
 
     static func markSegmentViewed(uuid: String) async {

@@ -85,6 +85,11 @@ private struct SponsorBlockSettingsView: View {
                 }
             }
 
+            Section {
+                Toggle("在视频封面显示视频标记", isOn: $settings.showsVideoLabelOnCover)
+                    .tint(Color("BiliPink"))
+            }
+
             Section("片段处理方式") {
                 ForEach(SponsorBlockCategory.allCases) { category in
                     SponsorBlockCategoryBehaviorRow(
