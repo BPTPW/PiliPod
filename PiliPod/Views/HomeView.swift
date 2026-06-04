@@ -11,7 +11,7 @@ import SwiftUI
 struct HomeView: View {
     @State private var selectedTab: String = "推荐"
     @State private var selectedVideo: VideoItem?
-    @State private var serchQuery = ""
+    @State private var isSearchViewPresented = false
     @State private var toastMessage: String?
     @Namespace private var videoHeroNamespace
     @Bindable var viewModel: HomeViewModel
@@ -38,19 +38,23 @@ struct HomeView: View {
                     // 第一行
                     HStack(spacing: 12) {
                         // 搜索框
-                        HStack(spacing: 8) {
-                            Image(systemName: "magnifyingglass")
-                                .foregroundStyle(.secondary)
+                        Button {
+                            isSearchViewPresented = true
+                        } label: {
+                            HStack(spacing: 8) {
+                                Image(systemName: "magnifyingglass")
+                                    .foregroundStyle(.secondary)
 
-                            TextField("搜索视频", text: $serchQuery)
-                                .textInputAutocapitalization(.never)
-                                .autocorrectionDisabled()
-                                .submitLabel(.search)
+                                Text("搜索视频")
+                                    .foregroundStyle(.secondary)
 
-                            Spacer(minLength: 0)
+                                Spacer(minLength: 0)
+                            }
+                            .padding(.horizontal, 14)
+                            .frame(height: 40)
+                            .contentShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
                         }
-                        .padding(.horizontal, 14)
-                        .frame(height: 40)
+                        .buttonStyle(.plain)
                         .glassEffect(
                             .regular.interactive(),
                             in: RoundedRectangle(cornerRadius: 22, style: .continuous)
@@ -246,6 +250,9 @@ struct HomeView: View {
                         onBack: { selectedVideo = nil }
                     )
                 }
+            }
+            .navigationDestination(isPresented: $isSearchViewPresented) {
+                SearchView()
             }
         }
         .task {

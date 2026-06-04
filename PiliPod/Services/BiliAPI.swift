@@ -515,6 +515,71 @@ class BiliAPI {
         return historyData
     }
 
+    // MARK: - 获取搜索热榜
+
+    func fetchSearchTrending(limit: Int = 10) async throws -> [SearchTrendingItem] {
+        var components = URLComponents(string: "https://api.bilibili.com/x/v2/search/trending/ranking")
+        components?.queryItems = [
+            URLQueryItem(name: "limit", value: String(limit))
+        ]
+
+        guard let url = components?.url else {
+            throw APIError.invalidURL
+        }
+
+        let request = makeRequest(url: url)
+        let (data, response) = try await URLSession.shared.data(for: request)
+
+        guard let httpResponse = response as? HTTPURLResponse,
+              (200 ... 299).contains(httpResponse.statusCode)
+        else {
+            throw APIError.requestFailed
+        }
+
+        let decoded = try JSONDecoder().decode(SearchTrendingResponse.self, from: data)
+        guard decoded.code == 0 else {
+            throw APIError.businessError(code: decoded.code, message: decoded.message)
+        }
+
+        return decoded.data?.list ?? []
+    }
+
+    // MARK: - 获取搜索发现
+
+    func fetchSearchRecommend() async throws -> [SearchRecommendItem] {
+        let urlString = "https://app.bilibili.com/x/v2/search/recommend"
+        
+        let params: [String:String] = [
+            "from":"2",
+            "channel":"master",
+            "c_locale":"zh_CN",
+            "mobi_app":"android",
+            "platform":"android",
+            "s_locale":"zh_CN"
+        ]
+
+        guard let request = makeAppRequest(baseURLString: urlString, method: "GET", parameters: params) else {
+            throw APIError.invalidURL
+        }
+
+        let (data, response) = try await URLSession.shared.data(for: request)
+
+        print(String(data: data, encoding: .utf8))
+        
+        guard let httpResponse = response as? HTTPURLResponse,
+              (200 ... 299).contains(httpResponse.statusCode)
+        else {
+            throw APIError.requestFailed
+        }
+
+        let decoded = try JSONDecoder().decode(SearchRecommendResponse.self, from: data)
+        guard decoded.code == 0 else {
+            throw APIError.businessError(code: decoded.code, message: decoded.message)
+        }
+
+        return decoded.data?.list ?? []
+    }
+
     private func makeSpaceCommonParameters(mid: Int) -> [String: String] {
         [
             "build": "8430300",
@@ -1356,7 +1421,7 @@ class BiliAPI {
 
     // MARK: - 请求体顺序：其他 key 按字典序，最后固定 appkey、ts、sign
     private func makeOrderedBodyString(from parameters: [String: String]) -> String {
-        let tailKeys = ["appkey", "ts", "sign"]
+        let tailKeys = ["access_key", "appkey", "ts", "sign"]
         let sortedOtherKeys = parameters.keys
             .filter { !tailKeys.contains($0) }
             .sorted()
