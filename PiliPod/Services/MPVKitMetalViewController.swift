@@ -40,6 +40,7 @@ final class MPVKitMetalViewController: UIViewController {
         syncMetalLayerLayout()
         metalLayer.framebufferOnly = true
         metalLayer.backgroundColor = UIColor.black.cgColor
+        applyDynamicRangeLayerPreferences()
 
         view.layer.addSublayer(metalLayer)
         setupMpv()
@@ -90,6 +91,7 @@ final class MPVKitMetalViewController: UIViewController {
 
     func applyPlaybackSettings(_ settings: AudioVideoSettings) {
         pendingPlaybackSettings = settings.clamped()
+        applyDynamicRangeLayerPreferences()
     }
 
     private func setHTTPHeaders(_ mpv: OpaquePointer, headers: [String: String]) {
@@ -205,6 +207,7 @@ final class MPVKitMetalViewController: UIViewController {
         checkError(mpv_set_option_string(mpv, "gpu-context", "moltenvk"), context: "gpu-context")
         let hwdecValue = pendingPlaybackSettings.hardwareDecodingEnabled ? "videotoolbox" : "no"
         checkError(mpv_set_option_string(mpv, "hwdec", hwdecValue), context: "hwdec")
+        applyHDRRenderingOptions(to: mpv, settings: pendingPlaybackSettings)
         checkError(mpv_set_option_string(mpv, "cache", "auto"), context: "cache")
         checkError(
             mpv_set_option_string(mpv, "autosync", "\(pendingPlaybackSettings.autosync)"),
@@ -252,6 +255,78 @@ final class MPVKitMetalViewController: UIViewController {
         }
         if let audio = pendingAudioURL {
             addAudio(audio)
+        }
+    }
+
+    private func applyHDRRenderingOptions(to mpv: OpaquePointer, settings: AudioVideoSettings) {
+        let toneMapping = settings.hdrToneMapping == .auto ? "auto" : settings.hdrToneMapping.rawValue
+        checkError(
+            mpv_set_option_string(mpv, "tone-mapping", toneMapping),
+            context: "tone-mapping"
+        )
+        checkError(
+            mpv_set_option_string(
+                mpv,
+                "target-colorspace-hint",
+                settings.highDynamicRangeEnabled ? "yes" : "no"
+            ),
+            context: "target-colorspace-hint"
+        )
+        checkError(
+            mpv_set_option_string(
+                mpv,
+                "hdr-compute-peak",
+                settings.highDynamicRangeEnabled ? "yes" : "no"
+            ),
+            context: "hdr-compute-peak"
+        )
+    }
+
+    private func applyDynamicRangeLayerPreferences() {
+        let enableExtendedRange = pendingPlaybackSettings.highDynamicRangeEnabled
+            && pendingPlaybackSettings.prefersEDROutput
+            && screenPotentialEDRHeadroom() > 1.0
+
+        metalLayer.wantsExtendedDynamicRangeContent = enableExtendedRange
+        metalLayer.colorspace = preferredDisplayColorSpace(useExtendedRange: enableExtendedRange)
+    }
+
+    private func preferredDisplayColorSpace(useExtendedRange: Bool) -> CGColorSpace? {
+        if useExtendedRange {
+            return CGColorSpace(name: CGColorSpace.extendedLinearDisplayP3)
+                ?? CGColorSpace(name: CGColorSpace.extendedLinearSRGB)
+        }
+        return CGColorSpace(name: CGColorSpace.sRGB)
+    }
+
+    private func activeScreen() -> UIScreen? {
+        view.window?.screen ?? view.window?.windowScene?.screen ?? UIScreen.main
+    }
+
+    private func screenCurrentEDRHeadroom() -> CGFloat {
+        guard let screen = activeScreen() else { return 1.0 }
+        if #available(iOS 16.0, *) {
+            return screen.currentEDRHeadroom
+        }
+        return 1.0
+    }
+
+    private func screenPotentialEDRHeadroom() -> CGFloat {
+        guard let screen = activeScreen() else { return 1.0 }
+        if #available(iOS 16.0, *) {
+            return screen.potentialEDRHeadroom
+        }
+        return 1.0
+    }
+
+    private func displayGamutDescription() -> String {
+        switch traitCollection.displayGamut {
+        case .P3:
+            return "P3"
+        case .SRGB:
+            return "sRGB"
+        default:
+            return "unspecified"
         }
     }
 
@@ -377,6 +452,19 @@ final class MPVKitMetalViewController: UIViewController {
     func videoCodec() -> String { getString("video-codec") }
     func audioCodec() -> String { getString("audio-codec") }
     func hwdecCurrent() -> String { getString("hwdec-current") }
+    func videoPixelFormat() -> String { getString("video-params/pixelformat") }
+    func videoHardwarePixelFormat() -> String { getString("video-out-params/hw-pixelformat") }
+    func videoPrimaries() -> String { getString("video-params/primaries") }
+    func videoGamma() -> String { getString("video-params/gamma") }
+    func videoSignalPeak() -> String { getString("video-params/sig-peak") }
+    func videoColorLevels() -> String { getString("video-params/colorlevels") }
+    func videoColorMatrix() -> String { getString("video-params/colormatrix") }
+    func currentToneMapping() -> String { getString("tone-mapping") }
+    func isExtendedDynamicRangeRequested() -> Bool { metalLayer.wantsExtendedDynamicRangeContent }
+    func displayColorSpaceName() -> String { metalLayer.colorspace?.name as String? ?? "" }
+    func currentEDRHeadroom() -> CGFloat { screenCurrentEDRHeadroom() }
+    func potentialEDRHeadroom() -> CGFloat { screenPotentialEDRHeadroom() }
+    func displayGamut() -> String { displayGamutDescription() }
 
     private func getFlag(_ name: String) -> Bool {
         guard let mpv else { return false }

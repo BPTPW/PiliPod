@@ -98,6 +98,30 @@ enum MPVVideoSyncOption: String, CaseIterable, Codable, Hashable {
     }
 }
 
+enum HDRToneMappingOption: String, CaseIterable, Codable, Hashable {
+    case auto
+    case bt2390 = "bt.2390"
+    case bt2446a = "bt.2446a"
+    case spline
+    case reinhard
+    case mobius
+    case hable
+    case clip
+
+    var title: String {
+        switch self {
+        case .auto: "自动"
+        case .bt2390: "BT.2390"
+        case .bt2446a: "BT.2446-A"
+        case .spline: "Spline"
+        case .reinhard: "Reinhard"
+        case .mobius: "Mobius"
+        case .hable: "Hable"
+        case .clip: "Clip"
+        }
+    }
+}
+
 struct AudioVideoSettings: Codable, Equatable {
     var hardwareDecodingEnabled = true
     var defaultQuality: PreferredVideoQuality = .ultraHD4K
@@ -106,6 +130,9 @@ struct AudioVideoSettings: Codable, Equatable {
     var preferredCodec: PreferredCodecOption = .hevc
     var autosync: Int = 0
     var videoSync: MPVVideoSyncOption = .audio
+    var highDynamicRangeEnabled = true
+    var prefersEDROutput = true
+    var hdrToneMapping: HDRToneMappingOption = .auto
 
     private enum CodingKeys: String, CodingKey {
         case hardwareDecodingEnabled
@@ -115,11 +142,20 @@ struct AudioVideoSettings: Codable, Equatable {
         case preferredCodec
         case autosync
         case videoSync
+        case highDynamicRangeEnabled
+        case prefersEDROutput
+        case hdrToneMapping
     }
 
     func clamped() -> AudioVideoSettings {
         var settings = self
         settings.autosync = min(max(settings.autosync, 0), 10000)
+        if settings.highDynamicRangeEnabled {
+            settings.prefersEDROutput = true
+            if settings.hdrToneMapping == .clip {
+                settings.hdrToneMapping = .auto
+            }
+        }
         return settings
     }
 
@@ -134,6 +170,9 @@ struct AudioVideoSettings: Codable, Equatable {
         preferredCodec = try container.decodeIfPresent(PreferredCodecOption.self, forKey: .preferredCodec) ?? .hevc
         autosync = try container.decodeIfPresent(Int.self, forKey: .autosync) ?? 0
         videoSync = try container.decodeIfPresent(MPVVideoSyncOption.self, forKey: .videoSync) ?? .audio
+        highDynamicRangeEnabled = try container.decodeIfPresent(Bool.self, forKey: .highDynamicRangeEnabled) ?? true
+        prefersEDROutput = try container.decodeIfPresent(Bool.self, forKey: .prefersEDROutput) ?? true
+        hdrToneMapping = try container.decodeIfPresent(HDRToneMappingOption.self, forKey: .hdrToneMapping) ?? .auto
     }
 }
 

@@ -96,6 +96,23 @@ private struct AudioVideoSettingsView: View {
             }
 
             Section {
+                Toggle("增强 HDR 视频显示", isOn: $settings.highDynamicRangeEnabled)
+                    .tint(Color("BiliPink"))
+                    .onChange(of: settings.highDynamicRangeEnabled) { _, isEnabled in
+                        if isEnabled {
+                            settings.prefersEDROutput = true
+                            if settings.hdrToneMapping == .clip {
+                                settings.hdrToneMapping = .auto
+                            }
+                        }
+                    }
+            } header: {
+                Text("高动态范围")
+            } footer: {
+                Text("在支持的设备上，为 HDR、杜比视界等高动态视频启用更明亮的高光和更宽的色域。关闭后会按普通SDR视频方式显示。")
+            }
+
+            Section {
                 HStack {
                     Text("自动同步")
                     Spacer()
