@@ -259,7 +259,7 @@ struct UserSpaceView: View {
                 postsTabContent
             } else {
                 RoundedRectangle(cornerRadius: 14, style: .continuous)
-                    .fill(Color(.secondarySystemBackground))
+                    .fill(Color(.systemBackground))
                     .frame(height: 320)
                     .overlay {
                         Text("\(selectedTab.rawValue)内容暂时留空")
@@ -277,14 +277,14 @@ struct UserSpaceView: View {
     private var postsTabContent: some View {
         if viewModel.archiveIsLoading && viewModel.archiveVideos.isEmpty {
             RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .fill(Color(.secondarySystemBackground))
+                .fill(Color(.systemBackground))
                 .frame(height: 200)
                 .overlay {
                     ProgressView("加载投稿中…")
                 }
         } else if let error = viewModel.archiveErrorMessage, viewModel.archiveVideos.isEmpty {
             RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .fill(Color(.secondarySystemBackground))
+                .fill(Color(.systemBackground))
                 .frame(height: 200)
                 .overlay {
                     Text(error)
@@ -294,7 +294,7 @@ struct UserSpaceView: View {
                 }
         } else if viewModel.archiveVideos.isEmpty {
             RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .fill(Color(.secondarySystemBackground))
+                .fill(Color(.systemBackground))
                 .frame(height: 200)
                 .overlay {
                     Text("还没有投稿内容")
