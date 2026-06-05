@@ -26,7 +26,8 @@ enum CacheStorageService {
     static func configureSharedURLCacheIfNeeded() {
         let current = URLCache.shared
         if current.memoryCapacity == sharedURLCacheMemoryCapacity,
-           current.diskCapacity == sharedURLCacheDiskCapacity {
+           current.diskCapacity == sharedURLCacheDiskCapacity
+        {
             return
         }
 
@@ -107,5 +108,4 @@ enum CacheStorageService {
             try fileManager.removeItem(at: itemURL)
         }
     }
-
 }

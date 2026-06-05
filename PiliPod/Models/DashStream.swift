@@ -202,9 +202,9 @@ class DashStreamSelector {
             qualityCode: qualityCode,
             preferredCodec: preferredCodec
         ),
-              let audio = selectBestAudioStream(from: data.data.dash.audio),
-              let videoURL = URL(string: video.baseUrl),
-              let audioURL = URL(string: audio.baseUrl)
+            let audio = selectBestAudioStream(from: data.data.dash.audio),
+            let videoURL = URL(string: video.baseUrl),
+            let audioURL = URL(string: audio.baseUrl)
         else {
             return nil
         }

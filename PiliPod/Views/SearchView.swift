@@ -89,7 +89,6 @@ struct SearchView: View {
                     .regular.interactive(),
                     in: .capsule
                 )
-                
             }
             .padding(.horizontal, 16)
             .padding(.top, 8)

@@ -145,7 +145,7 @@ private struct AudioVideoSettingsView: View {
             } header: {
                 Text("同步")
             } footer: {
-                VStack(alignment: .leading){
+                VStack(alignment: .leading) {
                     Text("• 自动同步: mpv的--autosync")
                     Text("• 视频同步: mpv的--video-sync")
                 }

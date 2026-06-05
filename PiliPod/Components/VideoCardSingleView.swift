@@ -20,10 +20,12 @@ struct VideoCardSingleView: View {
     private var shouldShowStats: Bool {
         !(video.playCount == "--" && video.danmakuCount == "--")
     }
+
     private var progressRatio: CGFloat {
         guard let progress, video.duration > 0 else { return 0 }
         return min(max(CGFloat(progress) / CGFloat(video.duration), 0), 1)
     }
+
     private var durationBadgeText: String {
         guard let progress else { return video.durationFormatted }
         return "\(Self.formatDuration(progress))/\(video.durationFormatted)"

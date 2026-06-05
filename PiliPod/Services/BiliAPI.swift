@@ -463,7 +463,7 @@ class BiliAPI {
 
         return archiveData
     }
-    
+
     // MARK: - 获取历史记录
 
     func fetchHistoryList(
@@ -593,14 +593,14 @@ class BiliAPI {
 
     func fetchSearchRecommend() async throws -> [SearchRecommendItem] {
         let urlString = "https://app.bilibili.com/x/v2/search/recommend"
-        
-        let params: [String:String] = [
-            "from":"2",
-            "channel":"master",
-            "c_locale":"zh_CN",
-            "mobi_app":"android",
-            "platform":"android",
-            "s_locale":"zh_CN"
+
+        let params: [String: String] = [
+            "from": "2",
+            "channel": "master",
+            "c_locale": "zh_CN",
+            "mobi_app": "android",
+            "platform": "android",
+            "s_locale": "zh_CN"
         ]
 
         guard let request = makeAppRequest(baseURLString: urlString, method: "GET", parameters: params) else {
@@ -610,7 +610,7 @@ class BiliAPI {
         let (data, response) = try await URLSession.shared.data(for: request)
 
         print(String(data: data, encoding: .utf8))
-        
+
         guard let httpResponse = response as? HTTPURLResponse,
               (200 ... 299).contains(httpResponse.statusCode)
         else {
@@ -870,7 +870,7 @@ class BiliAPI {
         }
         return payload
     }
-    
+
     // MARK: - 发送评论
 
     func addVideoComment(
@@ -1707,6 +1707,7 @@ class BiliAPI {
     }
 
     // MARK: - 请求体顺序：其他 key 按字典序，最后固定 appkey、ts、sign
+
     private func makeOrderedBodyString(from parameters: [String: String]) -> String {
         let tailKeys = ["access_key", "appkey", "ts", "sign"]
         let sortedOtherKeys = parameters.keys

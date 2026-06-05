@@ -218,7 +218,6 @@ struct AboutView: View {
             settingsTransferMessage = error.localizedDescription
         }
     }
-
 }
 
 private struct AppIconPreview: View {
@@ -277,6 +276,6 @@ private struct JSONExportDocument: FileDocument {
     }
 }
 
-#Preview{
+#Preview {
     AboutView()
 }

@@ -14,7 +14,7 @@ struct SearchTypedVideoData: Decodable {
 
     enum CodingKeys: String, CodingKey {
         case page
-        case numPages = "numPages"
+        case numPages
         case result
     }
 }
@@ -33,7 +33,7 @@ struct SearchTypedUserData: Decodable {
 
     enum CodingKeys: String, CodingKey {
         case page
-        case numPages = "numPages"
+        case numPages
         case result
     }
 }

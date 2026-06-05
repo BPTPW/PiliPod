@@ -36,7 +36,7 @@ enum BiliWbiSignature {
             .map { URLQueryItem(name: $0.name, value: sanitizeValue($0.value)) }
 
         let signingItems = sanitizedItems + [
-            URLQueryItem(name: "wts", value: String(timestamp))
+            URLQueryItem(name: "wts", value: String(timestamp)),
         ]
         let canonicalQuery = signingItems
             .sorted {

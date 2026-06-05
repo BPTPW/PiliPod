@@ -78,7 +78,8 @@ final class SharedRemoteImageStore {
         )
 
         if let cachedResponse = URLCache.shared.cachedResponse(for: request),
-           let image = UIImage(data: cachedResponse.data) {
+           let image = UIImage(data: cachedResponse.data)
+        {
             memoryCache.setObject(image, forKey: key)
             return image
         }
@@ -92,7 +93,8 @@ final class SharedRemoteImageStore {
                 let (data, response) = try await URLSession.shared.data(for: request)
                 guard let httpResponse = response as? HTTPURLResponse,
                       (200 ... 299).contains(httpResponse.statusCode),
-                      let image = UIImage(data: data) else {
+                      let image = UIImage(data: data)
+                else {
                     return nil
                 }
                 return image

@@ -25,4 +25,3 @@ struct RecommendSettingsView: View {
         }
     }
 }
-

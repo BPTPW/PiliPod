@@ -182,7 +182,7 @@ struct SearchUserLargeCardVideo: Identifiable, Hashable {
                 id: "user-1",
                 name: "影视飓风",
                 avatarURL: "https://i2.hdslb.com/bfs/face/member/noface.jpg",
-                followerCount: 8214500,
+                followerCount: 8_214_500,
                 videoCount: 327
             ),
             videos: [

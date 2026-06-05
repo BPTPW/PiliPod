@@ -753,7 +753,7 @@ class VideoDetailViewModel {
         historyReportTimer = nil
 
         historyReportStartTask = Task { @MainActor [weak self] in
-            try? await Task.sleep(nanoseconds: 1_000_000_000)
+            try? await Task.sleep(nanoseconds: 1000000000)
             guard let self, !Task.isCancelled, let player = self.player else { return }
 
             self.reportHistoryIfNeeded(with: player)
