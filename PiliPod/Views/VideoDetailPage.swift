@@ -453,7 +453,7 @@ struct VideoDetailPage: View {
                                 .overlay {
                                     if !isFullscreen && !controlsVisible {
                                         ReadOnlyVideoProgressBar(
-                                            currentTime: player.currentTime,
+                                            currentTime: activeSeekPreviewTime(duration: player.duration) ?? player.currentTime,
                                             duration: player.duration,
                                             bufferedUntil: player.bufferedUntil,
                                             segments: progressSegments
@@ -489,7 +489,7 @@ struct VideoDetailPage: View {
                                         isVisible: controlsVisible,
                                         showsSponsorButton: showsSponsorButton,
                                         showsSponsorInfoButton: showsSponsorInfoButton,
-                                        currentTime: player.currentTime,
+                                        currentTime: activeSeekPreviewTime(duration: player.duration) ?? player.currentTime,
                                         duration: player.duration,
                                         bufferedUntil: player.bufferedUntil,
                                         isPlaying: player.isPlaying,
