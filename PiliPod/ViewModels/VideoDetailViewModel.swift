@@ -20,6 +20,8 @@ class VideoDetailViewModel {
     var qualityOptions: [VideoQualityOption] = []
     var selectedQualityCode: Int?
     var selectedPlaybackRate: Double = 1.0
+    var videoShotMetadata: VideoShotPreviewMetadata?
+    var videoShotIsLoading = false
 
     var relatedVideos: [VideoItem] = []
     var relatedIsLoading = false
@@ -73,6 +75,7 @@ class VideoDetailViewModel {
 
     private var historyReportTimer: Timer?
     private var historyReportStartTask: Task<Void, Never>?
+    private var videoShotWarmTask: Task<Void, Never>?
     private var lastReportedProgress = 0
     private var playerRebuildToken = UUID()
     private var isRebuildingPlayer = false
@@ -127,6 +130,10 @@ class VideoDetailViewModel {
         coinCount = 0
         favoriteCount = 0
         lastReportedProgress = 0
+        videoShotMetadata = nil
+        videoShotIsLoading = false
+        videoShotWarmTask?.cancel()
+        videoShotWarmTask = nil
 
         do {
             // 获取视频详情
@@ -181,6 +188,10 @@ class VideoDetailViewModel {
             // 先加载第一包弹幕，供后续渲染层接入
             Task {
                 await loadDanmakuSegment(cid: playbackCid, segmentIndex: 1)
+            }
+
+            Task {
+                await loadVideoShotMetadata(cid: playbackCid)
             }
 
             // 获取用户对该视频的操作状态（点赞/点踩/投币/收藏）
@@ -474,6 +485,52 @@ class VideoDetailViewModel {
         let currentSegment = max(1, Int(currentTime / 360.0) + 1)
         await loadDanmakuSegment(cid: targetCid, segmentIndex: currentSegment)
         await loadDanmakuSegment(cid: targetCid, segmentIndex: currentSegment + 1)
+    }
+
+    @MainActor
+    func loadVideoShotMetadata(cid: Int? = nil) async {
+        let targetCid = cid ?? self.cid
+        guard targetCid > 0 else { return }
+        guard !videoShotIsLoading else { return }
+        guard videoShotMetadata == nil else { return }
+
+        videoShotIsLoading = true
+        defer { videoShotIsLoading = false }
+
+        do {
+            videoShotMetadata = try await BiliAPI.shared.fetchVideoShotPreview(
+                bvid: bvid,
+                cid: targetCid
+            )
+            warmVideoShotSpriteSheetsIfNeeded()
+        } catch {
+            print("加载视频快照预览失败: \(error)")
+        }
+    }
+
+    private func warmVideoShotSpriteSheetsIfNeeded() {
+        guard let spriteSheetURLs = videoShotMetadata?.spriteSheetURLs, !spriteSheetURLs.isEmpty else {
+            return
+        }
+
+        videoShotWarmTask?.cancel()
+        videoShotWarmTask = Task(priority: .utility) {
+            let session = URLSession.shared
+            for url in spriteSheetURLs {
+                if Task.isCancelled { return }
+
+                let request = URLRequest(
+                    url: url,
+                    cachePolicy: .returnCacheDataElseLoad,
+                    timeoutInterval: 30
+                )
+                do {
+                    _ = try await session.data(for: request)
+                } catch {
+                    continue
+                }
+            }
+        }
     }
 
     @MainActor

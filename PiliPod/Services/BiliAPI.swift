@@ -1473,6 +1473,106 @@ class BiliAPI {
         return response
     }
 
+    // MARK: - 视频快照预览
+
+    func fetchVideoShotPreview(
+        bvid: String,
+        cid: Int
+    ) async throws -> VideoShotPreviewMetadata {
+        var components = URLComponents(
+            string: "https://api.bilibili.com/x/player/videoshot"
+        )
+        components?.queryItems = [
+            URLQueryItem(name: "bvid", value: bvid),
+            URLQueryItem(name: "cid", value: String(cid)),
+            URLQueryItem(name: "index", value: "0")
+        ]
+
+        guard let url = components?.url else {
+            throw APIError.invalidURL
+        }
+
+        let request = makeRequest(url: url)
+        let (data, response) = try await URLSession.shared.data(for: request)
+        guard let httpResponse = response as? HTTPURLResponse,
+              (200 ... 299).contains(httpResponse.statusCode)
+        else {
+            throw APIError.requestFailed
+        }
+
+        let decoded = try JSONDecoder().decode(VideoShotPreviewResponse.self, from: data)
+        guard decoded.code == 0, let payload = decoded.data else {
+            throw APIError.businessError(code: decoded.code, message: decoded.message)
+        }
+
+        let spriteSheetURLs = payload.image.compactMap(normalizeBilibiliURL(_:))
+        guard !spriteSheetURLs.isEmpty else {
+            throw APIError.requestFailed
+        }
+
+        let timestamps = try await fetchVideoShotTimestamps(from: payload.pvdata)
+        return VideoShotPreviewMetadata(
+            spriteSheetURLs: spriteSheetURLs,
+            timestamps: timestamps,
+            columns: max(1, payload.imgXLen),
+            rows: max(1, payload.imgYLen),
+            tileWidth: max(1, payload.imgXSize),
+            tileHeight: max(1, payload.imgYSize)
+        )
+    }
+
+    private func fetchVideoShotTimestamps(from rawURL: String) async throws -> [TimeInterval] {
+        guard let url = normalizeBilibiliURL(rawURL) else {
+            throw APIError.invalidURL
+        }
+
+        let request = makeRequest(url: url)
+        let (data, response) = try await URLSession.shared.data(for: request)
+        guard let httpResponse = response as? HTTPURLResponse,
+              (200 ... 299).contains(httpResponse.statusCode)
+        else {
+            throw APIError.requestFailed
+        }
+
+        return decodeVideoShotTimestamps(from: data)
+    }
+
+    private func normalizeBilibiliURL(_ rawURL: String) -> URL? {
+        let trimmed = rawURL.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return nil }
+
+        if trimmed.hasPrefix("//") {
+            return URL(string: "https:" + trimmed)
+        }
+
+        if trimmed.hasPrefix("http://") {
+            return URL(string: "https://" + trimmed.dropFirst("http://".count))
+        }
+
+        if trimmed.hasPrefix("https://") {
+            return URL(string: trimmed)
+        }
+
+        return URL(string: "https://" + trimmed)
+    }
+
+    private func decodeVideoShotTimestamps(from data: Data) -> [TimeInterval] {
+        guard data.count >= 2 else { return [] }
+
+        var result: [TimeInterval] = []
+        result.reserveCapacity(data.count / 2)
+
+        var offset = 0
+        while offset + 1 < data.count {
+            let high = UInt16(data[offset]) << 8
+            let low = UInt16(data[offset + 1])
+            result.append(TimeInterval(high | low))
+            offset += 2
+        }
+
+        return result
+    }
+
     // MARK: - 上报播放记录
 
     func reportHistory(
@@ -1631,3 +1731,96 @@ struct MyStat: Codable {
 }
 
 private struct EmptyCodable: Codable {}
+
+struct VideoShotPreviewMetadata: Equatable {
+    let spriteSheetURLs: [URL]
+    let timestamps: [TimeInterval]
+    let columns: Int
+    let rows: Int
+    let tileWidth: Int
+    let tileHeight: Int
+
+    private var maxFrameCount: Int {
+        max(0, spriteSheetURLs.count * columns * rows)
+    }
+
+    func frame(at time: TimeInterval) -> VideoShotFrame? {
+        guard maxFrameCount > 0 else { return nil }
+
+        let frameIndex = resolvedFrameIndex(for: time)
+        let clampedIndex = min(max(0, frameIndex), maxFrameCount - 1)
+        let tilesPerSheet = max(1, columns * rows)
+        let sheetIndex = min(clampedIndex / tilesPerSheet, spriteSheetURLs.count - 1)
+        let cellIndex = clampedIndex % tilesPerSheet
+
+        return VideoShotFrame(
+            sheetURL: spriteSheetURLs[sheetIndex],
+            column: cellIndex % columns,
+            row: cellIndex / columns,
+            columns: columns,
+            rows: rows,
+            tileWidth: tileWidth,
+            tileHeight: tileHeight,
+            timestamp: timestamps.isEmpty ? nil : timestamps[min(clampedIndex, timestamps.count - 1)]
+        )
+    }
+
+    private func resolvedFrameIndex(for time: TimeInterval) -> Int {
+        if timestamps.isEmpty {
+            return 0
+        }
+
+        let clampedTime = max(0, time)
+        var low = 0
+        var high = timestamps.count - 1
+        var answer = 0
+
+        while low <= high {
+            let mid = (low + high) / 2
+            if timestamps[mid] <= clampedTime {
+                answer = mid
+                low = mid + 1
+            } else {
+                high = mid - 1
+            }
+        }
+
+        return answer
+    }
+}
+
+struct VideoShotFrame: Equatable {
+    let sheetURL: URL
+    let column: Int
+    let row: Int
+    let columns: Int
+    let rows: Int
+    let tileWidth: Int
+    let tileHeight: Int
+    let timestamp: TimeInterval?
+}
+
+private struct VideoShotPreviewResponse: Codable {
+    let code: Int
+    let message: String
+    let ttl: Int?
+    let data: VideoShotPreviewPayload?
+}
+
+private struct VideoShotPreviewPayload: Codable {
+    let pvdata: String
+    let imgXLen: Int
+    let imgYLen: Int
+    let imgXSize: Int
+    let imgYSize: Int
+    let image: [String]
+
+    enum CodingKeys: String, CodingKey {
+        case pvdata
+        case imgXLen = "img_x_len"
+        case imgYLen = "img_y_len"
+        case imgXSize = "img_x_size"
+        case imgYSize = "img_y_size"
+        case image
+    }
+}

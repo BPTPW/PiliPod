@@ -561,6 +561,15 @@ struct VideoDetailPage: View {
                                             .transition(.opacity)
                                     }
                                 }
+                                .overlay {
+                                    if let previewTime = activeSeekPreviewTime(duration: player.duration) {
+                                        VideoShotPreviewCard(
+                                            frame: bindableViewModel.videoShotMetadata?.frame(at: previewTime),
+                                            fallbackAspectRatio: stream.aspectRatio
+                                        )
+                                        .transition(.opacity.combined(with: .scale(scale: 0.96)))
+                                    }
+                                }
                                 .overlay(alignment: .bottomLeading) {
                                     if let manualSkipSegment {
                                         Button {
@@ -3126,6 +3135,154 @@ private struct ReadOnlyVideoProgressBar: View {
         .frame(height: 2)
     }
 }
+
+private struct VideoShotPreviewCard: View {
+    let frame: VideoShotFrame?
+    let fallbackAspectRatio: Double
+
+    private var cardAspectRatio: CGFloat {
+        if let frame, frame.tileHeight > 0 {
+            return CGFloat(frame.tileWidth) / CGFloat(frame.tileHeight)
+        }
+        let safeRatio = fallbackAspectRatio > 0 ? fallbackAspectRatio : (16.0 / 9.0)
+        return CGFloat(safeRatio)
+    }
+
+    var body: some View {
+        Group {
+            if let frame {
+                VideoShotSpriteTileView(frame: frame)
+            } else {
+                ZStack {
+                    Rectangle()
+                        .fill(Color.white.opacity(0.1))
+                    ProgressView()
+                        .tint(.white)
+                }
+            }
+        }
+        .frame(width: 160, height: 160 / cardAspectRatio)
+        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .overlay {
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .stroke(Color.white.opacity(0.96), lineWidth: 2)
+        }
+        .shadow(color: .black.opacity(0.28), radius: 12, x: 0, y: 8)
+        .allowsHitTesting(false)
+    }
+}
+
+private struct VideoShotSpriteTileView: View {
+    let frame: VideoShotFrame
+
+#if canImport(UIKit)
+    @State private var image: UIImage?
+#endif
+    @State private var isLoading = false
+
+    var body: some View {
+        GeometryReader { geo in
+            let tileWidth = max(1, CGFloat(frame.tileWidth))
+            let tileHeight = max(1, CGFloat(frame.tileHeight))
+            let totalWidth = tileWidth * CGFloat(max(1, frame.columns))
+            let totalHeight = tileHeight * CGFloat(max(1, frame.rows))
+            let scaleX = geo.size.width / tileWidth
+            let scaleY = geo.size.height / tileHeight
+
+            ZStack {
+#if canImport(UIKit)
+                if let image {
+                    Image(uiImage: image)
+                        .resizable()
+                        .interpolation(.high)
+                        .frame(width: totalWidth * scaleX, height: totalHeight * scaleY)
+                        .offset(
+                            x: -CGFloat(frame.column) * tileWidth * scaleX,
+                            y: -CGFloat(frame.row) * tileHeight * scaleY
+                        )
+                } else if isLoading {
+                    Rectangle()
+                        .fill(Color.white.opacity(0.08))
+                        .overlay {
+                            ProgressView()
+                                .tint(.white)
+                        }
+                } else {
+                    Rectangle()
+                        .fill(Color.white.opacity(0.1))
+                        .overlay {
+                            Image(systemName: "photo")
+                                .font(.system(size: 20, weight: .semibold))
+                                .foregroundStyle(.white.opacity(0.8))
+                        }
+                }
+#else
+                Rectangle()
+                    .fill(Color.white.opacity(0.1))
+#endif
+            }
+            .frame(width: geo.size.width, height: geo.size.height, alignment: .topLeading)
+            .clipped()
+        }
+#if canImport(UIKit)
+        .task(id: frame.sheetURL.absoluteString) {
+            await loadSpriteSheetIfNeeded()
+        }
+#endif
+    }
+
+#if canImport(UIKit)
+    @MainActor
+    private func loadSpriteSheetIfNeeded() async {
+        if image != nil || isLoading { return }
+        isLoading = true
+        defer { isLoading = false }
+        image = await VideoShotSpriteLoader.shared.loadImage(from: frame.sheetURL)
+    }
+#endif
+}
+
+#if canImport(UIKit)
+private actor VideoShotSpriteLoader {
+    static let shared = VideoShotSpriteLoader()
+
+    private let cache = NSCache<NSURL, UIImage>()
+
+    func loadImage(from url: URL) async -> UIImage? {
+        let nsURL = url as NSURL
+        if let cached = cache.object(forKey: nsURL) {
+            return cached
+        }
+
+        var request = URLRequest(
+            url: url,
+            cachePolicy: .returnCacheDataElseLoad,
+            timeoutInterval: 30
+        )
+        request.setValue("https://www.bilibili.com", forHTTPHeaderField: "Referer")
+        request.setValue(
+            "Mozilla/5.0 (iPhone; CPU iPhone OS 18_2 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.2 Mobile/15E148 Safari/604.1",
+            forHTTPHeaderField: "User-Agent"
+        )
+
+        let cookie = LoginSession.shared.cookieString
+        if !cookie.isEmpty {
+            request.setValue(cookie, forHTTPHeaderField: "Cookie")
+        }
+
+        guard let (data, response) = try? await URLSession.shared.data(for: request),
+              let httpResponse = response as? HTTPURLResponse,
+              (200 ... 299).contains(httpResponse.statusCode),
+              let image = UIImage(data: data)
+        else {
+            return nil
+        }
+
+        cache.setObject(image, forKey: nsURL)
+        return image
+    }
+}
+#endif
 
 private struct VideoProgressTrack: View {
     let width: CGFloat
