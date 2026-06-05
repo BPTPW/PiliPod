@@ -39,7 +39,7 @@ struct SettingsView: View {
                 } label: {
                     SettingsCategoryRow(
                         title: "弹幕",
-                        systemImage: "text.bubble.fill",
+                        imageName: "DanmakuSetting",
                         tint: .green
                     )
                 }

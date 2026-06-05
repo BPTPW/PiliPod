@@ -2,8 +2,23 @@ import SwiftUI
 
 struct SettingsCategoryRow: View {
     let title: String
-    let systemImage: String
+    let systemImage: String?
+    let imageName: String?
     let tint: Color
+
+    init(title: String, systemImage: String, tint: Color) {
+        self.title = title
+        self.systemImage = systemImage
+        self.imageName = nil
+        self.tint = tint
+    }
+
+    init(title: String, imageName: String, tint: Color) {
+        self.title = title
+        self.systemImage = nil
+        self.imageName = imageName
+        self.tint = tint
+    }
 
     var body: some View {
         Label {
@@ -14,9 +29,18 @@ struct SettingsCategoryRow: View {
                     .fill(tint.gradient)
                     .frame(width: 28, height: 28)
 
-                Image(systemName: systemImage)
-                    .font(.system(size: 14, weight: .semibold))
-                    .foregroundStyle(.white)
+                if let systemImage {
+                    Image(systemName: systemImage)
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundStyle(.white)
+                } else if let imageName {
+                    Image(imageName)
+                        .renderingMode(.template)
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: 16, height: 16)
+                        .foregroundStyle(.white)
+                }
             }
         }
     }
