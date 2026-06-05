@@ -13,6 +13,10 @@ import UIKit
 #endif
 
 struct VideoDetailPage: View {
+    private static let introBVPattern = try? NSRegularExpression(
+        pattern: #"BV[0-9A-Za-z]{10}"#
+    )
+
     enum SponsorBlockDraftActionType: String, CaseIterable, Hashable {
         case skip
         case fill
@@ -1026,6 +1030,127 @@ struct VideoDetailPage: View {
         case comments = "评论"
     }
 
+    private enum IntroLink {
+        static let scheme = "pilipod"
+        static let userHost = "user"
+        static let videoHost = "video"
+    }
+
+    private var introDescriptionText: AttributedString {
+        guard let items = viewModel.videoDetail?.descV2, !items.isEmpty else {
+            return AttributedString("")
+        }
+
+        var result = AttributedString()
+        for item in items {
+            result += attributedDescriptionSegment(for: item)
+        }
+        return result
+    }
+
+    private var hasIntroDescription: Bool {
+        !introDescriptionText.characters.isEmpty
+    }
+
+    private func attributedDescriptionSegment(for item: DescV2Item) -> AttributedString {
+        switch item.type {
+        case 2:
+            return attributedMentionSegment(for: item)
+        default:
+            return attributedTextSegment(item.rawText)
+        }
+    }
+
+    private func attributedMentionSegment(for item: DescV2Item) -> AttributedString {
+        var text = AttributedString("@\(item.rawText) ")
+        if item.bizId > 0,
+           let url = URL(string: "\(IntroLink.scheme)://\(IntroLink.userHost)/\(item.bizId)")
+        {
+            text.link = url
+        }
+        return text
+    }
+
+    private func attributedTextSegment(_ text: String) -> AttributedString {
+        guard let regex = Self.introBVPattern else {
+            return AttributedString(text)
+        }
+
+        let nsRange = NSRange(text.startIndex..<text.endIndex, in: text)
+        let matches = regex.matches(in: text, range: nsRange)
+        guard !matches.isEmpty else {
+            return AttributedString(text)
+        }
+
+        var result = AttributedString()
+        var currentIndex = text.startIndex
+
+        for match in matches {
+            guard let range = Range(match.range, in: text) else { continue }
+            if currentIndex < range.lowerBound {
+                result += AttributedString(String(text[currentIndex..<range.lowerBound]))
+            }
+
+            let bvid = String(text[range])
+            var linkedText = AttributedString(bvid)
+            if let url = URL(string: "\(IntroLink.scheme)://\(IntroLink.videoHost)/\(bvid)") {
+                linkedText.link = url
+            }
+            result += linkedText
+            currentIndex = range.upperBound
+        }
+
+        if currentIndex < text.endIndex {
+            result += AttributedString(String(text[currentIndex..<text.endIndex]))
+        }
+
+        return result
+    }
+
+    private func handleIntroLink(_ url: URL) -> OpenURLAction.Result {
+        guard url.scheme == IntroLink.scheme else {
+            return .systemAction
+        }
+
+        switch url.host {
+        case IntroLink.userHost:
+            guard let midString = url.pathComponents.dropFirst().first,
+                  let mid = Int(midString)
+            else {
+                return .handled
+            }
+
+            selectedUserSpaceRoute = UserSpaceRoute(
+                mid: mid,
+                fromViewAid: viewModel.videoDetail?.aid
+            )
+            return .handled
+
+        case IntroLink.videoHost:
+            guard let bvid = url.pathComponents.dropFirst().first, !bvid.isEmpty else {
+                return .handled
+            }
+
+            selectedRelatedVideo = VideoItem(
+                bvid: bvid,
+                cid: nil,
+                cover: "",
+                title: bvid,
+                playCount: "--",
+                danmakuCount: "--",
+                uploader: "",
+                duration: 0,
+                progressSeconds: nil,
+                publishTimeText: "",
+                bottomRcmdReasonText: nil
+            )
+            return .handled
+
+        default:
+            return .handled
+        }
+    }
+
     private var tabBar: some View {
         HStack(spacing: 18) {
             ForEach(VideoDetailTab.allCases, id: \.self) { tab in
@@ -1173,7 +1298,7 @@ struct VideoDetailPage: View {
                     }
 
                     // 视频标题
-                    Text(video.title)
+                    Text(viewModel.title)
                         .font(.headline)
                         .lineLimit(2)
                         .foregroundColor(.primary)
@@ -1219,12 +1344,16 @@ struct VideoDetailPage: View {
 #endif
                                 }
 
-                            if !detail.desc.isEmpty {
-                                Text(detail.desc)
+                            if hasIntroDescription {
+                                Text(introDescriptionText)
                                     .font(.footnote)
                                     .foregroundStyle(.secondary)
+                                    .tint(Color("BiliPink"))
                                     .frame(maxWidth: .infinity, alignment: .leading)
                                     .fixedSize(horizontal: false, vertical: true)
+                                    .environment(\.openURL, OpenURLAction { url in
+                                        handleIntroLink(url)
+                                    })
                             }
                         }
                         .padding(.top, 4)

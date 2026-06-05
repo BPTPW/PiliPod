@@ -69,7 +69,7 @@ class VideoDetailViewModel {
     let bvid: String
     var aid: Int = 0
     var cid: Int = 0
-    let title: String
+    var title: String
     let cover: String
     var initialSeekTime: Double?
 
@@ -143,6 +143,7 @@ class VideoDetailViewModel {
                 self.videoDetail = detail
                 self.aid = detail.aid
                 self.cid = detail.cid
+                self.title = detail.title
                 self.likeCount = detail.stat.like
                 self.coinCount = detail.stat.coin
                 self.favoriteCount = detail.stat.favorite
