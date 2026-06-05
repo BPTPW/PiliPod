@@ -5,12 +5,21 @@ import UIKit
 #endif
 
 struct AboutView: View {
+    private enum ImportTarget: String, Identifiable {
+        case login
+        case settings
+
+        var id: String { rawValue }
+    }
+
     @ObservedObject private var loginSession = LoginSession.shared
-    @State private var showSettingsImportSheet = false
+    @State private var activeImporter: ImportTarget?
+    @State private var showImportSheet = false
     @State private var showExportSheet = false
     @State private var exportDocument = JSONExportDocument(data: Data())
     @State private var exportFilename = "PiliPod-export.json"
     @State private var exportErrorMessage: String?
+    @State private var loginTransferMessage: String?
     @State private var settingsTransferMessage: String?
 
     var body: some View {
@@ -44,8 +53,11 @@ struct AboutView: View {
             }
 
             Section("登录数据") {
-                LoginImportView(title: "导入登录信息") {}
-                    .foregroundStyle(.primary)
+                Button("导入登录信息") {
+                    activeImporter = .login
+                    showImportSheet = true
+                }
+                .foregroundStyle(.primary)
 
                 Button("导出登录信息") {
                     prepareLoginExport()
@@ -56,7 +68,8 @@ struct AboutView: View {
 
             Section {
                 Button("导入设置数据") {
-                    showSettingsImportSheet = true
+                    activeImporter = .settings
+                    showImportSheet = true
                 }
                 .foregroundStyle(.primary)
 
@@ -72,20 +85,12 @@ struct AboutView: View {
         .navigationBarTitleDisplayMode(.inline)
         .listStyle(.insetGrouped)
         .fileImporter(
-            isPresented: $showSettingsImportSheet,
+            isPresented: $showImportSheet,
             allowedContentTypes: [.json]
         ) { result in
-            switch result {
-            case .success(let url):
-                do {
-                    try AppSettingsBackupService.importFrom(url: url)
-                    settingsTransferMessage = "设置已导入。当前打开的设置页可能需要重新进入后显示。"
-                } catch {
-                    settingsTransferMessage = error.localizedDescription
-                }
-            case .failure(let error):
-                settingsTransferMessage = error.localizedDescription
-            }
+            handleImportResult(result, for: activeImporter)
+            activeImporter = nil
+            showImportSheet = false
         }
         .fileExporter(
             isPresented: $showExportSheet,
@@ -104,6 +109,14 @@ struct AboutView: View {
             Button("确定", role: .cancel) {}
         } message: {
             Text(exportErrorMessage ?? "未知错误")
+        }
+        .alert("登录数据", isPresented: Binding(
+            get: { loginTransferMessage != nil },
+            set: { if !$0 { loginTransferMessage = nil } }
+        )) {
+            Button("确定", role: .cancel) {}
+        } message: {
+            Text(loginTransferMessage ?? "未知错误")
         }
         .alert("设置数据", isPresented: Binding(
             get: { settingsTransferMessage != nil },
@@ -178,6 +191,31 @@ struct AboutView: View {
             showExportSheet = true
         } catch {
             exportErrorMessage = error.localizedDescription
+        }
+    }
+
+    private func handleImportResult(_ result: Result<URL, Error>, for target: ImportTarget?) {
+        guard let target else { return }
+
+        switch (target, result) {
+        case let (.login, .success(url)):
+            do {
+                try LoginImportService.importFrom(url: url)
+                loginTransferMessage = "登录信息已导入。"
+            } catch {
+                loginTransferMessage = error.localizedDescription
+            }
+        case let (.login, .failure(error)):
+            loginTransferMessage = error.localizedDescription
+        case let (.settings, .success(url)):
+            do {
+                try AppSettingsBackupService.importFrom(url: url)
+                settingsTransferMessage = "设置已导入。当前打开的设置页可能需要重新进入后显示。"
+            } catch {
+                settingsTransferMessage = error.localizedDescription
+            }
+        case let (.settings, .failure(error)):
+            settingsTransferMessage = error.localizedDescription
         }
     }
 }
