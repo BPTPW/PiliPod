@@ -323,7 +323,7 @@ struct SearchView: View {
                         case .user:
                             VStack(spacing: 14) {
                                 ForEach(userResults) { user in
-                                    SearchUserSmallCardView(
+                                    UserSmallCardView(
                                         user: user.cardUser,
                                         onTap: {
                                             selectedUserSpaceRoute = SearchUserSpaceRoute(mid: Int(user.mid))
@@ -424,7 +424,7 @@ struct SearchView: View {
             if module.resultType == "bili_user" {
                 VStack(spacing: 14) {
                     ForEach(module.users) { user in
-                        SearchUserLargeCardView(
+                        UserLargeCardView(
                             user: user.cardUser,
                             videos: user.previewVideos,
                             onUserTap: {

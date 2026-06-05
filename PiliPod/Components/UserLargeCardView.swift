@@ -1,5 +1,5 @@
 //
-//  SearchUserLargeCardView.swift
+//  UserLargeCardView.swift
 //  PiliPod
 //
 //  Created by Codex on 2026/6/4.
@@ -7,7 +7,7 @@
 
 import SwiftUI
 
-struct SearchUserLargeCardView: View {
+struct UserLargeCardView: View {
     let user: SearchUserLargeCardUser
     let videos: [SearchUserLargeCardVideo]
     var onUserTap: () -> Void = {}
@@ -161,7 +161,7 @@ struct SearchUserLargeCardVideo: Identifiable, Hashable {
 
 #Preview {
     ScrollView {
-        SearchUserLargeCardView(
+        UserLargeCardView(
             user: SearchUserLargeCardUser(
                 id: "user-1",
                 name: "影视飓风",
