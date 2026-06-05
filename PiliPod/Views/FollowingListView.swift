@@ -56,6 +56,29 @@ struct FollowingListView: View {
         .navigationTitle("关注")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar(.hidden, for: .tabBar)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Menu {
+                    ForEach(FollowingListViewModel.SortOption.allCases) { option in
+                        Button {
+                            Task {
+                                guard viewModel.sortOption != option else { return }
+                                viewModel.sortOption = option
+                                await viewModel.refresh()
+                            }
+                        } label: {
+                            if viewModel.sortOption == option {
+                                Label(option.rawValue, systemImage: "checkmark")
+                            } else {
+                                Text(option.rawValue)
+                            }
+                        }
+                    }
+                } label: {
+                    Image(systemName: "list.number")
+                }
+            }
+        }
         .navigationDestination(item: $selectedRoute) { route in
             UserSpaceView(mid: route.mid)
         }

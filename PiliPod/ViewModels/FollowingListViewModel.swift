@@ -3,10 +3,27 @@ import Foundation
 
 @MainActor
 final class FollowingListViewModel: ObservableObject {
+    enum SortOption: String, CaseIterable, Identifiable {
+        case followSequence = "关注顺序"
+        case frequentlyVisited = "最常访问"
+
+        var id: String { rawValue }
+
+        var orderType: String? {
+            switch self {
+            case .followSequence:
+                return nil
+            case .frequentlyVisited:
+                return "attention"
+            }
+        }
+    }
+
     @Published var users: [FollowingUser] = []
     @Published var isLoading = false
     @Published var errorMessage: String?
     @Published var hasMore = true
+    @Published var sortOption: SortOption = .followSequence
 
     private let mid: Int
     private let pageSize = 50
@@ -29,7 +46,8 @@ final class FollowingListViewModel: ObservableObject {
             let page = try await BiliAPI.shared.fetchFollowingList(
                 vmid: mid,
                 pn: currentPage,
-                ps: pageSize
+                ps: pageSize,
+                orderType: sortOption.orderType
             )
             let items = page.list ?? []
             users = items
@@ -54,7 +72,8 @@ final class FollowingListViewModel: ObservableObject {
             let page = try await BiliAPI.shared.fetchFollowingList(
                 vmid: mid,
                 pn: nextPage,
-                ps: pageSize
+                ps: pageSize,
+                orderType: sortOption.orderType
             )
             let items = page.list ?? []
             currentPage = nextPage
