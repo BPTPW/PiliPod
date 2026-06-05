@@ -45,6 +45,16 @@ struct SettingsView: View {
                 }
 
                 NavigationLink {
+                    CacheManagementView()
+                } label: {
+                    SettingsCategoryRow(
+                        title: "缓存管理",
+                        systemImage: "internaldrive.fill",
+                        tint: .brown
+                    )
+                }
+
+                NavigationLink {
                     OtherSettingsView()
                 } label: {
                     SettingsCategoryRow(

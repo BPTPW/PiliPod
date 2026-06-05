@@ -10,6 +10,7 @@ import SwiftUI
 @main
 struct PiliPodApp: App {
     init() {
+        CacheStorageService.configureSharedURLCacheIfNeeded()
         LoginImportService.restore()
     }
 

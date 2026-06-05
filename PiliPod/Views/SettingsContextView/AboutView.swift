@@ -218,6 +218,7 @@ struct AboutView: View {
             settingsTransferMessage = error.localizedDescription
         }
     }
+
 }
 
 private struct AppIconPreview: View {
