@@ -18,26 +18,34 @@ struct UserLargeCardView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
-            Button(action: onUserTap) {
-                HStack(alignment: .center, spacing: 12) {
-                    avatarView
+            HStack(alignment: .center, spacing: 12) {
+                Button(action: onUserTap) {
+                    HStack(alignment: .center, spacing: 12) {
+                        avatarView
 
-                    VStack(alignment: .leading, spacing: 6) {
-                        Text(user.name)
-                            .font(.system(size: 17, weight: .semibold))
-                            .foregroundStyle(.primary)
-                            .lineLimit(1)
+                        VStack(alignment: .leading, spacing: 6) {
+                            Text(user.name)
+                                .font(.system(size: 17, weight: .semibold))
+                                .foregroundStyle(.primary)
+                                .lineLimit(1)
 
-                        Text("\(formatCount(user.followerCount))粉丝 · \(formatCount(user.videoCount))视频")
-                            .font(.system(size: 13))
-                            .foregroundStyle(.secondary)
-                            .lineLimit(1)
+                            Text("\(formatCount(user.followerCount))粉丝 · \(formatCount(user.videoCount))视频")
+                                .font(.system(size: 13))
+                                .foregroundStyle(.secondary)
+                                .lineLimit(1)
+                        }
+
+                        Spacer(minLength: 0)
                     }
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .frame(maxWidth: .infinity, alignment: .leading)
 
-                    Spacer(minLength: 0)
+                if let mid = userMid {
+                    UserFollowButton(mid: mid)
                 }
             }
-            .buttonStyle(.plain)
 
             GeometryReader { proxy in
                 let totalSpacing: CGFloat = 16
@@ -62,6 +70,10 @@ struct UserLargeCardView: View {
         )
         .shadow(color: .black.opacity(0.10), radius: 18, y: 10)
         .shadow(color: .black.opacity(0.06), radius: 6, y: 2)
+    }
+
+    private var userMid: Int? {
+        Int(user.id)
     }
 
     private var avatarView: some View {

@@ -1,0 +1,78 @@
+import Combine
+import Foundation
+
+@MainActor
+final class FollowingListViewModel: ObservableObject {
+    @Published var users: [FollowingUser] = []
+    @Published var isLoading = false
+    @Published var errorMessage: String?
+    @Published var hasMore = true
+
+    private let mid: Int
+    private let pageSize = 50
+    private var currentPage = 1
+    private var totalCount = 0
+
+    init(mid: Int) {
+        self.mid = mid
+    }
+
+    func refresh() async {
+        isLoading = true
+        errorMessage = nil
+        hasMore = true
+        currentPage = 1
+        totalCount = 0
+        defer { isLoading = false }
+
+        do {
+            let page = try await BiliAPI.shared.fetchFollowingList(
+                vmid: mid,
+                pn: currentPage,
+                ps: pageSize
+            )
+            let items = page.list ?? []
+            users = items
+            totalCount = page.total
+            hasMore = shouldLoadMore(loadedCount: items.count, receivedCount: items.count)
+        } catch {
+            users = []
+            errorMessage = error.localizedDescription
+            hasMore = false
+        }
+    }
+
+    func loadMore() async {
+        guard !isLoading, hasMore else { return }
+
+        isLoading = true
+        errorMessage = nil
+        defer { isLoading = false }
+
+        do {
+            let nextPage = currentPage + 1
+            let page = try await BiliAPI.shared.fetchFollowingList(
+                vmid: mid,
+                pn: nextPage,
+                ps: pageSize
+            )
+            let items = page.list ?? []
+            currentPage = nextPage
+            totalCount = page.total
+
+            let existingIDs = Set(users.map(\.id))
+            let deduped = items.filter { !existingIDs.contains($0.id) }
+            users.append(contentsOf: deduped)
+            hasMore = shouldLoadMore(loadedCount: users.count, receivedCount: items.count)
+        } catch {
+            errorMessage = error.localizedDescription
+            hasMore = false
+        }
+    }
+
+    private func shouldLoadMore(loadedCount: Int, receivedCount: Int) -> Bool {
+        guard receivedCount > 0 else { return false }
+        guard totalCount > 0 else { return receivedCount >= pageSize }
+        return loadedCount < totalCount
+    }
+}

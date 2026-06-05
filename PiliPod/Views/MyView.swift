@@ -13,6 +13,7 @@ struct MyView: View {
     @State private var showLoginSheet = false
     @State private var showHistory = false
     @State private var showWatchLater = false
+    @State private var followingRoute: MyFollowingRoute?
 
     var body: some View {
         NavigationStack {
@@ -82,6 +83,9 @@ struct MyView: View {
             .navigationDestination(isPresented: $showWatchLater) {
                 WatchLaterView()
             }
+            .navigationDestination(item: $followingRoute) { route in
+                FollowingListView(mid: route.mid)
+            }
         }
     }
 
@@ -150,7 +154,16 @@ struct MyView: View {
                 Spacer()
                 statItem(value: stat.dynamicCount, title: "动态")
                 Spacer()
-                statItem(value: stat.following, title: "关注")
+                if let user = viewModel.user {
+                    Button {
+                        followingRoute = MyFollowingRoute(mid: user.mid)
+                    } label: {
+                        statItem(value: stat.following, title: "关注")
+                    }
+                    .buttonStyle(.plain)
+                } else {
+                    statItem(value: stat.following, title: "关注")
+                }
                 Spacer()
                 statItem(value: stat.follower, title: "粉丝")
                 Spacer()
@@ -263,4 +276,10 @@ struct MyView: View {
 
 #Preview {
     MyView()
+}
+
+private struct MyFollowingRoute: Identifiable, Hashable {
+    let mid: Int
+
+    var id: Int { mid }
 }
