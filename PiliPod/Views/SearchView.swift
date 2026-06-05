@@ -206,12 +206,14 @@ struct SearchView: View {
                                             if let iconString = item.icon,
                                                let iconURL = httpsURL(from: iconString)
                                             {
-                                                AsyncImage(url: iconURL) { image in
-                                                    image
-                                                        .resizable()
-                                                        .scaledToFit()
-                                                } placeholder: {
-                                                    EmptyView()
+                                                CachedAsyncImage(url: iconURL) { phase in
+                                                    if case .success(let image) = phase {
+                                                        image
+                                                            .resizable()
+                                                            .scaledToFit()
+                                                    } else {
+                                                        EmptyView()
+                                                    }
                                                 }
                                                 .frame(height: 16)
                                             }

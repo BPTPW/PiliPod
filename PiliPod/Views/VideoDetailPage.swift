@@ -689,13 +689,15 @@ struct VideoDetailPage: View {
                     } else {
                         // 加载状态：先展示封面，保证卡片→详情的 Hero 动画有目标视图
                         ZStack {
-                            AsyncImage(url: URL(string: video.cover)) { image in
-                                image
-                                    .resizable()
-                                    .scaledToFill()
-                            } placeholder: {
-                                Rectangle()
-                                    .fill(Color(.systemGray5))
+                            CachedAsyncImage(url: URL(string: video.cover)) { phase in
+                                if case .success(let image) = phase {
+                                    image
+                                        .resizable()
+                                        .scaledToFill()
+                                } else {
+                                    Rectangle()
+                                        .fill(Color(.systemGray5))
+                                }
                             }
                             .frame(maxWidth: .infinity)
                             .aspectRatio(16.0 / 9.0, contentMode: .fit)
@@ -1085,13 +1087,15 @@ struct VideoDetailPage: View {
                 if let detail = viewModel.videoDetail {
                     HStack(spacing: 12) {
                         HStack(spacing: 12) {
-                            AsyncImage(url: URL(string: detail.owner.face)) { image in
-                                image
-                                    .resizable()
-                                    .scaledToFill()
-                            } placeholder: {
-                                Circle()
-                                    .fill(Color.gray)
+                            CachedAsyncImage(url: URL(string: detail.owner.face)) { phase in
+                                if case .success(let image) = phase {
+                                    image
+                                        .resizable()
+                                        .scaledToFill()
+                                } else {
+                                    Circle()
+                                        .fill(Color.gray)
+                                }
                             }
                             .frame(width: 40, height: 40)
                             .clipShape(Circle())

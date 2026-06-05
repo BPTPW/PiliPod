@@ -14,13 +14,15 @@ struct LiveCardView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             // 封面
-            AsyncImage(url: URL(string: model.coverURL)) { image in
-                image
-                    .resizable()
-                    .scaledToFill()
-            } placeholder: {
-                Rectangle()
-                    .fill(Color(.systemGray5))
+            CachedAsyncImage(url: URL(string: model.coverURL)) { phase in
+                if case .success(let image) = phase {
+                    image
+                        .resizable()
+                        .scaledToFill()
+                } else {
+                    Rectangle()
+                        .fill(Color(.systemGray5))
+                }
             }
             .frame(height: 110)
             .clipShape(RoundedRectangle(cornerRadius: 14))

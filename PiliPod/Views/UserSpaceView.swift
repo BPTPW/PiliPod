@@ -86,12 +86,14 @@ struct UserSpaceView: View {
             )
 
             if let coverURL = viewModel.coverURL {
-                AsyncImage(url: coverURL) { image in
-                    image
-                        .resizable()
-                        .scaledToFill()
-                } placeholder: {
-                    Color.clear
+                CachedAsyncImage(url: coverURL) { phase in
+                    if case .success(let image) = phase {
+                        image
+                            .resizable()
+                            .scaledToFill()
+                    } else {
+                        Color.clear
+                    }
                 }
             }
         }
@@ -222,12 +224,14 @@ struct UserSpaceView: View {
     private var avatar: some View {
         Group {
             if let avatarURL = viewModel.avatarURL {
-                AsyncImage(url: avatarURL) { image in
-                    image
-                        .resizable()
-                        .scaledToFill()
-                } placeholder: {
-                    Circle().fill(Color(.systemGray5))
+                CachedAsyncImage(url: avatarURL) { phase in
+                    if case .success(let image) = phase {
+                        image
+                            .resizable()
+                            .scaledToFill()
+                    } else {
+                        Circle().fill(Color(.systemGray5))
+                    }
                 }
             } else {
                 Circle()

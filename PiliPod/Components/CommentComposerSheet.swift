@@ -210,7 +210,7 @@ struct CommentComposerSheet: View {
                             } label: {
                                 Group {
                                     if let url = URL(string: normalizedHTTPS(pkg.url)), isValidRemoteURL(pkg.url) {
-                                        AsyncImage(url: url) { phase in
+                                        CachedAsyncImage(url: url) { phase in
                                             if case .success(let image) = phase {
                                                 image.resizable().scaledToFit()
                                             } else {
@@ -251,7 +251,7 @@ struct CommentComposerSheet: View {
                             } label: {
                                 Group {
                                     if let url = URL(string: normalizedHTTPS(emote.url)), isValidRemoteURL(emote.url) {
-                                        AsyncImage(url: url) { phase in
+                                        CachedAsyncImage(url: url) { phase in
                                             if case .success(let image) = phase {
                                                 image.resizable().scaledToFit()
                                             } else {

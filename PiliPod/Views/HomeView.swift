@@ -77,16 +77,18 @@ struct HomeView: View {
                         // 用户头像
                         Group {
                             if let face = viewModel.userFace, let url = URL(string: face) {
-                                AsyncImage(url: url) { image in
-                                    image
-                                        .resizable()
-                                        .scaledToFill()
-                                } placeholder: {
-                                    Circle()
-                                        .fill(.ultraThinMaterial)
-                                        .overlay {
-                                            Image(systemName: "person.fill")
-                                        }
+                                CachedAsyncImage(url: url) { phase in
+                                    if case .success(let image) = phase {
+                                        image
+                                            .resizable()
+                                            .scaledToFill()
+                                    } else {
+                                        Circle()
+                                            .fill(.ultraThinMaterial)
+                                            .overlay {
+                                                Image(systemName: "person.fill")
+                                            }
+                                    }
                                 }
                                 .frame(width: 40, height: 40)
                                 .clipShape(Circle())

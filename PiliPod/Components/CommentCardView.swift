@@ -141,7 +141,7 @@ struct CommentCardView: View {
     private var picturesView: some View {
         VStack(alignment: .leading, spacing: 8) {
             ForEach(comment.pictures) { picture in
-                AsyncImage(url: URL(string: picture.url)) { phase in
+                CachedAsyncImage(url: URL(string: picture.url)) { phase in
                     switch phase {
                     case .success(let image):
                         image
@@ -216,7 +216,7 @@ struct CommentCardView: View {
             if let avatarURL = comment.avatarURL,
                let url = URL(string: avatarURL)
             {
-                AsyncImage(url: url) { phase in
+                CachedAsyncImage(url: url) { phase in
                     switch phase {
                     case .success(let image):
                         image
@@ -474,12 +474,8 @@ private final class EmoteImageStore {
     private func fetch(urlString: String) async {
         if cache.object(forKey: urlString as NSString) != nil { return }
         guard let url = URL(string: urlString) else { return }
-        do {
-            let (data, _) = try await URLSession.shared.data(from: url)
-            guard let image = UIImage(data: data) else { return }
+        if let image = await SharedRemoteImageStore.shared.image(for: url) {
             cache.setObject(image, forKey: urlString as NSString)
-        } catch {
-            return
         }
     }
 }

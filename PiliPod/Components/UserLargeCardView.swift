@@ -67,17 +67,19 @@ struct UserLargeCardView: View {
     private var avatarView: some View {
         Group {
             if let avatarURL = normalizedHTTPSURL(from: user.avatarURL) {
-                AsyncImage(url: avatarURL) { image in
-                    image
-                        .resizable()
-                        .scaledToFill()
-                } placeholder: {
-                    Circle()
-                        .fill(Color(.systemGray5))
-                        .overlay {
-                            Image(systemName: "person.fill")
-                                .foregroundStyle(.secondary)
-                        }
+                CachedAsyncImage(url: avatarURL) { phase in
+                    if case .success(let image) = phase {
+                        image
+                            .resizable()
+                            .scaledToFill()
+                    } else {
+                        Circle()
+                            .fill(Color(.systemGray5))
+                            .overlay {
+                                Image(systemName: "person.fill")
+                                    .foregroundStyle(.secondary)
+                            }
+                    }
                 }
             } else {
                 Circle()
@@ -97,13 +99,15 @@ struct UserLargeCardView: View {
             onVideoTap(video)
         } label: {
             VStack(alignment: .leading, spacing: 8) {
-                AsyncImage(url: normalizedHTTPSURL(from: video.coverURL)) { image in
-                    image
-                        .resizable()
-                        .scaledToFill()
-                } placeholder: {
-                    RoundedRectangle(cornerRadius: videoCornerRadius, style: .continuous)
-                        .fill(Color(.systemGray5))
+                CachedAsyncImage(url: normalizedHTTPSURL(from: video.coverURL)) { phase in
+                    if case .success(let image) = phase {
+                        image
+                            .resizable()
+                            .scaledToFill()
+                    } else {
+                        RoundedRectangle(cornerRadius: videoCornerRadius, style: .continuous)
+                            .fill(Color(.systemGray5))
+                    }
                 }
                 .frame(width: width, height: width * 10 / 16)
                 .clipShape(RoundedRectangle(cornerRadius: videoCornerRadius, style: .continuous))

@@ -199,18 +199,13 @@ private struct ZoomableLiveImageView: UIViewRepresentable {
                 return
             }
             Task {
-                do {
-                    let (data, _) = try await URLSession.shared.data(from: url)
-                    guard !Task.isCancelled,
-                          let image = UIImage(data: data) else { return }
-                    await MainActor.run {
-                        guard self.currentURL == urlString else { return }
-                        self.imageView.image = image
-                        self.parent.onImageLoaded(image)
-                        self.updateLiveTextAnalysis(with: image)
-                    }
-                } catch {
-                    return
+                guard !Task.isCancelled,
+                      let image = await SharedRemoteImageStore.shared.image(for: url) else { return }
+                await MainActor.run {
+                    guard self.currentURL == urlString else { return }
+                    self.imageView.image = image
+                    self.parent.onImageLoaded(image)
+                    self.updateLiveTextAnalysis(with: image)
                 }
             }
         }

@@ -92,12 +92,14 @@ struct MyView: View {
                 UserSpaceView(mid: Int(user.mid))
             } label: {
                 HStack(alignment: .top, spacing: 14) {
-                    AsyncImage(url: URL(string: user.face)) { image in
-                        image
-                            .resizable()
-                            .scaledToFill()
-                    } placeholder: {
-                        ProgressView()
+                    CachedAsyncImage(url: URL(string: user.face)) { phase in
+                        if case .success(let image) = phase {
+                            image
+                                .resizable()
+                                .scaledToFill()
+                        } else {
+                            ProgressView()
+                        }
                     }
                     .frame(width: 56, height: 56)
                     .clipShape(Circle())

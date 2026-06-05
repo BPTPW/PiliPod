@@ -24,13 +24,15 @@ struct VideoCardView: View {
             VStack(alignment: .leading, spacing: 8) {
                 // 封面（用于卡片→详情页的 Hero 动画）
                 ZStack(alignment: .bottomTrailing) {
-                    AsyncImage(url: URL(string: video.cover)) { image in
-                        image
-                            .resizable()
-                            .scaledToFill()
-                    } placeholder: {
-                        Rectangle()
-                            .fill(Color(.systemGray5))
+                    CachedAsyncImage(url: URL(string: video.cover)) { phase in
+                        if case .success(let image) = phase {
+                            image
+                                .resizable()
+                                .scaledToFill()
+                        } else {
+                            Rectangle()
+                                .fill(Color(.systemGray5))
+                        }
                     }
                     .frame(width: thumbnailWidth, height: thumbnailHeight)
                     .clipped()

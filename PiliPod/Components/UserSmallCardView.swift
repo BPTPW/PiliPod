@@ -51,17 +51,19 @@ struct UserSmallCardView: View {
     private var avatarView: some View {
         Group {
             if let avatarURL = normalizedHTTPSURL(from: user.avatarURL) {
-                AsyncImage(url: avatarURL) { image in
-                    image
-                        .resizable()
-                        .scaledToFill()
-                } placeholder: {
-                    Circle()
-                        .fill(Color(.systemGray5))
-                        .overlay {
-                            Image(systemName: "person.fill")
-                                .foregroundStyle(.secondary)
-                        }
+                CachedAsyncImage(url: avatarURL) { phase in
+                    if case .success(let image) = phase {
+                        image
+                            .resizable()
+                            .scaledToFill()
+                    } else {
+                        Circle()
+                            .fill(Color(.systemGray5))
+                            .overlay {
+                                Image(systemName: "person.fill")
+                                    .foregroundStyle(.secondary)
+                            }
+                    }
                 }
             } else {
                 Circle()
