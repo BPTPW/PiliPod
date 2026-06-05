@@ -417,12 +417,6 @@ struct SearchView: View {
     @ViewBuilder
     private func resultModuleView(_ module: SearchComprehensiveModule) -> some View {
         VStack(alignment: .leading, spacing: 12) {
-            if selectedTab == .comprehensive {
-                Text(module.title)
-                    .font(.headline)
-                    .foregroundStyle(.primary)
-            }
-
             if module.resultType == "bili_user" {
                 VStack(spacing: 14) {
                     ForEach(module.users) { user in
