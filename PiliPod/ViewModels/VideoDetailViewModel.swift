@@ -138,7 +138,6 @@ class VideoDetailViewModel {
         do {
             // 获取视频详情
             let detail = try await BiliAPI.shared.fetchVideoDetail(bvid: bvid)
-            print(detail)
             await MainActor.run {
                 self.videoDetail = detail
                 self.aid = detail.aid
