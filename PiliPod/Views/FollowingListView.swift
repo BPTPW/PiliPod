@@ -29,7 +29,8 @@ struct FollowingListView: View {
                         ForEach(viewModel.users) { user in
                             UserSmallCardView(
                                 user: user.cardUser,
-                                subtitle: user.sign
+                                subtitle: user.sign,
+                                initialFollowState: true
                             ) {
                                 selectedRoute = FollowingUserRoute(mid: user.mid)
                             }

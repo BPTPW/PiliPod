@@ -2,6 +2,8 @@ import SwiftUI
 
 struct UserFollowButton: View {
     let mid: Int
+    var initialIsFollowing: Bool? = nil
+    var shouldAutoLoadState = true
 
     @State private var isFollowing = false
     @State private var isStateLoading = true
@@ -38,7 +40,16 @@ struct UserFollowButton: View {
             in: .capsule
         )
         .frame(width: 65, height: 25)
+        .onAppear {
+            if let initialIsFollowing {
+                isFollowing = initialIsFollowing
+            }
+            if !shouldAutoLoadState {
+                isStateLoading = false
+            }
+        }
         .task(id: mid) {
+            guard shouldAutoLoadState else { return }
             await loadFollowState()
         }
         .toast(message: $toastMessage)

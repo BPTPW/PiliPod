@@ -10,6 +10,7 @@ import SwiftUI
 struct UserSmallCardView: View {
     let user: SearchUserLargeCardUser
     var subtitle: String? = nil
+    var initialFollowState: Bool? = nil
     var onTap: () -> Void = {}
 
     private let cardCornerRadius: CGFloat = 22
@@ -39,8 +40,12 @@ struct UserSmallCardView: View {
             .buttonStyle(.plain)
             .frame(maxWidth: .infinity, alignment: .leading)
 
-            if let mid = userMid {
-                UserFollowButton(mid: mid)
+            if let mid = userMid, let initialFollowState {
+                UserFollowButton(
+                    mid: mid,
+                    initialIsFollowing: initialFollowState,
+                    shouldAutoLoadState: false
+                )
             }
         }
         .padding(14)
