@@ -69,6 +69,7 @@ struct LiveCardView: View {
                     .lineLimit(2 ... 2)
                     .multilineTextAlignment(.leading)
                     .foregroundStyle(.primary)
+                    .frame(maxWidth: .infinity, minHeight: 38, alignment: .topLeading)
 
                 if let badgeText = model.badgeText, !badgeText.isEmpty {
                     Text(badgeText)

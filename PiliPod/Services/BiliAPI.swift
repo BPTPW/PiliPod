@@ -6,6 +6,7 @@
 //
 
 import CryptoKit
+import CoreGraphics
 import Foundation
 import SwiftProtobuf
 
@@ -387,6 +388,66 @@ class BiliAPI {
             followingItems: followingItems,
             areaTabs: areaTabs,
             rooms: rooms
+        )
+    }
+
+    func fetchLivePlaybackInfo(roomID: String) async throws -> LivePlaybackInfo {
+        var components = URLComponents(
+            string: "https://api.live.bilibili.com/xlive/web-room/v2/index/getRoomPlayInfo"
+        )
+        components?.queryItems = [
+            URLQueryItem(name: "room_id", value: roomID),
+            URLQueryItem(name: "protocol", value: "0"),
+            URLQueryItem(name: "format", value: "0"),
+            URLQueryItem(name: "codec", value: "0"),
+            URLQueryItem(name: "qn", value: "10000"),
+            URLQueryItem(name: "platform", value: "web"),
+            URLQueryItem(name: "ptype", value: "8"),
+            URLQueryItem(name: "dolby", value: "5"),
+            URLQueryItem(name: "panorama", value: "1")
+        ]
+
+        guard let url = components?.url else {
+            throw APIError.invalidURL
+        }
+
+        let (data, response) = try await URLSession.shared.data(from: url)
+        guard let httpResponse = response as? HTTPURLResponse,
+              (200 ... 299).contains(httpResponse.statusCode)
+        else {
+            throw APIError.requestFailed
+        }
+
+        let decoded = try JSONDecoder().decode(LiveRoomPlayInfoResponse.self, from: data)
+        guard decoded.code == 0 else {
+            throw APIError.businessError(code: decoded.code, message: decoded.message)
+        }
+        guard let payload = decoded.data else {
+            throw APIError.requestFailed
+        }
+        let playurl = payload.playurlInfo.playurl
+
+        guard
+            let selectedCodec = playurl.stream
+                .first(where: { $0.protocolName == "http_stream" })?
+                .format.first(where: { $0.formatName == "flv" })?
+                .codec.first(where: { $0.codecName.lowercased() == "avc" || $0.codecName.lowercased() == "h264" }),
+            let urlInfo = selectedCodec.urlInfo.first,
+            let streamURL = buildLiveStreamURL(
+                host: urlInfo.host,
+                baseURL: selectedCodec.baseURL,
+                extra: urlInfo.extra
+            )
+        else {
+            throw APIError.requestFailed
+        }
+
+        let aspectRatio: CGFloat = payload.isPortrait ? (9.0 / 16.0) : (16.0 / 9.0)
+        return LivePlaybackInfo(
+            roomID: String(payload.roomID),
+            streamURL: streamURL,
+            aspectRatio: aspectRatio,
+            currentQn: selectedCodec.currentQn
         )
     }
 
@@ -1872,6 +1933,13 @@ private struct LiveRecommendWatchedShow: Codable {
     }
 }
 
+struct LivePlaybackInfo {
+    let roomID: String
+    let streamURL: URL
+    let aspectRatio: CGFloat
+    let currentQn: Int
+}
+
 struct LiveHomeFeedPayload {
     let followingItems: [LiveFollowingItem]
     let areaTabs: [LiveAreaTab]
@@ -1973,6 +2041,98 @@ private struct LiveSmallCardFeedTag: Codable {
     enum CodingKeys: String, CodingKey {
         case tagText = "tag_text"
     }
+}
+
+private struct LiveRoomPlayInfoResponse: Codable {
+    let code: Int
+    let message: String
+    let data: LiveRoomPlayInfoData?
+}
+
+private struct LiveRoomPlayInfoData: Codable {
+    let roomID: Int
+    let isPortrait: Bool
+    let playurlInfo: LiveRoomPlayurlInfo
+
+    enum CodingKeys: String, CodingKey {
+        case roomID = "room_id"
+        case isPortrait = "is_portrait"
+        case playurlInfo = "playurl_info"
+    }
+}
+
+private struct LiveRoomPlayurlInfo: Codable {
+    let playurl: LiveRoomPlayurl
+}
+
+private struct LiveRoomPlayurl: Codable {
+    let gQnDesc: [LiveRoomQuality]
+    let stream: [LiveRoomStream]
+
+    enum CodingKeys: String, CodingKey {
+        case gQnDesc = "g_qn_desc"
+        case stream
+    }
+}
+
+private struct LiveRoomQuality: Codable {
+    let qn: Int
+    let desc: String
+}
+
+private struct LiveRoomStream: Codable {
+    let protocolName: String
+    let format: [LiveRoomFormat]
+
+    enum CodingKeys: String, CodingKey {
+        case protocolName = "protocol_name"
+        case format
+    }
+}
+
+private struct LiveRoomFormat: Codable {
+    let formatName: String
+    let codec: [LiveRoomCodec]
+
+    enum CodingKeys: String, CodingKey {
+        case formatName = "format_name"
+        case codec
+    }
+}
+
+private struct LiveRoomCodec: Codable {
+    let codecName: String
+    let currentQn: Int
+    let acceptQn: [Int]
+    let baseURL: String
+    let urlInfo: [LiveRoomURLInfo]
+
+    enum CodingKeys: String, CodingKey {
+        case codecName = "codec_name"
+        case currentQn = "current_qn"
+        case acceptQn = "accept_qn"
+        case baseURL = "base_url"
+        case urlInfo = "url_info"
+    }
+}
+
+private struct LiveRoomURLInfo: Codable {
+    let host: String
+    let extra: String
+}
+
+private func buildLiveStreamURL(host: String, baseURL: String, extra: String) -> URL? {
+    let normalizedHost = host.hasSuffix("/") ? String(host.dropLast()) : host
+    let normalizedBase = baseURL.hasPrefix("/") ? baseURL : "/" + baseURL
+    let urlString = normalizedHost + normalizedBase
+
+    guard var components = URLComponents(string: urlString) else {
+        return nil
+    }
+
+    let rawExtra = extra.hasPrefix("?") ? String(extra.dropFirst()) : extra
+    components.percentEncodedQuery = rawExtra
+    return components.url
 }
 
 private func mapLiveSmallCard(_ room: LiveSmallCard) -> LiveCardModel {
