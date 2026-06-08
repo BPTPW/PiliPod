@@ -54,6 +54,7 @@ class MPVKitPlayer: NSObject {
     private var displayLink: CADisplayLink?
     private var uiRefreshTimer: Timer?
     private var pendingStream: DashStream?
+    private var pendingDirectVideoURL: URL?
     private let playbackSettings: AudioVideoSettings
 
     private(set) var isPlaying = false
@@ -88,15 +89,31 @@ class MPVKitPlayer: NSObject {
 
         if let stream = pendingStream {
             play(stream: stream)
+        } else if let url = pendingDirectVideoURL {
+            play(videoURL: url)
         }
     }
 
     func play(stream: DashStream) {
         pendingStream = stream
+        pendingDirectVideoURL = nil
         guard let controller else { return }
 
         controller.loadFile(stream.videoURL)
         controller.addAudio(stream.audioURL)
+        controller.play()
+
+        startDisplayLink()
+        startUIRefreshTimerIfNeeded()
+        refreshUISnapshot(includeDiagnostics: false)
+    }
+
+    func play(videoURL: URL) {
+        pendingDirectVideoURL = videoURL
+        pendingStream = nil
+        guard let controller else { return }
+
+        controller.loadFile(videoURL)
         controller.play()
 
         startDisplayLink()

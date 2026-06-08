@@ -98,10 +98,31 @@ enum FeedCardItem: Identifiable {
 
 // MARK: - 直播卡片模型
 
-struct LiveCardModel {
+struct LiveCardModel: Identifiable, Hashable {
+    var id: String { "live_\(roomId)" }
+
     let roomId: String
     let title: String
     let coverURL: String
     let onlineCount: String
     let anchorName: String
+    let faceURL: String
+    let areaName: String
+    let badgeText: String?
+    let link: String?
+}
+
+struct LiveFollowingItem: Identifiable, Hashable {
+    var id: String { "follow_\(roomId)" }
+
+    let roomId: String
+    let uid: Int
+    let name: String
+    let faceURL: String
+    let link: String?
+}
+
+struct LiveAreaTab: Identifiable, Hashable {
+    let id: String
+    let title: String
 }

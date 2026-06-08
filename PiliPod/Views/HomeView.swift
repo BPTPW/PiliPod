@@ -155,83 +155,13 @@ struct HomeView: View {
                     let availableWidth = proxy.size.width - (horizontalPadding * 2)
                     let videoCardWidth = (availableWidth - columnSpacing) / 2
 
-                    ScrollView {
-                        VStack(spacing: 0) {
-                            // App 版推荐 Feed（优先使用 feedCards）
-                            if !viewModel.feedCards.isEmpty {
-                                let cards = viewModel.feedCards
-                                let marker = viewModel.refreshMarkerIndex
-
-                                if let marker = marker, marker > 0, marker < cards.count {
-                                    // 下拉刷新：新内容在上，旧内容在下，中间分隔线
-                                    let newCards = Array(cards.prefix(marker))
-                                    let oldCards = Array(cards.suffix(from: marker))
-
-                                    LazyVGrid(columns: columns, spacing: 18) {
-                                        ForEach(newCards) { card in
-                                            feedCardView(for: card, videoCardWidth: videoCardWidth)
-                                        }
-                                    }
-                                    .padding(.horizontal, horizontalPadding)
-
-                                    DividerWithText(title: "上次看到这")
-                                        .padding(.vertical, 6)
-
-                                    LazyVGrid(columns: columns, spacing: 18) {
-                                        ForEach(oldCards) { card in
-                                            feedCardView(for: card, videoCardWidth: videoCardWidth)
-                                                .onAppear {
-                                                    if card.id == oldCards.last?.id {
-                                                        Task { await viewModel.loadMoreVideos() }
-                                                    }
-                                                }
-                                        }
-                                    }
-                                    .padding(.horizontal, horizontalPadding)
-                                } else {
-                                    LazyVGrid(columns: columns, spacing: 18) {
-                                        ForEach(cards) { card in
-                                            feedCardView(for: card, videoCardWidth: videoCardWidth)
-                                                .onAppear {
-                                                    if card.id == cards.last?.id {
-                                                        Task { await viewModel.loadMoreVideos() }
-                                                    }
-                                                }
-                                        }
-                                    }
-                                    .padding(.horizontal, horizontalPadding)
-                                }
-                            } else {
-                                // Web 版推荐（兜底）
-                                ForEach(viewModel.sections) { section in
-                                    if let title = section.title {
-                                        DividerWithText(title: title)
-                                    }
-                                    LazyVGrid(columns: columns, spacing: 18) {
-                                        ForEach(section.videos) { video in
-                                            VideoCardView(
-                                                video: video,
-                                                namespace: videoHeroNamespace,
-                                                thumbnailWidth: videoCardWidth,
-                                                onTap: { selectedVideo = video }
-                                            )
-                                            .onAppear {
-                                                if video.id == section.videos.last?.id {
-                                                    Task { await viewModel.loadMoreVideos() }
-                                                }
-                                            }
-                                        }
-                                    }
-                                    .padding(.horizontal, horizontalPadding)
-                                }
-                            }
+                    Group {
+                        if selectedTab == "直播" {
+                            LiveHomeView(cardWidth: videoCardWidth)
+                        } else {
+                            recommendationContent(videoCardWidth: videoCardWidth)
                         }
-                        .padding(.top, 14)
-                        .padding(.bottom, 30)
                     }
-                }
-                .refreshable {
-                    await viewModel.refreshVideos()
                 }
             }
             .navigationBarHidden(true)
@@ -284,7 +214,84 @@ struct HomeView: View {
                 onTap: { selectedVideo = videoItem }
             )
         case .live(let liveModel):
-            LiveCardView(model: liveModel)
+            LiveCardView(model: liveModel, cardWidth: videoCardWidth)
+        }
+    }
+
+    private func recommendationContent(videoCardWidth: CGFloat) -> some View {
+        ScrollView {
+            VStack(spacing: 0) {
+                if !viewModel.feedCards.isEmpty {
+                    let cards = viewModel.feedCards
+                    let marker = viewModel.refreshMarkerIndex
+
+                    if let marker = marker, marker > 0, marker < cards.count {
+                        let newCards = Array(cards.prefix(marker))
+                        let oldCards = Array(cards.suffix(from: marker))
+
+                        LazyVGrid(columns: columns, spacing: 18) {
+                            ForEach(newCards) { card in
+                                feedCardView(for: card, videoCardWidth: videoCardWidth)
+                            }
+                        }
+                        .padding(.horizontal, horizontalPadding)
+
+                        DividerWithText(title: "上次看到这")
+                            .padding(.vertical, 6)
+
+                        LazyVGrid(columns: columns, spacing: 18) {
+                            ForEach(oldCards) { card in
+                                feedCardView(for: card, videoCardWidth: videoCardWidth)
+                                    .onAppear {
+                                        if card.id == oldCards.last?.id {
+                                            Task { await viewModel.loadMoreVideos() }
+                                        }
+                                    }
+                            }
+                        }
+                        .padding(.horizontal, horizontalPadding)
+                    } else {
+                        LazyVGrid(columns: columns, spacing: 18) {
+                            ForEach(cards) { card in
+                                feedCardView(for: card, videoCardWidth: videoCardWidth)
+                                    .onAppear {
+                                        if card.id == cards.last?.id {
+                                            Task { await viewModel.loadMoreVideos() }
+                                        }
+                                    }
+                            }
+                        }
+                        .padding(.horizontal, horizontalPadding)
+                    }
+                } else {
+                    ForEach(viewModel.sections) { section in
+                        if let title = section.title {
+                            DividerWithText(title: title)
+                        }
+                        LazyVGrid(columns: columns, spacing: 18) {
+                            ForEach(section.videos) { video in
+                                VideoCardView(
+                                    video: video,
+                                    namespace: videoHeroNamespace,
+                                    thumbnailWidth: videoCardWidth,
+                                    onTap: { selectedVideo = video }
+                                )
+                                .onAppear {
+                                    if video.id == section.videos.last?.id {
+                                        Task { await viewModel.loadMoreVideos() }
+                                    }
+                                }
+                            }
+                        }
+                        .padding(.horizontal, horizontalPadding)
+                    }
+                }
+            }
+            .padding(.top, 14)
+            .padding(.bottom, 30)
+        }
+        .refreshable {
+            await viewModel.refreshVideos()
         }
     }
 }

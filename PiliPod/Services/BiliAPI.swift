@@ -307,6 +307,89 @@ class BiliAPI {
         }
     }
 
+    // MARK: - 获取首页直播 Feed
+
+    func fetchLiveHomeFeed() async throws -> LiveHomeFeedPayload {
+        let urlString = "https://api.live.bilibili.com/xlive/app-interface/v2/index/feed"
+        let params: [String: String] = [
+            "channel": "master",
+            "actionKey": "appkey",
+            "build": "8430300",
+            "version": "8.43.0",
+            "c_locale": "zh_CN",
+            "device": "android",
+            "device_name": "android",
+            "device_type": "0",
+            "fnval": "912",
+            "disable_rcmd": "0",
+            "https_url_req": "1",
+            "mobi_app": "android",
+            "network": "wifi",
+            "page": "1",
+            "platform": "android",
+            "relation_page": "1",
+            "s_locale": "zh_CN",
+            "scale": "2",
+            "statistics": #"{"appId":1,"platform":3,"version":"8.43.0","abtest":""}"#
+        ]
+
+        guard let request = makeAppRequest(baseURLString: urlString, method: "GET", parameters: params) else {
+            throw APIError.invalidURL
+        }
+
+        let (data, response) = try await URLSession.shared.data(for: request)
+        guard let httpResponse = response as? HTTPURLResponse,
+              (200 ... 299).contains(httpResponse.statusCode)
+        else {
+            throw APIError.requestFailed
+        }
+
+        let decoded = try JSONDecoder().decode(LiveIndexFeedResponse.self, from: data)
+        guard decoded.code == 0 else {
+            throw APIError.businessError(code: decoded.code, message: decoded.message)
+        }
+
+        var followingItems: [LiveFollowingItem] = []
+        var areaTabs: [LiveAreaTab] = [LiveAreaTab(id: "recommend", title: "推荐")]
+        var rooms: [LiveCardModel] = []
+
+        for card in decoded.data?.cardList ?? [] {
+            switch card.cardType {
+            case "my_idol_v1":
+                followingItems = (card.cardData.myIdol?.list ?? []).map { item in
+                    LiveFollowingItem(
+                        roomId: String(item.roomid),
+                        uid: item.uid,
+                        name: item.uname,
+                        faceURL: item.face.replacingOccurrences(of: "http://", with: "https://"),
+                        link: item.link
+                    )
+                }
+
+            case "area_entrance_v3":
+                let tabs = (card.cardData.areaEntrance?.list ?? []).map { tab in
+                    LiveAreaTab(id: "area_\(tab.id)", title: tab.title)
+                }
+                if !tabs.isEmpty {
+                    areaTabs.append(contentsOf: tabs)
+                }
+
+            case "small_card_v1":
+                guard let room = card.cardData.smallCard, room.isAd == false else { continue }
+                rooms.append(mapLiveSmallCard(room))
+
+            default:
+                continue
+            }
+        }
+
+        return LiveHomeFeedPayload(
+            followingItems: followingItems,
+            areaTabs: areaTabs,
+            rooms: rooms
+        )
+    }
+
     // MARK: - 获取视频相关推荐
 
     func fetchRelatedVideos(bvid: String, limit: Int = 40) async throws -> [VideoItem] {
@@ -1053,7 +1136,11 @@ class BiliAPI {
                     title: title,
                     coverURL: cover,
                     onlineCount: online,
-                    anchorName: anchorName
+                    anchorName: anchorName,
+                    faceURL: "",
+                    areaName: "",
+                    badgeText: nil,
+                    link: nil
                 )
                 result.append(.live(liveModel))
 
@@ -1775,6 +1862,138 @@ struct MyStat: Codable {
         case follower
         case dynamicCount = "dynamic_count"
     }
+}
+
+private struct LiveRecommendWatchedShow: Codable {
+    let textLarge: String?
+
+    enum CodingKeys: String, CodingKey {
+        case textLarge = "text_large"
+    }
+}
+
+struct LiveHomeFeedPayload {
+    let followingItems: [LiveFollowingItem]
+    let areaTabs: [LiveAreaTab]
+    let rooms: [LiveCardModel]
+}
+
+private struct LiveIndexFeedResponse: Codable {
+    let code: Int
+    let message: String
+    let data: LiveIndexFeedData?
+}
+
+private struct LiveIndexFeedData: Codable {
+    let cardList: [LiveIndexCard]
+
+    enum CodingKeys: String, CodingKey {
+        case cardList = "card_list"
+    }
+}
+
+private struct LiveIndexCard: Codable {
+    let cardType: String
+    let cardData: LiveIndexCardData
+
+    enum CodingKeys: String, CodingKey {
+        case cardType = "card_type"
+        case cardData = "card_data"
+    }
+}
+
+private struct LiveIndexCardData: Codable {
+    let myIdol: LiveMyIdolContainer?
+    let areaEntrance: LiveAreaEntranceContainer?
+    let smallCard: LiveSmallCard?
+
+    enum CodingKeys: String, CodingKey {
+        case myIdol = "my_idol_v1"
+        case areaEntrance = "area_entrance_v3"
+        case smallCard = "small_card_v1"
+    }
+}
+
+private struct LiveMyIdolContainer: Codable {
+    let list: [LiveMyIdolRoom]
+}
+
+private struct LiveMyIdolRoom: Codable {
+    let uid: Int
+    let uname: String
+    let roomid: Int
+    let face: String
+    let link: String?
+}
+
+private struct LiveAreaEntranceContainer: Codable {
+    let list: [LiveAreaEntranceTab]
+}
+
+private struct LiveAreaEntranceTab: Codable {
+    let id: Int
+    let title: String
+}
+
+private struct LiveSmallCard: Codable {
+    let isAd: Bool?
+    let uid: Int
+    let id: Int
+    let uname: String
+    let face: String
+    let title: String
+    let cover: String
+    let online: Int
+    let link: String?
+    let parentAreaName: String?
+    let areaName: String?
+    let watchedShow: LiveRecommendWatchedShow?
+    let feedTag: LiveSmallCardFeedTag?
+
+    enum CodingKeys: String, CodingKey {
+        case isAd = "is_ad"
+        case uid
+        case id
+        case uname
+        case face
+        case title
+        case cover
+        case online
+        case link
+        case parentAreaName = "parent_area_name"
+        case areaName = "area_name"
+        case watchedShow = "watched_show"
+        case feedTag = "feed_tag"
+    }
+}
+
+private struct LiveSmallCardFeedTag: Codable {
+    let tagText: String?
+
+    enum CodingKeys: String, CodingKey {
+        case tagText = "tag_text"
+    }
+}
+
+private func mapLiveSmallCard(_ room: LiveSmallCard) -> LiveCardModel {
+    let areaParts = [room.parentAreaName, room.areaName]
+        .compactMap { value -> String? in
+            guard let value, !value.isEmpty else { return nil }
+            return value
+        }
+    let areaName = Array(NSOrderedSet(array: areaParts)).compactMap { $0 as? String }.joined(separator: " · ")
+
+    return LiveCardModel(
+        roomId: String(room.id),
+        title: room.title,
+        coverURL: room.cover.replacingOccurrences(of: "http://", with: "https://"),
+        onlineCount: room.watchedShow?.textLarge ?? "\(VideoItem.formatCount(room.online))人气",
+        anchorName: room.uname,
+        faceURL: room.face.replacingOccurrences(of: "http://", with: "https://"),
+        areaName: areaName,
+        badgeText: room.feedTag?.tagText,
+        link: room.link
+    )
 }
 
 private struct EmptyCodable: Codable {}
