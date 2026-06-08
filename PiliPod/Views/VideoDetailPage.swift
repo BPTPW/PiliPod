@@ -112,6 +112,8 @@ struct VideoDetailPage: View {
     @State private var sponsorSubmitErrorText: String?
     @State private var sponsorIsSubmitting = false
     @State private var previewDraftSegmentID: SponsorBlockDraftSegment.ID?
+    @State private var playerUISnapshot = PlayerUIPlaybackSnapshot()
+    @State private var debugPanelRefreshTask: Task<Void, Never>?
 #if canImport(UIKit)
     @State private var preferredFullscreenOrientation: UIInterfaceOrientation = .landscapeRight
 #endif
@@ -202,8 +204,8 @@ struct VideoDetailPage: View {
     }
 
     private var resolvedVideoDuration: TimeInterval {
-        if let playerDuration = viewModel.player?.duration, playerDuration > 0 {
-            return playerDuration
+        if playerUISnapshot.duration > 0 {
+            return playerUISnapshot.duration
         }
         if let detailDuration = viewModel.videoDetail?.duration, detailDuration > 0 {
             return TimeInterval(detailDuration)
@@ -256,6 +258,7 @@ struct VideoDetailPage: View {
                                             } else {
                                                 player.resume()
                                             }
+                                            playerUISnapshot = player.uiSnapshot
                                             showControlsAndAutoHideIfNeeded(player: player, forceShow: true)
                                         }
                                 )
@@ -266,7 +269,7 @@ struct VideoDetailPage: View {
                                                 let width = max(1, geo.size.width)
                                                 let ratio = Double(value.translation.width / width)
                                                 let delta = ratio * maxHorizontalSeekOffset
-                                                let target = clampSeekTime(horizontalSeekBaseTime + delta, duration: player.duration)
+                                                let target = clampSeekTime(horizontalSeekBaseTime + delta, duration: playerUISnapshot.duration)
                                                 horizontalSeekPreviewTime = target
                                                 showControlsAndAutoHideIfNeeded(player: player, forceShow: true)
                                                 return
@@ -306,7 +309,7 @@ struct VideoDetailPage: View {
                                             if shouldStartHorizontalSeek {
                                                 dragInteractionMode = .horizontalSeek
                                                 isHorizontalSeeking = true
-                                                horizontalSeekBaseTime = player.currentTime
+                                                horizontalSeekBaseTime = playerUISnapshot.currentTime
                                                 speedBoostTriggerTask?.cancel()
                                                 speedBoostTriggerTask = nil
                                                 isSpeedBoostPressing = false
@@ -317,7 +320,7 @@ struct VideoDetailPage: View {
                                                 let width = max(1, geo.size.width)
                                                 let ratio = Double(dx / width)
                                                 let delta = ratio * maxHorizontalSeekOffset
-                                                let target = clampSeekTime(horizontalSeekBaseTime + delta, duration: player.duration)
+                                                let target = clampSeekTime(horizontalSeekBaseTime + delta, duration: playerUISnapshot.duration)
                                                 horizontalSeekPreviewTime = target
                                                 showControlsAndAutoHideIfNeeded(player: player, forceShow: true)
                                                 return
@@ -399,6 +402,7 @@ struct VideoDetailPage: View {
                                             if dragInteractionMode == .horizontalSeek, isHorizontalSeeking {
                                                 if let seekTarget = horizontalSeekPreviewTime {
                                                     player.seek(to: seekTarget)
+                                                    playerUISnapshot = player.uiSnapshot
                                                     Task {
                                                         await bindableViewModel.preloadDanmakuIfNeeded(currentTime: seekTarget)
                                                     }
@@ -457,9 +461,9 @@ struct VideoDetailPage: View {
                                 .overlay {
                                     if !isFullscreen && !controlsVisible {
                                         ReadOnlyVideoProgressBar(
-                                            currentTime: activeSeekPreviewTime(duration: player.duration) ?? player.currentTime,
-                                            duration: player.duration,
-                                            bufferedUntil: player.bufferedUntil,
+                                            currentTime: activeSeekPreviewTime(duration: playerUISnapshot.duration) ?? playerUISnapshot.currentTime,
+                                            duration: playerUISnapshot.duration,
+                                            bufferedUntil: playerUISnapshot.bufferedUntil,
                                             segments: progressSegments
                                         )
                                         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
@@ -493,10 +497,10 @@ struct VideoDetailPage: View {
                                         isVisible: controlsVisible,
                                         showsSponsorButton: showsSponsorButton,
                                         showsSponsorInfoButton: showsSponsorInfoButton,
-                                        currentTime: activeSeekPreviewTime(duration: player.duration) ?? player.currentTime,
-                                        duration: player.duration,
-                                        bufferedUntil: player.bufferedUntil,
-                                        isPlaying: player.isPlaying,
+                                        currentTime: activeSeekPreviewTime(duration: playerUISnapshot.duration) ?? playerUISnapshot.currentTime,
+                                        duration: playerUISnapshot.duration,
+                                        bufferedUntil: playerUISnapshot.bufferedUntil,
+                                        isPlaying: playerUISnapshot.isPlaying,
                                         segments: progressSegments,
                                         onBack: { handleBackAction() },
                                         onUserInteracted: {
@@ -508,9 +512,11 @@ struct VideoDetailPage: View {
                                             } else {
                                                 player.resume()
                                             }
+                                            playerUISnapshot = player.uiSnapshot
                                         },
                                         onSeek: { time in
                                             player.seek(to: time)
+                                            playerUISnapshot = player.uiSnapshot
                                             Task {
                                                 await bindableViewModel.preloadDanmakuIfNeeded(currentTime: time)
                                             }
@@ -545,8 +551,8 @@ struct VideoDetailPage: View {
                                     }
                                 }
                                 .overlay(alignment: .top) {
-                                    if let seekPreview = activeSeekPreviewTime(duration: player.duration) {
-                                        Text("\(formatMMSS(seekPreview))/\(formatMMSS(player.duration))")
+                                    if let seekPreview = activeSeekPreviewTime(duration: playerUISnapshot.duration) {
+                                        Text("\(formatMMSS(seekPreview))/\(formatMMSS(playerUISnapshot.duration))")
                                             .font(.system(size: 12, weight: .semibold, design: .rounded))
                                             .foregroundStyle(.primary)
                                             .padding(.horizontal, 12)
@@ -566,7 +572,7 @@ struct VideoDetailPage: View {
                                     }
                                 }
                                 .overlay {
-                                    if let previewTime = activeSeekPreviewTime(duration: player.duration) {
+                                    if let previewTime = activeSeekPreviewTime(duration: playerUISnapshot.duration) {
                                         VideoShotPreviewCard(
                                             frame: bindableViewModel.videoShotMetadata?.frame(at: previewTime),
                                             fallbackAspectRatio: stream.aspectRatio
@@ -652,27 +658,37 @@ struct VideoDetailPage: View {
                                 }
                                 .onAppear {
                                     // 初次进入时给用户一个可发现的控制层
+                                    playerUISnapshot = player.uiSnapshot
                                     showControlsAndAutoHideIfNeeded(player: player, forceShow: true)
                                 }
-                                .onChange(of: player.isPlaying) { _, isPlaying in
-                                    showControlsAndAutoHideIfNeeded(player: player)
+                                .onChange(of: player.uiSnapshot) { oldSnapshot, snapshot in
+                                    playerUISnapshot = snapshot
 #if canImport(UIKit)
-                                    setIdleTimerDisabled(isPlaying)
+                                    setIdleTimerDisabled(snapshot.isPlaying)
 #endif
-                                    if !isPlaying, isPlaybackEnded(player: player) {
-                                        player.pause()
+                                    if !oldSnapshot.isPlaying && snapshot.isPlaying && controlsVisible {
+                                        refreshControlsAutoHideIfNeeded(player: player)
+                                    } else if oldSnapshot.isPlaying && !snapshot.isPlaying {
+                                        hideControlsTask?.cancel()
                                     }
-                                }
-                                .onChange(of: player.currentTime) { _, newTime in
-                                    handleSponsorSegmentPlayback(currentTime: newTime, player: player)
-                                    let segment = max(1, Int(newTime / 360.0) + 1)
+                                    if !snapshot.isPlaying, isPlaybackEnded(player: player) {
+                                        player.pause()
+                                        playerUISnapshot = player.uiSnapshot
+                                    }
+                                    handleSponsorSegmentPlayback(currentTime: snapshot.currentTime, player: player)
+                                    let segment = max(1, Int(snapshot.currentTime / 360.0) + 1)
                                     guard segment != lastDanmakuPrefetchSegment else { return }
                                     lastDanmakuPrefetchSegment = segment
                                     Task {
-                                        await bindableViewModel.preloadDanmakuIfNeeded(currentTime: newTime)
+                                        await bindableViewModel.preloadDanmakuIfNeeded(currentTime: snapshot.currentTime)
                                     }
                                 }
                                 .onChange(of: showDebugPanel) { _, newValue in
+                                    if newValue {
+                                        startDebugPanelRefresh(player: player)
+                                    } else {
+                                        stopDebugPanelRefresh()
+                                    }
                                     if !newValue {
                                         showControlsAndAutoHideIfNeeded(player: player, forceShow: true)
                                     } else {
@@ -745,8 +761,8 @@ struct VideoDetailPage: View {
                                     segments: $sponsorDraftSegments,
                                     errorText: sponsorSubmitErrorText,
                                     isSubmitting: sponsorIsSubmitting,
-                                    currentPlayerTime: player.currentTime,
-                                    videoDuration: max(player.duration, resolvedVideoDuration),
+                                    currentPlayerTime: playerUISnapshot.currentTime,
+                                    videoDuration: max(playerUISnapshot.duration, resolvedVideoDuration),
                                     onClose: {
                                         withAnimation(.spring(response: 0.32, dampingFraction: 0.88)) {
                                             showsSponsorSubmitSheet = false
@@ -757,7 +773,7 @@ struct VideoDetailPage: View {
                                     },
                                     onSetStartToCurrent: { id in
                                         updateSponsorDraftSegment(id: id) { draft in
-                                            draft.start = player.currentTime
+                                            draft.start = playerUISnapshot.currentTime
                                             if draft.end < draft.start {
                                                 draft.end = draft.start
                                             }
@@ -765,7 +781,7 @@ struct VideoDetailPage: View {
                                     },
                                     onSetEndToCurrent: { id in
                                         updateSponsorDraftSegment(id: id) { draft in
-                                            draft.end = player.currentTime
+                                            draft.end = playerUISnapshot.currentTime
                                             if draft.end < draft.start {
                                                 draft.start = draft.end
                                             }
@@ -781,7 +797,7 @@ struct VideoDetailPage: View {
                                     },
                                     onSetEndToBoundary: { id in
                                         updateSponsorDraftSegment(id: id) { draft in
-                                            let end = max(player.duration, resolvedVideoDuration)
+                                            let end = max(playerUISnapshot.duration, resolvedVideoDuration)
                                             draft.end = end
                                             if draft.end < draft.start {
                                                 draft.start = draft.end
@@ -890,6 +906,7 @@ struct VideoDetailPage: View {
                     DashStreamDebugPanel(
                         stream: stream,
                         player: bindableViewModel.player,
+                        playerSnapshot: playerUISnapshot,
                         selectedQualityCode: bindableViewModel.selectedQualityCode,
                         onDismiss: { showDebugPanel = false }
                     )
@@ -928,7 +945,10 @@ struct VideoDetailPage: View {
             previewDraftSegmentID = nil
             ensureSponsorSegmentsLoadedIfNeeded()
 #if canImport(UIKit)
-            setIdleTimerDisabled(bindableViewModel.player?.isPlaying == true)
+            if let player = bindableViewModel.player {
+                playerUISnapshot = player.uiSnapshot
+            }
+            setIdleTimerDisabled(playerUISnapshot.isPlaying)
 #endif
         }
         .onChange(of: sponsorBlockSettings) { _, newValue in
@@ -945,6 +965,7 @@ struct VideoDetailPage: View {
             sponsorSegmentVotes = [:]
             sponsorSegmentCategoryOverrides = [:]
             await bindableViewModel.loadVideoData()
+            playerUISnapshot = bindableViewModel.player?.uiSnapshot ?? PlayerUIPlaybackSnapshot()
             ensureSponsorSegmentsLoadedIfNeeded()
 
             // 加载完成后启动历史上报
@@ -954,6 +975,7 @@ struct VideoDetailPage: View {
         }
         .onDisappear {
             hideControlsTask?.cancel()
+            stopDebugPanelRefresh()
             if let player = bindableViewModel.player {
                 speedBoostTriggerTask?.cancel()
                 speedBoostTriggerTask = nil
@@ -1496,8 +1518,12 @@ struct VideoDetailPage: View {
             controlsVisible.toggle()
         }
 
+        refreshControlsAutoHideIfNeeded(player: player)
+    }
+
+    private func refreshControlsAutoHideIfNeeded(player: MPVKitPlayer) {
         hideControlsTask?.cancel()
-        guard controlsVisible, player.isPlaying else { return }
+        guard controlsVisible, playerUISnapshot.isPlaying else { return }
 
         hideControlsTask = Task { @MainActor in
             do {
@@ -1516,8 +1542,8 @@ struct VideoDetailPage: View {
     // MARK: - 检查播放是否结束
 
     private func isPlaybackEnded(player: MPVKitPlayer) -> Bool {
-        guard player.duration > 0 else { return false }
-        return player.currentTime >= player.duration - 0.05
+        guard playerUISnapshot.duration > 0 else { return false }
+        return playerUISnapshot.currentTime >= playerUISnapshot.duration - 0.05
     }
 
     // MARK: - 开始倍速播放
@@ -1746,6 +1772,29 @@ struct VideoDetailPage: View {
         previewDraftSegmentID = id
         player.seek(to: max(0, draft.start - 3))
         player.resume()
+        playerUISnapshot = player.uiSnapshot
+    }
+
+    private func startDebugPanelRefresh(player: MPVKitPlayer) {
+        debugPanelRefreshTask?.cancel()
+        player.refreshDebugSnapshot()
+        playerUISnapshot = player.uiSnapshot
+        debugPanelRefreshTask = Task { @MainActor in
+            while !Task.isCancelled, showDebugPanel {
+                do {
+                    try await Task.sleep(nanoseconds: 100000000)
+                } catch {
+                    return
+                }
+                player.refreshDebugSnapshot()
+                playerUISnapshot = player.uiSnapshot
+            }
+        }
+    }
+
+    private func stopDebugPanelRefresh() {
+        debugPanelRefreshTask?.cancel()
+        debugPanelRefreshTask = nil
     }
 
     private func submitSponsorDraftSegments() {
@@ -3478,6 +3527,7 @@ private func normalizedProgress(_ value: TimeInterval, duration: TimeInterval) -
 struct DashStreamDebugPanel: View {
     let stream: DashStream
     let player: MPVKitPlayer?
+    let playerSnapshot: PlayerUIPlaybackSnapshot
     let selectedQualityCode: Int?
     let onDismiss: () -> Void
 
@@ -3546,9 +3596,9 @@ struct DashStreamDebugPanel: View {
 
                             VStack(alignment: .leading, spacing: 8) {
                                 Text("播放器状态").font(.subheadline).fontWeight(.semibold).foregroundColor(.secondary)
-                                InfoRow("播放状态", player.isPlaying ? "播放中" : "已暂停")
-                                InfoRow("当前时间", formatTime(player.currentTime))
-                                InfoRow("总时长", formatTime(player.duration))
+                                InfoRow("播放状态", playerSnapshot.isPlaying ? "播放中" : "已暂停")
+                                InfoRow("当前时间", formatTime(playerSnapshot.currentTime))
+                                InfoRow("总时长", formatTime(playerSnapshot.duration))
                             }
 
                             Divider()
@@ -3564,28 +3614,28 @@ struct DashStreamDebugPanel: View {
 
                             VStack(alignment: .leading, spacing: 8) {
                                 Text("高动态视频").font(.subheadline).fontWeight(.semibold).foregroundColor(.secondary)
-                                InfoRow("显示增强", player.hdrDiagnostics.isEnabledInSettings ? "已开启" : "已关闭")
-                                InfoRow("视频类型", dynamicRangeSourceLabel(for: player.hdrDiagnostics))
-                                InfoRow("高动态显示请求", player.hdrDiagnostics.requestsExtendedRange ? "已开启" : "未开启")
-                                InfoRow("高动态显示状态", player.hdrDiagnostics.extendedRangeActive ? "生效中" : "未生效")
+                                InfoRow("显示增强", playerSnapshot.hdrDiagnostics.isEnabledInSettings ? "已开启" : "已关闭")
+                                InfoRow("视频类型", dynamicRangeSourceLabel(for: playerSnapshot.hdrDiagnostics))
+                                InfoRow("高动态显示请求", playerSnapshot.hdrDiagnostics.requestsExtendedRange ? "已开启" : "未开启")
+                                InfoRow("高动态显示状态", playerSnapshot.hdrDiagnostics.extendedRangeActive ? "生效中" : "未生效")
                                 InfoRow(
                                     "当前 / 最大高光余量",
                                     String(
                                         format: "%.2f / %.2f",
-                                        player.hdrDiagnostics.currentEDRHeadroom,
-                                        player.hdrDiagnostics.potentialEDRHeadroom
+                                        playerSnapshot.hdrDiagnostics.currentEDRHeadroom,
+                                        playerSnapshot.hdrDiagnostics.potentialEDRHeadroom
                                     )
                                 )
-                                InfoRow("显示色域", fallback(player.hdrDiagnostics.displayGamut))
-                                InfoRow("显示空间", fallback(player.hdrDiagnostics.displayColorSpace))
-                                InfoRow("亮度映射", fallback(player.hdrDiagnostics.toneMapping))
-                                InfoRow("视频色域", fallback(player.hdrDiagnostics.videoPrimaries))
-                                InfoRow("亮度曲线", fallback(player.hdrDiagnostics.videoGamma))
-                                InfoRow("色阶范围", fallback(player.hdrDiagnostics.videoColorLevels))
-                                InfoRow("色彩矩阵", fallback(player.hdrDiagnostics.videoColorMatrix))
-                                InfoRow("解码像素格式", fallback(player.hdrDiagnostics.videoPixelFormat))
-                                InfoRow("硬件像素格式", fallback(player.hdrDiagnostics.videoHardwarePixelFormat))
-                                InfoRow("峰值亮度估计", fallback(player.hdrDiagnostics.videoSignalPeak))
+                                InfoRow("显示色域", fallback(playerSnapshot.hdrDiagnostics.displayGamut))
+                                InfoRow("显示空间", fallback(playerSnapshot.hdrDiagnostics.displayColorSpace))
+                                InfoRow("亮度映射", fallback(playerSnapshot.hdrDiagnostics.toneMapping))
+                                InfoRow("视频色域", fallback(playerSnapshot.hdrDiagnostics.videoPrimaries))
+                                InfoRow("亮度曲线", fallback(playerSnapshot.hdrDiagnostics.videoGamma))
+                                InfoRow("色阶范围", fallback(playerSnapshot.hdrDiagnostics.videoColorLevels))
+                                InfoRow("色彩矩阵", fallback(playerSnapshot.hdrDiagnostics.videoColorMatrix))
+                                InfoRow("解码像素格式", fallback(playerSnapshot.hdrDiagnostics.videoPixelFormat))
+                                InfoRow("硬件像素格式", fallback(playerSnapshot.hdrDiagnostics.videoHardwarePixelFormat))
+                                InfoRow("峰值亮度估计", fallback(playerSnapshot.hdrDiagnostics.videoSignalPeak))
                             }
                         }
                     }
