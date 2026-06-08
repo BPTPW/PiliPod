@@ -114,6 +114,7 @@ struct VideoDetailPage: View {
     @State private var previewDraftSegmentID: SponsorBlockDraftSegment.ID?
     @State private var playerUISnapshot = PlayerUIPlaybackSnapshot()
     @State private var debugPanelRefreshTask: Task<Void, Never>?
+    @State private var cachedIntroDescriptionText = AttributedString("")
 #if canImport(UIKit)
     @State private var preferredFullscreenOrientation: UIInterfaceOrientation = .landscapeRight
 #endif
@@ -148,6 +149,18 @@ struct VideoDetailPage: View {
                let banner = fullSegmentBannerInfo(for: category.rawValue)
             {
                 return banner
+            }
+        }
+        return nil
+    }
+
+    private var fullSegmentBannerCategoryRawValue: String? {
+        guard sponsorBlockSettings.isEnabled else { return nil }
+        for segment in viewModel.fullSegments {
+            if let category = sponsorCategory(for: segment),
+               fullSegmentBannerInfo(for: category.rawValue) != nil
+            {
+                return category.rawValue
             }
         }
         return nil
@@ -932,6 +945,7 @@ struct VideoDetailPage: View {
         .onAppear {
             danmakuConfig = DanmakuConfigStore.load()
             sponsorBlockSettings = SponsorBlockSettingsStore.load()
+            cachedIntroDescriptionText = AttributedString("")
             skippedSponsorSegmentIDs = []
             hiddenManualSponsorSegmentIDs = []
             manualSkipSegment = nil
@@ -965,6 +979,7 @@ struct VideoDetailPage: View {
             sponsorSegmentVotes = [:]
             sponsorSegmentCategoryOverrides = [:]
             await bindableViewModel.loadVideoData()
+            refreshCachedIntroDescription()
             playerUISnapshot = bindableViewModel.player?.uiSnapshot ?? PlayerUIPlaybackSnapshot()
             ensureSponsorSegmentsLoadedIfNeeded()
 
@@ -1058,20 +1073,8 @@ struct VideoDetailPage: View {
         static let videoHost = "video"
     }
 
-    private var introDescriptionText: AttributedString {
-        guard let items = viewModel.videoDetail?.descV2, !items.isEmpty else {
-            return AttributedString("")
-        }
-
-        var result = AttributedString()
-        for item in items {
-            result += attributedDescriptionSegment(for: item)
-        }
-        return result
-    }
-
     private var hasIntroDescription: Bool {
-        !introDescriptionText.characters.isEmpty
+        !cachedIntroDescriptionText.characters.isEmpty
     }
 
     private func attributedDescriptionSegment(for item: DescV2Item) -> AttributedString {
@@ -1127,6 +1130,19 @@ struct VideoDetailPage: View {
         }
 
         return result
+    }
+
+    private func refreshCachedIntroDescription() {
+        guard let items = viewModel.videoDetail?.descV2, !items.isEmpty else {
+            cachedIntroDescriptionText = AttributedString("")
+            return
+        }
+
+        var result = AttributedString()
+        for item in items {
+            result += attributedDescriptionSegment(for: item)
+        }
+        cachedIntroDescriptionText = result
     }
 
     private func handleIntroLink(_ url: URL) -> OpenURLAction.Result {
@@ -1228,255 +1244,116 @@ struct VideoDetailPage: View {
         }
     }
 
+    private var introTabDisplayModel: IntroTabDisplayModel? {
+        guard let detail = viewModel.videoDetail else { return nil }
+
+        return IntroTabDisplayModel(
+            aid: detail.aid,
+            bvid: detail.bvid,
+            ownerMid: detail.owner.mid,
+            ownerFace: detail.owner.face,
+            ownerName: detail.owner.name,
+            ownerFollowerCount: viewModel.ownerFollowerCount,
+            ownerArchiveCount: viewModel.ownerArchiveCount,
+            isOwnerFollowing: viewModel.isOwnerFollowing,
+            isOwnerFollowRequesting: viewModel.isOwnerFollowRequesting,
+            fullSegmentBanner: fullSegmentBanner?.text,
+            fullSegmentBannerCategoryRawValue: fullSegmentBannerCategoryRawValue,
+            title: viewModel.title,
+            viewCount: detail.stat.view,
+            danmakuCount: detail.stat.danmaku,
+            pubdate: detail.pubdate,
+            onlineCount: viewModel.playerInfo?.onlineCount,
+            isExpanded: isVideoDetailExpanded,
+            introDescriptionText: cachedIntroDescriptionText,
+            isLiked: viewModel.isLiked,
+            isDisliked: viewModel.isDisliked,
+            isCoined: viewModel.isCoined,
+            isFavorited: viewModel.isFavorited,
+            isWatchLater: viewModel.isWatchLater,
+            likeCount: viewModel.likeCount,
+            coinCount: viewModel.coinCount,
+            favoriteCount: viewModel.favoriteCount,
+            shareCount: detail.stat.share,
+            isLikeRequesting: viewModel.isLikeRequesting,
+            isDislikeRequesting: viewModel.isDislikeRequesting,
+            isCoinRequesting: viewModel.isCoinRequesting,
+            isFavoriteRequesting: viewModel.isFavoriteRequesting,
+            isWatchLaterRequesting: viewModel.isWatchLaterRequesting,
+            relatedIsLoading: viewModel.relatedIsLoading,
+            relatedError: viewModel.relatedError,
+            relatedVideos: Array(viewModel.relatedVideos.prefix(40))
+        )
+    }
+
     private var introTabContent: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 12) {
-                if let detail = viewModel.videoDetail {
-                    HStack(spacing: 12) {
-                        HStack(spacing: 12) {
-                            CachedAsyncImage(url: URL(string: detail.owner.face)) { phase in
-                                if case .success(let image) = phase {
-                                    image
-                                        .resizable()
-                                        .scaledToFill()
-                                } else {
-                                    Circle()
-                                        .fill(Color.gray)
-                                }
-                            }
-                            .frame(width: 40, height: 40)
-                            .clipShape(Circle())
-
-                            // UP主信息
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text(detail.owner.name)
-                                    .font(.subheadline)
-                                    .foregroundColor(.primary)
-                                if let follower = viewModel.ownerFollowerCount,
-                                   let archiveCount = viewModel.ownerArchiveCount
-                                {
-                                    Text("\(formatCount(follower))粉丝  \(archiveCount)视频")
-                                        .font(.caption)
-                                        .foregroundColor(.secondary)
-                                } else {
-                                    Text("—粉丝  —视频")
-                                        .font(.caption)
-                                        .foregroundColor(.secondary)
+        Group {
+            if let model = introTabDisplayModel {
+                IntroTabContentView(
+                    model: model,
+                    namespace: namespace,
+                    onOpenOwner: { mid, aid in
+                        selectedUserSpaceRoute = UserSpaceRoute(
+                            mid: mid,
+                            fromViewAid: aid
+                        )
+                    },
+                    onToggleFollow: {
+                        guard !viewModel.isOwnerFollowRequesting else { return }
+                        Task {
+                            do {
+                                try await viewModel.toggleOwnerFollow()
+                            } catch {
+                                await MainActor.run {
+                                    toastMessage = error.localizedDescription
                                 }
                             }
                         }
-                        .contentShape(Rectangle())
-                        .onTapGesture {
-                            selectedUserSpaceRoute = UserSpaceRoute(
-                                mid: detail.owner.mid,
-                                fromViewAid: detail.aid
-                            )
-                        }
-
-                        HStack {
-                            Spacer()
-                            // 关注按钮
-                            ZStack {
-                                Capsule(style: .continuous)
-                                    .fill(viewModel.isOwnerFollowing ? .followedBackground : Color("BiliPink"))
-                                    .animation(.smooth(duration: 0.1), value: viewModel.isOwnerFollowing)
-
-                                Button(action: {
-                                    guard !viewModel.isOwnerFollowRequesting else { return }
-                                    Task {
-                                        do {
-                                            try await viewModel.toggleOwnerFollow()
-                                        } catch {
-                                            await MainActor.run {
-                                                toastMessage = error.localizedDescription
-                                            }
-                                        }
-                                    }
-                                }) {
-                                    Text(viewModel.isOwnerFollowing ? "已关注" : "关注")
-                                        .font(.caption.weight(.semibold))
-                                        .foregroundColor(viewModel.isOwnerFollowing ? .followedText : .white)
-                                }
-                                .frame(width: 65, height: 25)
-                            }
-                            .glassEffect(
-                                .regular.interactive(),
-                                in: .capsule
-                            )
-                            .frame(width: 65, height: 25)
-                        }
-                    }
-
-                    if let fullBanner = fullSegmentBanner {
-                        Text(fullBanner.text)
-                            .font(.system(size: 12, weight: .semibold))
-                            .foregroundStyle(.white)
-                            .padding(.horizontal, 8)
-                            .padding(.vertical, 6)
-                            .glassEffect(
-                                .regular.tint(fullBanner.color),
-                                in: RoundedRectangle(cornerRadius: 12, style: .continuous)
-                            )
-                    }
-
-                    // 视频标题
-                    Text(viewModel.title)
-                        .font(.headline)
-                        .lineLimit(2)
-                        .foregroundColor(.primary)
-                        .contentShape(Rectangle())
-                        .onTapGesture {
-                            withAnimation(.easeInOut(duration: 0.18)) {
-                                isVideoDetailExpanded.toggle()
-                            }
-                        }
-
-                    // 视频数据
-                    HStack(spacing: 10) {
-                        Label(formatCount(detail.stat.view), systemImage: "play.fill")
-                        Label(formatCount(detail.stat.danmaku), systemImage: "text.bubble.fill")
-                        Text(formatTimestamp(TimeInterval(detail.pubdate)))
-                        if let online = viewModel.playerInfo?.onlineCount,
-                           online > 0,
-                           Date().timeIntervalSince1970 >= TimeInterval(detail.pubdate)
-                        {
-                            Label("\(formatCount(online))人在看", systemImage: "person.2.fill")
-                        }
-                    }
-                    .font(.system(size: 11))
-                    .foregroundStyle(.secondary)
-                    .contentShape(Rectangle())
-                    .onTapGesture {
+                    },
+                    onToggleExpand: {
                         withAnimation(.easeInOut(duration: 0.18)) {
                             isVideoDetailExpanded.toggle()
                         }
+                    },
+                    onOpenIntroLink: { url in
+                        handleIntroLink(url)
+                    },
+                    onToggleLike: {
+                        withAnimation(.easeInOut(duration: 0.15)) {
+                            viewModel.toggleLike()
+                        }
+                    },
+                    onToggleDislike: {
+                        withAnimation(.easeInOut(duration: 0.15)) {
+                            viewModel.toggleDislike()
+                        }
+                    },
+                    onCoin1: {
+                        Task { await viewModel.coin(multiply: 1) }
+                    },
+                    onCoin2: {
+                        Task { await viewModel.coin(multiply: 2) }
+                    },
+                    onToggleFavorite: {
+                        isFavoriteSheetPresented = true
+                    },
+                    onShare: {
+                        // TODO: add share logic later
+                    },
+                    onLaterWatch: {
+                        if !viewModel.isWatchLater {
+                            viewModel.addToWatchLater()
+                        }
+                    },
+                    onOpenRelatedVideo: { item in
+                        selectedRelatedVideo = item
                     }
-
-                    // 视频详情（默认折叠；点击标题或视频数据展开/收起）
-                    if isVideoDetailExpanded {
-                        VStack(alignment: .leading, spacing: 12) {
-                            Text(detail.bvid)
-                                .font(.system(.subheadline, design: .monospaced))
-                                .foregroundStyle(.secondary)
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                                .contentShape(Rectangle())
-                                .onLongPressGesture {
-#if canImport(UIKit)
-                                    UIPasteboard.general.string = detail.bvid
-#endif
-                                }
-
-                            if hasIntroDescription {
-                                Text(introDescriptionText)
-                                    .font(.footnote)
-                                    .foregroundStyle(.secondary)
-                                    .tint(Color("BiliPink"))
-                                    .frame(maxWidth: .infinity, alignment: .leading)
-                                    .fixedSize(horizontal: false, vertical: true)
-                                    .environment(\.openURL, OpenURLAction { url in
-                                        handleIntroLink(url)
-                                    })
-                            }
-                        }
-                        .padding(.top, 4)
-                        .transition(.opacity.combined(with: .move(edge: .top)))
-                    }
-
-                    // 操作栏（点赞/点踩/投币/收藏/转发/稍后再看）
-                    VideoActionBar(
-                        isLiked: viewModel.isLiked,
-                        isDisliked: viewModel.isDisliked,
-                        isCoined: viewModel.isCoined,
-                        isFavorited: viewModel.isFavorited,
-                        isWatchLater: viewModel.isWatchLater,
-                        likeCount: viewModel.likeCount,
-                        coinCount: viewModel.coinCount,
-                        favoriteCount: viewModel.favoriteCount,
-                        shareCount: detail.stat.share,
-                        isLikeRequesting: viewModel.isLikeRequesting,
-                        isDislikeRequesting: viewModel.isDislikeRequesting,
-                        isCoinRequesting: viewModel.isCoinRequesting,
-                        isFavoriteRequesting: viewModel.isFavoriteRequesting,
-                        isWatchLaterRequesting: viewModel.isWatchLaterRequesting,
-                        onToggleLike: {
-                            withAnimation(.easeInOut(duration: 0.15)) {
-                                viewModel.toggleLike()
-                            }
-                        },
-                        onToggleDislike: {
-                            withAnimation(.easeInOut(duration: 0.15)) {
-                                viewModel.toggleDislike()
-                            }
-                        },
-                        onCoin1: {
-                            Task { await viewModel.coin(multiply: 1) }
-                        },
-                        onCoin2: {
-                            Task { await viewModel.coin(multiply: 2) }
-                        },
-                        onToggleFavorite: {
-                            isFavoriteSheetPresented = true
-                        },
-                        onShare: {
-                            // TODO: add share logic later
-                        },
-                        onLaterWatch: {
-                            if !viewModel.isWatchLater {
-                                viewModel.addToWatchLater()
-                            }
-                        }
-                    )
-                    .padding(.top, 4)
-
-                    // 推荐视频
-                    if viewModel.relatedIsLoading
-                        || viewModel.relatedError != nil
-                        || !viewModel.relatedVideos.isEmpty
-                    {
-                        Divider()
-                            .padding(.top, 10)
-
-                        HStack(spacing: 10) {
-                            Text("推荐视频")
-                                .font(.headline)
-                                .foregroundStyle(.primary)
-
-                            if viewModel.relatedIsLoading {
-                                ProgressView()
-                                    .controlSize(.small)
-                            }
-
-                            Spacer()
-                        }
-                        .padding(.top, 6)
-
-                        if let error = viewModel.relatedError,
-                           !viewModel.relatedIsLoading,
-                           viewModel.relatedVideos.isEmpty
-                        {
-                            Text(error)
-                                .font(.footnote)
-                                .foregroundStyle(.secondary)
-                                .padding(.top, 4)
-                        } else {
-                            LazyVStack(spacing: 12) {
-                                ForEach(viewModel.relatedVideos.prefix(40)) { item in
-                                    VideoCardSingleView(
-                                        video: item,
-                                        namespace: namespace,
-                                        onTap: { selectedRelatedVideo = item }
-                                    )
-                                }
-                            }
-                            .padding(.top, 8)
-                        }
-                    }
-                }
+                )
+                .equatable()
+            } else {
+                Color(.systemBackground)
             }
-            .padding(16)
-            .frame(maxWidth: .infinity, alignment: .top)
         }
-        .background(Color(.systemBackground))
     }
 
     private func tabSwipeGesture(for tab: VideoDetailTab) -> some Gesture {
@@ -2111,7 +1988,7 @@ private struct UserSpaceRoute: Identifiable, Hashable {
 
 // MARK: - 视频操作
 
-private struct VideoActionBar: View {
+struct VideoActionBar: View {
     let isLiked: Bool
     let isDisliked: Bool
     let isCoined: Bool
@@ -3178,7 +3055,7 @@ private func progressColorForCategory(_ category: String) -> Color? {
     }
 }
 
-private func fullSegmentBannerInfo(for category: String) -> (text: String, color: Color)? {
+func fullSegmentBannerInfo(for category: String) -> (text: String, color: Color)? {
     switch category {
     case "exclusive_access":
         return ("独家访问/抢先体验", .mint)
