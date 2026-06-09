@@ -284,7 +284,6 @@ struct VideoDetailPage: View {
                                                 let delta = ratio * maxHorizontalSeekOffset
                                                 let target = clampSeekTime(horizontalSeekBaseTime + delta, duration: playerUISnapshot.duration)
                                                 horizontalSeekPreviewTime = target
-                                                showControlsAndAutoHideIfNeeded(player: player, forceShow: true)
                                                 return
                                             }
 
@@ -294,7 +293,6 @@ struct VideoDetailPage: View {
                                                 let target = clampUnit(brightnessAdjustBaseValue + delta)
                                                 brightnessPreviewValue = target
                                                 setScreenBrightness(target)
-                                                showControlsAndAutoHideIfNeeded(player: player, forceShow: true)
                                                 return
                                             }
 
@@ -304,7 +302,6 @@ struct VideoDetailPage: View {
                                                 let target = clampUnit(volumeAdjustBaseValue + delta)
                                                 volumePreviewValue = target
                                                 setSystemVolume(target)
-                                                showControlsAndAutoHideIfNeeded(player: player, forceShow: true)
                                                 return
                                             }
 
@@ -335,7 +332,6 @@ struct VideoDetailPage: View {
                                                 let delta = ratio * maxHorizontalSeekOffset
                                                 let target = clampSeekTime(horizontalSeekBaseTime + delta, duration: playerUISnapshot.duration)
                                                 horizontalSeekPreviewTime = target
-                                                showControlsAndAutoHideIfNeeded(player: player, forceShow: true)
                                                 return
                                             }
 
@@ -363,7 +359,6 @@ struct VideoDetailPage: View {
                                                 let target = clampUnit(brightnessAdjustBaseValue + delta)
                                                 brightnessPreviewValue = target
                                                 setScreenBrightness(target)
-                                                showControlsAndAutoHideIfNeeded(player: player, forceShow: true)
                                                 return
                                             }
 
@@ -392,7 +387,6 @@ struct VideoDetailPage: View {
                                                 let target = clampUnit(volumeAdjustBaseValue + delta)
                                                 volumePreviewValue = target
                                                 setSystemVolume(target)
-                                                showControlsAndAutoHideIfNeeded(player: player, forceShow: true)
                                                 return
                                             }
 
@@ -422,7 +416,6 @@ struct VideoDetailPage: View {
                                                 }
                                                 horizontalSeekPreviewTime = nil
                                                 isHorizontalSeeking = false
-                                                showControlsAndAutoHideIfNeeded(player: player, forceShow: true)
                                             }
                                             if isBrightnessAdjusting {
                                                 isBrightnessAdjusting = false
