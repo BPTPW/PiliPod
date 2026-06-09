@@ -674,6 +674,13 @@ struct VideoDetailPage: View {
                                 .onChange(of: player.uiSnapshot) { oldSnapshot, snapshot in
                                     playerUISnapshot = snapshot
 #if canImport(UIKit)
+                                    if oldSnapshot.isPlaying != snapshot.isPlaying {
+                                        print(
+                                            "[AudioSession] Player snapshot isPlaying changed " +
+                                            "\(oldSnapshot.isPlaying) -> \(snapshot.isPlaying), " +
+                                            "currentTime=\(snapshot.currentTime), duration=\(snapshot.duration)"
+                                        )
+                                    }
                                     setIdleTimerDisabled(snapshot.isPlaying)
                                     syncSystemMediaControl()
 #endif

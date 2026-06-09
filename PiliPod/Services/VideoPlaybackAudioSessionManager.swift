@@ -24,12 +24,15 @@ final class VideoPlaybackAudioSessionManager: ObservableObject {
     }
 
     private let commandCenter = MPRemoteCommandCenter.shared()
+    private let audioEngine = AVAudioEngine()
     private var commandTargets: [(MPRemoteCommand, Any)] = []
     private var artworkLoadTask: Task<Void, Never>?
     private var currentArtworkURL: URL?
     private var currentArtworkImage: UIImage?
     private var lastPlaybackInfo: PlaybackInfo?
     private var didRegisterCommands = false
+    private var silenceNode: AVAudioSourceNode?
+    private var notificationObservers: [NSObjectProtocol] = []
 
     private var onPlay: (() -> Void)?
     private var onPause: (() -> Void)?
@@ -47,9 +50,8 @@ final class VideoPlaybackAudioSessionManager: ObservableObject {
 
     func activate() {
         do {
-            let session = AVAudioSession.sharedInstance()
-            try session.setCategory(.playback, mode: .moviePlayback)
-            try session.setActive(true)
+            try ensurePlaybackSessionReady(reason: "activate")
+            installAudioSessionObserversIfNeeded()
             registerRemoteCommandsIfNeeded()
             print("[AudioSession] Activated playback audio session")
         } catch {
@@ -77,6 +79,14 @@ final class VideoPlaybackAudioSessionManager: ObservableObject {
             loadArtworkIfNeeded(from: info.artworkURL)
         }
 
+        if info.isPlaying {
+            do {
+                try ensurePlaybackSessionReady(reason: "updateNowPlaying.playing")
+            } catch {
+                print("[AudioSession] Failed to refresh playback session while playing: \(error.localizedDescription)")
+            }
+        }
+
         publishNowPlaying(info: info, artwork: currentArtworkImage)
         print(
             "[AudioSession] Updated now playing title=\(info.title) artist=\(info.artist) " +
@@ -88,8 +98,11 @@ final class VideoPlaybackAudioSessionManager: ObservableObject {
     private func teardown() {
         artworkLoadTask?.cancel()
         artworkLoadTask = nil
+        audioEngine.stop()
         MPNowPlayingInfoCenter.default().nowPlayingInfo = nil
+        UIApplication.shared.endReceivingRemoteControlEvents()
         unregisterRemoteCommands()
+        removeAudioSessionObservers()
         lastPlaybackInfo = nil
         currentArtworkURL = nil
         currentArtworkImage = nil
@@ -191,7 +204,7 @@ final class VideoPlaybackAudioSessionManager: ObservableObject {
             MPMediaItemPropertyPlaybackDuration: effectiveDuration,
             MPNowPlayingInfoPropertyElapsedPlaybackTime: effectiveElapsed,
             MPNowPlayingInfoPropertyPlaybackRate: effectiveRate,
-            MPNowPlayingInfoPropertyMediaType: MPNowPlayingInfoMediaType.video.rawValue
+            MPNowPlayingInfoPropertyMediaType: MPNowPlayingInfoMediaType.audio.rawValue
         ]
 
         if let artwork {
@@ -201,6 +214,132 @@ final class VideoPlaybackAudioSessionManager: ObservableObject {
         }
 
         MPNowPlayingInfoCenter.default().nowPlayingInfo = nowPlayingInfo
+        print("[AudioSession] Published nowPlayingInfo keys=\(nowPlayingInfo.keys.sorted())")
+    }
+
+    private func ensurePlaybackSessionReady(reason: String) throws {
+        let session = AVAudioSession.sharedInstance()
+        try session.setCategory(.playback, mode: .default)
+        try session.setActive(true)
+        try startSilentAudioEngineIfNeeded()
+        UIApplication.shared.beginReceivingRemoteControlEvents()
+        print(
+            "[AudioSession] ensurePlaybackSessionReady reason=\(reason) " +
+            "category=\(session.category.rawValue) engineRunning=\(audioEngine.isRunning)"
+        )
+    }
+
+    private func startSilentAudioEngineIfNeeded() throws {
+        if silenceNode == nil {
+            let format = AVAudioFormat(standardFormatWithSampleRate: 44_100, channels: 2)
+            let sourceNode = AVAudioSourceNode { _, _, _, audioBufferList -> OSStatus in
+                let buffers = UnsafeMutableAudioBufferListPointer(audioBufferList)
+                for buffer in buffers {
+                    guard let pointer = buffer.mData else { continue }
+                    memset(pointer, 0, Int(buffer.mDataByteSize))
+                }
+                return noErr
+            }
+
+            silenceNode = sourceNode
+            audioEngine.attach(sourceNode)
+
+            if let format {
+                audioEngine.connect(sourceNode, to: audioEngine.mainMixerNode, format: format)
+            } else {
+                audioEngine.connect(sourceNode, to: audioEngine.mainMixerNode, format: nil)
+            }
+        }
+
+        if !audioEngine.isRunning {
+            try audioEngine.start()
+            print("[AudioSession] Started silent audio engine")
+        }
+    }
+
+    private func installAudioSessionObserversIfNeeded() {
+        guard notificationObservers.isEmpty else { return }
+
+        let center = NotificationCenter.default
+        notificationObservers = [
+            center.addObserver(
+                forName: AVAudioSession.interruptionNotification,
+                object: nil,
+                queue: .main
+            ) { [weak self] notification in
+                self?.handleAudioSessionInterruption(notification)
+            },
+            center.addObserver(
+                forName: AVAudioSession.mediaServicesWereResetNotification,
+                object: nil,
+                queue: .main
+            ) { [weak self] _ in
+                self?.handleMediaServicesReset()
+            },
+            center.addObserver(
+                forName: .AVAudioEngineConfigurationChange,
+                object: audioEngine,
+                queue: .main
+            ) { [weak self] _ in
+                self?.handleAudioEngineConfigurationChange()
+            }
+        ]
+    }
+
+    private func removeAudioSessionObservers() {
+        let center = NotificationCenter.default
+        for observer in notificationObservers {
+            center.removeObserver(observer)
+        }
+        notificationObservers.removeAll()
+    }
+
+    private func handleAudioSessionInterruption(_ notification: Notification) {
+        guard
+            let typeValue = notification.userInfo?[AVAudioSessionInterruptionTypeKey] as? UInt,
+            let type = AVAudioSession.InterruptionType(rawValue: typeValue)
+        else {
+            print("[AudioSession] Received interruption with unknown payload")
+            return
+        }
+
+        print("[AudioSession] Interruption type=\(type.rawValue)")
+
+        guard type == .ended, let playbackInfo = lastPlaybackInfo, playbackInfo.isPlaying else { return }
+
+        do {
+            try ensurePlaybackSessionReady(reason: "interruptionEnded")
+            publishNowPlaying(info: playbackInfo, artwork: currentArtworkImage)
+        } catch {
+            print("[AudioSession] Failed to recover after interruption: \(error.localizedDescription)")
+        }
+    }
+
+    private func handleMediaServicesReset() {
+        print("[AudioSession] Media services were reset")
+
+        guard let playbackInfo = lastPlaybackInfo else { return }
+
+        do {
+            try ensurePlaybackSessionReady(reason: "mediaServicesReset")
+            registerRemoteCommandsIfNeeded()
+            publishNowPlaying(info: playbackInfo, artwork: currentArtworkImage)
+        } catch {
+            print("[AudioSession] Failed to recover after media services reset: \(error.localizedDescription)")
+        }
+    }
+
+    private func handleAudioEngineConfigurationChange() {
+        print("[AudioSession] Audio engine configuration changed running=\(audioEngine.isRunning)")
+
+        guard let playbackInfo = lastPlaybackInfo, playbackInfo.isPlaying else { return }
+
+        do {
+            try ensurePlaybackSessionReady(reason: "audioEngineConfigurationChange")
+            publishNowPlaying(info: playbackInfo, artwork: currentArtworkImage)
+        } catch {
+            print("[AudioSession] Failed to recover after audio engine configuration change: \(error.localizedDescription)")
+        }
     }
 
     private func loadArtworkIfNeeded(from url: URL?) {
