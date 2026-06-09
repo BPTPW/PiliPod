@@ -47,9 +47,22 @@
 		C3E76F952FBED5B000DD7377 /* PiliPodUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = PiliPodUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		C3A1EF1D2FD8292500CD65D5 /* Exceptions for "PiliPod" folder in "PiliPod" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = C3E76F7D2FBED5AF00DD7377 /* PiliPod */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		C3E76F802FBED5AF00DD7377 /* PiliPod */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				C3A1EF1D2FD8292500CD65D5 /* Exceptions for "PiliPod" folder in "PiliPod" target */,
+			);
 			path = PiliPod;
 			sourceTree = "<group>";
 		};
@@ -433,6 +446,7 @@
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = PiliPod/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = PiliPod;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.video";
 				INFOPLIST_KEY_NSPhotoLibraryAddUsageDescription = "应用需要相册权限来保存图片到相册";
@@ -497,6 +511,7 @@
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = PiliPod/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = PiliPod;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.video";
 				INFOPLIST_KEY_NSPhotoLibraryAddUsageDescription = "应用需要相册权限来保存图片到相册";
