@@ -55,6 +55,7 @@ class MPVKitPlayer: NSObject {
     private var uiRefreshTimer: Timer?
     private var pendingStream: DashStream?
     private var pendingDirectVideoURL: URL?
+    private var playbackIntent = false
     private let playbackSettings: AudioVideoSettings
 
     private(set) var isPlaying = false
@@ -102,7 +103,8 @@ class MPVKitPlayer: NSObject {
         controller.loadFile(stream.videoURL)
         controller.addAudio(stream.audioURL)
         controller.play()
-
+        playbackIntent = true
+        isPlaying = true
         startDisplayLink()
         startUIRefreshTimerIfNeeded()
         refreshUISnapshot(includeDiagnostics: false)
@@ -115,7 +117,8 @@ class MPVKitPlayer: NSObject {
 
         controller.loadFile(videoURL)
         controller.play()
-
+        playbackIntent = true
+        isPlaying = true
         startDisplayLink()
         startUIRefreshTimerIfNeeded()
         refreshUISnapshot(includeDiagnostics: false)
@@ -123,6 +126,7 @@ class MPVKitPlayer: NSObject {
 
     func resume() {
         controller?.play()
+        playbackIntent = true
         isPlaying = true
         startDisplayLink()
         startUIRefreshTimerIfNeeded()
@@ -131,6 +135,7 @@ class MPVKitPlayer: NSObject {
 
     func pause() {
         controller?.pause()
+        playbackIntent = false
         isPlaying = false
         stopDisplayLink()
         stopUIRefreshTimer()
@@ -151,6 +156,7 @@ class MPVKitPlayer: NSObject {
 
     func stop() {
         controller?.stop()
+        playbackIntent = false
         isPlaying = false
         stopDisplayLink()
         stopUIRefreshTimer()
@@ -266,7 +272,19 @@ class MPVKitPlayer: NSObject {
             bufferedUntil = 0
         }
 
-        isPlaying = !controller.isPaused()
+        let isControllerPaused = controller.isPaused()
+        let reachedPlaybackEnd = duration > 0 && currentTime >= duration - 0.05
+
+        if playbackIntent {
+            if reachedPlaybackEnd && isControllerPaused {
+                playbackIntent = false
+                isPlaying = false
+            } else {
+                isPlaying = true
+            }
+        } else {
+            isPlaying = false
+        }
     }
 
     deinit {

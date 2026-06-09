@@ -416,11 +416,8 @@ final class MPVKitMetalViewController: UIViewController {
         isInBackground = true
         print("[mpv] entering background, disabling video output")
 
-        // 1) pause so the VO stops submitting new frames
-        setFlag(MPVKitProperty.pause, true)
-
-        // 2) disable video track — prevents VO from touching GPU resources
-        //    while Metal / MoltenVK surfaces may be invalid in background
+        // Disable the video track in background to avoid touching invalid GPU resources,
+        // but keep the playback state decision in the higher-level view logic.
         checkError(mpv_set_option_string(mpv, "vid", "no"), context: "vid")
     }
 
@@ -428,11 +425,8 @@ final class MPVKitMetalViewController: UIViewController {
         guard !isShuttingDown, let mpv else { return }
         print("[mpv] entering foreground, restoring video")
 
-        // 1) re-enable video track
+        // Re-enable video output and preserve whichever play/pause state the app decided on.
         checkError(mpv_set_option_string(mpv, "vid", "auto"), context: "vid")
-
-        // 2) resume playback
-        setFlag(MPVKitProperty.pause, false)
 
         isInBackground = false
     }

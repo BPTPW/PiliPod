@@ -53,7 +53,10 @@ final class VideoPlaybackAudioSessionManager: ObservableObject {
             try ensurePlaybackSessionReady(reason: "activate")
             installAudioSessionObserversIfNeeded()
             registerRemoteCommandsIfNeeded()
-        } catch {}
+            print("[AudioSession] Activated playback audio session")
+        } catch {
+            print("[AudioSession] Failed to activate audio session: \(error.localizedDescription)")
+        }
     }
 
     func deactivate() {
@@ -61,25 +64,51 @@ final class VideoPlaybackAudioSessionManager: ObservableObject {
 
         do {
             try AVAudioSession.sharedInstance().setActive(false, options: [.notifyOthersOnDeactivation])
-        } catch {}
+            print("[AudioSession] Deactivated playback audio session")
+        } catch {
+            print("[AudioSession] Failed to deactivate audio session: \(error.localizedDescription)")
+        }
     }
 
     func updateNowPlaying(info: PlaybackInfo) {
-        lastPlaybackInfo = info
+        let normalizedInfo = PlaybackInfo(
+            title: info.title,
+            artist: info.artist,
+            artworkURL: info.artworkURL,
+            duration: info.duration,
+            elapsedTime: info.elapsedTime,
+            playbackRate: info.isPlaying ? info.playbackRate : 0,
+            isPlaying: info.isPlaying
+        )
 
-        if currentArtworkURL != info.artworkURL {
-            currentArtworkURL = info.artworkURL
+        lastPlaybackInfo = normalizedInfo
+
+        let session = AVAudioSession.sharedInstance()
+        print(
+            "[AudioSession][NowPlayingUpdate] " +
+            "isPlaying=\(normalizedInfo.isPlaying) elapsed=\(String(format: "%.3f", normalizedInfo.elapsedTime)) " +
+            "duration=\(String(format: "%.3f", normalizedInfo.duration)) rate=\(normalizedInfo.playbackRate) " +
+            "session.active=\(session.isOtherAudioPlaying == false) category=\(session.category.rawValue) " +
+            "engineRunning=\(audioEngine.isRunning) title=\(normalizedInfo.title)"
+        )
+
+        if currentArtworkURL != normalizedInfo.artworkURL {
+            currentArtworkURL = normalizedInfo.artworkURL
             currentArtworkImage = nil
-            loadArtworkIfNeeded(from: info.artworkURL)
+            loadArtworkIfNeeded(from: normalizedInfo.artworkURL)
         }
 
-        if info.isPlaying {
+        if normalizedInfo.isPlaying {
             do {
                 try ensurePlaybackSessionReady(reason: "updateNowPlaying.playing")
-            } catch {}
+            } catch {
+                print("[AudioSession] Failed to refresh playback session while playing: \(error.localizedDescription)")
+            }
+        } else {
+            suspendPlaybackSessionIfNeeded(reason: "updateNowPlaying.paused")
         }
 
-        publishNowPlaying(info: info, artwork: currentArtworkImage)
+        publishNowPlaying(info: normalizedInfo, artwork: currentArtworkImage)
     }
 
     private func teardown() {
@@ -152,14 +181,19 @@ final class VideoPlaybackAudioSessionManager: ObservableObject {
     }
 
     private func handlePlay() {
+        print("[AudioSession] Remote command: play")
         onPlay?()
     }
 
     private func handlePause() {
+        print("[AudioSession] Remote command: pause")
         onPause?()
     }
 
     private func handleToggle() {
+        let isPlaying = lastPlaybackInfo?.isPlaying ?? false
+        print("[AudioSession] Remote command: togglePlayPause -> \(isPlaying ? "pause" : "play")")
+
         if lastPlaybackInfo?.isPlaying ?? false {
             onPause?()
         } else {
@@ -168,6 +202,7 @@ final class VideoPlaybackAudioSessionManager: ObservableObject {
     }
 
     private func handleSeek(to position: TimeInterval) {
+        print("[AudioSession] Remote command: seek -> \(position)")
         onSeek?(position)
     }
 
@@ -185,6 +220,7 @@ final class VideoPlaybackAudioSessionManager: ObservableObject {
             MPMediaItemPropertyPlaybackDuration: effectiveDuration,
             MPNowPlayingInfoPropertyElapsedPlaybackTime: effectiveElapsed,
             MPNowPlayingInfoPropertyPlaybackRate: effectiveRate,
+            MPNowPlayingInfoPropertyDefaultPlaybackRate: Float(max(info.playbackRate, 0)),
             MPNowPlayingInfoPropertyMediaType: MPNowPlayingInfoMediaType.audio.rawValue
         ]
 
@@ -195,6 +231,13 @@ final class VideoPlaybackAudioSessionManager: ObservableObject {
         }
 
         MPNowPlayingInfoCenter.default().nowPlayingInfo = nowPlayingInfo
+        MPNowPlayingInfoCenter.default().playbackState = info.isPlaying ? .playing : .paused
+        print(
+            "[AudioSession][NowPlayingPublished] " +
+            "isPlaying=\(info.isPlaying) elapsed=\(String(format: "%.3f", effectiveElapsed)) " +
+            "duration=\(String(format: "%.3f", effectiveDuration)) rate=\(effectiveRate) " +
+            "defaultRate=\(Float(max(info.playbackRate, 0))) hasArtwork=\(artwork != nil)"
+        )
     }
 
     private func ensurePlaybackSessionReady(reason: String) throws {
@@ -203,7 +246,18 @@ final class VideoPlaybackAudioSessionManager: ObservableObject {
         try session.setActive(true)
         try startSilentAudioEngineIfNeeded()
         UIApplication.shared.beginReceivingRemoteControlEvents()
-        _ = reason
+        print(
+            "[AudioSession][SessionReady] reason=\(reason) " +
+            "category=\(session.category.rawValue) mode=\(session.mode.rawValue) " +
+            "otherAudioPlaying=\(session.isOtherAudioPlaying) engineRunning=\(audioEngine.isRunning)"
+        )
+    }
+
+    private func suspendPlaybackSessionIfNeeded(reason: String) {
+        if audioEngine.isRunning {
+            audioEngine.stop()
+            print("[AudioSession][SessionSuspended] reason=\(reason) engineRunning=\(audioEngine.isRunning)")
+        }
     }
 
     private func startSilentAudioEngineIfNeeded() throws {
@@ -230,6 +284,7 @@ final class VideoPlaybackAudioSessionManager: ObservableObject {
 
         if !audioEngine.isRunning {
             try audioEngine.start()
+            print("[AudioSession] Started silent audio engine")
         }
     }
 
@@ -275,34 +330,47 @@ final class VideoPlaybackAudioSessionManager: ObservableObject {
             let typeValue = notification.userInfo?[AVAudioSessionInterruptionTypeKey] as? UInt,
             let type = AVAudioSession.InterruptionType(rawValue: typeValue)
         else {
+            print("[AudioSession] Received interruption with unknown payload")
             return
         }
+
+        print("[AudioSession][Interruption] type=\(type.rawValue) lastPlaying=\(lastPlaybackInfo?.isPlaying.description ?? "nil")")
 
         guard type == .ended, let playbackInfo = lastPlaybackInfo, playbackInfo.isPlaying else { return }
 
         do {
             try ensurePlaybackSessionReady(reason: "interruptionEnded")
             publishNowPlaying(info: playbackInfo, artwork: currentArtworkImage)
-        } catch {}
+        } catch {
+            print("[AudioSession] Failed to recover after interruption: \(error.localizedDescription)")
+        }
     }
 
     private func handleMediaServicesReset() {
+        print("[AudioSession][MediaServicesReset] lastPlaying=\(lastPlaybackInfo?.isPlaying.description ?? "nil")")
+
         guard let playbackInfo = lastPlaybackInfo else { return }
 
         do {
             try ensurePlaybackSessionReady(reason: "mediaServicesReset")
             registerRemoteCommandsIfNeeded()
             publishNowPlaying(info: playbackInfo, artwork: currentArtworkImage)
-        } catch {}
+        } catch {
+            print("[AudioSession] Failed to recover after media services reset: \(error.localizedDescription)")
+        }
     }
 
     private func handleAudioEngineConfigurationChange() {
+        print("[AudioSession][EngineConfigChanged] running=\(audioEngine.isRunning) lastPlaying=\(lastPlaybackInfo?.isPlaying.description ?? "nil")")
+
         guard let playbackInfo = lastPlaybackInfo, playbackInfo.isPlaying else { return }
 
         do {
             try ensurePlaybackSessionReady(reason: "audioEngineConfigurationChange")
             publishNowPlaying(info: playbackInfo, artwork: currentArtworkImage)
-        } catch {}
+        } catch {
+            print("[AudioSession] Failed to recover after audio engine configuration change: \(error.localizedDescription)")
+        }
     }
 
     private func loadArtworkIfNeeded(from url: URL?) {

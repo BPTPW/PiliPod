@@ -115,6 +115,8 @@ struct VideoDetailPage: View {
     @State private var playerUISnapshot = PlayerUIPlaybackSnapshot()
     @State private var debugPanelRefreshTask: Task<Void, Never>?
     @State private var cachedIntroDescriptionText = AttributedString("")
+    @State private var shouldResumeAfterBackgroundPause = false
+    @State private var backgroundPauseRestoreTime: TimeInterval?
 #if canImport(UIKit)
     @State private var preferredFullscreenOrientation: UIInterfaceOrientation = .landscapeRight
     @StateObject private var audioSessionManager = VideoPlaybackAudioSessionManager()
@@ -267,12 +269,7 @@ struct VideoDetailPage: View {
                                 .highPriorityGesture(
                                     TapGesture(count: 2)
                                         .onEnded {
-                                            if player.isPlaying {
-                                                player.pause()
-                                            } else {
-                                                player.resume()
-                                            }
-                                            playerUISnapshot = player.uiSnapshot
+                                            togglePlayback(player: player)
                                             showControlsAndAutoHideIfNeeded(player: player, forceShow: true)
                                         }
                                 )
@@ -409,11 +406,7 @@ struct VideoDetailPage: View {
                                         .onEnded { _ in
                                             if dragInteractionMode == .horizontalSeek, isHorizontalSeeking {
                                                 if let seekTarget = horizontalSeekPreviewTime {
-                                                    player.seek(to: seekTarget)
-                                                    playerUISnapshot = player.uiSnapshot
-                                                    Task {
-                                                        await bindableViewModel.preloadDanmakuIfNeeded(currentTime: seekTarget)
-                                                    }
+                                                    seekPlayback(to: seekTarget, player: player)
                                                 }
                                                 horizontalSeekPreviewTime = nil
                                                 isHorizontalSeeking = false
@@ -514,19 +507,10 @@ struct VideoDetailPage: View {
                                             showControlsAndAutoHideIfNeeded(player: player, forceShow: true)
                                         },
                                         onTogglePlayPause: {
-                                            if player.isPlaying {
-                                                player.pause()
-                                            } else {
-                                                player.resume()
-                                            }
-                                            playerUISnapshot = player.uiSnapshot
+                                            togglePlayback(player: player)
                                         },
                                         onSeek: { time in
-                                            player.seek(to: time)
-                                            playerUISnapshot = player.uiSnapshot
-                                            Task {
-                                                await bindableViewModel.preloadDanmakuIfNeeded(currentTime: time)
-                                            }
+                                            seekPlayback(to: time, player: player)
                                             showControlsAndAutoHideIfNeeded(player: player, forceShow: true)
                                         },
                                         onFullscreen: {
@@ -667,15 +651,14 @@ struct VideoDetailPage: View {
                                     // 初次进入时给用户一个可发现的控制层
                                     playerUISnapshot = player.uiSnapshot
                                     showControlsAndAutoHideIfNeeded(player: player, forceShow: true)
-#if canImport(UIKit)
-                                    syncSystemMediaControl()
-#endif
                                 }
                                 .onChange(of: player.uiSnapshot) { oldSnapshot, snapshot in
                                     playerUISnapshot = snapshot
 #if canImport(UIKit)
+                                    if oldSnapshot.isPlaying != snapshot.isPlaying {
+                                        syncSystemMediaControl(reason: "player-snapshot-state-changed")
+                                    }
                                     setIdleTimerDisabled(snapshot.isPlaying)
-                                    syncSystemMediaControl()
 #endif
                                     if !oldSnapshot.isPlaying && snapshot.isPlaying && controlsVisible {
                                         refreshControlsAutoHideIfNeeded(player: player)
@@ -683,8 +666,7 @@ struct VideoDetailPage: View {
                                         hideControlsTask?.cancel()
                                     }
                                     if !snapshot.isPlaying, isPlaybackEnded(player: player) {
-                                        player.pause()
-                                        playerUISnapshot = player.uiSnapshot
+                                        pausePlayback(player: player)
                                     }
                                     handleSponsorSegmentPlayback(currentTime: snapshot.currentTime, player: player)
                                     let segment = max(1, Int(snapshot.currentTime / 360.0) + 1)
@@ -955,6 +937,8 @@ struct VideoDetailPage: View {
             sponsorSubmitErrorText = nil
             sponsorIsSubmitting = false
             previewDraftSegmentID = nil
+            shouldResumeAfterBackgroundPause = false
+            backgroundPauseRestoreTime = nil
             ensureSponsorSegmentsLoadedIfNeeded()
 #if canImport(UIKit)
             if let player = bindableViewModel.player {
@@ -985,7 +969,11 @@ struct VideoDetailPage: View {
             ensureSponsorSegmentsLoadedIfNeeded()
 #if canImport(UIKit)
             audioSessionManager.activate()
-            syncSystemMediaControl()
+            if let player = bindableViewModel.player {
+                Task { @MainActor in
+                    await syncSystemMediaControlWhenPlaybackStarts(player: player)
+                }
+            }
 #endif
 
             // 加载完成后启动历史上报
@@ -1028,18 +1016,24 @@ struct VideoDetailPage: View {
                 handleDeviceOrientationChange()
             }
             .onChange(of: viewModel.selectedPlaybackRate) { _, _ in
-                syncSystemMediaControl()
+                syncSystemMediaControl(reason: "playback-rate-changed")
             }
             .onChange(of: viewModel.title) { _, _ in
-                syncSystemMediaControl()
+                syncSystemMediaControl(reason: "title-changed")
             }
             .onChange(of: viewModel.videoDetail?.owner.name ?? video.uploader) { _, _ in
-                syncSystemMediaControl()
+                syncSystemMediaControl(reason: "artist-changed")
+            }
+            .onReceive(NotificationCenter.default.publisher(
+                for: UIApplication.didEnterBackgroundNotification
+            )) { _ in
+                handleDidEnterBackground()
             }
             .onReceive(NotificationCenter.default.publisher(
                 for: UIApplication.didBecomeActiveNotification
             )) { _ in
                 restoreFullscreenOrientationIfNeeded()
+                handleDidBecomeActive()
             }
 #endif
             .navigationDestination(item: $selectedRelatedVideo) { relatedVideo in
@@ -1662,9 +1656,8 @@ struct VideoDetailPage: View {
     private func previewSponsorDraftSegment(id: SponsorBlockDraftSegment.ID, player: MPVKitPlayer) {
         guard let draft = sponsorDraftSegments.first(where: { $0.id == id }) else { return }
         previewDraftSegmentID = id
-        player.seek(to: max(0, draft.start - 3))
-        player.resume()
-        playerUISnapshot = player.uiSnapshot
+        seekPlayback(to: max(0, draft.start - 3), player: player, shouldPreloadDanmaku: false)
+        resumePlayback(player: player)
     }
 
     private func startDebugPanelRefresh(player: MPVKitPlayer) {
@@ -1763,32 +1756,77 @@ struct VideoDetailPage: View {
     }
 
 #if canImport(UIKit)
+    private func togglePlayback(player: MPVKitPlayer) {
+        if player.isPlaying {
+            pausePlayback(player: player)
+        } else {
+            resumePlayback(player: player)
+        }
+    }
+
+    private func pausePlayback(player: MPVKitPlayer) {
+        player.pause()
+        playerUISnapshot = player.uiSnapshot
+    }
+
+    private func resumePlayback(player: MPVKitPlayer) {
+        player.resume()
+        playerUISnapshot = player.uiSnapshot
+    }
+
+    private func seekPlayback(
+        to time: TimeInterval,
+        player: MPVKitPlayer,
+        shouldPreloadDanmaku: Bool = true
+    ) {
+        player.seek(to: time)
+        playerUISnapshot = player.uiSnapshot
+        syncSystemMediaControl(reason: "seek")
+
+        guard shouldPreloadDanmaku else { return }
+
+        Task {
+            await viewModel.preloadDanmakuIfNeeded(currentTime: time)
+        }
+    }
+
     private func configureAudioSessionHandlers() {
         audioSessionManager.configureHandlers(
             onPlay: {
                 guard let player = viewModel.player else { return }
-                player.resume()
+                resumePlayback(player: player)
             },
             onPause: {
                 guard let player = viewModel.player else { return }
-                player.pause()
+                pausePlayback(player: player)
             },
             onSeek: { time in
                 guard let player = viewModel.player else { return }
                 let target = clampSeekTime(time, duration: playerUISnapshot.duration)
-                player.seek(to: target)
-                Task {
-                    await viewModel.preloadDanmakuIfNeeded(currentTime: target)
-                }
+                seekPlayback(to: target, player: player)
             }
         )
     }
 
-    private func syncSystemMediaControl() {
+    private func syncSystemMediaControl(reason: String = "manual") {
         let title = viewModel.title.isEmpty ? video.title : viewModel.title
         let artist = viewModel.videoDetail?.owner.name ?? video.uploader
         let artworkURL = URL(string: viewModel.cover)
-        let duration = playerUISnapshot.duration > 0 ? playerUISnapshot.duration : resolvedVideoDuration
+        let player = viewModel.player
+        let effectiveSnapshot = player?.uiSnapshot ?? playerUISnapshot
+        let duration = effectiveSnapshot.duration > 0 ? effectiveSnapshot.duration : resolvedVideoDuration
+        let elapsedTime = player?.currentTime ?? effectiveSnapshot.currentTime
+        let isPlaying = player?.isPlaying ?? effectiveSnapshot.isPlaying
+        let isPlaybackReadyForNowPlaying =
+            !isPlaying ||
+            effectiveSnapshot.currentTime > 0 ||
+            elapsedTime > 0 ||
+            effectiveSnapshot.duration > 0 ||
+            (player?.duration ?? 0) > 0
+
+        guard isPlaybackReadyForNowPlaying else {
+            return
+        }
 
         audioSessionManager.updateNowPlaying(
             info: .init(
@@ -1796,11 +1834,71 @@ struct VideoDetailPage: View {
                 artist: artist,
                 artworkURL: artworkURL,
                 duration: duration,
-                elapsedTime: playerUISnapshot.currentTime,
+                elapsedTime: elapsedTime,
                 playbackRate: viewModel.selectedPlaybackRate,
-                isPlaying: playerUISnapshot.isPlaying
+                isPlaying: isPlaying
             )
         )
+    }
+
+    private func syncSystemMediaControlWhenPlaybackStarts(player: MPVKitPlayer) async {
+        for _ in 0 ..< 20 {
+            let snapshot = player.uiSnapshot
+            print(
+                "[VideoDetailPage][InitialNowPlayingProbe] " +
+                "snapshot.isPlaying=\(snapshot.isPlaying) snapshot.time=\(String(format: "%.3f", snapshot.currentTime)) " +
+                "player.isPlaying=\(player.isPlaying) player.time=\(String(format: "%.3f", player.currentTime))"
+            )
+            if snapshot.isPlaying {
+                playerUISnapshot = snapshot
+                syncSystemMediaControl(reason: "initial-playback-start")
+                do {
+                    try await Task.sleep(nanoseconds: 1_000_000_000)
+                } catch {
+                    return
+                }
+                playerUISnapshot = player.uiSnapshot
+                syncSystemMediaControl(reason: "initial-playback-start-delayed")
+                return
+            }
+            try? await Task.sleep(nanoseconds: 100000000)
+        }
+    }
+
+    private func handleDidEnterBackground() {
+        let playbackSettings = AudioVideoSettingsStore.load()
+        guard !playbackSettings.allowsBackgroundPlayback,
+              let player = viewModel.player
+        else { return }
+
+        shouldResumeAfterBackgroundPause = player.isPlaying
+        backgroundPauseRestoreTime = playerUISnapshot.currentTime
+
+        guard shouldResumeAfterBackgroundPause else {
+            syncSystemMediaControl(reason: "background-noresume")
+            return
+        }
+
+        pausePlayback(player: player)
+    }
+
+    private func handleDidBecomeActive() {
+        guard shouldResumeAfterBackgroundPause,
+              let player = viewModel.player
+        else {
+            shouldResumeAfterBackgroundPause = false
+            backgroundPauseRestoreTime = nil
+            return
+        }
+
+        shouldResumeAfterBackgroundPause = false
+        let restoreTime = backgroundPauseRestoreTime
+        backgroundPauseRestoreTime = nil
+
+        if let restoreTime {
+            seekPlayback(to: restoreTime, player: player)
+        }
+        resumePlayback(player: player)
     }
 #endif
 
