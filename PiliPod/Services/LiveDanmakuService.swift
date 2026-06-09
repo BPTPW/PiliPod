@@ -12,6 +12,7 @@ struct LiveDanmakuMessage: Identifiable, Equatable {
     let id = UUID()
     let username: String
     let content: String
+    let sentAt: Date?
 }
 
 struct LiveDanmakuInfo {
@@ -206,7 +207,7 @@ final class LiveDanmakuService: NSObject {
             return
         }
 
-        onMessage?(LiveDanmakuMessage(username: username, content: content))
+        onMessage?(LiveDanmakuMessage(username: username, content: content, sentAt: nil))
     }
 
     private func decodePackets(from data: Data) -> [DecodedPacket] {

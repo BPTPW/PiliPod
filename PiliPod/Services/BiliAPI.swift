@@ -488,6 +488,61 @@ class BiliAPI {
         )
     }
 
+    func fetchLiveDanmakuHistory(roomID: Int) async throws -> [LiveDanmakuMessage] {
+        var components = URLComponents(
+            string: "https://api.live.bilibili.com/xlive/web-room/v1/dM/gethistory"
+        )
+        components?.queryItems = [
+            URLQueryItem(name: "roomid", value: String(roomID))
+        ]
+
+        guard let url = components?.url else {
+            throw APIError.invalidURL
+        }
+
+        let request = makeRequest(url: url)
+        let (data, response) = try await URLSession.shared.data(for: request)
+        guard let httpResponse = response as? HTTPURLResponse,
+              (200 ... 299).contains(httpResponse.statusCode)
+        else {
+            throw APIError.requestFailed
+        }
+
+        let decoded = try JSONDecoder().decode(LiveDanmakuHistoryResponse.self, from: data)
+        guard decoded.code == 0 else {
+            throw APIError.businessError(code: decoded.code, message: decoded.message)
+        }
+        guard let payload = decoded.data else {
+            throw APIError.requestFailed
+        }
+
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.timeZone = TimeZone(identifier: "Asia/Shanghai")
+        formatter.dateFormat = "yyyy-MM-dd HH:mm:ss"
+
+        return (payload.admin + payload.room)
+            .map { item in
+                LiveDanmakuMessage(
+                    username: item.nickname,
+                    content: item.text,
+                    sentAt: formatter.date(from: item.timeline)
+                )
+            }
+            .sorted {
+                switch ($0.sentAt, $1.sentAt) {
+                case let (lhs?, rhs?):
+                    return lhs < rhs
+                case (.some, nil):
+                    return true
+                case (nil, .some):
+                    return false
+                case (nil, nil):
+                    return false
+                }
+            }
+    }
+
     func fetchLiveRoomInfo(roomID: String) async throws -> LiveRoomInfo {
         var components = URLComponents(
             string: "https://api.live.bilibili.com/xlive/web-room/v1/index/getH5InfoByRoom"
@@ -2221,6 +2276,12 @@ private struct LiveDanmakuInfoResponse: Codable {
     let data: LiveDanmakuInfoData?
 }
 
+private struct LiveDanmakuHistoryResponse: Codable {
+    let code: Int
+    let message: String
+    let data: LiveDanmakuHistoryData?
+}
+
 private struct LiveRoomInfoResponse: Codable {
     let code: Int
     let message: String
@@ -2288,6 +2349,17 @@ private struct LiveDanmakuInfoData: Codable {
         case token
         case hostList = "host_list"
     }
+}
+
+private struct LiveDanmakuHistoryData: Codable {
+    let admin: [LiveDanmakuHistoryItem]
+    let room: [LiveDanmakuHistoryItem]
+}
+
+private struct LiveDanmakuHistoryItem: Codable {
+    let text: String
+    let nickname: String
+    let timeline: String
 }
 
 private struct LiveDanmakuHostItem: Codable {

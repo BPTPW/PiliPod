@@ -224,7 +224,7 @@ private final class LivePlaybackViewModel {
         await withTaskGroup(of: Void.self) { group in
             group.addTask { await self.loadRoomInfo() }
             group.addTask { await self.loadPlayback() }
-            group.addTask { await self.connectDanmakuIfNeeded() }
+            group.addTask { await self.loadDanmakuIfNeeded() }
         }
         hasLoaded = true
     }
@@ -256,8 +256,13 @@ private final class LivePlaybackViewModel {
         }
     }
 
-    private func connectDanmakuIfNeeded() async {
+    private func loadDanmakuIfNeeded() async {
         guard let roomID = Int(room.roomId) else { return }
+        do {
+            messages = try await BiliAPI.shared.fetchLiveDanmakuHistory(roomID: roomID)
+        } catch {
+            print("fetchLiveDanmakuHistory failed: \(error.localizedDescription)")
+        }
         await danmakuService.connect(roomID: roomID)
     }
 }
