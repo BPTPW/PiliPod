@@ -488,6 +488,52 @@ class BiliAPI {
         )
     }
 
+    func fetchLiveRoomInfo(roomID: String) async throws -> LiveRoomInfo {
+        var components = URLComponents(
+            string: "https://api.live.bilibili.com/xlive/web-room/v1/index/getH5InfoByRoom"
+        )
+        components?.queryItems = [
+            URLQueryItem(name: "room_id", value: roomID)
+        ]
+
+        guard let url = components?.url else {
+            throw APIError.invalidURL
+        }
+
+        let request = makeRequest(url: url)
+        let (data, response) = try await URLSession.shared.data(for: request)
+        guard let httpResponse = response as? HTTPURLResponse,
+              (200 ... 299).contains(httpResponse.statusCode)
+        else {
+            throw APIError.requestFailed
+        }
+
+        let decoded = try JSONDecoder().decode(LiveRoomInfoResponse.self, from: data)
+        guard decoded.code == 0 else {
+            throw APIError.businessError(code: decoded.code, message: decoded.message)
+        }
+        guard let payload = decoded.data else {
+            throw APIError.requestFailed
+        }
+
+        let areaParts = [payload.roomInfo.parentAreaName, payload.roomInfo.areaName]
+            .filter { !$0.isEmpty }
+        let areaName = Array(NSOrderedSet(array: areaParts)).compactMap { $0 as? String }.joined(separator: " · ")
+        let backgroundURL = payload.roomInfo.appBackground.isEmpty ? nil : payload.roomInfo.appBackground
+        let onlineText = payload.watchedShow?.textLarge ?? "\(VideoItem.formatCount(payload.roomInfo.online))人气"
+
+        return LiveRoomInfo(
+            roomID: String(payload.roomInfo.roomID),
+            title: payload.roomInfo.title,
+            coverURL: payload.roomInfo.cover.replacingOccurrences(of: "http://", with: "https://"),
+            backgroundURL: backgroundURL?.replacingOccurrences(of: "http://", with: "https://"),
+            onlineCount: onlineText,
+            anchorName: payload.anchorInfo.baseInfo.uname,
+            faceURL: payload.anchorInfo.baseInfo.face.replacingOccurrences(of: "http://", with: "https://"),
+            areaName: areaName
+        )
+    }
+
     // MARK: - 获取视频相关推荐
 
     func fetchRelatedVideos(bvid: String, limit: Int = 40) async throws -> [VideoItem] {
@@ -1977,6 +2023,17 @@ struct LivePlaybackInfo {
     let currentQn: Int
 }
 
+struct LiveRoomInfo {
+    let roomID: String
+    let title: String
+    let coverURL: String
+    let backgroundURL: String?
+    let onlineCount: String
+    let anchorName: String
+    let faceURL: String
+    let areaName: String
+}
+
 struct LiveHomeFeedPayload {
     let followingItems: [LiveFollowingItem]
     let areaTabs: [LiveAreaTab]
@@ -2162,6 +2219,65 @@ private struct LiveDanmakuInfoResponse: Codable {
     let code: Int
     let message: String
     let data: LiveDanmakuInfoData?
+}
+
+private struct LiveRoomInfoResponse: Codable {
+    let code: Int
+    let message: String
+    let data: LiveRoomInfoData?
+}
+
+private struct LiveRoomInfoData: Codable {
+    let roomInfo: LiveRoomInfoRoom
+    let anchorInfo: LiveRoomInfoAnchor
+    let watchedShow: LiveRoomInfoWatchedShow?
+
+    enum CodingKeys: String, CodingKey {
+        case roomInfo = "room_info"
+        case anchorInfo = "anchor_info"
+        case watchedShow = "watched_show"
+    }
+}
+
+private struct LiveRoomInfoRoom: Codable {
+    let roomID: Int
+    let title: String
+    let cover: String
+    let online: Int
+    let areaName: String
+    let parentAreaName: String
+    let appBackground: String
+
+    enum CodingKeys: String, CodingKey {
+        case roomID = "room_id"
+        case title
+        case cover
+        case online
+        case areaName = "area_name"
+        case parentAreaName = "parent_area_name"
+        case appBackground = "app_background"
+    }
+}
+
+private struct LiveRoomInfoAnchor: Codable {
+    let baseInfo: LiveRoomInfoAnchorBase
+
+    enum CodingKeys: String, CodingKey {
+        case baseInfo = "base_info"
+    }
+}
+
+private struct LiveRoomInfoAnchorBase: Codable {
+    let uname: String
+    let face: String
+}
+
+private struct LiveRoomInfoWatchedShow: Codable {
+    let textLarge: String
+
+    enum CodingKeys: String, CodingKey {
+        case textLarge = "text_large"
+    }
 }
 
 private struct LiveDanmakuInfoData: Codable {

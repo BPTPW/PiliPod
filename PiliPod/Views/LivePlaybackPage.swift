@@ -20,58 +20,62 @@ struct LivePlaybackPage: View {
 
     var body: some View {
         GeometryReader { geo in
-            VStack(spacing: 0) {
-                headerBar(topInset: geo.safeAreaInsets.top)
+            ZStack {
+                liveBackground
 
-                LivePlayerView(
-                    roomId: room.roomId,
-                    streamURL: viewModel.streamURL,
-                    aspectRatio: viewModel.aspectRatio,
-                    statusText: viewModel.playerStatusText
-                )
-                .frame(width: geo.size.width)
+                VStack(spacing: 0) {
+                    headerBar(topInset: geo.safeAreaInsets.top)
 
-                ZStack(alignment: .leading) {
-                    VStack(alignment: .leading, spacing: 16) {
+                    LivePlayerView(
+                        roomId: room.roomId,
+                        streamURL: viewModel.streamURL,
+                        aspectRatio: viewModel.aspectRatio,
+                        statusText: viewModel.playerStatusText
+                    )
+                    .frame(width: geo.size.width)
+
+                    ZStack(alignment: .leading) {
                         VStack(alignment: .leading, spacing: 16) {
-                            Text(room.title.isEmpty ? "直播间" : room.title)
-                                .font(.system(size: 20, weight: .semibold))
-                                .foregroundStyle(.primary)
+                            VStack(alignment: .leading, spacing: 16) {
+                                Text(viewModel.displayTitle)
+                                    .font(.system(size: 20, weight: .semibold))
+                                    .foregroundStyle(.white)
 
-                            HStack(spacing: 8) {
-                                if !room.onlineCount.isEmpty {
-                                    Label(room.onlineCount, systemImage: "eye.fill")
+                                HStack(spacing: 8) {
+                                    if !viewModel.displayOnlineCount.isEmpty {
+                                        Label(viewModel.displayOnlineCount, systemImage: "eye.fill")
+                                    }
+
+                                    Text("房间号 \(room.roomId)")
                                 }
-
-                                Text("房间号 \(room.roomId)")
+                                .font(.system(size: 12))
+                                .foregroundStyle(.white.opacity(0.78))
                             }
-                            .font(.system(size: 12))
-                            .foregroundStyle(.secondary)
+                            .padding(.horizontal, 12)
+                            .padding(.top, 16)
+
+                            LiveDanmakuListView(messages: viewModel.messages)
+                                .frame(maxWidth: .infinity, maxHeight: .infinity)
                         }
-                        .padding(.horizontal, 12)
-                        .padding(.top, 16)
+                        .padding(.bottom, 0)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
 
-                        LiveDanmakuListView(messages: viewModel.messages)
-                            .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        Color.clear
+                            .frame(width: 24)
+                            .contentShape(Rectangle())
+                            .gesture(
+                                DragGesture(minimumDistance: 12)
+                                    .onEnded { value in
+                                        let isHorizontal = abs(value.translation.width) > abs(value.translation.height)
+                                        guard isHorizontal, value.translation.width > 80 else { return }
+                                        dismiss()
+                                    }
+                            )
                     }
-                    .padding(.bottom, 0)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-
-                    Color.clear
-                        .frame(width: 24)
-                        .contentShape(Rectangle())
-                        .gesture(
-                            DragGesture(minimumDistance: 12)
-                                .onEnded { value in
-                                    let isHorizontal = abs(value.translation.width) > abs(value.translation.height)
-                                    guard isHorizontal, value.translation.width > 80 else { return }
-                                    dismiss()
-                                }
-                        )
                 }
             }
             .ignoresSafeArea(edges: .top)
-            .background(Color(.systemBackground))
+            .background(Color.black)
         }
         .toolbar(.hidden, for: .navigationBar)
         .toolbar(.hidden, for: .tabBar)
@@ -83,6 +87,30 @@ struct LivePlaybackPage: View {
         }
     }
 
+    private var liveBackground: some View {
+        Group {
+            if let backgroundURL = viewModel.backgroundURL {
+                CachedAsyncImage(url: backgroundURL) { phase in
+                    if case .success(let image) = phase {
+                        image
+                            .resizable()
+                            .scaledToFill()
+                    } else {
+                        Image("defaultLiveBg")
+                            .resizable()
+                            .scaledToFill()
+                    }
+                }
+            } else {
+                Image("defaultLiveBg")
+                    .resizable()
+                    .scaledToFill()
+            }
+        }
+        .overlay(Color.black.opacity(0.46))
+        .ignoresSafeArea()
+    }
+
     private func headerBar(topInset: CGFloat) -> some View {
         HStack(spacing: 12) {
             Button {
@@ -90,23 +118,23 @@ struct LivePlaybackPage: View {
             } label: {
                 Image(systemName: "chevron.left")
                     .font(.system(size: 17, weight: .semibold))
-                    .foregroundStyle(.primary)
+                    .foregroundStyle(.white)
                     .frame(width: 38, height: 38)
                     .background(.ultraThinMaterial, in: Circle())
             }
             .buttonStyle(.plain)
 
-            CachedAsyncImage(url: URL(string: room.faceURL)) { phase in
+            CachedAsyncImage(url: viewModel.faceURL) { phase in
                 if case .success(let image) = phase {
                     image
                         .resizable()
                         .scaledToFill()
                 } else {
                     Circle()
-                        .fill(Color(.systemGray5))
+                        .fill(Color.white.opacity(0.14))
                         .overlay {
                             Image(systemName: "person.fill")
-                                .foregroundStyle(.secondary)
+                                .foregroundStyle(.white.opacity(0.7))
                         }
                 }
             }
@@ -114,14 +142,14 @@ struct LivePlaybackPage: View {
             .clipShape(Circle())
 
             VStack(alignment: .leading, spacing: 2) {
-                Text(room.anchorName)
+                Text(viewModel.anchorName)
                     .font(.system(size: 14, weight: .medium))
-                    .foregroundStyle(.primary)
+                    .foregroundStyle(.white)
 
-                if !room.areaName.isEmpty {
-                    Text(room.areaName)
+                if !viewModel.areaName.isEmpty {
+                    Text(viewModel.areaName)
                         .font(.system(size: 12))
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(.white.opacity(0.78))
                 }
             }
 
@@ -130,7 +158,6 @@ struct LivePlaybackPage: View {
         .padding(.horizontal, 12)
         .padding(.top, max(topInset, 10))
         .padding(.bottom, 10)
-        .background(.regularMaterial)
     }
 }
 
@@ -139,6 +166,7 @@ struct LivePlaybackPage: View {
 private final class LivePlaybackViewModel {
     let room: LiveCardModel
 
+    var roomInfo: LiveRoomInfo?
     var streamURL: URL?
     var aspectRatio: CGFloat = 16.0 / 9.0
     var messages: [LiveDanmakuMessage] = []
@@ -164,9 +192,37 @@ private final class LivePlaybackViewModel {
         return "room id: \(room.roomId)"
     }
 
+    var displayTitle: String {
+        let title = roomInfo?.title ?? room.title
+        return title.isEmpty ? "直播间" : title
+    }
+
+    var displayOnlineCount: String {
+        roomInfo?.onlineCount ?? room.onlineCount
+    }
+
+    var anchorName: String {
+        let name = roomInfo?.anchorName ?? room.anchorName
+        return name.isEmpty ? "主播" : name
+    }
+
+    var areaName: String {
+        roomInfo?.areaName ?? room.areaName
+    }
+
+    var faceURL: URL? {
+        URL(string: roomInfo?.faceURL ?? room.faceURL)
+    }
+
+    var backgroundURL: URL? {
+        guard let value = roomInfo?.backgroundURL, !value.isEmpty else { return nil }
+        return URL(string: value)
+    }
+
     func loadPlaybackIfNeeded() async {
         guard !hasLoaded else { return }
         await withTaskGroup(of: Void.self) { group in
+            group.addTask { await self.loadRoomInfo() }
             group.addTask { await self.loadPlayback() }
             group.addTask { await self.connectDanmakuIfNeeded() }
         }
@@ -189,6 +245,14 @@ private final class LivePlaybackViewModel {
             aspectRatio = playback.aspectRatio
         } catch {
             errorMessage = error.localizedDescription
+        }
+    }
+
+    private func loadRoomInfo() async {
+        do {
+            roomInfo = try await BiliAPI.shared.fetchLiveRoomInfo(roomID: room.roomId)
+        } catch {
+            print("fetchLiveRoomInfo failed: \(error.localizedDescription)")
         }
     }
 
