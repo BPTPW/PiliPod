@@ -12,6 +12,7 @@ struct HomeView: View {
     @State private var selectedTab: String = "推荐"
     @State private var selectedVideo: VideoItem?
     @State private var isSearchViewPresented = false
+    @State private var isMediaControlTestPresented = false
     @State private var toastMessage: String?
     @Namespace private var videoHeroNamespace
     @Bindable var viewModel: HomeViewModel
@@ -62,7 +63,7 @@ struct HomeView: View {
 
                         // 消息按钮
                         Button {
-                            toastMessage = "暂时没有新消息"
+                            isMediaControlTestPresented = true
                         } label: {
                             Image(systemName: "bell.fill")
                                 .font(.system(size: 18))
@@ -185,6 +186,9 @@ struct HomeView: View {
             }
             .navigationDestination(isPresented: $isSearchViewPresented) {
                 SearchView()
+            }
+            .navigationDestination(isPresented: $isMediaControlTestPresented) {
+                MediaControlTestView()
             }
         }
         .task {
