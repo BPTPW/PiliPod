@@ -25,7 +25,7 @@ struct SettingsView: View {
                 }
 
                 NavigationLink {
-                    SettingsPlaceholderView(title: "播放器", systemImage: "play.rectangle.fill")
+                    PlayerSettingsContainerView()
                 } label: {
                     SettingsCategoryRow(
                         title: "播放器",
