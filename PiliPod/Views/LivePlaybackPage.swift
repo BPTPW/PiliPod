@@ -118,11 +118,11 @@ struct LivePlaybackPage: View {
             } label: {
                 Image(systemName: "chevron.left")
                     .font(.system(size: 17, weight: .semibold))
-                    .foregroundStyle(.white)
+                    .foregroundStyle(.primary)
                     .frame(width: 38, height: 38)
-                    .background(.ultraThinMaterial, in: Circle())
             }
-            .buttonStyle(.plain)
+            .tint(.primary)
+            .glassEffect(.regular.interactive(), in: .circle)
 
             CachedAsyncImage(url: viewModel.faceURL) { phase in
                 if case .success(let image) = phase {
@@ -327,12 +327,12 @@ private struct LiveDanmakuListView: View {
                         } label: {
                             Image(systemName: "chevron.down")
                                 .font(.system(size: 18, weight: .semibold))
-                                .foregroundStyle(.white)
-                                .frame(width: 42, height: 42)
-                                .background(Color.black.opacity(0.55), in: Circle())
+                                .foregroundStyle(.primary)
+                                .frame(width: 38, height: 38)
                         }
-                        .buttonStyle(.plain)
-                        .padding(.bottom, 14)
+                        .tint(.primary)
+                        .glassEffect(.regular.interactive(), in: .circle)
+                        .padding(.bottom, 30)
                     }
                 }
             }
