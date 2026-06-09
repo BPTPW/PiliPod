@@ -28,14 +28,6 @@ final class MediaControlTestManager: ObservableObject {
     private var commandTargets: [Any] = []
     private var didConfigureCommands = false
 
-    deinit {
-        Task { @MainActor in
-            unregisterRemoteCommands()
-            playbackTask?.cancel()
-            audioEngine.stop()
-        }
-    }
-
     func startSession() {
         do {
             try configureAudioSession()
@@ -255,7 +247,7 @@ final class MediaControlTestManager: ObservableObject {
             while let self, !Task.isCancelled {
                 try? await Task.sleep(for: .seconds(0.5))
                 guard !Task.isCancelled else { break }
-                await self.tickPlaybackProgress()
+                self.tickPlaybackProgress()
             }
         }
     }

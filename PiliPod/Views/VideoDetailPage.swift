@@ -117,6 +117,7 @@ struct VideoDetailPage: View {
     @State private var cachedIntroDescriptionText = AttributedString("")
 #if canImport(UIKit)
     @State private var preferredFullscreenOrientation: UIInterfaceOrientation = .landscapeRight
+    @StateObject private var audioSessionManager = VideoPlaybackAudioSessionManager()
 #endif
 
     let video: VideoItem
@@ -666,11 +667,15 @@ struct VideoDetailPage: View {
                                     // 初次进入时给用户一个可发现的控制层
                                     playerUISnapshot = player.uiSnapshot
                                     showControlsAndAutoHideIfNeeded(player: player, forceShow: true)
+#if canImport(UIKit)
+                                    syncSystemMediaControl()
+#endif
                                 }
                                 .onChange(of: player.uiSnapshot) { oldSnapshot, snapshot in
                                     playerUISnapshot = snapshot
 #if canImport(UIKit)
                                     setIdleTimerDisabled(snapshot.isPlaying)
+                                    syncSystemMediaControl()
 #endif
                                     if !oldSnapshot.isPlaying && snapshot.isPlaying && controlsVisible {
                                         refreshControlsAutoHideIfNeeded(player: player)
@@ -971,10 +976,17 @@ struct VideoDetailPage: View {
             sponsorBlockSettings = SponsorBlockSettingsStore.load()
             sponsorSegmentVotes = [:]
             sponsorSegmentCategoryOverrides = [:]
+#if canImport(UIKit)
+            configureAudioSessionHandlers()
+#endif
             await bindableViewModel.loadVideoData()
             refreshCachedIntroDescription()
             playerUISnapshot = bindableViewModel.player?.uiSnapshot ?? PlayerUIPlaybackSnapshot()
             ensureSponsorSegmentsLoadedIfNeeded()
+#if canImport(UIKit)
+            audioSessionManager.activate()
+            syncSystemMediaControl()
+#endif
 
             // 加载完成后启动历史上报
             if bindableViewModel.dashStream != nil {
@@ -1000,6 +1012,7 @@ struct VideoDetailPage: View {
                 bindableViewModel.stopHistoryReporting(with: player)
             }
 #if canImport(UIKit)
+            audioSessionManager.deactivate()
             setIdleTimerDisabled(false)
 #endif
         }
@@ -1013,6 +1026,15 @@ struct VideoDetailPage: View {
                 for: UIDevice.orientationDidChangeNotification
             )) { _ in
                 handleDeviceOrientationChange()
+            }
+            .onChange(of: viewModel.selectedPlaybackRate) { _, _ in
+                syncSystemMediaControl()
+            }
+            .onChange(of: viewModel.title) { _, _ in
+                syncSystemMediaControl()
+            }
+            .onChange(of: viewModel.videoDetail?.owner.name ?? video.uploader) { _, _ in
+                syncSystemMediaControl()
             }
             .onReceive(NotificationCenter.default.publisher(
                 for: UIApplication.didBecomeActiveNotification
@@ -1739,6 +1761,48 @@ struct VideoDetailPage: View {
         let safeDuration = max(0, duration)
         return min(max(0, time), safeDuration)
     }
+
+#if canImport(UIKit)
+    private func configureAudioSessionHandlers() {
+        audioSessionManager.configureHandlers(
+            onPlay: {
+                guard let player = viewModel.player else { return }
+                player.resume()
+            },
+            onPause: {
+                guard let player = viewModel.player else { return }
+                player.pause()
+            },
+            onSeek: { time in
+                guard let player = viewModel.player else { return }
+                let target = clampSeekTime(time, duration: playerUISnapshot.duration)
+                player.seek(to: target)
+                Task {
+                    await viewModel.preloadDanmakuIfNeeded(currentTime: target)
+                }
+            }
+        )
+    }
+
+    private func syncSystemMediaControl() {
+        let title = viewModel.title.isEmpty ? video.title : viewModel.title
+        let artist = viewModel.videoDetail?.owner.name ?? video.uploader
+        let artworkURL = URL(string: viewModel.cover)
+        let duration = playerUISnapshot.duration > 0 ? playerUISnapshot.duration : resolvedVideoDuration
+
+        audioSessionManager.updateNowPlaying(
+            info: .init(
+                title: title,
+                artist: artist,
+                artworkURL: artworkURL,
+                duration: duration,
+                elapsedTime: playerUISnapshot.currentTime,
+                playbackRate: viewModel.selectedPlaybackRate,
+                isPlaying: playerUISnapshot.isPlaying
+            )
+        )
+    }
+#endif
 
     private func clampUnit(_ value: Double) -> Double {
         min(max(0, value), 1)
