@@ -526,7 +526,18 @@ class BiliAPI {
                 LiveDanmakuMessage(
                     username: item.nickname,
                     content: item.text,
-                    sentAt: formatter.date(from: item.timeline)
+                    sentAt: formatter.date(from: item.timeline),
+                    emoticons: item.emots?.compactMap { key, value in
+                        let placeholder = value.emoji ?? value.descript ?? key
+                        guard !placeholder.isEmpty else { return nil }
+                        let urlString = value.url?.replacingOccurrences(of: "http://", with: "https://")
+                        return LiveDanmakuEmoticon(
+                            placeholder: placeholder,
+                            url: urlString.flatMap(URL.init(string:)),
+                            width: CGFloat(max(value.width ?? value.height ?? 20, 1)),
+                            height: CGFloat(max(value.height ?? value.width ?? 20, 1))
+                        )
+                    } ?? []
                 )
             }
             .sorted {
@@ -2360,6 +2371,15 @@ private struct LiveDanmakuHistoryItem: Codable {
     let text: String
     let nickname: String
     let timeline: String
+    let emots: [String: LiveDanmakuHistoryEmoticon]?
+}
+
+private struct LiveDanmakuHistoryEmoticon: Codable {
+    let descript: String?
+    let emoji: String?
+    let url: String?
+    let width: Int?
+    let height: Int?
 }
 
 private struct LiveDanmakuHostItem: Codable {

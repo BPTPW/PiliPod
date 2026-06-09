@@ -6,13 +6,88 @@
 //
 
 import Compression
+import CoreGraphics
 import Foundation
+
+struct LiveDanmakuEmoticon: Equatable {
+    let placeholder: String
+    let url: URL?
+    let width: CGFloat
+    let height: CGFloat
+}
+
+enum LiveDanmakuSegment: Equatable {
+    case text(String)
+    case emoticon(LiveDanmakuEmoticon)
+}
 
 struct LiveDanmakuMessage: Identifiable, Equatable {
     let id = UUID()
     let username: String
     let content: String
     let sentAt: Date?
+    let segments: [LiveDanmakuSegment]
+
+    init(
+        username: String,
+        content: String,
+        sentAt: Date?,
+        emoticons: [LiveDanmakuEmoticon] = []
+    ) {
+        self.username = username
+        self.content = content
+        self.sentAt = sentAt
+        self.segments = LiveDanmakuMessage.makeSegments(content: content, emoticons: emoticons)
+    }
+
+    private static func makeSegments(content: String, emoticons: [LiveDanmakuEmoticon]) -> [LiveDanmakuSegment] {
+        guard !content.isEmpty else { return [] }
+
+        let sortedEmoticons = emoticons
+            .filter { !$0.placeholder.isEmpty }
+            .sorted { $0.placeholder.count > $1.placeholder.count }
+
+        guard !sortedEmoticons.isEmpty else {
+            return [.text(content)]
+        }
+
+        var segments: [LiveDanmakuSegment] = []
+        var currentIndex = content.startIndex
+
+        while currentIndex < content.endIndex {
+            var matchedEmoticon: LiveDanmakuEmoticon?
+
+            for emoticon in sortedEmoticons {
+                guard content[currentIndex...].hasPrefix(emoticon.placeholder) else { continue }
+                matchedEmoticon = emoticon
+                break
+            }
+
+            if let matchedEmoticon {
+                segments.append(.emoticon(matchedEmoticon))
+                currentIndex = content.index(currentIndex, offsetBy: matchedEmoticon.placeholder.count)
+                continue
+            }
+
+            var nextIndex = content.index(after: currentIndex)
+            while nextIndex < content.endIndex {
+                let remaining = content[nextIndex...]
+                let shouldStop = sortedEmoticons.contains { remaining.hasPrefix($0.placeholder) }
+                if shouldStop {
+                    break
+                }
+                nextIndex = content.index(after: nextIndex)
+            }
+
+            let text = String(content[currentIndex..<nextIndex])
+            if !text.isEmpty {
+                segments.append(.text(text))
+            }
+            currentIndex = nextIndex
+        }
+
+        return segments
+    }
 }
 
 struct LiveDanmakuInfo {
@@ -207,7 +282,92 @@ final class LiveDanmakuService: NSObject {
             return
         }
 
-        onMessage?(LiveDanmakuMessage(username: username, content: content, sentAt: nil))
+        let emoticons = extractEmoticons(from: info)
+        onMessage?(
+            LiveDanmakuMessage(
+                username: username,
+                content: content,
+                sentAt: nil,
+                emoticons: emoticons
+            )
+        )
+    }
+
+    private func extractEmoticons(from info: [Any]) -> [LiveDanmakuEmoticon] {
+        if let extraEmoticons = extractEmoticonsFromExtra(in: info), !extraEmoticons.isEmpty {
+            return extraEmoticons
+        }
+        return extractEmoticonsRecursively(from: info)
+    }
+
+    private func extractEmoticonsFromExtra(in info: [Any]) -> [LiveDanmakuEmoticon]? {
+        guard
+            info.indices.contains(0),
+            let meta = info[0] as? [Any],
+            meta.indices.contains(15),
+            let extraObject = meta[15] as? [String: Any],
+            let extraJSONString = extraObject["extra"] as? String,
+            let extraData = extraJSONString.data(using: .utf8),
+            let jsonObject = try? JSONSerialization.jsonObject(with: extraData) as? [String: Any],
+            let emots = jsonObject["emots"] as? [String: Any]
+        else {
+            return nil
+        }
+
+        let mapped = mapEmoticonDictionary(emots)
+        return mapped.isEmpty ? nil : mapped
+    }
+
+    private func extractEmoticonsRecursively(from value: Any?) -> [LiveDanmakuEmoticon] {
+        guard let value else { return [] }
+
+        if let dictionary = value as? [String: Any] {
+            let mapped = mapEmoticonDictionary(dictionary)
+            if !mapped.isEmpty {
+                return mapped
+            }
+
+            for nestedValue in dictionary.values {
+                let nested = extractEmoticonsRecursively(from: nestedValue)
+                if !nested.isEmpty {
+                    return nested
+                }
+            }
+            return []
+        }
+
+        if let array = value as? [Any] {
+            for item in array {
+                let nested = extractEmoticonsRecursively(from: item)
+                if !nested.isEmpty {
+                    return nested
+                }
+            }
+        }
+
+        return []
+    }
+
+    private func mapEmoticonDictionary(_ dictionary: [String: Any]) -> [LiveDanmakuEmoticon] {
+        dictionary.compactMap { key, value in
+            guard let payload = value as? [String: Any] else { return nil }
+
+            let placeholder = (payload["emoji"] as? String)
+                ?? (payload["descript"] as? String)
+                ?? key
+            guard !placeholder.isEmpty else { return nil }
+
+            let urlString = (payload["url"] as? String)?.replacingOccurrences(of: "http://", with: "https://")
+            let width = CGFloat((payload["width"] as? Double) ?? Double(payload["width"] as? Int ?? 20))
+            let height = CGFloat((payload["height"] as? Double) ?? Double(payload["height"] as? Int ?? 20))
+
+            return LiveDanmakuEmoticon(
+                placeholder: placeholder,
+                url: urlString.flatMap(URL.init(string:)),
+                width: max(width, 1),
+                height: max(height, 1)
+            )
+        }
     }
 
     private func decodePackets(from data: Data) -> [DecodedPacket] {

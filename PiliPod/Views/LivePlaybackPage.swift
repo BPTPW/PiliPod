@@ -350,18 +350,146 @@ private struct LiveDanmakuRow: View {
     let message: LiveDanmakuMessage
 
     var body: some View {
-        HStack(alignment: .firstTextBaseline, spacing: 0) {
-            Text("\(message.username): ")
-                .foregroundStyle(.mint)
-            Text(message.content)
-                .foregroundStyle(.white)
-        }
-        .font(.system(size: 15))
+        LiveDanmakuWrappedContent(
+            username: message.username,
+            segments: message.segments
+        )
         .padding(.horizontal, 8)
         .padding(.vertical, 4)
         .background(Color.black.opacity(0.4))
         .clipShape(RoundedRectangle(cornerRadius: 10))
     }
+}
+
+private struct LiveDanmakuWrappedContent: View {
+    let username: String
+    let segments: [LiveDanmakuSegment]
+
+    var body: some View {
+        LiveDanmakuFlowLayout(horizontalSpacing: 0, verticalSpacing: 2) {
+            Text("\(username): ")
+                .font(.system(size: 15))
+                .foregroundStyle(.teal)
+
+            if segments.isEmpty {
+                Text("")
+                    .font(.system(size: 15))
+                    .foregroundStyle(.white)
+            } else {
+                ForEach(Array(segments.enumerated()), id: \.offset) { _, segment in
+                    switch segment {
+                    case .text(let text):
+                        Text(text)
+                            .font(.system(size: 15))
+                            .foregroundStyle(.white)
+                    case .emoticon(let emoticon):
+                        LiveDanmakuEmoticonView(emoticon: emoticon)
+                    }
+                }
+            }
+        }
+    }
+}
+
+private struct LiveDanmakuEmoticonView: View {
+    let emoticon: LiveDanmakuEmoticon
+
+    var body: some View {
+        CachedAsyncImage(url: emoticon.url) { phase in
+            if case .success(let image) = phase {
+                image
+                    .resizable()
+                    .interpolation(.medium)
+                    .scaledToFit()
+            } else {
+                Text(emoticon.placeholder)
+                    .font(.system(size: 15))
+                    .foregroundStyle(.white)
+                    .lineLimit(1)
+            }
+        }
+        .frame(width: emoticon.width, height: emoticon.height)
+        .offset(y: 2)
+    }
+}
+
+private struct LiveDanmakuFlowLayout: Layout {
+    let horizontalSpacing: CGFloat
+    let verticalSpacing: CGFloat
+
+    init(horizontalSpacing: CGFloat = 0, verticalSpacing: CGFloat = 0) {
+        self.horizontalSpacing = horizontalSpacing
+        self.verticalSpacing = verticalSpacing
+    }
+
+    func sizeThatFits(
+        proposal: ProposedViewSize,
+        subviews: Subviews,
+        cache: inout ()
+    ) -> CGSize {
+        let arrangement = arrange(proposal: proposal, subviews: subviews)
+        return arrangement.size
+    }
+
+    func placeSubviews(
+        in bounds: CGRect,
+        proposal: ProposedViewSize,
+        subviews: Subviews,
+        cache: inout ()
+    ) {
+        let arrangement = arrange(proposal: proposal, subviews: subviews)
+        for item in arrangement.items {
+            let origin = CGPoint(
+                x: bounds.minX + item.frame.minX,
+                y: bounds.minY + item.frame.minY
+            )
+            subviews[item.index].place(
+                at: origin,
+                proposal: ProposedViewSize(item.frame.size)
+            )
+        }
+    }
+
+    private func arrange(
+        proposal: ProposedViewSize,
+        subviews: Subviews
+    ) -> (size: CGSize, items: [LiveDanmakuFlowItem]) {
+        let maxWidth = proposal.width ?? .greatestFiniteMagnitude
+        var items: [LiveDanmakuFlowItem] = []
+        var currentX: CGFloat = 0
+        var currentY: CGFloat = 0
+        var lineHeight: CGFloat = 0
+        var usedWidth: CGFloat = 0
+
+        for index in subviews.indices {
+            let size = subviews[index].sizeThatFits(.unspecified)
+            let itemWidth = size.width
+            let itemHeight = size.height
+            let nextX = currentX == 0 ? itemWidth : currentX + horizontalSpacing + itemWidth
+
+            if currentX > 0, nextX > maxWidth {
+                currentX = 0
+                currentY += lineHeight + verticalSpacing
+                lineHeight = 0
+            }
+
+            let itemOriginX = currentX == 0 ? 0 : currentX + horizontalSpacing
+            let frame = CGRect(x: itemOriginX, y: currentY, width: itemWidth, height: itemHeight)
+            items.append(LiveDanmakuFlowItem(index: index, frame: frame))
+
+            currentX = frame.maxX
+            lineHeight = max(lineHeight, itemHeight)
+            usedWidth = max(usedWidth, frame.maxX)
+        }
+
+        let totalHeight = items.isEmpty ? 0 : currentY + lineHeight
+        return (CGSize(width: usedWidth, height: totalHeight), items)
+    }
+}
+
+private struct LiveDanmakuFlowItem {
+    let index: Int
+    let frame: CGRect
 }
 
 private struct LiveDanmakuBottomPreferenceKey: PreferenceKey {
