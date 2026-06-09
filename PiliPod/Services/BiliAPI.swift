@@ -451,6 +451,43 @@ class BiliAPI {
         )
     }
 
+    func fetchLiveDanmakuInfo(roomID: Int) async throws -> LiveDanmakuInfo {
+        var components = URLComponents(
+            string: "https://api.live.bilibili.com/xlive/web-room/v1/index/getDanmuInfo"
+        )
+        components?.queryItems = [
+            URLQueryItem(name: "id", value: String(roomID)),
+            URLQueryItem(name: "type", value: "0"),
+            URLQueryItem(name: "web_location", value: "444.8")
+        ]
+
+        guard let url = components?.url else {
+            throw APIError.invalidURL
+        }
+
+        let signedURL = try await BiliWbiSigner.shared.sign(url: url)
+        let request = makeRequest(url: signedURL)
+        let (data, response) = try await URLSession.shared.data(for: request)
+        guard let httpResponse = response as? HTTPURLResponse,
+              (200 ... 299).contains(httpResponse.statusCode)
+        else {
+            throw APIError.requestFailed
+        }
+
+        let decoded = try JSONDecoder().decode(LiveDanmakuInfoResponse.self, from: data)
+        guard decoded.code == 0 else {
+            throw APIError.businessError(code: decoded.code, message: decoded.message)
+        }
+        guard let payload = decoded.data else {
+            throw APIError.requestFailed
+        }
+
+        return LiveDanmakuInfo(
+            token: payload.token,
+            hosts: payload.hostList.map { LiveDanmakuHost(host: $0.host, wssPort: $0.wssPort) }
+        )
+    }
+
     // MARK: - 获取视频相关推荐
 
     func fetchRelatedVideos(bvid: String, limit: Int = 40) async throws -> [VideoItem] {
@@ -2119,6 +2156,32 @@ private struct LiveRoomCodec: Codable {
 private struct LiveRoomURLInfo: Codable {
     let host: String
     let extra: String
+}
+
+private struct LiveDanmakuInfoResponse: Codable {
+    let code: Int
+    let message: String
+    let data: LiveDanmakuInfoData?
+}
+
+private struct LiveDanmakuInfoData: Codable {
+    let token: String
+    let hostList: [LiveDanmakuHostItem]
+
+    enum CodingKeys: String, CodingKey {
+        case token
+        case hostList = "host_list"
+    }
+}
+
+private struct LiveDanmakuHostItem: Codable {
+    let host: String
+    let wssPort: Int
+
+    enum CodingKeys: String, CodingKey {
+        case host
+        case wssPort = "wss_port"
+    }
 }
 
 private func buildLiveStreamURL(host: String, baseURL: String, extra: String) -> URL? {

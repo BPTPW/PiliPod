@@ -31,43 +31,55 @@ struct LivePlaybackPage: View {
                 )
                 .frame(width: geo.size.width)
 
-                ScrollView {
+                ZStack(alignment: .leading) {
                     VStack(alignment: .leading, spacing: 16) {
-                        Text(room.title.isEmpty ? "直播间" : room.title)
-                            .font(.system(size: 20, weight: .semibold))
-                            .foregroundStyle(.primary)
+                        VStack(alignment: .leading, spacing: 16) {
+                            Text(room.title.isEmpty ? "直播间" : room.title)
+                                .font(.system(size: 20, weight: .semibold))
+                                .foregroundStyle(.primary)
 
-                        HStack(spacing: 8) {
-                            if !room.onlineCount.isEmpty {
-                                Label(room.onlineCount, systemImage: "eye.fill")
+                            HStack(spacing: 8) {
+                                if !room.onlineCount.isEmpty {
+                                    Label(room.onlineCount, systemImage: "eye.fill")
+                                }
+
+                                Text("房间号 \(room.roomId)")
                             }
-
-                            Text("房间号 \(room.roomId)")
+                            .font(.system(size: 12))
+                            .foregroundStyle(.secondary)
                         }
-                        .font(.system(size: 12))
-                        .foregroundStyle(.secondary)
+                        .padding(.horizontal, 12)
+                        .padding(.top, 16)
 
-                        RoundedRectangle(cornerRadius: 18, style: .continuous)
-                            .fill(Color(.systemGray6))
-                            .frame(height: 480)
-                            .overlay(alignment: .topLeading) {
-                                Text("聊天栏区域预留")
-                                    .font(.system(size: 15, weight: .medium))
-                                    .foregroundStyle(.secondary)
-                                    .padding(16)
-                            }
+                        LiveDanmakuListView(messages: viewModel.messages)
+                            .frame(maxWidth: .infinity, maxHeight: .infinity)
                     }
-                    .padding(.horizontal, 12)
-                    .padding(.top, 16)
-                    .padding(.bottom, 24)
+                    .padding(.bottom, 0)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+
+                    Color.clear
+                        .frame(width: 24)
+                        .contentShape(Rectangle())
+                        .gesture(
+                            DragGesture(minimumDistance: 12)
+                                .onEnded { value in
+                                    let isHorizontal = abs(value.translation.width) > abs(value.translation.height)
+                                    guard isHorizontal, value.translation.width > 80 else { return }
+                                    dismiss()
+                                }
+                        )
                 }
             }
             .ignoresSafeArea(edges: .top)
             .background(Color(.systemBackground))
         }
         .toolbar(.hidden, for: .navigationBar)
+        .toolbar(.hidden, for: .tabBar)
         .task {
             await viewModel.loadPlaybackIfNeeded()
+        }
+        .onDisappear {
+            viewModel.teardown()
         }
     }
 
@@ -129,12 +141,17 @@ private final class LivePlaybackViewModel {
 
     var streamURL: URL?
     var aspectRatio: CGFloat = 16.0 / 9.0
+    var messages: [LiveDanmakuMessage] = []
     var isLoading = false
     var errorMessage: String?
     private var hasLoaded = false
+    private let danmakuService = LiveDanmakuService()
 
     init(room: LiveCardModel) {
         self.room = room
+        danmakuService.onMessage = { [weak self] message in
+            self?.messages.append(message)
+        }
     }
 
     var playerStatusText: String {
@@ -149,8 +166,15 @@ private final class LivePlaybackViewModel {
 
     func loadPlaybackIfNeeded() async {
         guard !hasLoaded else { return }
-        await loadPlayback()
+        await withTaskGroup(of: Void.self) { group in
+            group.addTask { await self.loadPlayback() }
+            group.addTask { await self.connectDanmakuIfNeeded() }
+        }
         hasLoaded = true
+    }
+
+    func teardown() {
+        danmakuService.close()
     }
 
     private func loadPlayback() async {
@@ -166,6 +190,116 @@ private final class LivePlaybackViewModel {
         } catch {
             errorMessage = error.localizedDescription
         }
+    }
+
+    private func connectDanmakuIfNeeded() async {
+        guard let roomID = Int(room.roomId) else { return }
+        await danmakuService.connect(roomID: roomID)
+    }
+}
+
+private struct LiveDanmakuListView: View {
+    let messages: [LiveDanmakuMessage]
+
+    @State private var autoScrollEnabled = true
+    @State private var isAtBottom = true
+    private let bottomAnchorID = "live-danmaku-bottom"
+
+    var body: some View {
+        GeometryReader { container in
+            ScrollViewReader { proxy in
+                ZStack(alignment: .bottom) {
+                    ScrollView {
+                        VStack(alignment: .leading, spacing: 10) {
+                            ForEach(messages) { message in
+                                LiveDanmakuRow(message: message)
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                            }
+
+                            GeometryReader { geo in
+                                Color.clear
+                                    .preference(
+                                        key: LiveDanmakuBottomPreferenceKey.self,
+                                        value: geo.frame(in: .named("liveDanmakuScroll")).maxY - container.size.height
+                                    )
+                            }
+                            .frame(height: 1)
+                            .id(bottomAnchorID)
+                        }
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 12)
+                    }
+                    .coordinateSpace(name: "liveDanmakuScroll")
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .simultaneousGesture(
+                        DragGesture(minimumDistance: 4)
+                            .onChanged { _ in
+                                if autoScrollEnabled {
+                                    autoScrollEnabled = false
+                                }
+                            }
+                    )
+                    .onPreferenceChange(LiveDanmakuBottomPreferenceKey.self) { bottomY in
+                        let threshold: CGFloat = 24
+                        let newIsAtBottom = bottomY <= threshold
+                        isAtBottom = newIsAtBottom
+                    }
+                    .onChange(of: messages.count) { _, _ in
+                        guard autoScrollEnabled else { return }
+                        withAnimation(.easeOut(duration: 0.2)) {
+                            proxy.scrollTo(bottomAnchorID, anchor: .bottom)
+                        }
+                    }
+                    .onAppear {
+                        proxy.scrollTo(bottomAnchorID, anchor: .bottom)
+                    }
+
+                    if !autoScrollEnabled {
+                        Button {
+                            autoScrollEnabled = true
+                            withAnimation(.easeOut(duration: 0.25)) {
+                                proxy.scrollTo(bottomAnchorID, anchor: .bottom)
+                            }
+                        } label: {
+                            Image(systemName: "chevron.down")
+                                .font(.system(size: 18, weight: .semibold))
+                                .foregroundStyle(.white)
+                                .frame(width: 42, height: 42)
+                                .background(Color.black.opacity(0.55), in: Circle())
+                        }
+                        .buttonStyle(.plain)
+                        .padding(.bottom, 14)
+                    }
+                }
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+}
+
+private struct LiveDanmakuRow: View {
+    let message: LiveDanmakuMessage
+
+    var body: some View {
+        HStack(alignment: .firstTextBaseline, spacing: 0) {
+            Text("\(message.username): ")
+                .foregroundStyle(.mint)
+            Text(message.content)
+                .foregroundStyle(.white)
+        }
+        .font(.system(size: 15))
+        .padding(.horizontal, 8)
+        .padding(.vertical, 4)
+        .background(Color.black.opacity(0.4))
+        .clipShape(RoundedRectangle(cornerRadius: 10))
+    }
+}
+
+private struct LiveDanmakuBottomPreferenceKey: PreferenceKey {
+    static var defaultValue: CGFloat = 0
+
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+        value = nextValue()
     }
 }
 
