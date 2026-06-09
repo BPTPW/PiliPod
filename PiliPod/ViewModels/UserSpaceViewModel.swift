@@ -114,6 +114,25 @@ final class UserSpaceViewModel: ObservableObject {
     var likesText: String { formatCount(data?.card?.likes?.likeNum) }
 
     var isFollowed: Bool { (data?.card?.relation?.isFollow ?? 0) == 1 }
+    var isLiveNow: Bool { data?.live?.liveStatus == 1 }
+    var liveRoomID: String? {
+        guard isLiveNow, let roomID = data?.live?.roomID, roomID > 0 else { return nil }
+        return String(roomID)
+    }
+    var liveRoomModel: LiveCardModel? {
+        guard let roomId = liveRoomID else { return nil }
+        return LiveCardModel(
+            roomId: roomId,
+            title: displayName,
+            coverURL: "",
+            onlineCount: "",
+            anchorName: displayName,
+            faceURL: data?.card?.face ?? "",
+            areaName: "",
+            badgeText: "直播中",
+            link: nil
+        )
+    }
 
     func toggleFollow() async throws {
         guard !isFollowRequesting else { return }

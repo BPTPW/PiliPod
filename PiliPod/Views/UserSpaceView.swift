@@ -21,6 +21,7 @@ struct UserSpaceView: View {
     @Namespace private var topToolsGlass
     @Namespace private var videoHeroNamespace
     @State private var selectedVideo: VideoItem?
+    @State private var selectedLiveRoom: LiveCardModel?
 
     let mid: Int
     let fromViewAid: Int?
@@ -71,6 +72,9 @@ struct UserSpaceView: View {
                     onBack: { selectedVideo = nil }
                 )
             }
+        }
+        .navigationDestination(item: $selectedLiveRoom) { room in
+            LivePlaybackPage(room: room)
         }
         .task {
             await viewModel.load(mid: mid, fromViewAid: fromViewAid)
@@ -222,32 +226,54 @@ struct UserSpaceView: View {
     }
 
     private var avatar: some View {
-        Group {
-            if let avatarURL = viewModel.avatarURL {
-                CachedAsyncImage(url: avatarURL) { phase in
-                    if case .success(let image) = phase {
-                        image
-                            .resizable()
-                            .scaledToFill()
-                    } else {
-                        Circle().fill(Color(.systemGray5))
+        ZStack(alignment: .bottom) {
+            Group {
+                if let avatarURL = viewModel.avatarURL {
+                    CachedAsyncImage(url: avatarURL) { phase in
+                        if case .success(let image) = phase {
+                            image
+                                .resizable()
+                                .scaledToFill()
+                        } else {
+                            Circle().fill(Color(.systemGray5))
+                        }
                     }
+                } else {
+                    Circle()
+                        .fill(Color(.systemGray5))
+                        .overlay {
+                            Image(systemName: "person.fill")
+                                .font(.title2)
+                                .foregroundStyle(.secondary)
+                        }
                 }
-            } else {
-                Circle()
-                    .fill(Color(.systemGray5))
-                    .overlay {
-                        Image(systemName: "person.fill")
-                            .font(.title2)
-                            .foregroundStyle(.secondary)
-                    }
+            }
+            .frame(width: 96, height: 96)
+            .clipShape(Circle())
+            .overlay {
+                Circle().stroke(.white, lineWidth: 3)
+            }
+
+            if viewModel.isLiveNow, let room = viewModel.liveRoomModel {
+                Button {
+                    selectedLiveRoom = room
+                } label: {
+                    Text("直播中")
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundStyle(.white)
+                        .padding(.horizontal, 12)
+                        .frame(height: 24)
+                }
+                .tint(.primary)
+                .glassEffect(
+                    .regular.interactive().tint(.biliPink),
+                    in: .capsule
+                )
+                .offset(y: 12)
+                .zIndex(1)
             }
         }
-        .frame(width: 96, height: 96)
-        .clipShape(Circle())
-        .overlay {
-            Circle().stroke(.white, lineWidth: 3)
-        }
+        .frame(width: 96, height: 108, alignment: .top)
     }
 
     private var tabs: some View {

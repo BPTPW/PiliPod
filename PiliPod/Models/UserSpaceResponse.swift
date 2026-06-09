@@ -11,11 +11,13 @@ struct UserSpaceData: Codable {
     let defaultTab: String?
     var card: UserSpaceCard?
     let images: UserSpaceImages?
+    let live: UserSpaceLive?
 
     enum CodingKeys: String, CodingKey {
         case defaultTab = "default_tab"
         case card
         case images
+        case live
     }
 }
 
@@ -70,4 +72,14 @@ struct UserSpaceRelation: Codable {
 struct UserSpaceTag: Codable {
     let type: String?
     let title: String?
+}
+
+struct UserSpaceLive: Codable {
+    let liveStatus: Int?
+    let roomID: Int?
+
+    enum CodingKeys: String, CodingKey {
+        case liveStatus = "liveStatus"
+        case roomID = "roomid"
+    }
 }
