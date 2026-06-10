@@ -114,6 +114,7 @@ struct VideoDetailPage: View {
     @State private var previewDraftSegmentID: SponsorBlockDraftSegment.ID?
     @State private var playerUISnapshot = PlayerUIPlaybackSnapshot()
     @State private var debugPanelRefreshTask: Task<Void, Never>?
+    @State private var lastNowPlayingSyncedSecond: Int?
     @State private var cachedIntroDescriptionText = AttributedString("")
     @State private var shouldResumeAfterBackgroundPause = false
     @State private var backgroundPauseRestoreTime: TimeInterval?
@@ -656,7 +657,14 @@ struct VideoDetailPage: View {
                                     playerUISnapshot = snapshot
 #if canImport(UIKit)
                                     if oldSnapshot.isPlaying != snapshot.isPlaying {
+                                        lastNowPlayingSyncedSecond = Int(snapshot.currentTime.rounded(.down))
                                         syncSystemMediaControl(reason: "player-snapshot-state-changed")
+                                    } else if snapshot.isPlaying {
+                                        let currentSecond = Int(snapshot.currentTime.rounded(.down))
+                                        if lastNowPlayingSyncedSecond != currentSecond {
+                                            lastNowPlayingSyncedSecond = currentSecond
+                                            syncSystemMediaControl(reason: "player-progress-changed")
+                                        }
                                     }
                                     setIdleTimerDisabled(snapshot.isPlaying)
 #endif
@@ -1844,21 +1852,10 @@ struct VideoDetailPage: View {
     private func syncSystemMediaControlWhenPlaybackStarts(player: MPVKitPlayer) async {
         for _ in 0 ..< 20 {
             let snapshot = player.uiSnapshot
-            print(
-                "[VideoDetailPage][InitialNowPlayingProbe] " +
-                "snapshot.isPlaying=\(snapshot.isPlaying) snapshot.time=\(String(format: "%.3f", snapshot.currentTime)) " +
-                "player.isPlaying=\(player.isPlaying) player.time=\(String(format: "%.3f", player.currentTime))"
-            )
             if snapshot.isPlaying {
                 playerUISnapshot = snapshot
+                lastNowPlayingSyncedSecond = Int(snapshot.currentTime.rounded(.down))
                 syncSystemMediaControl(reason: "initial-playback-start")
-                do {
-                    try await Task.sleep(nanoseconds: 1_000_000_000)
-                } catch {
-                    return
-                }
-                playerUISnapshot = player.uiSnapshot
-                syncSystemMediaControl(reason: "initial-playback-start-delayed")
                 return
             }
             try? await Task.sleep(nanoseconds: 100000000)
