@@ -2804,24 +2804,34 @@ private struct PlaybackRateMenuView: View, Equatable {
     }
 
     var body: some View {
-        Menu {
+        Picker(selection: playbackRateSelection) {
             let rates: [Double] = [0.5, 0.75, 1.0, 1.25, 1.5, 2.0]
             ForEach(rates, id: \.self) { rate in
-                Button(playbackRateText(rate)) {
-                    onUserInteracted()
-                    onSelect(rate)
-                }
+                Text(playbackRateText(rate))
+                    .tag(rate)
             }
         } label: {
             Text(playbackRateMenuLabel)
                 .foregroundStyle(.white)
-                .font(.system(size: 14, weight: .semibold))
+                .font(.system(size: 12, weight: .semibold))
                 .padding(8)
         }
+        .pickerStyle(.menu)
+        .tint(.white)
     }
 
     private var playbackRateMenuLabel: String {
         selectedRate == 1.0 ? "倍速" : playbackRateText(selectedRate)
+    }
+
+    private var playbackRateSelection: Binding<Double> {
+        Binding(
+            get: { selectedRate },
+            set: { newRate in
+                onUserInteracted()
+                onSelect(newRate)
+            }
+        )
     }
 
     private func playbackRateText(_ rate: Double) -> String {
@@ -2843,19 +2853,19 @@ private struct QualityMenuView: View, Equatable {
     }
 
     var body: some View {
-        Menu {
+        Picker(selection: qualitySelection) {
             ForEach(options) { option in
-                Button(option.label) {
-                    onUserInteracted()
-                    onSelect(option.code)
-                }
+                Text(option.label)
+                    .tag(Optional(option.code))
             }
         } label: {
             Text(currentQualityLabel)
                 .foregroundStyle(.white)
-                .font(.system(size: 14, weight: .semibold))
+                .font(.system(size: 12, weight: .semibold))
                 .padding(8)
         }
+        .pickerStyle(.menu)
+        .tint(.white)
     }
 
     private var currentQualityLabel: String {
@@ -2865,6 +2875,17 @@ private struct QualityMenuView: View, Equatable {
             return selected.label
         }
         return "清晰度"
+    }
+
+    private var qualitySelection: Binding<Int?> {
+        Binding(
+            get: { selectedCode },
+            set: { newCode in
+                guard let newCode else { return }
+                onUserInteracted()
+                onSelect(newCode)
+            }
+        )
     }
 }
 
@@ -3118,6 +3139,7 @@ private struct PlayerControlsOverlay: View {
                 }
                 Spacer()
                 HStack(spacing: 8) {
+                    // 倍速目录
                     PlaybackRateMenuView(
                         selectedRate: selectedPlaybackRate,
                         onUserInteracted: onUserInteracted,
@@ -3125,6 +3147,7 @@ private struct PlayerControlsOverlay: View {
                     )
                     .equatable()
 
+                    // 画质目录
                     QualityMenuView(
                         options: qualityOptions,
                         selectedCode: selectedQualityCode,
