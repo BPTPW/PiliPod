@@ -37,7 +37,7 @@ private struct AudioVideoSettingsView: View {
                 Text("如果遇到播放异常请关闭。")
             }
 
-            Section("画质") {
+            Section("视频画质") {
                 NavigationLink {
                     ChoiceListView(
                         title: "默认画质",
@@ -58,6 +58,30 @@ private struct AudioVideoSettingsView: View {
                     )
                 } label: {
                     selectionRow(title: "移动网络默认画质", value: settings.cellularDefaultQuality.title)
+                }
+            }
+
+            Section("直播画质") {
+                NavigationLink {
+                    ChoiceListView(
+                        title: "直播默认画质",
+                        options: PreferredLiveQuality.allCases,
+                        selection: $settings.liveDefaultQuality,
+                        titleFor: \.title
+                    )
+                } label: {
+                    selectionRow(title: "直播默认画质", value: settings.liveDefaultQuality.title)
+                }
+
+                NavigationLink {
+                    ChoiceListView(
+                        title: "移动网络默认画质",
+                        options: PreferredLiveQuality.allCases,
+                        selection: $settings.cellularLiveDefaultQuality,
+                        titleFor: \.title
+                    )
+                } label: {
+                    selectionRow(title: "移动网络默认画质", value: settings.cellularLiveDefaultQuality.title)
                 }
             }
 

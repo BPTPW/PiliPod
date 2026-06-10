@@ -31,6 +31,30 @@ enum PreferredVideoQuality: Int, CaseIterable, Codable, Hashable {
     }
 }
 
+enum PreferredLiveQuality: Int, CaseIterable, Codable, Hashable {
+    case dolby = 30000
+    case ultraHD4K = 20000
+    case ultraHD2K = 15000
+    case original = 10000
+    case blueRay = 400
+    case ultraClear = 250
+    case hd = 150
+    case smooth = 80
+
+    var title: String {
+        switch self {
+        case .dolby: "杜比"
+        case .ultraHD4K: "4K"
+        case .ultraHD2K: "2K"
+        case .original: "原画"
+        case .blueRay: "蓝光"
+        case .ultraClear: "超清"
+        case .hd: "高清"
+        case .smooth: "流畅"
+        }
+    }
+}
+
 enum VideoBufferSizeOption: String, CaseIterable, Codable, Hashable {
     case auto
     case mb64
@@ -128,6 +152,8 @@ struct AudioVideoSettings: Codable, Equatable {
     var allowsLiveBackgroundPlayback = false
     var defaultQuality: PreferredVideoQuality = .ultraHD4K
     var cellularDefaultQuality: PreferredVideoQuality = .ultraHD4K
+    var liveDefaultQuality: PreferredLiveQuality = .original
+    var cellularLiveDefaultQuality: PreferredLiveQuality = .blueRay
     var bufferSize: VideoBufferSizeOption = .auto
     var preferredCodec: PreferredCodecOption = .hevc
     var autosync: Int = 0
@@ -142,6 +168,8 @@ struct AudioVideoSettings: Codable, Equatable {
         case allowsLiveBackgroundPlayback
         case defaultQuality
         case cellularDefaultQuality
+        case liveDefaultQuality
+        case cellularLiveDefaultQuality
         case bufferSize
         case preferredCodec
         case autosync
@@ -172,6 +200,8 @@ struct AudioVideoSettings: Codable, Equatable {
         allowsLiveBackgroundPlayback = try container.decodeIfPresent(Bool.self, forKey: .allowsLiveBackgroundPlayback) ?? false
         defaultQuality = try container.decodeIfPresent(PreferredVideoQuality.self, forKey: .defaultQuality) ?? .ultraHD4K
         cellularDefaultQuality = try container.decodeIfPresent(PreferredVideoQuality.self, forKey: .cellularDefaultQuality) ?? .ultraHD4K
+        liveDefaultQuality = try container.decodeIfPresent(PreferredLiveQuality.self, forKey: .liveDefaultQuality) ?? .original
+        cellularLiveDefaultQuality = try container.decodeIfPresent(PreferredLiveQuality.self, forKey: .cellularLiveDefaultQuality) ?? .blueRay
         bufferSize = try container.decodeIfPresent(VideoBufferSizeOption.self, forKey: .bufferSize) ?? .auto
         preferredCodec = try container.decodeIfPresent(PreferredCodecOption.self, forKey: .preferredCodec) ?? .hevc
         autosync = try container.decodeIfPresent(Int.self, forKey: .autosync) ?? 0

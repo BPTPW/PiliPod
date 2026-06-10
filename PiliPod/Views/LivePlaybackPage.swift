@@ -178,8 +178,13 @@ struct LivePlaybackPage: View {
         }
         .overlay {
             if controlsVisible {
-                liveControlsOverlay(geo: geo)
-                    .transition(.opacity)
+                ZStack {
+                    if isFullscreen {
+                        liveControlsBackdrop(geo: geo)
+                    }
+                    liveControlsOverlay(geo: geo)
+                }
+                .transition(.opacity)
             }
         }
         .frame(width: geo.size.width, height: playerHeight, alignment: .center)
@@ -305,6 +310,7 @@ struct LivePlaybackPage: View {
     private func liveControlsOverlay(geo: GeometryProxy) -> some View {
         VStack(spacing: 0) {
             if isFullscreen {
+                // 返回按钮
                 HStack(spacing: 12) {
                     Button {
                         showControlsAndAutoHideIfNeeded(forceShow: true)
@@ -326,6 +332,7 @@ struct LivePlaybackPage: View {
 
             Spacer(minLength: 0)
 
+            // 底部bar
             HStack(spacing: 10) {
                 controlCircleButton(systemName: playerUISnapshot.isPlaying ? "pause.fill" : "play.fill") {
                     togglePlayback()
@@ -361,6 +368,31 @@ struct LivePlaybackPage: View {
             .padding(.bottom, isFullscreen ? max(geo.safeAreaInsets.bottom, 10) : 10)
         }
         .animation(.easeOut(duration: 0.2), value: controlsVisible)
+    }
+
+    @ViewBuilder
+    private func liveControlsBackdrop(geo: GeometryProxy) -> some View {
+        VStack(spacing: 0) {
+            LinearGradient(
+                colors: [Color.black.opacity(0.65), Color.black.opacity(0)],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+            .frame(height: 60 + geo.safeAreaInsets.top / 2)
+            .frame(maxWidth: .infinity, alignment: .top)
+
+            Spacer(minLength: 0)
+
+            LinearGradient(
+                colors: [Color.black.opacity(0), Color.black.opacity(0.68)],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+            .frame(height: 65 + geo.safeAreaInsets.bottom / 2)
+            .frame(maxWidth: .infinity, alignment: .bottom)
+        }
+        .ignoresSafeArea()
+        .allowsHitTesting(false)
     }
 
     private func selectQuality(_ qn: Int) async {
@@ -658,12 +690,13 @@ private final class LivePlaybackViewModel {
     var qualityOptions: [VideoQualityOption] = []
     var isLoading = false
     var errorMessage: String?
-    private var currentQn: Int = 10000
+    private var currentQn: Int
     private var hasLoaded = false
     private let danmakuService = LiveDanmakuService()
 
     init(room: LiveCardModel) {
         self.room = room
+        currentQn = Self.preferredInitialLiveQualityCode()
         danmakuService.onMessage = { [weak self] message in
             self?.messages.append(message)
         }
@@ -751,17 +784,61 @@ private final class LivePlaybackViewModel {
         defer { isLoading = false }
 
         do {
+            let requestedQn = force ? currentQn : Self.preferredInitialLiveQualityCode()
             let playback = try await BiliAPI.shared.fetchLivePlaybackInfo(
                 roomID: room.roomId,
-                qn: currentQn
+                qn: requestedQn
             )
             streamURL = playback.streamURL
             aspectRatio = playback.aspectRatio
-            currentQn = playback.currentQn
             qualityOptions = playback.qualityOptions
+            currentQn = Self.resolveInitialLiveQualityCode(
+                requestedQn: requestedQn,
+                availableOptions: playback.qualityOptions,
+                currentQn: playback.currentQn,
+                isUserSelected: force
+            )
+
+            if !force, currentQn != playback.currentQn {
+                let resolvedPlayback = try await BiliAPI.shared.fetchLivePlaybackInfo(
+                    roomID: room.roomId,
+                    qn: currentQn
+                )
+                streamURL = resolvedPlayback.streamURL
+                aspectRatio = resolvedPlayback.aspectRatio
+                qualityOptions = resolvedPlayback.qualityOptions
+            }
         } catch {
             errorMessage = error.localizedDescription
         }
+    }
+
+    private static func preferredInitialLiveQualityCode() -> Int {
+        let settings = AudioVideoSettingsStore.load()
+        if NetworkTypeMonitor.shared.isCellularConnection {
+            return settings.cellularLiveDefaultQuality.rawValue
+        }
+        return settings.liveDefaultQuality.rawValue
+    }
+
+    private static func resolveInitialLiveQualityCode(
+        requestedQn: Int,
+        availableOptions: [VideoQualityOption],
+        currentQn: Int,
+        isUserSelected: Bool
+    ) -> Int {
+        if isUserSelected {
+            return currentQn
+        }
+
+        let availableCodes = availableOptions.map(\.code).sorted()
+        if let bestMatch = availableCodes.last(where: { $0 <= requestedQn }) {
+            return bestMatch
+        }
+        if let minimumCode = availableCodes.first {
+            return minimumCode
+        }
+        return currentQn
     }
 
     private func loadRoomInfo() async {
