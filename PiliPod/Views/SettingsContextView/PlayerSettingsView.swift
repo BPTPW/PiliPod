@@ -25,8 +25,10 @@ private struct PlayerSettingsView: View {
             Section {
                 Toggle("视频后台播放", isOn: $settings.allowsBackgroundPlayback)
                     .tint(Color("BiliPink"))
-            } footer: {
-                Text("开启后切到后台时继续播放。关闭后会在进入后台时暂停，并在回到前台后仅恢复这次因切后台而自动暂停的播放。")
+                Toggle("直播后台播放", isOn: $settings.allowsLiveBackgroundPlayback)
+                    .tint(Color("BiliPink"))
+            } header: {
+                Text("后台播放")
             }
         }
         .navigationTitle("播放器")
@@ -35,6 +37,7 @@ private struct PlayerSettingsView: View {
             ToolbarItem(placement: .topBarTrailing) {
                 Button("恢复默认") {
                     settings.allowsBackgroundPlayback = defaultSettings.allowsBackgroundPlayback
+                    settings.allowsLiveBackgroundPlayback = defaultSettings.allowsLiveBackgroundPlayback
                 }
             }
         }

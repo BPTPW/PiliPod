@@ -7,11 +7,21 @@
 
 import Observation
 import SwiftUI
+#if canImport(UIKit)
+import UIKit
+#endif
 
 struct LivePlaybackPage: View {
     let room: LiveCardModel
     @Environment(\.dismiss) private var dismiss
     @State private var viewModel: LivePlaybackViewModel
+    @State private var player = MPVKitPlayer()
+    @State private var playerUISnapshot = PlayerUIPlaybackSnapshot()
+    @State private var shouldResumeAfterBackgroundPause = false
+    @State private var mediaControlSyncTask: Task<Void, Never>?
+#if canImport(UIKit)
+    @StateObject private var audioSessionManager = VideoPlaybackAudioSessionManager()
+#endif
 
     init(room: LiveCardModel) {
         self.room = room
@@ -30,9 +40,21 @@ struct LivePlaybackPage: View {
                         roomId: room.roomId,
                         streamURL: viewModel.streamURL,
                         aspectRatio: viewModel.aspectRatio,
-                        statusText: viewModel.playerStatusText
+                        statusText: viewModel.playerStatusText,
+                        player: player
                     )
                     .frame(width: geo.size.width)
+                    .onAppear {
+                        playerUISnapshot = player.uiSnapshot
+                    }
+                    .onChange(of: player.uiSnapshot) { oldSnapshot, snapshot in
+                        playerUISnapshot = snapshot
+#if canImport(UIKit)
+                        if oldSnapshot.isPlaying != snapshot.isPlaying {
+                            syncSystemMediaControl()
+                        }
+#endif
+                    }
 
                     ZStack(alignment: .leading) {
                         VStack(alignment: .leading, spacing: 16) {
@@ -80,10 +102,55 @@ struct LivePlaybackPage: View {
         .toolbar(.hidden, for: .navigationBar)
         .toolbar(.hidden, for: .tabBar)
         .task {
+#if canImport(UIKit)
+            configureAudioSessionHandlers()
+            startMediaControlSyncLoopIfNeeded()
+#endif
             await viewModel.loadPlaybackIfNeeded()
+#if canImport(UIKit)
+            audioSessionManager.activate()
+            syncSystemMediaControl()
+            if viewModel.streamURL != nil {
+                Task { await syncSystemMediaControlWhenPlaybackStarts() }
+            }
+#endif
         }
         .onDisappear {
+            mediaControlSyncTask?.cancel()
+            mediaControlSyncTask = nil
+            player.pause()
+#if canImport(UIKit)
+            audioSessionManager.deactivate()
+#endif
             viewModel.teardown()
+        }
+#if canImport(UIKit)
+        .onReceive(NotificationCenter.default.publisher(
+            for: UIApplication.didEnterBackgroundNotification
+        )) { _ in
+            handleDidEnterBackground()
+        }
+        .onReceive(NotificationCenter.default.publisher(
+            for: UIApplication.didBecomeActiveNotification
+        )) { _ in
+            handleDidBecomeActive()
+        }
+#endif
+        .onChange(of: viewModel.streamURL) { _, newValue in
+#if canImport(UIKit)
+            guard newValue != nil else { return }
+            Task { await syncSystemMediaControlWhenPlaybackStarts() }
+#endif
+        }
+        .onChange(of: viewModel.displayTitle) { _, _ in
+#if canImport(UIKit)
+            syncSystemMediaControl()
+#endif
+        }
+        .onChange(of: viewModel.anchorName) { _, _ in
+#if canImport(UIKit)
+            syncSystemMediaControl()
+#endif
         }
     }
 
@@ -159,6 +226,90 @@ struct LivePlaybackPage: View {
         .padding(.top, max(topInset, 10))
         .padding(.bottom, 10)
     }
+
+#if canImport(UIKit)
+    private func configureAudioSessionHandlers() {
+        audioSessionManager.configureHandlers(
+            onPlay: {
+                resumePlayback()
+            },
+            onPause: {
+                pausePlayback()
+            },
+            onSeek: { _ in }
+        )
+    }
+
+    private func syncSystemMediaControl() {
+        audioSessionManager.updateNowPlaying(
+            info: .init(
+                title: viewModel.displayTitle,
+                artist: viewModel.anchorName,
+                artworkURL: viewModel.coverURL,
+                duration: 0,
+                elapsedTime: 0,
+                playbackRate: 1,
+                isPlaying: player.isPlaying,
+                isLiveStream: true,
+                supportsSeeking: false
+            )
+        )
+    }
+
+    private func syncSystemMediaControlWhenPlaybackStarts() async {
+        for _ in 0..<20 {
+            let snapshot = player.uiSnapshot
+            if snapshot.isPlaying {
+                playerUISnapshot = snapshot
+                syncSystemMediaControl()
+                return
+            }
+            try? await Task.sleep(nanoseconds: 100000000)
+        }
+    }
+
+    private func startMediaControlSyncLoopIfNeeded() {
+        guard mediaControlSyncTask == nil else { return }
+
+        mediaControlSyncTask = Task { @MainActor in
+            while !Task.isCancelled {
+                syncSystemMediaControl()
+                try? await Task.sleep(nanoseconds: 1_000_000_000)
+            }
+        }
+    }
+
+    private func pausePlayback() {
+        player.pause()
+        playerUISnapshot = player.uiSnapshot
+        syncSystemMediaControl()
+    }
+
+    private func resumePlayback() {
+        player.resume()
+        playerUISnapshot = player.uiSnapshot
+        syncSystemMediaControl()
+    }
+
+    private func handleDidEnterBackground() {
+        let playbackSettings = AudioVideoSettingsStore.load()
+        guard !playbackSettings.allowsLiveBackgroundPlayback else { return }
+
+        shouldResumeAfterBackgroundPause = player.isPlaying
+        guard shouldResumeAfterBackgroundPause else {
+            syncSystemMediaControl()
+            return
+        }
+
+        pausePlayback()
+    }
+
+    private func handleDidBecomeActive() {
+        guard shouldResumeAfterBackgroundPause else { return }
+        shouldResumeAfterBackgroundPause = false
+        resumePlayback()
+    }
+#endif
 }
 
 @Observable
@@ -217,6 +368,13 @@ private final class LivePlaybackViewModel {
     var backgroundURL: URL? {
         guard let value = roomInfo?.backgroundURL, !value.isEmpty else { return nil }
         return URL(string: value)
+    }
+
+    var coverURL: URL? {
+        if let value = roomInfo?.coverURL, !value.isEmpty {
+            return URL(string: value)
+        }
+        return URL(string: room.coverURL)
     }
 
     func loadPlaybackIfNeeded() async {

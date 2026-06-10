@@ -125,6 +125,7 @@ enum HDRToneMappingOption: String, CaseIterable, Codable, Hashable {
 struct AudioVideoSettings: Codable, Equatable {
     var hardwareDecodingEnabled = true
     var allowsBackgroundPlayback = false
+    var allowsLiveBackgroundPlayback = false
     var defaultQuality: PreferredVideoQuality = .ultraHD4K
     var cellularDefaultQuality: PreferredVideoQuality = .ultraHD4K
     var bufferSize: VideoBufferSizeOption = .auto
@@ -138,6 +139,7 @@ struct AudioVideoSettings: Codable, Equatable {
     private enum CodingKeys: String, CodingKey {
         case hardwareDecodingEnabled
         case allowsBackgroundPlayback
+        case allowsLiveBackgroundPlayback
         case defaultQuality
         case cellularDefaultQuality
         case bufferSize
@@ -167,6 +169,7 @@ struct AudioVideoSettings: Codable, Equatable {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         hardwareDecodingEnabled = try container.decodeIfPresent(Bool.self, forKey: .hardwareDecodingEnabled) ?? true
         allowsBackgroundPlayback = try container.decodeIfPresent(Bool.self, forKey: .allowsBackgroundPlayback) ?? false
+        allowsLiveBackgroundPlayback = try container.decodeIfPresent(Bool.self, forKey: .allowsLiveBackgroundPlayback) ?? false
         defaultQuality = try container.decodeIfPresent(PreferredVideoQuality.self, forKey: .defaultQuality) ?? .ultraHD4K
         cellularDefaultQuality = try container.decodeIfPresent(PreferredVideoQuality.self, forKey: .cellularDefaultQuality) ?? .ultraHD4K
         bufferSize = try container.decodeIfPresent(VideoBufferSizeOption.self, forKey: .bufferSize) ?? .auto

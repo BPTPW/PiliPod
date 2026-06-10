@@ -21,6 +21,8 @@ final class VideoPlaybackAudioSessionManager: ObservableObject {
         var elapsedTime: TimeInterval
         var playbackRate: Double
         var isPlaying: Bool
+        var isLiveStream = false
+        var supportsSeeking = true
     }
 
     private let commandCenter = MPRemoteCommandCenter.shared()
@@ -78,7 +80,9 @@ final class VideoPlaybackAudioSessionManager: ObservableObject {
             duration: info.duration,
             elapsedTime: info.elapsedTime,
             playbackRate: info.isPlaying ? info.playbackRate : 0,
-            isPlaying: info.isPlaying
+            isPlaying: info.isPlaying,
+            isLiveStream: info.isLiveStream,
+            supportsSeeking: info.supportsSeeking
         )
 
         lastPlaybackInfo = normalizedInfo
@@ -108,6 +112,7 @@ final class VideoPlaybackAudioSessionManager: ObservableObject {
             suspendPlaybackSessionIfNeeded(reason: "updateNowPlaying.paused")
         }
 
+        commandCenter.changePlaybackPositionCommand.isEnabled = normalizedInfo.supportsSeeking && !normalizedInfo.isLiveStream
         publishNowPlaying(info: normalizedInfo, artwork: currentArtworkImage)
     }
 
@@ -130,7 +135,7 @@ final class VideoPlaybackAudioSessionManager: ObservableObject {
         commandCenter.playCommand.isEnabled = true
         commandCenter.pauseCommand.isEnabled = true
         commandCenter.togglePlayPauseCommand.isEnabled = true
-        commandCenter.changePlaybackPositionCommand.isEnabled = true
+        commandCenter.changePlaybackPositionCommand.isEnabled = false
 
         commandTargets = [
             (
@@ -207,22 +212,27 @@ final class VideoPlaybackAudioSessionManager: ObservableObject {
     }
 
     private func publishNowPlaying(info: PlaybackInfo, artwork: UIImage?) {
-        let effectiveDuration = max(info.duration, 0)
-        let effectiveElapsed = min(
-            max(info.elapsedTime, 0),
-            effectiveDuration > 0 ? effectiveDuration : info.elapsedTime
-        )
         let effectiveRate = info.isPlaying ? Float(max(info.playbackRate, 0)) : 0
 
         var nowPlayingInfo: [String: Any] = [
             MPMediaItemPropertyTitle: info.title,
             MPMediaItemPropertyArtist: info.artist,
-            MPMediaItemPropertyPlaybackDuration: effectiveDuration,
-            MPNowPlayingInfoPropertyElapsedPlaybackTime: effectiveElapsed,
             MPNowPlayingInfoPropertyPlaybackRate: effectiveRate,
             MPNowPlayingInfoPropertyDefaultPlaybackRate: Float(max(info.playbackRate, 0)),
             MPNowPlayingInfoPropertyMediaType: MPNowPlayingInfoMediaType.audio.rawValue
         ]
+
+        if info.isLiveStream {
+            nowPlayingInfo[MPNowPlayingInfoPropertyIsLiveStream] = true
+        } else {
+            let effectiveDuration = max(info.duration, 0)
+            let effectiveElapsed = min(
+                max(info.elapsedTime, 0),
+                effectiveDuration > 0 ? effectiveDuration : info.elapsedTime
+            )
+            nowPlayingInfo[MPMediaItemPropertyPlaybackDuration] = effectiveDuration
+            nowPlayingInfo[MPNowPlayingInfoPropertyElapsedPlaybackTime] = effectiveElapsed
+        }
 
         if let artwork {
             nowPlayingInfo[MPMediaItemPropertyArtwork] = MPMediaItemArtwork(boundsSize: artwork.size) { _ in
@@ -234,8 +244,7 @@ final class VideoPlaybackAudioSessionManager: ObservableObject {
         MPNowPlayingInfoCenter.default().playbackState = info.isPlaying ? .playing : .paused
         print(
             "[AudioSession][NowPlayingPublished] " +
-                "isPlaying=\(info.isPlaying) elapsed=\(String(format: "%.3f", effectiveElapsed)) " +
-                "duration=\(String(format: "%.3f", effectiveDuration)) rate=\(effectiveRate) " +
+                "isPlaying=\(info.isPlaying) live=\(info.isLiveStream) rate=\(effectiveRate) " +
                 "defaultRate=\(Float(max(info.playbackRate, 0))) hasArtwork=\(artwork != nil)"
         )
     }

@@ -12,8 +12,7 @@ struct LivePlayerView: View {
     let streamURL: URL?
     let aspectRatio: CGFloat
     let statusText: String
-
-    @State private var player = MPVKitPlayer()
+    let player: MPVKitPlayer
 
     var body: some View {
         Group {
@@ -53,6 +52,7 @@ struct LivePlayerView: View {
         roomId: "226000",
         streamURL: nil,
         aspectRatio: 16.0 / 9.0,
-        statusText: "room id: 226000"
+        statusText: "room id: 226000",
+        player: MPVKitPlayer()
     )
 }
