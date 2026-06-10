@@ -12,14 +12,25 @@ import UIKit
 #endif
 
 struct LivePlaybackPage: View {
+    private enum FullscreenTrigger {
+        case none
+        case manual
+        case rotation
+    }
+
     let room: LiveCardModel
     @Environment(\.dismiss) private var dismiss
     @State private var viewModel: LivePlaybackViewModel
     @State private var player = MPVKitPlayer()
     @State private var playerUISnapshot = PlayerUIPlaybackSnapshot()
     @State private var shouldResumeAfterBackgroundPause = false
+    @State private var controlsVisible = true
+    @State private var hideControlsTask: Task<Void, Never>?
+    @State private var isFullscreen = false
+    @State private var fullscreenTrigger: FullscreenTrigger = .none
     @State private var mediaControlSyncTask: Task<Void, Never>?
 #if canImport(UIKit)
+    @State private var preferredFullscreenOrientation: UIInterfaceOrientation = .landscapeRight
     @StateObject private var audioSessionManager = VideoPlaybackAudioSessionManager()
 #endif
 
@@ -31,72 +42,27 @@ struct LivePlaybackPage: View {
     var body: some View {
         GeometryReader { geo in
             ZStack {
-                liveBackground
+                if !isFullscreen {
+                    liveBackground
+                } else {
+                    Color.black
+                        .ignoresSafeArea()
+                }
 
                 VStack(spacing: 0) {
-                    headerBar(topInset: geo.safeAreaInsets.top)
-
-                    LivePlayerView(
-                        roomId: room.roomId,
-                        streamURL: viewModel.streamURL,
-                        aspectRatio: viewModel.aspectRatio,
-                        statusText: viewModel.playerStatusText,
-                        player: player
-                    )
-                    .frame(width: geo.size.width)
-                    .onAppear {
-                        playerUISnapshot = player.uiSnapshot
-                    }
-                    .onChange(of: player.uiSnapshot) { oldSnapshot, snapshot in
-                        playerUISnapshot = snapshot
-#if canImport(UIKit)
-                        if oldSnapshot.isPlaying != snapshot.isPlaying {
-                            syncSystemMediaControl()
-                        }
-#endif
+                    if !isFullscreen {
+                        headerBar(topInset: geo.safeAreaInsets.top)
                     }
 
-                    ZStack(alignment: .leading) {
-                        VStack(alignment: .leading, spacing: 16) {
-                            VStack(alignment: .leading, spacing: 16) {
-                                Text(viewModel.displayTitle)
-                                    .font(.system(size: 20, weight: .semibold))
-                                    .foregroundStyle(.white)
+                    playerSection(geo: geo)
 
-                                HStack(spacing: 8) {
-                                    if !viewModel.displayOnlineCount.isEmpty {
-                                        Label(viewModel.displayOnlineCount, systemImage: "eye.fill")
-                                    }
-
-                                    Text("房间号 \(room.roomId)")
-                                }
-                                .font(.system(size: 12))
-                                .foregroundStyle(.white.opacity(0.78))
-                            }
-                            .padding(.horizontal, 12)
-                            .padding(.top, 16)
-
-                            LiveDanmakuListView(messages: viewModel.messages)
-                                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                        }
-                        .padding(.bottom, 0)
-                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-
-                        Color.clear
-                            .frame(width: 24)
-                            .contentShape(Rectangle())
-                            .gesture(
-                                DragGesture(minimumDistance: 12)
-                                    .onEnded { value in
-                                        let isHorizontal = abs(value.translation.width) > abs(value.translation.height)
-                                        guard isHorizontal, value.translation.width > 80 else { return }
-                                        dismiss()
-                                    }
-                            )
+                    if !isFullscreen {
+                        detailSection
                     }
                 }
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: isFullscreen ? .center : .top)
             }
-            .ignoresSafeArea(edges: .top)
+            .ignoresSafeArea(edges: isFullscreen ? .all : .top)
             .background(Color.black)
         }
         .toolbar(.hidden, for: .navigationBar)
@@ -116,11 +82,13 @@ struct LivePlaybackPage: View {
 #endif
         }
         .onDisappear {
+            hideControlsTask?.cancel()
             mediaControlSyncTask?.cancel()
             mediaControlSyncTask = nil
             player.pause()
 #if canImport(UIKit)
             audioSessionManager.deactivate()
+            updateDeviceOrientationForFullscreen(isFullscreen: false)
 #endif
             viewModel.teardown()
         }
@@ -134,6 +102,11 @@ struct LivePlaybackPage: View {
             for: UIApplication.didBecomeActiveNotification
         )) { _ in
             handleDidBecomeActive()
+        }
+        .onReceive(NotificationCenter.default.publisher(
+            for: UIDevice.orientationDidChangeNotification
+        )) { _ in
+            handleDeviceOrientationChange()
         }
 #endif
         .onChange(of: viewModel.streamURL) { _, newValue in
@@ -151,6 +124,107 @@ struct LivePlaybackPage: View {
 #if canImport(UIKit)
             syncSystemMediaControl()
 #endif
+        }
+        .statusBarHidden(isFullscreen)
+    }
+
+    @ViewBuilder
+    private func playerSection(geo: GeometryProxy) -> some View {
+        let playerHeight = isFullscreen
+            ? geo.size.height
+            : min(
+                geo.size.width / max(viewModel.aspectRatio, 0.01),
+                geo.size.width * (4.0 / 3.0)
+            )
+
+        LivePlayerView(
+            roomId: room.roomId,
+            streamURL: viewModel.streamURL,
+            aspectRatio: viewModel.aspectRatio,
+            statusText: viewModel.playerStatusText,
+            player: player
+        )
+        .frame(width: geo.size.width)
+        .frame(maxWidth: .infinity, maxHeight: isFullscreen ? .infinity : nil, alignment: .center)
+        .ignoresSafeArea(isFullscreen ? .all : [])
+        .background(Color.black)
+        .contentShape(Rectangle())
+        .onTapGesture {
+            showControlsAndAutoHideIfNeeded()
+        }
+        .highPriorityGesture(
+            TapGesture(count: 2)
+                .onEnded {
+                    togglePlayback()
+                    showControlsAndAutoHideIfNeeded(forceShow: true)
+                }
+        )
+        .onAppear {
+            playerUISnapshot = player.uiSnapshot
+        }
+        .onChange(of: player.uiSnapshot) { oldSnapshot, snapshot in
+            playerUISnapshot = snapshot
+            if !oldSnapshot.isPlaying && snapshot.isPlaying && controlsVisible {
+                refreshControlsAutoHideIfNeeded()
+            } else if oldSnapshot.isPlaying && !snapshot.isPlaying {
+                hideControlsTask?.cancel()
+                controlsVisible = true
+            }
+#if canImport(UIKit)
+            if oldSnapshot.isPlaying != snapshot.isPlaying {
+                syncSystemMediaControl()
+            }
+#endif
+        }
+        .overlay {
+            if controlsVisible {
+                liveControlsOverlay(geo: geo)
+                    .transition(.opacity)
+            }
+        }
+        .frame(width: geo.size.width, height: playerHeight, alignment: .center)
+        .clipped()
+        .layoutPriority(1)
+    }
+
+    private var detailSection: some View {
+        ZStack(alignment: .leading) {
+            VStack(alignment: .leading, spacing: 16) {
+                VStack(alignment: .leading, spacing: 16) {
+                    Text(viewModel.displayTitle)
+                        .font(.system(size: 20, weight: .semibold))
+                        .foregroundStyle(.white)
+
+                    HStack(spacing: 8) {
+                        if !viewModel.displayOnlineCount.isEmpty {
+                            Label(viewModel.displayOnlineCount, systemImage: "eye.fill")
+                        }
+
+                        Text("房间号 \(room.roomId)")
+                    }
+                    .font(.system(size: 12))
+                    .foregroundStyle(.white.opacity(0.78))
+                }
+                .padding(.horizontal, 12)
+                .padding(.top, 16)
+
+                LiveDanmakuListView(messages: viewModel.messages)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            }
+            .padding(.bottom, 0)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+
+            Color.clear
+                .frame(width: 24)
+                .contentShape(Rectangle())
+                .gesture(
+                    DragGesture(minimumDistance: 12)
+                        .onEnded { value in
+                            let isHorizontal = abs(value.translation.width) > abs(value.translation.height)
+                            guard isHorizontal, value.translation.width > 80 else { return }
+                            dismiss()
+                        }
+                )
         }
     }
 
@@ -181,7 +255,7 @@ struct LivePlaybackPage: View {
     private func headerBar(topInset: CGFloat) -> some View {
         HStack(spacing: 12) {
             Button {
-                dismiss()
+                handleBackAction()
             } label: {
                 Image(systemName: "chevron.left")
                     .font(.system(size: 17, weight: .semibold))
@@ -227,6 +301,129 @@ struct LivePlaybackPage: View {
         .padding(.bottom, 10)
     }
 
+    @ViewBuilder
+    private func liveControlsOverlay(geo: GeometryProxy) -> some View {
+        VStack(spacing: 0) {
+            if isFullscreen {
+                HStack(spacing: 12) {
+                    Button {
+                        showControlsAndAutoHideIfNeeded(forceShow: true)
+                        handleBackAction()
+                    } label: {
+                        Image(systemName: "chevron.left")
+                            .font(.system(size: 16, weight: .semibold))
+                            .foregroundStyle(.primary)
+                            .frame(width: 40, height: 40)
+                    }
+                    .glassEffect(.regular.interactive(), in: .circle)
+
+                    Spacer(minLength: 0)
+                }
+                .padding(.horizontal, 12)
+                .padding(.top, max(geo.safeAreaInsets.top, 12))
+            }
+
+            Spacer(minLength: 0)
+
+            HStack(spacing: 10) {
+                controlCircleButton(systemName: playerUISnapshot.isPlaying ? "pause.fill" : "play.fill") {
+                    togglePlayback()
+                    showControlsAndAutoHideIfNeeded(forceShow: true)
+                }
+
+                controlCircleButton(systemName: "arrow.clockwise") {
+                    Task { await refreshPlayback() }
+                    showControlsAndAutoHideIfNeeded(forceShow: true)
+                }
+
+                Spacer(minLength: 0)
+
+                controlCircleButton(
+                    systemName: isFullscreen ? "arrow.down.right.and.arrow.up.left" : "arrow.up.left.and.arrow.down.right"
+                ) {
+                    toggleFullscreenManually()
+                    showControlsAndAutoHideIfNeeded(forceShow: true)
+                }
+            }
+            .padding(.horizontal, 12)
+            .padding(.bottom, isFullscreen ? max(geo.safeAreaInsets.bottom, 10) : 10)
+        }
+        .animation(.easeOut(duration: 0.2), value: controlsVisible)
+    }
+
+    private func controlCircleButton(systemName: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Image(systemName: systemName)
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundStyle(.primary)
+                .frame(width: 32, height: 32)
+        }
+        .tint(.primary)
+        .glassEffect(.regular.interactive(), in: .circle)
+    }
+
+    private func showControlsAndAutoHideIfNeeded(forceShow: Bool = false) {
+        if forceShow {
+            controlsVisible = true
+        } else {
+            controlsVisible.toggle()
+        }
+
+        refreshControlsAutoHideIfNeeded()
+    }
+
+    private func refreshControlsAutoHideIfNeeded() {
+        hideControlsTask?.cancel()
+        guard controlsVisible, playerUISnapshot.isPlaying else { return }
+
+        hideControlsTask = Task { @MainActor in
+            do {
+                try await Task.sleep(nanoseconds: 3_000_000_000)
+            } catch {
+                return
+            }
+            if Task.isCancelled { return }
+            withAnimation(.easeOut(duration: 0.22)) {
+                controlsVisible = false
+            }
+        }
+    }
+
+    private func refreshPlayback() async {
+        await viewModel.refreshPlayback()
+        playerUISnapshot = player.uiSnapshot
+#if canImport(UIKit)
+        syncSystemMediaControl()
+#endif
+        refreshControlsAutoHideIfNeeded()
+    }
+
+    private func togglePlayback() {
+        if player.isPlaying {
+            pausePlayback()
+        } else {
+            resumePlayback()
+        }
+    }
+
+    private func handleBackAction() {
+        if isFullscreen {
+            withAnimation(.easeInOut(duration: 0.2)) {
+                isFullscreen = false
+                fullscreenTrigger = .none
+                controlsVisible = true
+            }
+#if canImport(UIKit)
+            player.setKeepAspect(true)
+            updateDeviceOrientationForFullscreen(isFullscreen: false)
+            refreshPlayerLayoutAfterFullscreenChange()
+#endif
+            refreshControlsAutoHideIfNeeded()
+        } else {
+            dismiss()
+        }
+    }
+
 #if canImport(UIKit)
     private func configureAudioSessionHandlers() {
         audioSessionManager.configureHandlers(
@@ -264,7 +461,7 @@ struct LivePlaybackPage: View {
                 syncSystemMediaControl()
                 return
             }
-            try? await Task.sleep(nanoseconds: 100000000)
+            try? await Task.sleep(nanoseconds: 100_000_000)
         }
     }
 
@@ -282,6 +479,8 @@ struct LivePlaybackPage: View {
     private func pausePlayback() {
         player.pause()
         playerUISnapshot = player.uiSnapshot
+        controlsVisible = true
+        hideControlsTask?.cancel()
         syncSystemMediaControl()
     }
 
@@ -289,6 +488,7 @@ struct LivePlaybackPage: View {
         player.resume()
         playerUISnapshot = player.uiSnapshot
         syncSystemMediaControl()
+        refreshControlsAutoHideIfNeeded()
     }
 
     private func handleDidEnterBackground() {
@@ -305,9 +505,121 @@ struct LivePlaybackPage: View {
     }
 
     private func handleDidBecomeActive() {
-        guard shouldResumeAfterBackgroundPause else { return }
+        guard shouldResumeAfterBackgroundPause else {
+            restoreFullscreenOrientationIfNeeded()
+            return
+        }
         shouldResumeAfterBackgroundPause = false
         resumePlayback()
+        restoreFullscreenOrientationIfNeeded()
+    }
+
+    private func updateDeviceOrientationForFullscreen(isFullscreen: Bool) {
+        updateDeviceOrientationForFullscreen(
+            isFullscreen: isFullscreen,
+            orientation: preferredFullscreenOrientation
+        )
+    }
+
+    private func updateDeviceOrientationForFullscreen(
+        isFullscreen: Bool,
+        orientation: UIInterfaceOrientation
+    ) {
+        guard let scene = UIApplication.shared.connectedScenes.first as? UIWindowScene else { return }
+        let targetOrientationMask: UIInterfaceOrientationMask
+        if isFullscreen {
+            targetOrientationMask = orientation == .landscapeLeft ? .landscapeLeft : .landscapeRight
+        } else {
+            targetOrientationMask = .portrait
+        }
+        let prefs = UIWindowScene.GeometryPreferences.iOS(
+            interfaceOrientations: targetOrientationMask
+        )
+        scene.requestGeometryUpdate(prefs) { error in
+            print("requestGeometryUpdate failed: \(error.localizedDescription)")
+        }
+    }
+
+    private func currentInterfaceOrientation() -> UIInterfaceOrientation? {
+        (UIApplication.shared.connectedScenes.first as? UIWindowScene)?.interfaceOrientation
+    }
+
+    private func updatePreferredFullscreenOrientation(from orientation: UIInterfaceOrientation?) {
+        guard let orientation, orientation.isLandscape else { return }
+        preferredFullscreenOrientation = orientation == .landscapeLeft ? .landscapeLeft : .landscapeRight
+    }
+
+    private func restoreFullscreenOrientationIfNeeded() {
+        guard isFullscreen else { return }
+        updateDeviceOrientationForFullscreen(
+            isFullscreen: true,
+            orientation: preferredFullscreenOrientation
+        )
+        refreshPlayerLayoutAfterFullscreenChange()
+    }
+
+    private func toggleFullscreenManually() {
+        let willEnterFullscreen = !isFullscreen
+        if willEnterFullscreen {
+            updatePreferredFullscreenOrientation(from: currentInterfaceOrientation())
+        }
+        withAnimation(.easeInOut(duration: 0.2)) {
+            isFullscreen = willEnterFullscreen
+            fullscreenTrigger = willEnterFullscreen ? .manual : .none
+            controlsVisible = true
+        }
+        player.setKeepAspect(true)
+        updateDeviceOrientationForFullscreen(isFullscreen: willEnterFullscreen)
+        refreshPlayerLayoutAfterFullscreenChange()
+        refreshControlsAutoHideIfNeeded()
+    }
+
+    private func handleDeviceOrientationChange() {
+        guard let scene = UIApplication.shared.connectedScenes.first as? UIWindowScene else { return }
+        let interfaceOrientation = scene.interfaceOrientation
+        if interfaceOrientation.isLandscape {
+            updatePreferredFullscreenOrientation(from: interfaceOrientation)
+            if !isFullscreen {
+                withAnimation(.easeInOut(duration: 0.2)) {
+                    isFullscreen = true
+                    fullscreenTrigger = .rotation
+                    controlsVisible = true
+                }
+                player.setKeepAspect(true)
+                refreshPlayerLayoutAfterFullscreenChange()
+                refreshControlsAutoHideIfNeeded()
+            }
+        } else if interfaceOrientation.isPortrait, isFullscreen, fullscreenTrigger == .rotation {
+            withAnimation(.easeInOut(duration: 0.2)) {
+                isFullscreen = false
+                fullscreenTrigger = .none
+                controlsVisible = true
+            }
+            player.setKeepAspect(true)
+            refreshPlayerLayoutAfterFullscreenChange()
+            refreshControlsAutoHideIfNeeded()
+        }
+    }
+
+    private func refreshPlayerLayoutAfterFullscreenChange() {
+        Task { @MainActor in
+            player.refreshVideoOutput()
+            try? await Task.sleep(nanoseconds: 80_000_000)
+            player.refreshVideoOutput()
+        }
+    }
+#else
+    private func pausePlayback() {
+        player.pause()
+        playerUISnapshot = player.uiSnapshot
+        controlsVisible = true
+        hideControlsTask?.cancel()
+    }
+
+    private func resumePlayback() {
+        player.resume()
+        playerUISnapshot = player.uiSnapshot
+        refreshControlsAutoHideIfNeeded()
     }
 #endif
 }
@@ -323,6 +635,7 @@ private final class LivePlaybackViewModel {
     var messages: [LiveDanmakuMessage] = []
     var isLoading = false
     var errorMessage: String?
+    private var currentQn: Int = 10000
     private var hasLoaded = false
     private let danmakuService = LiveDanmakuService()
 
@@ -387,20 +700,31 @@ private final class LivePlaybackViewModel {
         hasLoaded = true
     }
 
+    func refreshPlayback() async {
+        await loadPlayback(force: true)
+    }
+
     func teardown() {
         danmakuService.close()
     }
 
-    private func loadPlayback() async {
+    private func loadPlayback(force: Bool = false) async {
         guard !isLoading else { return }
+        if force {
+            streamURL = nil
+        }
         isLoading = true
         errorMessage = nil
         defer { isLoading = false }
 
         do {
-            let playback = try await BiliAPI.shared.fetchLivePlaybackInfo(roomID: room.roomId)
+            let playback = try await BiliAPI.shared.fetchLivePlaybackInfo(
+                roomID: room.roomId,
+                qn: currentQn
+            )
             streamURL = playback.streamURL
             aspectRatio = playback.aspectRatio
+            currentQn = playback.currentQn
         } catch {
             errorMessage = error.localizedDescription
         }

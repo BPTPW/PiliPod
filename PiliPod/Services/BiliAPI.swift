@@ -391,7 +391,7 @@ class BiliAPI {
         )
     }
 
-    func fetchLivePlaybackInfo(roomID: String) async throws -> LivePlaybackInfo {
+    func fetchLivePlaybackInfo(roomID: String, qn: Int = 10000) async throws -> LivePlaybackInfo {
         var components = URLComponents(
             string: "https://api.live.bilibili.com/xlive/web-room/v2/index/getRoomPlayInfo"
         )
@@ -400,7 +400,7 @@ class BiliAPI {
             URLQueryItem(name: "protocol", value: "0"),
             URLQueryItem(name: "format", value: "0"),
             URLQueryItem(name: "codec", value: "0"),
-            URLQueryItem(name: "qn", value: "10000"),
+            URLQueryItem(name: "qn", value: String(qn)),
             URLQueryItem(name: "platform", value: "web"),
             URLQueryItem(name: "ptype", value: "8"),
             URLQueryItem(name: "dolby", value: "5"),

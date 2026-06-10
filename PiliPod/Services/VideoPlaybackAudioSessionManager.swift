@@ -55,7 +55,6 @@ final class VideoPlaybackAudioSessionManager: ObservableObject {
             try ensurePlaybackSessionReady(reason: "activate")
             installAudioSessionObserversIfNeeded()
             registerRemoteCommandsIfNeeded()
-            print("[AudioSession] Activated playback audio session")
         } catch {
             print("[AudioSession] Failed to activate audio session: \(error.localizedDescription)")
         }
@@ -66,7 +65,6 @@ final class VideoPlaybackAudioSessionManager: ObservableObject {
 
         do {
             try AVAudioSession.sharedInstance().setActive(false, options: [.notifyOthersOnDeactivation])
-            print("[AudioSession] Deactivated playback audio session")
         } catch {
             print("[AudioSession] Failed to deactivate audio session: \(error.localizedDescription)")
         }
@@ -88,13 +86,6 @@ final class VideoPlaybackAudioSessionManager: ObservableObject {
         lastPlaybackInfo = normalizedInfo
 
         let session = AVAudioSession.sharedInstance()
-        print(
-            "[AudioSession][NowPlayingUpdate] " +
-                "isPlaying=\(normalizedInfo.isPlaying) elapsed=\(String(format: "%.3f", normalizedInfo.elapsedTime)) " +
-                "duration=\(String(format: "%.3f", normalizedInfo.duration)) rate=\(normalizedInfo.playbackRate) " +
-                "session.active=\(session.isOtherAudioPlaying == false) category=\(session.category.rawValue) " +
-                "engineRunning=\(audioEngine.isRunning) title=\(normalizedInfo.title)"
-        )
 
         if currentArtworkURL != normalizedInfo.artworkURL {
             currentArtworkURL = normalizedInfo.artworkURL
@@ -197,8 +188,7 @@ final class VideoPlaybackAudioSessionManager: ObservableObject {
 
     private func handleToggle() {
         let isPlaying = lastPlaybackInfo?.isPlaying ?? false
-        print("[AudioSession] Remote command: togglePlayPause -> \(isPlaying ? "pause" : "play")")
-
+        
         if lastPlaybackInfo?.isPlaying ?? false {
             onPause?()
         } else {
@@ -207,7 +197,6 @@ final class VideoPlaybackAudioSessionManager: ObservableObject {
     }
 
     private func handleSeek(to position: TimeInterval) {
-        print("[AudioSession] Remote command: seek -> \(position)")
         onSeek?(position)
     }
 
@@ -242,11 +231,6 @@ final class VideoPlaybackAudioSessionManager: ObservableObject {
 
         MPNowPlayingInfoCenter.default().nowPlayingInfo = nowPlayingInfo
         MPNowPlayingInfoCenter.default().playbackState = info.isPlaying ? .playing : .paused
-        print(
-            "[AudioSession][NowPlayingPublished] " +
-                "isPlaying=\(info.isPlaying) live=\(info.isLiveStream) rate=\(effectiveRate) " +
-                "defaultRate=\(Float(max(info.playbackRate, 0))) hasArtwork=\(artwork != nil)"
-        )
     }
 
     private func ensurePlaybackSessionReady(reason: String) throws {
@@ -255,11 +239,6 @@ final class VideoPlaybackAudioSessionManager: ObservableObject {
         try session.setActive(true)
         try startSilentAudioEngineIfNeeded()
         UIApplication.shared.beginReceivingRemoteControlEvents()
-        print(
-            "[AudioSession][SessionReady] reason=\(reason) " +
-                "category=\(session.category.rawValue) mode=\(session.mode.rawValue) " +
-                "otherAudioPlaying=\(session.isOtherAudioPlaying) engineRunning=\(audioEngine.isRunning)"
-        )
     }
 
     private func suspendPlaybackSessionIfNeeded(reason: String) {
@@ -356,7 +335,6 @@ final class VideoPlaybackAudioSessionManager: ObservableObject {
     }
 
     private func handleMediaServicesReset() {
-        print("[AudioSession][MediaServicesReset] lastPlaying=\(lastPlaybackInfo?.isPlaying.description ?? "nil")")
 
         guard let playbackInfo = lastPlaybackInfo else { return }
 
@@ -370,8 +348,6 @@ final class VideoPlaybackAudioSessionManager: ObservableObject {
     }
 
     private func handleAudioEngineConfigurationChange() {
-        print("[AudioSession][EngineConfigChanged] running=\(audioEngine.isRunning) lastPlaying=\(lastPlaybackInfo?.isPlaying.description ?? "nil")")
-
         guard let playbackInfo = lastPlaybackInfo, playbackInfo.isPlaying else { return }
 
         do {
