@@ -430,7 +430,9 @@ final class LiveDanmakuService: NSObject {
                 }
             } while status == COMPRESSION_STATUS_OK
 
-            guard status == COMPRESSION_STATUS_END else { return nil }
+            guard status == COMPRESSION_STATUS_END else {
+                return nil
+            }
             return output
         }
     }
@@ -444,7 +446,7 @@ private struct DecodedPacket {
 
 private extension FixedWidthInteger {
     var bigEndianData: Data {
-        var value = self.bigEndian
+        var value = bigEndian
         return Data(bytes: &value, count: MemoryLayout<Self>.size)
     }
 }

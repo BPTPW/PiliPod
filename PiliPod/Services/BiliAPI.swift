@@ -5,8 +5,8 @@
 //  Created by co on 2026/5/21.
 //
 
-import CryptoKit
 import CoreGraphics
+import CryptoKit
 import Foundation
 import SwiftProtobuf
 
@@ -429,9 +429,9 @@ class BiliAPI {
 
         guard
             let selectedCodec = playurl.stream
-                .first(where: { $0.protocolName == "http_stream" })?
-                .format.first(where: { $0.formatName == "flv" })?
-                .codec.first(where: { $0.codecName.lowercased() == "avc" || $0.codecName.lowercased() == "h264" }),
+            .first(where: { $0.protocolName == "http_stream" })?
+            .format.first(where: { $0.formatName == "flv" })?
+            .codec.first(where: { $0.codecName.lowercased() == "avc" || $0.codecName.lowercased() == "h264" }),
             let urlInfo = selectedCodec.urlInfo.first,
             let streamURL = buildLiveStreamURL(
                 host: urlInfo.host,

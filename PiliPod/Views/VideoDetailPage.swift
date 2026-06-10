@@ -1850,7 +1850,7 @@ struct VideoDetailPage: View {
     }
 
     private func syncSystemMediaControlWhenPlaybackStarts(player: MPVKitPlayer) async {
-        for _ in 0 ..< 20 {
+        for _ in 0..<20 {
             let snapshot = player.uiSnapshot
             if snapshot.isPlaying {
                 playerUISnapshot = snapshot

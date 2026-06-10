@@ -119,6 +119,7 @@ final class UserSpaceViewModel: ObservableObject {
         guard isLiveNow, let roomID = data?.live?.roomID, roomID > 0 else { return nil }
         return String(roomID)
     }
+
     var liveRoomModel: LiveCardModel? {
         guard let roomId = liveRoomID else { return nil }
         return LiveCardModel(

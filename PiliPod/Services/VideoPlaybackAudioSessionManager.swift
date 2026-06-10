@@ -86,10 +86,10 @@ final class VideoPlaybackAudioSessionManager: ObservableObject {
         let session = AVAudioSession.sharedInstance()
         print(
             "[AudioSession][NowPlayingUpdate] " +
-            "isPlaying=\(normalizedInfo.isPlaying) elapsed=\(String(format: "%.3f", normalizedInfo.elapsedTime)) " +
-            "duration=\(String(format: "%.3f", normalizedInfo.duration)) rate=\(normalizedInfo.playbackRate) " +
-            "session.active=\(session.isOtherAudioPlaying == false) category=\(session.category.rawValue) " +
-            "engineRunning=\(audioEngine.isRunning) title=\(normalizedInfo.title)"
+                "isPlaying=\(normalizedInfo.isPlaying) elapsed=\(String(format: "%.3f", normalizedInfo.elapsedTime)) " +
+                "duration=\(String(format: "%.3f", normalizedInfo.duration)) rate=\(normalizedInfo.playbackRate) " +
+                "session.active=\(session.isOtherAudioPlaying == false) category=\(session.category.rawValue) " +
+                "engineRunning=\(audioEngine.isRunning) title=\(normalizedInfo.title)"
         )
 
         if currentArtworkURL != normalizedInfo.artworkURL {
@@ -234,9 +234,9 @@ final class VideoPlaybackAudioSessionManager: ObservableObject {
         MPNowPlayingInfoCenter.default().playbackState = info.isPlaying ? .playing : .paused
         print(
             "[AudioSession][NowPlayingPublished] " +
-            "isPlaying=\(info.isPlaying) elapsed=\(String(format: "%.3f", effectiveElapsed)) " +
-            "duration=\(String(format: "%.3f", effectiveDuration)) rate=\(effectiveRate) " +
-            "defaultRate=\(Float(max(info.playbackRate, 0))) hasArtwork=\(artwork != nil)"
+                "isPlaying=\(info.isPlaying) elapsed=\(String(format: "%.3f", effectiveElapsed)) " +
+                "duration=\(String(format: "%.3f", effectiveDuration)) rate=\(effectiveRate) " +
+                "defaultRate=\(Float(max(info.playbackRate, 0))) hasArtwork=\(artwork != nil)"
         )
     }
 
@@ -248,8 +248,8 @@ final class VideoPlaybackAudioSessionManager: ObservableObject {
         UIApplication.shared.beginReceivingRemoteControlEvents()
         print(
             "[AudioSession][SessionReady] reason=\(reason) " +
-            "category=\(session.category.rawValue) mode=\(session.mode.rawValue) " +
-            "otherAudioPlaying=\(session.isOtherAudioPlaying) engineRunning=\(audioEngine.isRunning)"
+                "category=\(session.category.rawValue) mode=\(session.mode.rawValue) " +
+                "otherAudioPlaying=\(session.isOtherAudioPlaying) engineRunning=\(audioEngine.isRunning)"
         )
     }
 

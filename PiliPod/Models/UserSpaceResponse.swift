@@ -79,7 +79,7 @@ struct UserSpaceLive: Codable {
     let roomID: Int?
 
     enum CodingKeys: String, CodingKey {
-        case liveStatus = "liveStatus"
+        case liveStatus
         case roomID = "roomid"
     }
 }
