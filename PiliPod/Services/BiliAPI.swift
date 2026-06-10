@@ -411,7 +411,9 @@ class BiliAPI {
             throw APIError.invalidURL
         }
 
-        let (data, response) = try await URLSession.shared.data(from: url)
+        let signedURL = try await BiliWbiSigner.shared.sign(url: url)
+        let request = makeRequest(url: signedURL)
+        let (data, response) = try await URLSession.shared.data(for: request)
         guard let httpResponse = response as? HTTPURLResponse,
               (200 ... 299).contains(httpResponse.statusCode)
         else {
@@ -428,27 +430,62 @@ class BiliAPI {
         let playurl = payload.playurlInfo.playurl
 
         guard
-            let selectedCodec = playurl.stream
-            .first(where: { $0.protocolName == "http_stream" })?
-            .format.first(where: { $0.formatName == "flv" })?
-            .codec.first(where: { $0.codecName.lowercased() == "avc" || $0.codecName.lowercased() == "h264" }),
+            let selectedCodec = liveAVCCodec(from: playurl),
             let urlInfo = selectedCodec.urlInfo.first,
             let streamURL = buildLiveStreamURL(
                 host: urlInfo.host,
                 baseURL: selectedCodec.baseURL,
-                extra: urlInfo.extra
+                extra: urlInfo.extra,
+                qn: qn
             )
         else {
             throw APIError.requestFailed
         }
 
         let aspectRatio: CGFloat = payload.isPortrait ? (9.0 / 16.0) : (16.0 / 9.0)
+        let acceptedQualityCodes = Set(selectedCodec.acceptQn)
+        let qualityOptions = playurl.gQnDesc
+            .filter { acceptedQualityCodes.contains($0.qn) }
+            .map { quality in
+                VideoQualityOption(
+                    id: quality.qn,
+                    code: quality.qn,
+                    label: liveQualityLabel(for: quality.qn, fallback: quality.desc)
+                )
+            }
+            .sorted { $0.code < $1.code }
+
         return LivePlaybackInfo(
             roomID: String(payload.roomID),
             streamURL: streamURL,
             aspectRatio: aspectRatio,
-            currentQn: selectedCodec.currentQn
+            currentQn: qn,
+            qualityOptions: qualityOptions
         )
+    }
+
+    private func liveAVCCodec(from playurl: LiveRoomPlayurl) -> LiveRoomCodec? {
+        playurl.stream
+            .first(where: { $0.protocolName == "http_stream" })?
+            .format.first(where: { $0.formatName == "flv" })?
+            .codec.first(where: { codec in
+                let normalized = codec.codecName.lowercased()
+                return normalized == "avc" || normalized == "h264"
+            })
+    }
+
+    private func liveQualityLabel(for code: Int, fallback: String?) -> String {
+        switch code {
+        case 80: return "流畅"
+        case 150: return "高清"
+        case 250: return "超清"
+        case 400: return "蓝光"
+        case 10000: return "原画"
+        case 15000: return "2K"
+        case 20000: return "4K"
+        case 30000: return "杜比"
+        default: return fallback ?? String(code)
+        }
     }
 
     func fetchLiveDanmakuInfo(roomID: Int) async throws -> LiveDanmakuInfo {
@@ -2087,6 +2124,7 @@ struct LivePlaybackInfo {
     let streamURL: URL
     let aspectRatio: CGFloat
     let currentQn: Int
+    let qualityOptions: [VideoQualityOption]
 }
 
 struct LiveRoomInfo {
@@ -2392,7 +2430,7 @@ private struct LiveDanmakuHostItem: Codable {
     }
 }
 
-private func buildLiveStreamURL(host: String, baseURL: String, extra: String) -> URL? {
+private func buildLiveStreamURL(host: String, baseURL: String, extra: String, qn: Int) -> URL? {
     let normalizedHost = host.hasSuffix("/") ? String(host.dropLast()) : host
     let normalizedBase = baseURL.hasPrefix("/") ? baseURL : "/" + baseURL
     let urlString = normalizedHost + normalizedBase
@@ -2403,6 +2441,10 @@ private func buildLiveStreamURL(host: String, baseURL: String, extra: String) ->
 
     let rawExtra = extra.hasPrefix("?") ? String(extra.dropFirst()) : extra
     components.percentEncodedQuery = rawExtra
+    var queryItems = components.queryItems ?? []
+    queryItems.removeAll { $0.name == "qn" }
+    queryItems.append(URLQueryItem(name: "qn", value: String(qn)))
+    components.queryItems = queryItems
     return components.url
 }
 

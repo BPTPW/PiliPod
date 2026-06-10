@@ -316,6 +316,7 @@ struct LivePlaybackPage: View {
                             .frame(width: 40, height: 40)
                     }
                     .glassEffect(.regular.interactive(), in: .circle)
+                    .tint(.primary)
 
                     Spacer(minLength: 0)
                 }
@@ -338,17 +339,38 @@ struct LivePlaybackPage: View {
 
                 Spacer(minLength: 0)
 
-                controlCircleButton(
-                    systemName: isFullscreen ? "arrow.down.right.and.arrow.up.left" : "arrow.up.left.and.arrow.down.right"
-                ) {
-                    toggleFullscreenManually()
-                    showControlsAndAutoHideIfNeeded(forceShow: true)
+                LiveQualityMenuView(
+                    options: viewModel.qualityOptions,
+                    selectedCode: viewModel.selectedQualityCode,
+                    onUserInteracted: {
+                        showControlsAndAutoHideIfNeeded(forceShow: true)
+                    },
+                    onSelect: { qn in
+                        Task { await selectQuality(qn) }
+                    }
+                )
+
+                if !isFullscreen {
+                    controlCircleButton(systemName: "arrow.up.left.and.arrow.down.right") {
+                        toggleFullscreenManually()
+                        showControlsAndAutoHideIfNeeded(forceShow: true)
+                    }
                 }
             }
             .padding(.horizontal, 12)
             .padding(.bottom, isFullscreen ? max(geo.safeAreaInsets.bottom, 10) : 10)
         }
         .animation(.easeOut(duration: 0.2), value: controlsVisible)
+    }
+
+    private func selectQuality(_ qn: Int) async {
+        print("selectQuality:\(qn)")
+        await viewModel.selectQuality(qn)
+        playerUISnapshot = player.uiSnapshot
+#if canImport(UIKit)
+        syncSystemMediaControl()
+#endif
+        refreshControlsAutoHideIfNeeded()
     }
 
     private func controlCircleButton(systemName: String, action: @escaping () -> Void) -> some View {
@@ -361,7 +383,7 @@ struct LivePlaybackPage: View {
         .tint(.primary)
         .glassEffect(.regular.interactive(), in: .circle)
     }
-
+    
     private func showControlsAndAutoHideIfNeeded(forceShow: Bool = false) {
         if forceShow {
             controlsVisible = true
@@ -633,6 +655,7 @@ private final class LivePlaybackViewModel {
     var streamURL: URL?
     var aspectRatio: CGFloat = 16.0 / 9.0
     var messages: [LiveDanmakuMessage] = []
+    var qualityOptions: [VideoQualityOption] = []
     var isLoading = false
     var errorMessage: String?
     private var currentQn: Int = 10000
@@ -690,6 +713,10 @@ private final class LivePlaybackViewModel {
         return URL(string: room.coverURL)
     }
 
+    var selectedQualityCode: Int? {
+        currentQn
+    }
+
     func loadPlaybackIfNeeded() async {
         guard !hasLoaded else { return }
         await withTaskGroup(of: Void.self) { group in
@@ -701,6 +728,12 @@ private final class LivePlaybackViewModel {
     }
 
     func refreshPlayback() async {
+        await loadPlayback(force: true)
+    }
+
+    func selectQuality(_ qn: Int) async {
+        guard currentQn != qn else { return }
+        currentQn = qn
         await loadPlayback(force: true)
     }
 
@@ -725,6 +758,7 @@ private final class LivePlaybackViewModel {
             streamURL = playback.streamURL
             aspectRatio = playback.aspectRatio
             currentQn = playback.currentQn
+            qualityOptions = playback.qualityOptions
         } catch {
             errorMessage = error.localizedDescription
         }
@@ -746,6 +780,56 @@ private final class LivePlaybackViewModel {
             print("fetchLiveDanmakuHistory failed: \(error.localizedDescription)")
         }
         await danmakuService.connect(roomID: roomID)
+    }
+}
+
+private struct LiveQualityMenuView: View, Equatable {
+    let options: [VideoQualityOption]
+    let selectedCode: Int?
+    let onUserInteracted: () -> Void
+    let onSelect: (Int) -> Void
+
+    static func == (lhs: LiveQualityMenuView, rhs: LiveQualityMenuView) -> Bool {
+        lhs.selectedCode == rhs.selectedCode && lhs.options == rhs.options
+    }
+
+    var body: some View {
+        Picker(selection: qualitySelection) {
+            ForEach(options) { option in
+                Text(option.label)
+                    .tag(Optional(option.code))
+            }
+        } label: {
+            Text(currentQualityLabel)
+                .foregroundStyle(.white)
+                .font(.system(size: 12, weight: .semibold))
+                .padding(.horizontal, 10)
+                .padding(.vertical, 8)
+                .glassEffect(.regular.interactive(), in: .capsule)
+        }
+        .pickerStyle(.menu)
+        .tint(.white)
+        .disabled(options.isEmpty)
+    }
+
+    private var currentQualityLabel: String {
+        if let selectedCode,
+           let selected = options.first(where: { $0.code == selectedCode })
+        {
+            return selected.label
+        }
+        return "画质"
+    }
+
+    private var qualitySelection: Binding<Int?> {
+        Binding(
+            get: { selectedCode },
+            set: { newCode in
+                guard let newCode else { return }
+                onUserInteracted()
+                onSelect(newCode)
+            }
+        )
     }
 }
 
