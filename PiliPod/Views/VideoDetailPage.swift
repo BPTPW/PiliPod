@@ -120,6 +120,7 @@ struct VideoDetailPage: View {
     @State private var cachedIntroDescriptionText = AttributedString("")
     @State private var shouldResumeAfterBackgroundPause = false
     @State private var backgroundPauseRestoreTime: TimeInterval?
+    @State private var offlineCachePrefill: OfflineCacheQueryPrefill?
 #if canImport(UIKit)
     @State private var preferredFullscreenOrientation: UIInterfaceOrientation = .landscapeRight
     @StateObject private var audioSessionManager = VideoPlaybackAudioSessionManager()
@@ -533,8 +534,10 @@ struct VideoDetailPage: View {
                                             toggleFullscreenManually()
                                         },
                                         onCacheVideo: {
-                                            // TODO: 后续在这里接入视频缓存流程。
-                                            toastMessage = "缓存视频功能暂未开放"
+                                            offlineCachePrefill = OfflineCacheQueryPrefill(
+                                                bvid: viewModel.bvid,
+                                                cid: viewModel.cid > 0 ? viewModel.cid : video.cid
+                                            )
                                         },
                                         onShowVideoStreamInfo: {
                                             showDebugPanel.toggle()
@@ -1032,7 +1035,7 @@ struct VideoDetailPage: View {
 #endif
 
             // 加载完成后启动历史上报
-            if bindableViewModel.dashStream != nil {
+            if bindableViewModel.dashStream != nil, !bindableViewModel.isPlayingOfflineCache {
                 bindableViewModel.startHistoryReporting()
             }
         }
@@ -1108,6 +1111,9 @@ struct VideoDetailPage: View {
                         onBack: { selectedRelatedVideo = nil }
                     )
                 }
+            }
+            .navigationDestination(item: $offlineCachePrefill) { prefill in
+                OfflineCacheView(initialPrefill: prefill)
             }
             .navigationDestination(item: $selectedUserSpaceRoute) { route in
                 UserSpaceView(

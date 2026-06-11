@@ -24,6 +24,7 @@ class VideoDetailViewModel {
     var videoShotIsLoading = false
     var videoPages: [VideoPageListItem] = []
     var videoPagesIsLoading = false
+    var isPlayingOfflineCache = false
 
     var relatedVideos: [VideoItem] = []
     var relatedIsLoading = false
@@ -140,16 +141,29 @@ class VideoDetailViewModel {
         lastReportedProgress = 0
         videoShotMetadata = nil
         videoShotIsLoading = false
+        isPlayingOfflineCache = false
         videoShotWarmTask?.cancel()
         videoShotWarmTask = nil
 
+        let preferredCachedAsset = OfflineCacheStorage.loadPlayableAsset(
+            bvid: bvid,
+            cid: cid > 0 ? cid : nil
+        )
+
         do {
             // 获取视频详情
-            let detail = try await BiliAPI.shared.fetchVideoDetail(bvid: bvid)
+            let detail: VideoDetailData
+            if let preferredCachedAsset {
+                detail = preferredCachedAsset.detail
+            } else {
+                detail = try await BiliAPI.shared.fetchVideoDetail(bvid: bvid)
+            }
             await MainActor.run {
                 self.videoDetail = detail
                 self.aid = detail.aid
-                self.cid = detail.cid
+                if self.cid <= 0 {
+                    self.cid = detail.cid
+                }
                 self.title = detail.title
                 self.likeCount = detail.stat.like
                 self.coinCount = detail.stat.coin
@@ -170,9 +184,10 @@ class VideoDetailViewModel {
             }
 
             // 获取播放器信息（用于历史记录跳转播放/在线人数等；失败不阻塞播放）
-            var playbackCid = detail.cid
+            var playbackCid = self.cid > 0 ? self.cid : detail.cid
             var playerInitialSeekTime: Double?
-            do {
+            if preferredCachedAsset == nil {
+                do {
                 let playerInfoResponse = try await BiliAPI.shared.fetchPlayerWbiV2(
                     bvid: bvid,
                     cid: detail.cid
@@ -185,14 +200,15 @@ class VideoDetailViewModel {
                         self.initialSeekTime = nil
                     }
                 }
-                if let lastCid = playerInfoResponse.data?.lastPlayCid, lastCid > 0 {
+                if self.cid <= 0, let lastCid = playerInfoResponse.data?.lastPlayCid, lastCid > 0 {
                     playbackCid = lastCid
                 }
                 if let lastMs = playerInfoResponse.data?.lastPlayTime, lastMs > 0 {
                     playerInitialSeekTime = Double(lastMs) / 1000.0
                 }
-            } catch {
-                print("获取播放器信息失败: \(error)")
+                } catch {
+                    print("获取播放器信息失败: \(error)")
+                }
             }
 
             await MainActor.run {
@@ -206,9 +222,19 @@ class VideoDetailViewModel {
                 }
             }
 
-            // 先加载第一包弹幕，供后续渲染层接入
-            Task {
-                await loadDanmakuSegment(cid: playbackCid, segmentIndex: 1)
+            if let cachedAsset = OfflineCacheStorage.loadPlayableAsset(bvid: bvid, cid: playbackCid) ?? preferredCachedAsset {
+                await MainActor.run {
+                    self.danmakuElements = OfflineCacheStorage.loadDanmakuElements(
+                        bvid: bvid,
+                        cid: cachedAsset.item.cid
+                    )
+                    self.loadedDanmakuSegments = Set(1 ... max(1, Int(ceil(Double(max(cachedAsset.item.duration, 1)) / 360.0))))
+                }
+            } else {
+                // 先加载第一包弹幕，供后续渲染层接入
+                Task {
+                    await loadDanmakuSegment(cid: playbackCid, segmentIndex: 1)
+                }
             }
 
             Task {
@@ -251,42 +277,64 @@ class VideoDetailViewModel {
                 }
             }
 
-            // 获取播放地址
-            let playUrlResponse = try await BiliAPI.shared.fetchPlayUrl(
-                bvid: bvid,
-                cid: playbackCid
-            )
-            let options = DashStreamSelector.qualityOptions(from: playUrlResponse)
-            let availableQualityCodes = options.map(\.code)
-            let playbackSettings = AudioVideoSettingsStore.load()
-            let preferredQuality = preferredQuality(for: playbackSettings)
-            let defaultQuality = DashStreamSelector.resolvePreferredQualityCode(
-                from: availableQualityCodes,
-                preferred: preferredQuality
-            )
+            if let cachedAsset = OfflineCacheStorage.loadPlayableAsset(bvid: bvid, cid: playbackCid) ?? preferredCachedAsset {
+                await MainActor.run {
+                    self.playUrlData = nil
+                    self.qualityOptions = [
+                        VideoQualityOption(
+                            id: cachedAsset.item.qualityCode,
+                            code: cachedAsset.item.qualityCode,
+                            label: cachedAsset.item.qualityLabel
+                        )
+                    ]
+                    self.selectedQualityCode = cachedAsset.item.qualityCode
+                    self.dashStream = cachedAsset.stream
+                    self.isPlayingOfflineCache = true
+                    self.isLoading = false
 
-            // 选择最优 DASH 流（按设置的默认画质和编码优先级）
-            guard let quality = defaultQuality,
-                  let stream = DashStreamSelector.selectStream(
-                      from: playUrlResponse,
-                      qualityCode: quality,
-                      preferredCodec: playbackSettings.preferredCodec
-                  )
-            else {
-                throw APIError.noVideoOrAudio
-            }
+                    if let player = self.player {
+                        player.play(stream: cachedAsset.stream)
+                        player.setPlaybackRate(self.selectedPlaybackRate)
+                    }
+                }
+            } else {
+                // 获取播放地址
+                let playUrlResponse = try await BiliAPI.shared.fetchPlayUrl(
+                    bvid: bvid,
+                    cid: playbackCid
+                )
+                let options = DashStreamSelector.qualityOptions(from: playUrlResponse)
+                let availableQualityCodes = options.map(\.code)
+                let playbackSettings = AudioVideoSettingsStore.load()
+                let preferredQuality = preferredQuality(for: playbackSettings)
+                let defaultQuality = DashStreamSelector.resolvePreferredQualityCode(
+                    from: availableQualityCodes,
+                    preferred: preferredQuality
+                )
 
-            await MainActor.run {
-                self.playUrlData = playUrlResponse
-                self.qualityOptions = options
-                self.selectedQualityCode = quality
-                self.dashStream = stream
-                self.isLoading = false
+                // 选择最优 DASH 流（按设置的默认画质和编码优先级）
+                guard let quality = defaultQuality,
+                      let stream = DashStreamSelector.selectStream(
+                          from: playUrlResponse,
+                          qualityCode: quality,
+                          preferredCodec: playbackSettings.preferredCodec
+                      )
+                else {
+                    throw APIError.noVideoOrAudio
+                }
 
-                // 加载到播放器
-                if let player = self.player {
-                    player.play(stream: stream)
-                    player.setPlaybackRate(self.selectedPlaybackRate)
+                await MainActor.run {
+                    self.playUrlData = playUrlResponse
+                    self.qualityOptions = options
+                    self.selectedQualityCode = quality
+                    self.dashStream = stream
+                    self.isPlayingOfflineCache = false
+                    self.isLoading = false
+
+                    if let player = self.player {
+                        player.play(stream: stream)
+                        player.setPlaybackRate(self.selectedPlaybackRate)
+                    }
                 }
             }
 
@@ -363,6 +411,52 @@ class VideoDetailViewModel {
         let preferredCodec = playbackSettings.preferredCodec
 
         do {
+            if let cachedAsset = OfflineCacheStorage.loadPlayableAsset(bvid: bvid, cid: page.cid) {
+                cid = page.cid
+                initialSeekTime = nil
+                playUrlData = nil
+                qualityOptions = [
+                    VideoQualityOption(
+                        id: cachedAsset.item.qualityCode,
+                        code: cachedAsset.item.qualityCode,
+                        label: cachedAsset.item.qualityLabel
+                    )
+                ]
+                selectedQualityCode = cachedAsset.item.qualityCode
+                dashStream = cachedAsset.stream
+                videoShotMetadata = nil
+                danmakuElements = OfflineCacheStorage.loadDanmakuElements(bvid: bvid, cid: page.cid)
+                loadedDanmakuSegments = Set(1 ... max(1, Int(ceil(Double(max(page.duration, 1)) / 360.0))))
+                loadingDanmakuSegments = []
+                danmakuSegmentIndex = 1
+                danmakuCID = page.cid
+                skipSegments = []
+                skipSegmentsCID = 0
+                videoShotCID = 0
+                error = nil
+                isPlayingOfflineCache = true
+
+                if let player {
+                    player.play(stream: cachedAsset.stream)
+                    player.setPlaybackRate(selectedPlaybackRate)
+                    if previousIsPlaying {
+                        player.resume()
+                    } else {
+                        player.pause()
+                    }
+                }
+
+                Task {
+                    await loadVideoShotMetadata(cid: page.cid)
+                }
+                if SponsorBlockSettingsStore.load().isEnabled {
+                    Task {
+                        await loadSkipSegments(cid: page.cid)
+                    }
+                }
+                return
+            }
+
             let playerInfoResponse = try? await BiliAPI.shared.fetchPlayerWbiV2(
                 bvid: bvid,
                 cid: page.cid
@@ -405,6 +499,7 @@ class VideoDetailViewModel {
             skipSegmentsCID = 0
             videoShotCID = 0
             error = nil
+            isPlayingOfflineCache = false
 
             if let player {
                 player.play(stream: stream)
@@ -534,6 +629,7 @@ class VideoDetailViewModel {
 
     @MainActor
     func loadDanmakuSegment(cid: Int? = nil, segmentIndex: Int = 1) async {
+        guard !isPlayingOfflineCache else { return }
         let targetCid = cid ?? self.cid
         guard targetCid > 0 else {
             danmakuError = "无效的 cid"
@@ -605,6 +701,7 @@ class VideoDetailViewModel {
 
     @MainActor
     func preloadDanmakuIfNeeded(currentTime: Double) async {
+        guard !isPlayingOfflineCache else { return }
         let targetCid = cid
         guard targetCid > 0 else { return }
 
@@ -879,6 +976,7 @@ class VideoDetailViewModel {
     // MARK: - History Report
 
     func startHistoryReporting() {
+        guard !isPlayingOfflineCache else { return }
         historyReportStartTask?.cancel()
         historyReportTimer?.invalidate()
         historyReportTimer = nil
@@ -893,13 +991,16 @@ class VideoDetailViewModel {
                 withTimeInterval: 15,
                 repeats: true
             ) { [weak self] _ in
-                guard let self, let currentPlayer = self.player else { return }
-                self.reportHistoryIfNeeded(with: currentPlayer)
+                Task { @MainActor [weak self] in
+                    guard let self, let currentPlayer = self.player else { return }
+                    self.reportHistoryIfNeeded(with: currentPlayer)
+                }
             }
         }
     }
 
     private func reportHistoryIfNeeded(with player: MPVKitPlayer) {
+        guard !isPlayingOfflineCache else { return }
         let currentProgress = Int(player.currentTime)
 
         // 如果进度有改变，才上报
@@ -921,6 +1022,8 @@ class VideoDetailViewModel {
         historyReportStartTask = nil
         historyReportTimer?.invalidate()
         historyReportTimer = nil
+
+        guard !isPlayingOfflineCache else { return }
 
         // 退出时最后上报一次
         let finalProgress = Int(player.currentTime)

@@ -1,0 +1,375 @@
+import SwiftUI
+
+struct OfflineCacheView: View {
+    let initialPrefill: OfflineCacheQueryPrefill?
+
+    @StateObject private var cacheManager = OfflineCacheManager.shared
+    @State private var isAddTaskSheetPresented = false
+    @State private var bvidOrAidText = ""
+    @State private var cidText = ""
+    @State private var queryResult: OfflineCacheQueryResult?
+    @State private var selectedQualityCode: Int?
+    @State private var queryError: String?
+    @State private var isQuerying = false
+    @State private var hasConsumedInitialPrefill = false
+    @State private var selectedVideo: VideoItem?
+    @Namespace private var videoNamespace
+
+    var body: some View {
+        ScrollView {
+            LazyVStack(spacing: 14) {
+                if cacheManager.sortedItems.isEmpty {
+                    emptyState
+                } else {
+                    ForEach(cacheManager.sortedItems) { item in
+                        OfflineCacheCardView(item: item) {
+                            guard item.status == .completed else { return }
+                            selectedVideo = VideoItem(
+                                bvid: item.bvid,
+                                cid: item.cid,
+                                cover: item.cover,
+                                title: item.title,
+                                playCount: "--",
+                                danmakuCount: "--",
+                                uploader: item.uploader,
+                                duration: item.duration,
+                                progressSeconds: nil,
+                                publishTimeText: "",
+                                bottomRcmdReasonText: nil
+                            )
+                        }
+                    }
+                }
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 18)
+        }
+        .background(Color(.systemGroupedBackground))
+        .navigationTitle("离线缓存")
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button {
+                    presentAddTaskSheet(prefill: nil, autoQuery: false)
+                } label: {
+                    Image(systemName: "plus")
+                }
+            }
+        }
+        .sheet(isPresented: $isAddTaskSheetPresented) {
+            addTaskSheet
+                .presentationDetents([.medium, .large])
+                .presentationDragIndicator(.visible)
+        }
+        .task {
+            guard !hasConsumedInitialPrefill else { return }
+            hasConsumedInitialPrefill = true
+            if let initialPrefill {
+                presentAddTaskSheet(prefill: initialPrefill, autoQuery: true)
+            }
+        }
+        .navigationDestination(item: $selectedVideo) { video in
+            VideoDetailPage(video: video, namespace: videoNamespace) {}
+        }
+    }
+
+    private var emptyState: some View {
+        VStack(spacing: 12) {
+            Image(systemName: "square.and.arrow.down")
+                .font(.system(size: 28, weight: .semibold))
+                .foregroundStyle(.secondary)
+
+            Text("还没有离线缓存任务")
+                .font(.headline)
+
+            Text("点击右上角加号，输入 BVID/AID 和 CID 后添加下载。")
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 44)
+    }
+
+    private var addTaskSheet: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 18) {
+                    HStack(spacing: 10) {
+                        TextField("BVID / AID", text: $bvidOrAidText)
+                            .textInputAutocapitalization(.never)
+                            .autocorrectionDisabled()
+                            .padding(.horizontal, 14)
+                            .padding(.vertical, 12)
+                            .background(
+                                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                                    .fill(Color(.secondarySystemGroupedBackground))
+                            )
+
+                        TextField("CID", text: $cidText)
+                            .keyboardType(.numberPad)
+                            .padding(.horizontal, 14)
+                            .padding(.vertical, 12)
+                            .background(
+                                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                                    .fill(Color(.secondarySystemGroupedBackground))
+                            )
+
+                        Button {
+                            Task { await runQuery() }
+                        } label: {
+                            if isQuerying {
+                                ProgressView()
+                                    .tint(.white)
+                                    .frame(width: 64, height: 44)
+                            } else {
+                                Text("查询")
+                                    .font(.system(size: 15, weight: .semibold))
+                                    .frame(width: 64, height: 44)
+                            }
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .disabled(isQuerying || bvidOrAidText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                    }
+
+                    if let queryError, !queryError.isEmpty {
+                        Text(queryError)
+                            .font(.footnote)
+                            .foregroundStyle(.red)
+                    }
+
+                    if let queryResult {
+                        VStack(alignment: .leading, spacing: 12) {
+                            Text(queryResult.detail.title)
+                                .font(.headline)
+                                .lineLimit(3)
+
+                            HStack(spacing: 10) {
+                                Text("CID \(queryResult.resolvedCID)")
+                                    .font(.subheadline)
+                                    .foregroundStyle(.secondary)
+
+                                Text(queryResult.detail.owner.name)
+                                    .font(.subheadline)
+                                    .foregroundStyle(.secondary)
+                            }
+
+                            Picker(
+                                "画质",
+                                selection: Binding(
+                                    get: { selectedQualityCode ?? queryResult.defaultQualityCode },
+                                    set: { selectedQualityCode = $0 }
+                                )
+                            ) {
+                                ForEach(queryResult.qualityOptions) { option in
+                                    Text(option.label).tag(option.code)
+                                }
+                            }
+                            .pickerStyle(.menu)
+
+                            Button {
+                                addTask()
+                            } label: {
+                                Text("添加任务")
+                                    .font(.system(size: 16, weight: .semibold))
+                                    .frame(maxWidth: .infinity)
+                                    .padding(.vertical, 14)
+                            }
+                            .buttonStyle(.borderedProminent)
+                        }
+                    }
+                }
+                .padding(20)
+            }
+            .navigationTitle("新增缓存任务")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button("关闭") {
+                        isAddTaskSheetPresented = false
+                    }
+                }
+            }
+        }
+    }
+
+    private func presentAddTaskSheet(prefill: OfflineCacheQueryPrefill?, autoQuery: Bool) {
+        bvidOrAidText = prefill?.bvid ?? ""
+        cidText = {
+            guard let cid = prefill?.cid, cid > 0 else { return "" }
+            return String(cid)
+        }()
+        queryResult = nil
+        selectedQualityCode = nil
+        queryError = nil
+        isAddTaskSheetPresented = true
+
+        guard autoQuery else { return }
+        Task { await runQuery() }
+    }
+
+    @MainActor
+    private func runQuery() async {
+        guard !isQuerying else { return }
+        isQuerying = true
+        defer { isQuerying = false }
+
+        do {
+            let result = try await cacheManager.queryVideo(
+                bvidOrAid: bvidOrAidText,
+                cid: cidText
+            )
+            queryResult = result
+            selectedQualityCode = result.defaultQualityCode
+            cidText = String(result.resolvedCID)
+            queryError = nil
+        } catch {
+            queryResult = nil
+            selectedQualityCode = nil
+            queryError = error.localizedDescription
+        }
+    }
+
+    private func addTask() {
+        guard let queryResult else { return }
+        cacheManager.addTask(
+            from: queryResult,
+            qualityCode: selectedQualityCode ?? queryResult.defaultQualityCode
+        )
+        isAddTaskSheetPresented = false
+    }
+}
+
+private struct OfflineCacheCardView: View {
+    let item: OfflineCacheItem
+    let onTap: () -> Void
+
+    private let coverWidth: CGFloat = 140
+    private let coverHeight: CGFloat = 88
+    private let cornerRadius: CGFloat = 18
+
+    var body: some View {
+        Button(action: onTap) {
+            HStack(alignment: .top, spacing: 12) {
+                ZStack(alignment: .bottomTrailing) {
+                    CachedAsyncImage(url: URL(string: item.cover)) { phase in
+                        if case .success(let image) = phase {
+                            image
+                                .resizable()
+                                .scaledToFill()
+                        } else {
+                            Rectangle()
+                                .fill(Color(.systemGray5))
+                        }
+                    }
+                    .frame(width: coverWidth, height: coverHeight)
+                    .clipped()
+
+                    Text(Self.formatDuration(item.duration))
+                        .font(.system(size: 11, weight: .medium))
+                        .foregroundStyle(.primary)
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 4)
+                        .glassEffect(.regular, in: .capsule)
+                        .padding(6)
+                }
+                .overlay(alignment: .topTrailing) {
+                    Text(item.qualityLabel)
+                        .font(.system(size: 10, weight: .semibold))
+                        .foregroundStyle(.white)
+                        .padding(.horizontal, 7)
+                        .padding(.vertical, 4)
+                        .background(
+                            Capsule()
+                                .fill(Color.black.opacity(0.6))
+                        )
+                        .padding(6)
+                }
+                .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+
+                VStack(alignment: .leading, spacing: 8) {
+                    Text(item.title)
+                        .font(.system(size: 14, weight: .medium))
+                        .multilineTextAlignment(.leading)
+                        .lineLimit(3)
+                        .foregroundStyle(.primary)
+
+                    Spacer(minLength: 0)
+
+                    Text(item.uploader)
+                        .font(.system(size: 12))
+                        .foregroundStyle(.secondary)
+
+                    if item.status == .downloading || item.status == .queued {
+                        VStack(alignment: .leading, spacing: 6) {
+                            Text(progressText)
+                                .font(.system(size: 11))
+                                .foregroundStyle(.secondary)
+
+                            ProgressView(value: item.progress)
+                                .tint(Color("BiliPink"))
+
+                            Text(speedText)
+                                .font(.system(size: 11))
+                                .foregroundStyle(.secondary)
+                        }
+                    } else {
+                        Text(sizeText)
+                            .font(.system(size: 11))
+                            .foregroundStyle(item.status == .failed ? .red : .secondary)
+                    }
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+            }
+            .padding(10)
+            .frame(height: 124)
+            .background(
+                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                    .fill(.ultraThinMaterial)
+                    .overlay {
+                        RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                            .stroke(Color.white.opacity(0.14), lineWidth: 1)
+                    }
+            )
+            .shadow(color: .black.opacity(0.10), radius: 18, y: 10)
+            .shadow(color: .black.opacity(0.06), radius: 6, y: 2)
+        }
+        .buttonStyle(.plain)
+        .disabled(item.status != .completed)
+    }
+
+    private var progressText: String {
+        let downloaded = CacheStorageService.formattedSize(item.downloadedBytes)
+        let total = item.totalBytes > 0 ? CacheStorageService.formattedSize(item.totalBytes) : "--"
+        return "\(downloaded) / \(total)"
+    }
+
+    private var speedText: String {
+        let base = item.status == .queued ? "等待下载" : "下载中"
+        guard item.speedBytesPerSecond > 0 else { return base }
+        return "\(base)  \(CacheStorageService.formattedSize(Int64(item.speedBytesPerSecond))) /s"
+    }
+
+    private var sizeText: String {
+        if item.status == .failed {
+            return item.errorMessage ?? "下载失败"
+        }
+        return "视频大小  \(CacheStorageService.formattedSize(max(item.fileSizeBytes, item.totalBytes)))"
+    }
+
+    private static func formatDuration(_ seconds: Int) -> String {
+        let sanitized = max(seconds, 0)
+        let h = sanitized / 3600
+        let m = (sanitized % 3600) / 60
+        let s = sanitized % 60
+        if h > 0 {
+            return String(format: "%d:%02d:%02d", h, m, s)
+        }
+        return String(format: "%02d:%02d", m, s)
+    }
+}
+
+#Preview {
+    NavigationStack {
+        OfflineCacheView(initialPrefill: nil)
+    }
+}

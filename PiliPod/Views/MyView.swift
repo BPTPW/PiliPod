@@ -13,6 +13,7 @@ struct MyView: View {
     @State private var showLoginSheet = false
     @State private var showHistory = false
     @State private var showWatchLater = false
+    @State private var showOfflineCache = false
     @State private var followingRoute: MyFollowingRoute?
 
     var body: some View {
@@ -79,6 +80,9 @@ struct MyView: View {
             }
             .navigationDestination(isPresented: $showHistory) {
                 HistoryView()
+            }
+            .navigationDestination(isPresented: $showOfflineCache) {
+                OfflineCacheView(initialPrefill: nil)
             }
             .navigationDestination(isPresented: $showWatchLater) {
                 WatchLaterView()
@@ -187,7 +191,8 @@ struct MyView: View {
         HStack(spacing: 12) {
             quickActionButton(
                 title: "离线缓存",
-                systemImage: "square.and.arrow.down"
+                systemImage: "square.and.arrow.down",
+                action: { showOfflineCache = true }
             )
 
             quickActionButton(

@@ -2024,6 +2024,17 @@ class BiliAPI {
         cid: Int,
         segmentIndex: Int = 1
     ) async throws -> Bilibili_Community_Service_Dm_V1_DmSegMobileReply {
+        let data = try await fetchDanmakuSegmentData(
+            cid: cid,
+            segmentIndex: segmentIndex
+        )
+        return try Bilibili_Community_Service_Dm_V1_DmSegMobileReply(serializedBytes: data)
+    }
+
+    func fetchDanmakuSegmentData(
+        cid: Int,
+        segmentIndex: Int = 1
+    ) async throws -> Data {
         var components = URLComponents(
             string: "https://api.bilibili.com/x/v2/dm/web/seg.so"
         )
@@ -2052,7 +2063,7 @@ class BiliAPI {
             throw APIError.requestFailed
         }
 
-        return try Bilibili_Community_Service_Dm_V1_DmSegMobileReply(serializedBytes: data)
+        return data
     }
 
     // MARK: - sign 创建
