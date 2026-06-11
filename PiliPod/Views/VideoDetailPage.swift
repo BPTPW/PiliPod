@@ -112,6 +112,7 @@ struct VideoDetailPage: View {
     @State private var sponsorSubmitErrorText: String?
     @State private var sponsorIsSubmitting = false
     @State private var previewDraftSegmentID: SponsorBlockDraftSegment.ID?
+    @State private var showsVideoPageDrawer = false
     @State private var playerUISnapshot = PlayerUIPlaybackSnapshot()
     @State private var debugPanelRefreshTask: Task<Void, Never>?
     @State private var lastNowPlayingSyncedSecond: Int?
@@ -231,6 +232,13 @@ struct VideoDetailPage: View {
             return TimeInterval(video.duration)
         }
         return 0
+    }
+
+    private var currentVideoPage: VideoPageListItem? {
+        if let page = viewModel.videoPages.first(where: { $0.cid == viewModel.cid }) {
+            return page
+        }
+        return viewModel.videoPages.first
     }
 
     init(video: VideoItem, namespace: Namespace.ID, onBack: @escaping () -> Void) {
@@ -829,8 +837,28 @@ struct VideoDetailPage: View {
                                 .transition(.move(edge: .bottom).combined(with: .opacity))
                                 .zIndex(1)
                             }
+
+                            if showsVideoPageDrawer {
+                                VideoPageSelectionDrawer(
+                                    pages: viewModel.videoPages,
+                                    currentCID: viewModel.cid,
+                                    onClose: {
+                                        withAnimation(.spring(response: 0.32, dampingFraction: 0.88)) {
+                                            showsVideoPageDrawer = false
+                                        }
+                                    },
+                                    onSelect: { page in
+                                        Task { @MainActor in
+                                            await switchVideoPage(to: page)
+                                        }
+                                    }
+                                )
+                                .transition(.move(edge: .bottom).combined(with: .opacity))
+                                .zIndex(2)
+                            }
                         }
                         .animation(.spring(response: 0.32, dampingFraction: 0.88), value: showsSponsorSubmitSheet)
+                        .animation(.spring(response: 0.32, dampingFraction: 0.88), value: showsVideoPageDrawer)
                     }
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: isFullscreen ? .center : .top)
@@ -956,6 +984,7 @@ struct VideoDetailPage: View {
             sponsorSubmitErrorText = nil
             sponsorIsSubmitting = false
             previewDraftSegmentID = nil
+            showsVideoPageDrawer = false
             shouldResumeAfterBackgroundPause = false
             backgroundPauseRestoreTime = nil
             ensureSponsorSegmentsLoadedIfNeeded()
@@ -1308,6 +1337,9 @@ struct VideoDetailPage: View {
             isCoinRequesting: viewModel.isCoinRequesting,
             isFavoriteRequesting: viewModel.isFavoriteRequesting,
             isWatchLaterRequesting: viewModel.isWatchLaterRequesting,
+            currentPageCID: currentVideoPage?.cid ?? viewModel.cid,
+            currentPageTitle: currentVideoPage?.part ?? viewModel.title,
+            videoPages: viewModel.videoPages,
             relatedIsLoading: viewModel.relatedIsLoading,
             relatedError: viewModel.relatedError,
             relatedVideos: Array(viewModel.relatedVideos.prefix(40))
@@ -1371,6 +1403,17 @@ struct VideoDetailPage: View {
                     onLaterWatch: {
                         if !viewModel.isWatchLater {
                             viewModel.addToWatchLater()
+                        }
+                    },
+                    onOpenPageDrawer: {
+                        withAnimation(.spring(response: 0.32, dampingFraction: 0.88)) {
+                            showsSponsorSubmitSheet = false
+                            showsVideoPageDrawer = true
+                        }
+                    },
+                    onSelectPage: { page in
+                        Task { @MainActor in
+                            await switchVideoPage(to: page)
                         }
                     },
                     onOpenRelatedVideo: { item in
@@ -1647,7 +1690,23 @@ struct VideoDetailPage: View {
             sponsorDraftSegments = [SponsorBlockDraftSegment()]
         }
         sponsorSubmitErrorText = nil
+        showsVideoPageDrawer = false
         showsSponsorSubmitSheet = true
+    }
+
+    @MainActor
+    private func switchVideoPage(to page: VideoPageListItem) async {
+        withAnimation(.spring(response: 0.32, dampingFraction: 0.88)) {
+            showsVideoPageDrawer = false
+        }
+        await viewModel.switchToPage(page)
+        playerUISnapshot = viewModel.player?.uiSnapshot ?? PlayerUIPlaybackSnapshot()
+        skippedSponsorSegmentIDs = []
+        hiddenManualSponsorSegmentIDs = []
+        manualSkipSegment = nil
+        lastDanmakuPrefetchSegment = 0
+        refreshCachedIntroDescription()
+        syncSystemMediaControl(reason: "video-page-changed")
     }
 
     private func updateSponsorDraftSegment(

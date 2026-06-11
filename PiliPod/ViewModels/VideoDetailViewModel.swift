@@ -22,6 +22,8 @@ class VideoDetailViewModel {
     var selectedPlaybackRate: Double = 1.0
     var videoShotMetadata: VideoShotPreviewMetadata?
     var videoShotIsLoading = false
+    var videoPages: [VideoPageListItem] = []
+    var videoPagesIsLoading = false
 
     var relatedVideos: [VideoItem] = []
     var relatedIsLoading = false
@@ -49,6 +51,8 @@ class VideoDetailViewModel {
     private var loadedDanmakuSegments: Set<Int> = []
     private var loadingDanmakuSegments: Set<Int> = []
     private var danmakuCID: Int = 0
+    private var skipSegmentsCID: Int = 0
+    private var videoShotCID: Int = 0
 
     var isLiked = false
     var isDisliked = false
@@ -107,6 +111,8 @@ class VideoDetailViewModel {
         relatedVideos = []
         relatedIsLoading = false
         relatedError = nil
+        videoPages = []
+        videoPagesIsLoading = false
         ownerFollowerCount = nil
         ownerArchiveCount = nil
         isOwnerFollowing = false
@@ -121,6 +127,8 @@ class VideoDetailViewModel {
         loadedDanmakuSegments = []
         loadingDanmakuSegments = []
         danmakuCID = 0
+        skipSegmentsCID = 0
+        videoShotCID = 0
         isLiked = false
         isDisliked = false
         isCoined = false
@@ -146,6 +154,19 @@ class VideoDetailViewModel {
                 self.likeCount = detail.stat.like
                 self.coinCount = detail.stat.coin
                 self.favoriteCount = detail.stat.favorite
+                self.videoPages = detail.pages.map {
+                    VideoPageListItem(
+                        cid: $0.cid,
+                        page: $0.page,
+                        part: $0.part,
+                        duration: $0.duration,
+                        firstFrame: nil
+                    )
+                }
+            }
+
+            Task {
+                await loadVideoPages()
             }
 
             // 获取播放器信息（用于历史记录跳转播放/在线人数等；失败不阻塞播放）
@@ -317,6 +338,100 @@ class VideoDetailViewModel {
         )
     }
 
+    @MainActor
+    func loadVideoPages() async {
+        guard !videoPagesIsLoading else { return }
+        videoPagesIsLoading = true
+        defer { videoPagesIsLoading = false }
+
+        do {
+            let pages = try await BiliAPI.shared.fetchVideoPageList(bvid: bvid)
+            if !pages.isEmpty {
+                videoPages = pages
+            }
+        } catch {
+            print("获取视频分P列表失败: \(error)")
+        }
+    }
+
+    @MainActor
+    func switchToPage(_ page: VideoPageListItem) async {
+        guard page.cid > 0, page.cid != cid else { return }
+
+        let previousIsPlaying = player?.isPlaying ?? true
+        let playbackSettings = AudioVideoSettingsStore.load()
+        let preferredCodec = playbackSettings.preferredCodec
+
+        do {
+            let playerInfoResponse = try? await BiliAPI.shared.fetchPlayerWbiV2(
+                bvid: bvid,
+                cid: page.cid
+            )
+            let playUrlResponse = try await BiliAPI.shared.fetchPlayUrl(
+                bvid: bvid,
+                cid: page.cid
+            )
+            let options = DashStreamSelector.qualityOptions(from: playUrlResponse)
+            let availableQualityCodes = options.map(\.code)
+            let fallbackQuality = availableQualityCodes.max()
+            let targetQuality = selectedQualityCode.flatMap { code in
+                availableQualityCodes.contains(code) ? code : nil
+            } ?? fallbackQuality
+
+            guard let resolvedQuality = targetQuality,
+                  let stream = DashStreamSelector.selectStream(
+                      from: playUrlResponse,
+                      qualityCode: resolvedQuality,
+                      preferredCodec: preferredCodec
+                  )
+            else {
+                throw APIError.noVideoOrAudio
+            }
+
+            cid = page.cid
+            playerInfo = playerInfoResponse?.data
+            initialSeekTime = nil
+            playUrlData = playUrlResponse
+            qualityOptions = options
+            selectedQualityCode = resolvedQuality
+            dashStream = stream
+            videoShotMetadata = nil
+            danmakuElements = []
+            loadedDanmakuSegments = []
+            loadingDanmakuSegments = []
+            danmakuSegmentIndex = 1
+            danmakuCID = 0
+            skipSegments = []
+            skipSegmentsCID = 0
+            videoShotCID = 0
+            error = nil
+
+            if let player {
+                player.play(stream: stream)
+                player.setPlaybackRate(selectedPlaybackRate)
+                if previousIsPlaying {
+                    player.resume()
+                } else {
+                    player.pause()
+                }
+            }
+
+            Task {
+                await loadDanmakuSegment(cid: page.cid, segmentIndex: 1)
+            }
+            Task {
+                await loadVideoShotMetadata(cid: page.cid)
+            }
+            if SponsorBlockSettingsStore.load().isEnabled {
+                Task {
+                    await loadSkipSegments(cid: page.cid)
+                }
+            }
+        } catch {
+            self.error = error.localizedDescription
+        }
+    }
+
     private func preferredQuality(for settings: AudioVideoSettings) -> PreferredVideoQuality {
         if NetworkTypeMonitor.shared.isCellularConnection {
             return settings.cellularDefaultQuality
@@ -446,6 +561,11 @@ class VideoDetailViewModel {
                 cid: targetCid,
                 segmentIndex: segmentIndex
             )
+            guard danmakuCID == targetCid else {
+                loadingDanmakuSegments.remove(segmentIndex)
+                danmakuIsLoading = !loadingDanmakuSegments.isEmpty
+                return
+            }
             loadedDanmakuSegments.insert(segmentIndex)
             loadingDanmakuSegments.remove(segmentIndex)
             mergeDanmakuElements(reply.elems)
@@ -460,21 +580,27 @@ class VideoDetailViewModel {
     @MainActor
     func loadSkipSegments(cid: Int? = nil) async {
         let targetCid = cid ?? self.cid
+        skipSegmentsCID = targetCid
         skipSegmentsIsLoading = true
         skipSegmentsError = nil
+        defer {
+            if skipSegmentsCID == targetCid {
+                skipSegmentsIsLoading = false
+            }
+        }
 
         do {
             let segments = try await SponsorBlockAPI.fetchSkipSegments(
                 videoID: bvid,
                 cid: targetCid > 0 ? targetCid : nil
             )
+            guard skipSegmentsCID == targetCid else { return }
             skipSegments = segments
         } catch {
+            guard skipSegmentsCID == targetCid else { return }
             skipSegments = []
             skipSegmentsError = error.localizedDescription
         }
-
-        skipSegmentsIsLoading = false
     }
 
     @MainActor
@@ -491,17 +617,23 @@ class VideoDetailViewModel {
     func loadVideoShotMetadata(cid: Int? = nil) async {
         let targetCid = cid ?? self.cid
         guard targetCid > 0 else { return }
-        guard !videoShotIsLoading else { return }
-        guard videoShotMetadata == nil else { return }
+        guard !(videoShotCID == targetCid && videoShotMetadata != nil) else { return }
 
+        videoShotCID = targetCid
         videoShotIsLoading = true
-        defer { videoShotIsLoading = false }
+        defer {
+            if videoShotCID == targetCid {
+                videoShotIsLoading = false
+            }
+        }
 
         do {
-            videoShotMetadata = try await BiliAPI.shared.fetchVideoShotPreview(
+            let metadata = try await BiliAPI.shared.fetchVideoShotPreview(
                 bvid: bvid,
                 cid: targetCid
             )
+            guard videoShotCID == targetCid else { return }
+            videoShotMetadata = metadata
             warmVideoShotSpriteSheetsIfNeeded()
         } catch {
             print("加载视频快照预览失败: \(error)")

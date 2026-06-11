@@ -1526,6 +1526,35 @@ class BiliAPI {
         return relation
     }
 
+    // MARK: - 视频分P列表
+
+    func fetchVideoPageList(bvid: String) async throws -> [VideoPageListItem] {
+        var components = URLComponents(
+            string: "https://api.bilibili.com/x/player/pagelist"
+        )
+        components?.queryItems = [
+            URLQueryItem(name: "bvid", value: bvid)
+        ]
+
+        guard let url = components?.url else {
+            throw APIError.invalidURL
+        }
+
+        let request = makeRequest(url: url)
+        let (data, _) = try await URLSession.shared.data(for: request)
+
+        let response = try JSONDecoder().decode(
+            VideoPageListResponse.self,
+            from: data
+        )
+
+        if response.code != 0 {
+            throw APIError.responseError(response.code)
+        }
+
+        return response.data
+    }
+
     // MARK: - 用户关系
 
     func modifyUserRelation(fid: Int, act: Int) async throws {

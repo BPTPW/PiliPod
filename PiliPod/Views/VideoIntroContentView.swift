@@ -36,6 +36,9 @@ struct IntroTabDisplayModel: Equatable {
     let isCoinRequesting: Bool
     let isFavoriteRequesting: Bool
     let isWatchLaterRequesting: Bool
+    let currentPageCID: Int
+    let currentPageTitle: String
+    let videoPages: [VideoPageListItem]
     let relatedIsLoading: Bool
     let relatedError: String?
     let relatedVideos: [VideoItem]
@@ -55,6 +58,8 @@ struct IntroTabContentView: View, Equatable {
     let onToggleFavorite: () -> Void
     let onShare: () -> Void
     let onLaterWatch: () -> Void
+    let onOpenPageDrawer: () -> Void
+    let onSelectPage: (VideoPageListItem) -> Void
     let onOpenRelatedVideo: (VideoItem) -> Void
 
     static func == (lhs: IntroTabContentView, rhs: IntroTabContentView) -> Bool {
@@ -72,6 +77,10 @@ struct IntroTabContentView: View, Equatable {
             return .mint
         }
         return banner.color
+    }
+
+    private var showsVideoPages: Bool {
+        model.videoPages.count > 1
     }
 
     var body: some View {
@@ -230,6 +239,10 @@ struct IntroTabContentView: View, Equatable {
                 )
                 .padding(.top, 4)
 
+                if showsVideoPages {
+                    videoPageSection
+                }
+
                 if model.relatedIsLoading
                     || model.relatedError != nil
                     || !model.relatedVideos.isEmpty
@@ -277,5 +290,62 @@ struct IntroTabContentView: View, Equatable {
             .frame(maxWidth: .infinity, alignment: .top)
         }
         .background(Color(.systemBackground))
+    }
+
+    private var videoPageSection: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(alignment: .center, spacing: 8) {
+                Text("视频选集")
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundStyle(.primary)
+
+                Text(model.currentPageTitle)
+                    .font(.system(size: 12))
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+                    .truncationMode(.tail)
+
+                Spacer(minLength: 12)
+
+                Button(action: onOpenPageDrawer) {
+                    Text("共\(model.videoPages.count)集")
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundStyle(.primary)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 8)
+                }
+                .buttonStyle(.plain)
+                .glassEffect(
+                    .regular.interactive(),
+                    in: .capsule
+                )
+            }
+
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 10) {
+                    ForEach(model.videoPages) { page in
+                        let isCurrent = page.cid == model.currentPageCID
+                        Button {
+                            onSelectPage(page)
+                        } label: {
+                            Text(page.part)
+                                .font(.system(size: 12, weight: .medium))
+                                .foregroundStyle(isCurrent ? Color("BiliPink") : .primary)
+                                .lineLimit(1)
+                                .truncationMode(.tail)
+                                .frame(width: 132, height: 36, alignment: .leading)
+                                .padding(.horizontal, 14)
+                        }
+                        .buttonStyle(.plain)
+                        .glassEffect(
+                            .regular.interactive(),
+                            in: .capsule
+                        )
+                    }
+                }
+                .padding(.vertical, 2)
+            }
+        }
+        .padding(.top, 2)
     }
 }

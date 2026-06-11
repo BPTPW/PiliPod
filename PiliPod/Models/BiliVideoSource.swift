@@ -212,6 +212,31 @@ struct VideoPage: Codable {
     let duration: Int
 }
 
+struct VideoPageListResponse: Codable {
+    let code: Int
+    let message: String
+    let ttl: Int
+    let data: [VideoPageListItem]
+}
+
+struct VideoPageListItem: Codable, Identifiable, Equatable {
+    let cid: Int
+    let page: Int
+    let part: String
+    let duration: Int
+    let firstFrame: String?
+
+    var id: Int { cid }
+
+    enum CodingKeys: String, CodingKey {
+        case cid
+        case page
+        case part
+        case duration
+        case firstFrame = "first_frame"
+    }
+}
+
 struct DescV2Item: Codable, Identifiable {
     let rawText: String
     let type: Int
