@@ -294,20 +294,28 @@ struct OfflineCacheView: View {
             return
         }
 
-        guard item.status == .completed else { return }
-        selectedVideo = VideoItem(
-            bvid: item.bvid,
-            cid: item.cid,
-            cover: item.cover,
-            title: item.title,
-            playCount: "--",
-            danmakuCount: "--",
-            uploader: item.uploader,
-            duration: item.duration,
-            progressSeconds: nil,
-            publishTimeText: "",
-            bottomRcmdReasonText: nil
-        )
+        switch item.status {
+        case .completed:
+            selectedVideo = VideoItem(
+                bvid: item.bvid,
+                cid: item.cid,
+                cover: item.cover,
+                title: item.title,
+                playCount: "--",
+                danmakuCount: "--",
+                uploader: item.uploader,
+                duration: item.duration,
+                progressSeconds: nil,
+                publishTimeText: "",
+                bottomRcmdReasonText: nil
+            )
+        case .downloading, .queued:
+            cacheManager.stopDownload(id: item.id)
+            toastMessage = "已停止下载"
+        case .failed:
+            cacheManager.restartDownload(id: item.id)
+            toastMessage = "正在重新下载"
+        }
     }
 
     private func enterSelectionMode(selecting itemID: UUID? = nil) {

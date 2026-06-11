@@ -355,6 +355,69 @@ final class OfflineCacheManager: ObservableObject {
         deleteItems(ids: [id])
     }
 
+    func stopDownload(id: UUID) {
+        runningTasks[id]?.cancel()
+        runningTasks[id] = nil
+
+        Task { @MainActor [weak self] in
+            guard let self else { return }
+            await self.updateItem(id) { item in
+                item.status = .failed
+                item.errorMessage = "下载已停止，点击重新下载"
+                item.speedBytesPerSecond = 0
+                item.updatedAt = Date()
+            }
+        }
+    }
+
+    func restartDownload(id: UUID) {
+        guard runningTasks[id] == nil,
+              let item = items.first(where: { $0.id == id })
+        else { return }
+
+        Task { @MainActor [weak self] in
+            guard let self else { return }
+            do {
+                let queryResult = try await self.queryVideo(
+                    bvidOrAid: item.bvid,
+                    cid: String(item.cid)
+                )
+                guard let stream = DashStreamSelector.selectStream(
+                    from: queryResult.playURLResponse,
+                    qualityCode: item.qualityCode,
+                    preferredCodec: AudioVideoSettingsStore.load().preferredCodec
+                ) else {
+                    throw APIError.noVideoOrAudio
+                }
+
+                let directoryURL = try OfflineCacheStorage.itemDirectoryURL(
+                    relativeDirectory: item.relativeDirectory
+                )
+                if FileManager.default.fileExists(atPath: directoryURL.path) {
+                    try FileManager.default.removeItem(at: directoryURL)
+                }
+
+                await self.updateItem(id) { current in
+                    current.totalBytes = 0
+                    current.downloadedBytes = 0
+                    current.fileSizeBytes = 0
+                    current.speedBytesPerSecond = 0
+                    current.status = .queued
+                    current.errorMessage = nil
+                    current.updatedAt = Date()
+                }
+
+                self.startDownload(
+                    for: id,
+                    queryResult: queryResult,
+                    stream: stream
+                )
+            } catch {
+                await self.markFailed(itemID: id, message: error.localizedDescription)
+            }
+        }
+    }
+
     func deleteItems(ids: Set<UUID>) {
         guard !ids.isEmpty else { return }
 
@@ -494,27 +557,44 @@ final class OfflineCacheManager: ObservableObject {
         to destinationURL: URL,
         itemID: UUID
     ) async throws -> Int64 {
+        final class SpeedState {
+            var lastSampleAt = Date()
+            var lastSampleBytes: Int64 = 0
+        }
+
         if FileManager.default.fileExists(atPath: destinationURL.path) {
             try FileManager.default.removeItem(at: destinationURL)
         }
         let request = makeMediaRequest(url: sourceURL)
         let downloadedBase = items.first(where: { $0.id == itemID })?.downloadedBytes ?? 0
-        let start = Date()
+        let speedState = SpeedState()
 
         let (temporaryURL, response) = try await DownloadFileRunner.run(
             request: request,
             progress: { [weak self] completed, total in
                 guard let self else { return }
                 Task { @MainActor in
-                    let elapsed = max(Date().timeIntervalSince(start), 0.001)
-                    let speed = Double(completed) / elapsed
+                    let now = Date()
+                    let shouldUpdateSpeed = now.timeIntervalSince(speedState.lastSampleAt) >= 0.5
+                        || (total > 0 && completed >= total)
+                    let deltaBytes = completed - speedState.lastSampleBytes
+                    let deltaTime = max(now.timeIntervalSince(speedState.lastSampleAt), 0.001)
+                    let sampledSpeed = Double(max(deltaBytes, 0)) / deltaTime
+
                     await self.updateItem(itemID) { item in
                         if total > 0 {
                             item.totalBytes = max(item.totalBytes, total)
                         }
                         item.downloadedBytes = max(item.downloadedBytes, downloadedBase + completed)
-                        item.speedBytesPerSecond = speed
+                        if shouldUpdateSpeed {
+                            item.speedBytesPerSecond = sampledSpeed
+                        }
                         item.updatedAt = Date()
+                    }
+
+                    if shouldUpdateSpeed {
+                        speedState.lastSampleAt = now
+                        speedState.lastSampleBytes = completed
                     }
                 }
             }
@@ -655,7 +735,19 @@ private final class DownloadTaskBridge: NSObject, URLSessionDownloadDelegate, UR
             continuation = nil
             return
         }
-        continuation?.resume(returning: (location, response))
+        let preservedURL = FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString)
+            .appendingPathExtension("download")
+
+        do {
+            if FileManager.default.fileExists(atPath: preservedURL.path) {
+                try FileManager.default.removeItem(at: preservedURL)
+            }
+            try FileManager.default.moveItem(at: location, to: preservedURL)
+            continuation?.resume(returning: (preservedURL, response))
+        } catch {
+            continuation?.resume(throwing: error)
+        }
         continuation = nil
     }
 
