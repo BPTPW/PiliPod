@@ -14,6 +14,8 @@ struct VideoCardView: View {
     let onTap: () -> Void
 
     @State private var sponsorLabel: SponsorBlockVideoLabel?
+    @State private var isAddingToWatchLater = false
+    @State private var watchLaterMessage: String?
 
     private var heroID: String { "videoHero.\(video.bvid)" }
     private let cornerRadius: CGFloat = 18
@@ -122,8 +124,32 @@ struct VideoCardView: View {
             .frame(width: thumbnailWidth, alignment: .leading)
         }
         .buttonStyle(.plain)
+        .contextMenu {
+            Button {
+                addToWatchLater()
+            } label: {
+                Label("稍后再看", systemImage: "clock.badge")
+            }
+            .disabled(isAddingToWatchLater)
+        }
+        .toast(message: $watchLaterMessage)
         .task(id: video.bvid) {
             sponsorLabel = await SponsorBlockAPI.fetchPrimaryVideoLabelIfAvailable(videoID: video.bvid)
+        }
+    }
+
+    private func addToWatchLater() {
+        guard !isAddingToWatchLater else { return }
+
+        isAddingToWatchLater = true
+        Task {
+            defer { isAddingToWatchLater = false }
+            do {
+                try await BiliAPI.shared.addToWatchLater(bvid: video.bvid)
+                watchLaterMessage = "已添加到稍后再看。"
+            } catch {
+                watchLaterMessage = error.localizedDescription
+            }
         }
     }
 }
