@@ -121,7 +121,7 @@ extension VideoItem {
         }
 
         let formatter = DateFormatter()
-        formatter.dateFormat = "yyyy-MM-dd"
+        formatter.dateFormat = "yyyy-MM-dd HH:mm"
         formatter.locale = Locale(identifier: "zh_CN")
         formatter.timeZone = TimeZone.current
 

@@ -157,6 +157,7 @@ struct IntroTabContentView: View, Equatable {
                         onToggleExpand()
                     }
 
+                // 播放量/弹幕量/投稿时间/在线人数
                 HStack(spacing: 10) {
                     Label(VideoItem.formatCount(model.viewCount), systemImage: "play.fill")
                     Label(VideoItem.formatCount(model.danmakuCount), systemImage: "text.bubble.fill")
