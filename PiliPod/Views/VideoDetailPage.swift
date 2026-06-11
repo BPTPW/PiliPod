@@ -435,6 +435,13 @@ struct VideoDetailPage: View {
                                     )
                                 }
                                 .overlay {
+                                    PlayerLoadingOverlay(
+                                        isVisible: playerUISnapshot.isBuffering,
+                                        speedBytesPerSecond: playerUISnapshot.loadingSpeedBytesPerSecond
+                                    )
+                                    .allowsHitTesting(false)
+                                }
+                                .overlay {
                                     if isFullscreen && controlsVisible {
                                         VStack(spacing: 0) {
                                             LinearGradient(
@@ -727,15 +734,19 @@ struct VideoDetailPage: View {
 
                             VStack(spacing: 12) {
                                 if bindableViewModel.isLoading {
-                                    ProgressView()
-                                        .tint(.white)
+                                    PlayerLoadingOverlay(
+                                        isVisible: true,
+                                        speedBytesPerSecond: 0
+                                    )
                                 } else if bindableViewModel.error != nil {
                                     Image(systemName: "exclamationmark.triangle")
                                         .font(.system(size: 32))
                                         .foregroundColor(.white)
                                 } else {
-                                    ProgressView()
-                                        .tint(.white)
+                                    PlayerLoadingOverlay(
+                                        isVisible: true,
+                                        speedBytesPerSecond: 0
+                                    )
                                 }
                             }
                         }
@@ -2890,6 +2901,53 @@ private struct QualityMenuView: View, Equatable {
 }
 
 // MARK: - 视频控制器覆盖
+
+struct PlayerLoadingOverlay: View {
+    let isVisible: Bool
+    let speedBytesPerSecond: Double
+
+    var body: some View {
+        if isVisible {
+            VStack(spacing: 8) {
+                ProgressView()
+                    .progressViewStyle(.circular)
+                    .tint(.white)
+                    .controlSize(.regular)
+
+                Text(formattedSpeed)
+                    .font(.system(size: 12, weight: .semibold, design: .rounded))
+                    .monospacedDigit()
+                    .foregroundStyle(.white.opacity(0.92))
+            }
+            .padding(.horizontal, 14)
+            .padding(.vertical, 12)
+            .background(
+                .black.opacity(0.42),
+                in: RoundedRectangle(cornerRadius: 16, style: .continuous)
+            )
+            .transition(.opacity.combined(with: .scale(scale: 0.96)))
+        }
+    }
+
+    private var formattedSpeed: String {
+        let speed = max(speedBytesPerSecond, 0)
+        let kilobytes = speed / 1024.0
+        guard kilobytes >= 1024 else {
+            return "\(format(kilobytes)) KB/s"
+        }
+        return "\(format(kilobytes / 1024.0)) MB/s"
+    }
+
+    private func format(_ value: Double) -> String {
+        if value >= 100 {
+            return String(format: "%.0f", value)
+        }
+        if value >= 10 {
+            return String(format: "%.1f", value)
+        }
+        return String(format: "%.2f", value)
+    }
+}
 
 private struct PlayerControlsOverlay: View {
     @Binding var showDebugPanel: Bool

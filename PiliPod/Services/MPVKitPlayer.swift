@@ -14,6 +14,8 @@ struct PlayerUIPlaybackSnapshot: Equatable {
     var duration: TimeInterval = 0
     var bufferedUntil: TimeInterval = 0
     var isPlaying = false
+    var isBuffering = false
+    var loadingSpeedBytesPerSecond: Double = 0
     var hdrDiagnostics = HDRPlaybackDiagnostics()
 }
 
@@ -50,18 +52,25 @@ struct HDRPlaybackDiagnostics: Equatable {
 
 @Observable
 class MPVKitPlayer: NSObject {
+    private static let bufferingStallThreshold: TimeInterval = 0.6
+    private static let bufferingCacheAheadThreshold: TimeInterval = 0.5
+
     private weak var controller: MPVKitMetalViewController?
     private var displayLink: CADisplayLink?
     private var uiRefreshTimer: Timer?
     private var pendingStream: DashStream?
     private var pendingDirectVideoURL: URL?
     private var playbackIntent = false
+    private var lastObservedPlaybackTime: TimeInterval = 0
+    private var lastPlaybackProgressUptime = ProcessInfo.processInfo.systemUptime
     private let playbackSettings: AudioVideoSettings
 
     private(set) var isPlaying = false
     private(set) var currentTime: TimeInterval = 0
     private(set) var duration: TimeInterval = 0
     private(set) var bufferedUntil: TimeInterval = 0
+    private(set) var isBuffering = false
+    private(set) var loadingSpeedBytesPerSecond: Double = 0
     private(set) var hdrDiagnostics = HDRPlaybackDiagnostics()
     private(set) var uiSnapshot = PlayerUIPlaybackSnapshot()
 
@@ -103,6 +112,7 @@ class MPVKitPlayer: NSObject {
         controller.loadFile(stream.videoURL)
         controller.addAudio(stream.audioURL)
         controller.play()
+        resetPlaybackProgressTracking()
         playbackIntent = true
         isPlaying = true
         startDisplayLink()
@@ -117,6 +127,7 @@ class MPVKitPlayer: NSObject {
 
         controller.loadFile(videoURL)
         controller.play()
+        resetPlaybackProgressTracking()
         playbackIntent = true
         isPlaying = true
         startDisplayLink()
@@ -126,6 +137,7 @@ class MPVKitPlayer: NSObject {
 
     func resume() {
         controller?.play()
+        resetPlaybackProgressTracking()
         playbackIntent = true
         isPlaying = true
         startDisplayLink()
@@ -137,6 +149,8 @@ class MPVKitPlayer: NSObject {
         controller?.pause()
         playbackIntent = false
         isPlaying = false
+        isBuffering = false
+        loadingSpeedBytesPerSecond = 0
         stopDisplayLink()
         stopUIRefreshTimer()
         refreshUISnapshot(includeDiagnostics: false)
@@ -158,6 +172,8 @@ class MPVKitPlayer: NSObject {
         controller?.stop()
         playbackIntent = false
         isPlaying = false
+        isBuffering = false
+        loadingSpeedBytesPerSecond = 0
         stopDisplayLink()
         stopUIRefreshTimer()
         refreshUISnapshot(includeDiagnostics: false)
@@ -169,8 +185,14 @@ class MPVKitPlayer: NSObject {
         } else {
             currentTime = max(time, 0)
         }
+        resetPlaybackProgressTracking()
         controller?.seek(to: time)
         refreshUISnapshot(includeDiagnostics: false)
+    }
+
+    private func resetPlaybackProgressTracking() {
+        lastObservedPlaybackTime = currentTime
+        lastPlaybackProgressUptime = ProcessInfo.processInfo.systemUptime
     }
 
     private func startDisplayLink() {
@@ -215,6 +237,8 @@ class MPVKitPlayer: NSObject {
             duration: duration,
             bufferedUntil: bufferedUntil,
             isPlaying: isPlaying,
+            isBuffering: isBuffering,
+            loadingSpeedBytesPerSecond: loadingSpeedBytesPerSecond,
             hdrDiagnostics: uiSnapshot.hdrDiagnostics
         )
 
@@ -246,6 +270,8 @@ class MPVKitPlayer: NSObject {
     @objc private func updatePlayerState() {
         guard let controller else { return }
 
+        let previousTime = currentTime
+        let now = ProcessInfo.processInfo.systemUptime
         let time = controller.timePosition()
         if time.isFinite {
             let normalizedTime = max(time, 0)
@@ -259,6 +285,10 @@ class MPVKitPlayer: NSObject {
                 currentTime = normalizedTime
             }
         }
+        if abs(currentTime - previousTime) > 0.01 {
+            lastObservedPlaybackTime = currentTime
+            lastPlaybackProgressUptime = now
+        }
 
         let total = controller.durationValue()
         if total > 0 {
@@ -266,14 +296,28 @@ class MPVKitPlayer: NSObject {
         }
 
         let cacheAhead = controller.demuxerCacheTime()
+        let cacheSpeedBytesPerSecond = max(controller.cacheSpeedBytesPerSecond(), 0)
+        let downloadSpeedBytesPerSecond = max(controller.downloadSpeedBytesPerSecond(), 0)
         if duration > 0 {
             bufferedUntil = min(max(currentTime + max(cacheAhead, 0), 0), duration)
         } else {
             bufferedUntil = 0
         }
+        let pausedForCache = controller.isPausedForCache()
+        loadingSpeedBytesPerSecond = cacheSpeedBytesPerSecond > 0
+            ? cacheSpeedBytesPerSecond
+            : downloadSpeedBytesPerSecond
 
         let isControllerPaused = controller.isPaused()
         let reachedPlaybackEnd = duration > 0 && currentTime >= duration - 0.05
+        let stalledFor = now - lastPlaybackProgressUptime
+        let cacheAheadIsLow = max(cacheAhead, 0) < Self.bufferingCacheAheadThreshold
+        let stalledWhileTryingToPlay =
+            playbackIntent &&
+            !reachedPlaybackEnd &&
+            stalledFor >= Self.bufferingStallThreshold &&
+            cacheAheadIsLow
+        isBuffering = pausedForCache || stalledWhileTryingToPlay
 
         if playbackIntent {
             if reachedPlaybackEnd && isControllerPaused {

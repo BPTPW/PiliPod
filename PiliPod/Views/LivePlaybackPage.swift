@@ -184,6 +184,13 @@ struct LivePlaybackPage: View {
 #endif
         }
         .overlay {
+            PlayerLoadingOverlay(
+                isVisible: (viewModel.streamURL == nil && viewModel.isLoading) || playerUISnapshot.isBuffering,
+                speedBytesPerSecond: playerUISnapshot.loadingSpeedBytesPerSecond
+            )
+            .allowsHitTesting(false)
+        }
+        .overlay {
             if controlsVisible {
                 ZStack {
                     if isFullscreen {

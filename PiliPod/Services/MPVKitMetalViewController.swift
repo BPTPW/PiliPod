@@ -181,8 +181,20 @@ final class MPVKitMetalViewController: UIViewController {
         getDouble("demuxer-cache-time")
     }
 
+    func cacheSpeedBytesPerSecond() -> Double {
+        getDouble("cache-speed")
+    }
+
+    func downloadSpeedBytesPerSecond() -> Double {
+        getDouble("download-speed")
+    }
+
     func isPaused() -> Bool {
         getFlag(MPVKitProperty.pause)
+    }
+
+    func isPausedForCache() -> Bool {
+        getFlag("paused-for-cache")
     }
 
     private func setupMpv() {
@@ -229,10 +241,17 @@ final class MPVKitMetalViewController: UIViewController {
         }
         checkError(mpv_set_option_string(mpv, "video-rotate", "no"), context: "video-rotate")
         checkError(mpv_set_option_string(mpv, "keep-open", "yes"), context: "keep-open")
+        checkError(mpv_set_option_string(mpv, "network-timeout", "10"), context: "network-timeout")
         if !pendingHeaders.isEmpty {
             setHTTPHeaders(mpv, headers: pendingHeaders)
         }
-        let lavfOptions = "protocol_whitelist=file,http,https,tcp,tls,crypto"
+        let lavfOptions = [
+            "protocol_whitelist=file,http,https,tcp,tls,crypto",
+            "reconnect=1",
+            "reconnect_streamed=1",
+            "reconnect_on_network_error=1",
+            "reconnect_delay_max=2"
+        ].joined(separator: ",")
         let lavfStatus = mpv_set_option_string(mpv, "demuxer-lavf-o-append", lavfOptions)
         if lavfStatus < 0 {
             print("MPV API warn [demuxer-lavf-o-append]: \(String(cString: mpv_error_string(lavfStatus)))")
