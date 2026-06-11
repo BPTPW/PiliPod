@@ -13,6 +13,12 @@ struct OfflineCacheView: View {
     @State private var isQuerying = false
     @State private var hasConsumedInitialPrefill = false
     @State private var selectedVideo: VideoItem?
+    @State private var isSelectionMode = false
+    @State private var selectedItemIDs: Set<UUID> = []
+    @State private var itemPendingDeletion: OfflineCacheItem?
+    @State private var isSingleDeleteDialogPresented = false
+    @State private var isDeleteSelectionDialogPresented = false
+    @State private var toastMessage: String?
     @Namespace private var videoNamespace
 
     var body: some View {
@@ -22,22 +28,21 @@ struct OfflineCacheView: View {
                     emptyState
                 } else {
                     ForEach(cacheManager.sortedItems) { item in
-                        OfflineCacheCardView(item: item) {
-                            guard item.status == .completed else { return }
-                            selectedVideo = VideoItem(
-                                bvid: item.bvid,
-                                cid: item.cid,
-                                cover: item.cover,
-                                title: item.title,
-                                playCount: "--",
-                                danmakuCount: "--",
-                                uploader: item.uploader,
-                                duration: item.duration,
-                                progressSeconds: nil,
-                                publishTimeText: "",
-                                bottomRcmdReasonText: nil
-                            )
-                        }
+                        OfflineCacheCardView(
+                            item: item,
+                            isSelectionMode: isSelectionMode,
+                            isSelected: selectedItemIDs.contains(item.id),
+                            onTap: {
+                                handleItemTap(item)
+                            },
+                            onDelete: {
+                                itemPendingDeletion = item
+                                isSingleDeleteDialogPresented = true
+                            },
+                            onSelect: {
+                                enterSelectionMode(selecting: item.id)
+                            }
+                        )
                     }
                 }
             }
@@ -46,13 +51,38 @@ struct OfflineCacheView: View {
         }
         .background(Color(.systemGroupedBackground))
         .navigationTitle("离线缓存")
+        .navigationBarBackButtonHidden(isSelectionMode)
+        .toolbar(.hidden, for: .tabBar)
         .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
-                Button {
-                    presentAddTaskSheet(prefill: nil, autoQuery: false)
-                } label: {
-                    Image(systemName: "plus")
+            if isSelectionMode {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button {
+                        exitSelectionMode()
+                    } label: {
+                        Image(systemName: "xmark")
+                    }
                 }
+            } else {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("选择") {
+                        isSelectionMode = true
+                    }
+                    .disabled(cacheManager.sortedItems.isEmpty)
+                }
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button {
+                        presentAddTaskSheet(prefill: nil, autoQuery: false)
+                    } label: {
+                        Image(systemName: "plus")
+                    }
+                }
+            }
+        }
+        .overlay(alignment: .bottomTrailing) {
+            if isSelectionMode {
+                selectionDeleteButton
+                    .padding(.trailing, 20)
+                    .padding(.bottom, 24)
             }
         }
         .sheet(isPresented: $isAddTaskSheetPresented) {
@@ -68,8 +98,28 @@ struct OfflineCacheView: View {
             }
         }
         .navigationDestination(item: $selectedVideo) { video in
-            VideoDetailPage(video: video, namespace: videoNamespace) {}
+            VideoDetailPage(video: video, namespace: videoNamespace) {
+                selectedVideo = nil
+            }
         }
+        .confirmationDialog(
+            "删除缓存",
+            isPresented: $isSingleDeleteDialogPresented,
+            titleVisibility: .visible
+        ) {
+            Button(role: .destructive) {
+                if let itemPendingDeletion {
+                    cacheManager.deleteItem(id: itemPendingDeletion.id)
+                    toastMessage = "已删除缓存视频"
+                }
+                itemPendingDeletion = nil
+            } label: {
+                Label("删除", systemImage: "trash")
+            }
+        } message: {
+            Text("这个项目将从你的设备上移除")
+        }
+        .toast(message: $toastMessage)
     }
 
     private var emptyState: some View {
@@ -88,6 +138,31 @@ struct OfflineCacheView: View {
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 44)
+    }
+
+    private var selectionDeleteButton: some View {
+        Button(role: .destructive) {
+            isDeleteSelectionDialogPresented = true
+        } label: {
+            Image(systemName: "trash")
+                .font(.system(size: 18, weight: .semibold))
+                .foregroundStyle(.primary)
+                .frame(width: 48, height: 48)
+                .glassEffect(.regular.interactive(), in: .circle)
+        }
+        .confirmationDialog(
+            "这些项目将从你的设备上移除",
+            isPresented: $isDeleteSelectionDialogPresented,
+            titleVisibility: .visible
+        ) {
+            Button("删除\(selectedItemIDs.count)个视频", role: .destructive) {
+                let count = selectedItemIDs.count
+                cacheManager.deleteItems(ids: selectedItemIDs)
+                exitSelectionMode()
+                toastMessage = "已删除\(count)个视频"
+            }
+        }
+        .disabled(selectedItemIDs.isEmpty)
     }
 
     private var addTaskSheet: some View {
@@ -207,6 +282,50 @@ struct OfflineCacheView: View {
         Task { await runQuery() }
     }
 
+    private func handleItemTap(_ item: OfflineCacheItem) {
+        if isSelectionMode {
+            toggleSelection(for: item.id)
+            return
+        }
+
+        guard item.status == .completed else { return }
+        selectedVideo = VideoItem(
+            bvid: item.bvid,
+            cid: item.cid,
+            cover: item.cover,
+            title: item.title,
+            playCount: "--",
+            danmakuCount: "--",
+            uploader: item.uploader,
+            duration: item.duration,
+            progressSeconds: nil,
+            publishTimeText: "",
+            bottomRcmdReasonText: nil
+        )
+    }
+
+    private func enterSelectionMode(selecting itemID: UUID? = nil) {
+        isSelectionMode = true
+        isDeleteSelectionDialogPresented = false
+        if let itemID {
+            selectedItemIDs.insert(itemID)
+        }
+    }
+
+    private func toggleSelection(for itemID: UUID) {
+        if selectedItemIDs.contains(itemID) {
+            selectedItemIDs.remove(itemID)
+        } else {
+            selectedItemIDs.insert(itemID)
+        }
+    }
+
+    private func exitSelectionMode() {
+        isSelectionMode = false
+        selectedItemIDs.removeAll()
+        isDeleteSelectionDialogPresented = false
+    }
+
     @MainActor
     private func runQuery() async {
         guard !isQuerying else { return }
@@ -236,12 +355,17 @@ struct OfflineCacheView: View {
             qualityCode: selectedQualityCode ?? queryResult.defaultQualityCode
         )
         isAddTaskSheetPresented = false
+        toastMessage = "已添加缓存任务"
     }
 }
 
 private struct OfflineCacheCardView: View {
     let item: OfflineCacheItem
+    let isSelectionMode: Bool
+    let isSelected: Bool
     let onTap: () -> Void
+    let onDelete: () -> Void
+    let onSelect: () -> Void
 
     private let coverWidth: CGFloat = 140
     private let coverHeight: CGFloat = 88
@@ -275,14 +399,19 @@ private struct OfflineCacheCardView: View {
                 .overlay(alignment: .topTrailing) {
                     Text(item.qualityLabel)
                         .font(.system(size: 10, weight: .semibold))
-                        .foregroundStyle(.white)
-                        .padding(.horizontal, 7)
-                        .padding(.vertical, 4)
-                        .background(
-                            Capsule()
-                                .fill(Color.black.opacity(0.6))
-                        )
+                        .foregroundStyle(.primary)
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 6)
+                        .glassEffect(.regular, in: .capsule)
                         .padding(6)
+                }
+                .overlay(alignment: .topLeading) {
+                    if isSelectionMode {
+                        Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
+                            .font(.system(size: 22, weight: .semibold))
+                            .foregroundStyle(isSelected ? Color("BiliPink") : .white.opacity(0.92))
+                            .padding(8)
+                    }
                 }
                 .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
 
@@ -295,9 +424,17 @@ private struct OfflineCacheCardView: View {
 
                     Spacer(minLength: 0)
 
-                    Text(item.uploader)
-                        .font(.system(size: 12))
-                        .foregroundStyle(.secondary)
+                    HStack(spacing: 8) {
+                        Text(item.uploader)
+                            .font(.system(size: 12))
+                            .foregroundStyle(.secondary)
+                            .lineLimit(1)
+
+                        Text(sizeText)
+                            .font(.system(size: 11))
+                            .foregroundStyle(item.status == .failed ? .red : .secondary)
+                            .lineLimit(1)
+                    }
 
                     if item.status == .downloading || item.status == .queued {
                         VStack(alignment: .leading, spacing: 6) {
@@ -312,29 +449,41 @@ private struct OfflineCacheCardView: View {
                                 .font(.system(size: 11))
                                 .foregroundStyle(.secondary)
                         }
-                    } else {
-                        Text(sizeText)
-                            .font(.system(size: 11))
-                            .foregroundStyle(item.status == .failed ? .red : .secondary)
                     }
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
             }
             .padding(10)
-            .frame(height: 124)
+            .frame(height: 108)
             .background(
                 RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
                     .fill(.ultraThinMaterial)
                     .overlay {
                         RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                            .stroke(Color.white.opacity(0.14), lineWidth: 1)
+                            .stroke(
+                                isSelected ? Color("BiliPink").opacity(0.55) : Color.white.opacity(0.14),
+                                lineWidth: isSelected ? 1.5 : 1
+                            )
                     }
             )
             .shadow(color: .black.opacity(0.10), radius: 18, y: 10)
             .shadow(color: .black.opacity(0.06), radius: 6, y: 2)
         }
         .buttonStyle(.plain)
-        .disabled(item.status != .completed)
+        .disabled(!isSelectionMode && item.status != .completed)
+        .contextMenu {
+            Button(role: .destructive) {
+                onDelete()
+            } label: {
+                Label("删除", systemImage: "trash")
+            }
+
+            Button {
+                onSelect()
+            } label: {
+                Label("选择", systemImage: "checkmark.circle")
+            }
+        }
     }
 
     private var progressText: String {
@@ -353,7 +502,7 @@ private struct OfflineCacheCardView: View {
         if item.status == .failed {
             return item.errorMessage ?? "下载失败"
         }
-        return "视频大小  \(CacheStorageService.formattedSize(max(item.fileSizeBytes, item.totalBytes)))"
+        return CacheStorageService.formattedSize(max(item.fileSizeBytes, item.totalBytes))
     }
 
     private static func formatDuration(_ seconds: Int) -> String {

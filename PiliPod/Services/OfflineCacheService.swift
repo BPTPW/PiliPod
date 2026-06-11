@@ -351,6 +351,36 @@ final class OfflineCacheManager: ObservableObject {
         startDownload(for: item.id, queryResult: queryResult, stream: stream)
     }
 
+    func deleteItem(id: UUID) {
+        deleteItems(ids: [id])
+    }
+
+    func deleteItems(ids: Set<UUID>) {
+        guard !ids.isEmpty else { return }
+
+        for id in ids {
+            runningTasks[id]?.cancel()
+            runningTasks[id] = nil
+        }
+
+        let removedItems = items.filter { ids.contains($0.id) }
+        items.removeAll { ids.contains($0.id) }
+        persistItems()
+
+        for item in removedItems {
+            do {
+                let directoryURL = try OfflineCacheStorage.itemDirectoryURL(
+                    relativeDirectory: item.relativeDirectory
+                )
+                if FileManager.default.fileExists(atPath: directoryURL.path) {
+                    try FileManager.default.removeItem(at: directoryURL)
+                }
+            } catch {
+                print("删除离线缓存目录失败: \(error)")
+            }
+        }
+    }
+
     private func startDownload(
         for itemID: UUID,
         queryResult: OfflineCacheQueryResult,
@@ -471,6 +501,7 @@ final class OfflineCacheManager: ObservableObject {
 
         let request = makeMediaRequest(url: sourceURL)
         let (bytes, response) = try await URLSession.shared.bytes(for: request)
+        try Task.checkCancellation()
         let expectedLength = response.expectedContentLength
         if expectedLength > 0 {
             await updateItem(itemID) { item in
@@ -490,6 +521,7 @@ final class OfflineCacheManager: ObservableObject {
         let start = Date()
 
         while let byte = try await iterator.next() {
+            try Task.checkCancellation()
             chunk.append(byte)
             if chunk.count >= 64 * 1024 {
                 let chunkSize = Int64(chunk.count)
