@@ -18,6 +18,11 @@ struct LivePlaybackPage: View {
         case rotation
     }
 
+    private struct UserSpaceRoute: Hashable, Identifiable {
+        let mid: Int
+        var id: Int { mid }
+    }
+
     let room: LiveCardModel
     @Environment(\.dismiss) private var dismiss
     @State private var viewModel: LivePlaybackViewModel
@@ -27,6 +32,7 @@ struct LivePlaybackPage: View {
     @State private var controlsVisible = true
     @State private var hideControlsTask: Task<Void, Never>?
     @State private var isFullscreen = false
+    @State private var selectedUserSpaceRoute: UserSpaceRoute?
     @State private var fullscreenTrigger: FullscreenTrigger = .none
     @State private var mediaControlSyncTask: Task<Void, Never>?
 #if canImport(UIKit)
@@ -67,6 +73,9 @@ struct LivePlaybackPage: View {
         }
         .toolbar(.hidden, for: .navigationBar)
         .toolbar(.hidden, for: .tabBar)
+        .navigationDestination(item: $selectedUserSpaceRoute) { route in
+            UserSpaceView(mid: route.mid)
+        }
         .onAppear {
 #if canImport(UIKit)
             setIdleTimerDisabled(playerUISnapshot.isPlaying)
@@ -284,34 +293,44 @@ struct LivePlaybackPage: View {
             .tint(.primary)
             .glassEffect(.regular.interactive(), in: .circle)
 
-            CachedAsyncImage(url: viewModel.faceURL) { phase in
-                if case .success(let image) = phase {
-                    image
-                        .resizable()
-                        .scaledToFill()
-                } else {
-                    Circle()
-                        .fill(Color.white.opacity(0.14))
-                        .overlay {
-                            Image(systemName: "person.fill")
-                                .foregroundStyle(.white.opacity(0.7))
+            Button {
+                guard let anchorMid = viewModel.anchorMid else { return }
+                selectedUserSpaceRoute = UserSpaceRoute(mid: anchorMid)
+            } label: {
+                HStack(spacing: 12) {
+                    CachedAsyncImage(url: viewModel.faceURL) { phase in
+                        if case .success(let image) = phase {
+                            image
+                                .resizable()
+                                .scaledToFill()
+                        } else {
+                            Circle()
+                                .fill(Color.white.opacity(0.14))
+                                .overlay {
+                                    Image(systemName: "person.fill")
+                                        .foregroundStyle(.white.opacity(0.7))
+                                }
                         }
-                }
-            }
-            .frame(width: 34, height: 34)
-            .clipShape(Circle())
+                    }
+                    .frame(width: 34, height: 34)
+                    .clipShape(Circle())
 
-            VStack(alignment: .leading, spacing: 2) {
-                Text(viewModel.anchorName)
-                    .font(.system(size: 14, weight: .medium))
-                    .foregroundStyle(.white)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(viewModel.anchorName)
+                            .font(.system(size: 14, weight: .medium))
+                            .foregroundStyle(.white)
 
-                if !viewModel.areaName.isEmpty {
-                    Text(viewModel.areaName)
-                        .font(.system(size: 12))
-                        .foregroundStyle(.white.opacity(0.78))
+                        if !viewModel.areaName.isEmpty {
+                            Text(viewModel.areaName)
+                                .font(.system(size: 12))
+                                .foregroundStyle(.white.opacity(0.78))
+                        }
+                    }
                 }
+                .contentShape(Rectangle())
             }
+            .buttonStyle(.plain)
+            .disabled(viewModel.anchorMid == nil)
 
             Spacer(minLength: 0)
         }
@@ -764,6 +783,12 @@ private final class LivePlaybackViewModel {
         return URL(string: room.coverURL)
     }
 
+    var anchorMid: Int? {
+        let resolved = roomInfo?.uid ?? room.uid
+        guard let resolved, resolved > 0 else { return nil }
+        return resolved
+    }
+
     var selectedQualityCode: Int? {
         currentQn
     }
@@ -1165,6 +1190,7 @@ private struct LiveDanmakuBottomPreferenceKey: PreferenceKey {
     LivePlaybackPage(
         room: LiveCardModel(
             roomId: "226000",
+            uid: 123456,
             title: "实时直播间标题示例",
             coverURL: "https://picsum.photos/400/250",
             onlineCount: "1.2万人气",

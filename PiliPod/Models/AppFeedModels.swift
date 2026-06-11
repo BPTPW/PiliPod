@@ -102,6 +102,7 @@ struct LiveCardModel: Identifiable, Hashable {
     var id: String { "live_\(roomId)" }
 
     let roomId: String
+    let uid: Int?
     let title: String
     let coverURL: String
     let onlineCount: String

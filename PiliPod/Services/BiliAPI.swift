@@ -627,6 +627,7 @@ class BiliAPI {
 
         return LiveRoomInfo(
             roomID: String(payload.roomInfo.roomID),
+            uid: payload.anchorInfo.baseInfo.uid,
             title: payload.roomInfo.title,
             coverURL: payload.roomInfo.cover.replacingOccurrences(of: "http://", with: "https://"),
             backgroundURL: backgroundURL?.replacingOccurrences(of: "http://", with: "https://"),
@@ -1380,6 +1381,7 @@ class BiliAPI {
 
                 let liveModel = LiveCardModel(
                     roomId: roomId,
+                    uid: item.args?.upId,
                     title: title,
                     coverURL: cover,
                     onlineCount: online,
@@ -2129,6 +2131,7 @@ struct LivePlaybackInfo {
 
 struct LiveRoomInfo {
     let roomID: String
+    let uid: Int
     let title: String
     let coverURL: String
     let backgroundURL: String?
@@ -2378,6 +2381,7 @@ private struct LiveRoomInfoAnchor: Codable {
 }
 
 private struct LiveRoomInfoAnchorBase: Codable {
+    let uid: Int
     let uname: String
     let face: String
 }
@@ -2458,6 +2462,7 @@ private func mapLiveSmallCard(_ room: LiveSmallCard) -> LiveCardModel {
 
     return LiveCardModel(
         roomId: String(room.id),
+        uid: room.uid,
         title: room.title,
         coverURL: room.cover.replacingOccurrences(of: "http://", with: "https://"),
         onlineCount: room.watchedShow?.textLarge ?? "\(VideoItem.formatCount(room.online))人气",

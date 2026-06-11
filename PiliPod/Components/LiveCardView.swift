@@ -139,6 +139,7 @@ struct LiveCardView: View {
     LiveCardView(
         model: LiveCardModel(
             roomId: "226000",
+            uid: 123456,
             title: "实时直播间标题示例",
             coverURL: "https://picsum.photos/400/250",
             onlineCount: "1.2万",

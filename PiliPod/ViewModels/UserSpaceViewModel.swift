@@ -124,6 +124,7 @@ final class UserSpaceViewModel: ObservableObject {
         guard let roomId = liveRoomID else { return nil }
         return LiveCardModel(
             roomId: roomId,
+            uid: Int(data?.card?.mid ?? ""),
             title: displayName,
             coverURL: "",
             onlineCount: "",

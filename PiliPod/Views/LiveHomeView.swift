@@ -169,6 +169,7 @@ private final class LiveHomeViewModel {
 
         return LiveCardModel(
             roomId: item.roomId,
+            uid: item.uid,
             title: item.name,
             coverURL: "",
             onlineCount: "",
