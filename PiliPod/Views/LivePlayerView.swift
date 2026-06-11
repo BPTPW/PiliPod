@@ -30,10 +30,6 @@ struct LivePlayerView: View {
                             .font(.system(size: 28))
                             .foregroundStyle(.white.opacity(0.9))
 
-                        Text("直播流待获取")
-                            .font(.system(size: 16, weight: .semibold))
-                            .foregroundStyle(.white)
-
                         Text(statusText)
                             .font(.system(size: 12))
                             .foregroundStyle(.white.opacity(0.7))

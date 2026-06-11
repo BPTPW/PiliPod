@@ -67,6 +67,11 @@ struct LivePlaybackPage: View {
         }
         .toolbar(.hidden, for: .navigationBar)
         .toolbar(.hidden, for: .tabBar)
+        .onAppear {
+#if canImport(UIKit)
+            setIdleTimerDisabled(playerUISnapshot.isPlaying)
+#endif
+        }
         .task {
 #if canImport(UIKit)
             configureAudioSessionHandlers()
@@ -89,6 +94,7 @@ struct LivePlaybackPage: View {
 #if canImport(UIKit)
             audioSessionManager.deactivate()
             updateDeviceOrientationForFullscreen(isFullscreen: false)
+            setIdleTimerDisabled(false)
 #endif
             viewModel.teardown()
         }
@@ -174,6 +180,7 @@ struct LivePlaybackPage: View {
             if oldSnapshot.isPlaying != snapshot.isPlaying {
                 syncSystemMediaControl()
             }
+            setIdleTimerDisabled(snapshot.isPlaying)
 #endif
         }
         .overlay {
@@ -596,6 +603,10 @@ struct LivePlaybackPage: View {
 
     private func currentInterfaceOrientation() -> UIInterfaceOrientation? {
         (UIApplication.shared.connectedScenes.first as? UIWindowScene)?.interfaceOrientation
+    }
+
+    private func setIdleTimerDisabled(_ isDisabled: Bool) {
+        UIApplication.shared.isIdleTimerDisabled = isDisabled
     }
 
     private func updatePreferredFullscreenOrientation(from orientation: UIInterfaceOrientation?) {
