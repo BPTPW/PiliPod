@@ -128,10 +128,10 @@ struct OfflineCacheView: View {
                 .font(.system(size: 28, weight: .semibold))
                 .foregroundStyle(.secondary)
 
-            Text("还没有离线缓存任务")
+            Text("暂无缓存视频")
                 .font(.headline)
 
-            Text("点击右上角加号，输入 BVID/AID 和 CID 后添加下载。")
+            Text("添加缓存任务或在视频播放页进行缓存")
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
@@ -170,23 +170,23 @@ struct OfflineCacheView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 18) {
                     HStack(spacing: 10) {
-                        TextField("BVID / AID", text: $bvidOrAidText)
+                        TextField("BV号 / AV号", text: $bvidOrAidText)
                             .textInputAutocapitalization(.never)
                             .autocorrectionDisabled()
-                            .padding(.horizontal, 14)
-                            .padding(.vertical, 12)
-                            .background(
-                                RoundedRectangle(cornerRadius: 14, style: .continuous)
-                                    .fill(Color(.secondarySystemGroupedBackground))
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 10)
+                            .glassEffect(
+                                .regular.interactive(),
+                                in: .capsule
                             )
 
-                        TextField("CID", text: $cidText)
+                        TextField("CID (可选)", text: $cidText)
                             .keyboardType(.numberPad)
-                            .padding(.horizontal, 14)
-                            .padding(.vertical, 12)
-                            .background(
-                                RoundedRectangle(cornerRadius: 14, style: .continuous)
-                                    .fill(Color(.secondarySystemGroupedBackground))
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 10)
+                            .glassEffect(
+                                .regular.interactive(),
+                                in: .capsule
                             )
 
                         Button {
@@ -195,14 +195,18 @@ struct OfflineCacheView: View {
                             if isQuerying {
                                 ProgressView()
                                     .tint(.white)
-                                    .frame(width: 64, height: 44)
+                                    .frame(width: 40, height: 40)
                             } else {
-                                Text("查询")
-                                    .font(.system(size: 15, weight: .semibold))
-                                    .frame(width: 64, height: 44)
+                                Image(systemName: "magnifyingglass")
+                                    .foregroundStyle(.white)
+                                    .frame(width: 40, height: 40)
+                                    .glassEffect(
+                                        .regular.interactive().tint(.blue),
+                                        in: .circle
+                                    )
                             }
                         }
-                        .buttonStyle(.borderedProminent)
+                        .tint(.primary)
                         .disabled(isQuerying || bvidOrAidText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                     }
 
@@ -219,37 +223,37 @@ struct OfflineCacheView: View {
                                 .lineLimit(3)
 
                             HStack(spacing: 10) {
-                                Text("CID \(queryResult.resolvedCID)")
-                                    .font(.subheadline)
-                                    .foregroundStyle(.secondary)
-
                                 Text(queryResult.detail.owner.name)
                                     .font(.subheadline)
                                     .foregroundStyle(.secondary)
                             }
 
-                            Picker(
-                                "画质",
-                                selection: Binding(
-                                    get: { selectedQualityCode ?? queryResult.defaultQualityCode },
-                                    set: { selectedQualityCode = $0 }
-                                )
-                            ) {
-                                ForEach(queryResult.qualityOptions) { option in
-                                    Text(option.label).tag(option.code)
+                            HStack{
+                                Text("缓存画质: ")
+                                Picker(
+                                    "画质",
+                                    selection: Binding(
+                                        get: { selectedQualityCode ?? queryResult.defaultQualityCode },
+                                        set: { selectedQualityCode = $0 }
+                                    )
+                                ) {
+                                    ForEach(queryResult.qualityOptions) { option in
+                                        Text(option.label).tag(option.code)
+                                    }
                                 }
+                                .pickerStyle(.menu)
+                                .tint(.primary)
                             }
-                            .pickerStyle(.menu)
-
+                            
                             Button {
                                 addTask()
                             } label: {
                                 Text("添加任务")
                                     .font(.system(size: 16, weight: .semibold))
                                     .frame(maxWidth: .infinity)
-                                    .padding(.vertical, 14)
+                                    .padding(.vertical, 8)
                             }
-                            .buttonStyle(.borderedProminent)
+                            .buttonStyle(.glassProminent)
                         }
                     }
                 }
@@ -259,8 +263,10 @@ struct OfflineCacheView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
-                    Button("关闭") {
+                    Button {
                         isAddTaskSheetPresented = false
+                    } label: {
+                        Image(systemName: "xmark")
                     }
                 }
             }
@@ -398,10 +404,10 @@ private struct OfflineCacheCardView: View {
                 }
                 .overlay(alignment: .topTrailing) {
                     Text(item.qualityLabel)
-                        .font(.system(size: 10, weight: .semibold))
+                        .font(.system(size: 11, weight: .semibold))
                         .foregroundStyle(.primary)
                         .padding(.horizontal, 6)
-                        .padding(.vertical, 6)
+                        .padding(.vertical, 4)
                         .glassEffect(.regular, in: .capsule)
                         .padding(6)
                 }
@@ -441,13 +447,16 @@ private struct OfflineCacheCardView: View {
                             Text(progressText)
                                 .font(.system(size: 11))
                                 .foregroundStyle(.secondary)
+                            
+                            HStack(spacing: 2){
+                                ProgressView(value: item.progress)
+                                    .tint(Color("BiliPink"))
 
-                            ProgressView(value: item.progress)
-                                .tint(Color("BiliPink"))
-
-                            Text(speedText)
-                                .font(.system(size: 11))
-                                .foregroundStyle(.secondary)
+                                Text(speedText)
+                                    .font(.system(size: 11))
+                                    .foregroundStyle(.secondary)
+                                    .frame(width: 65)
+                            }
                         }
                     }
                 }
@@ -470,18 +479,16 @@ private struct OfflineCacheCardView: View {
             .shadow(color: .black.opacity(0.06), radius: 6, y: 2)
         }
         .buttonStyle(.plain)
-        .disabled(!isSelectionMode && item.status != .completed)
         .contextMenu {
-            Button(role: .destructive) {
-                onDelete()
-            } label: {
-                Label("删除", systemImage: "trash")
-            }
-
             Button {
                 onSelect()
             } label: {
                 Label("选择", systemImage: "checkmark.circle")
+            }
+            Button(role: .destructive) {
+                onDelete()
+            } label: {
+                Label("删除", systemImage: "trash")
             }
         }
     }
@@ -493,7 +500,7 @@ private struct OfflineCacheCardView: View {
     }
 
     private var speedText: String {
-        let base = item.status == .queued ? "等待下载" : "下载中"
+        let base = item.status == .queued ? "等待下载" : ""
         guard item.speedBytesPerSecond > 0 else { return base }
         return "\(base)  \(CacheStorageService.formattedSize(Int64(item.speedBytesPerSecond))) /s"
     }
