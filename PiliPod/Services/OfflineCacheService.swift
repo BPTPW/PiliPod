@@ -260,9 +260,9 @@ final class OfflineCacheManager: ObservableObject {
         }
 
         let resolvedBVID: String
-        if trimmed.uppercased().hasPrefix("BV") {
-            resolvedBVID = trimmed.uppercased()
-        } else if let aid = Int64(trimmed) {
+        if trimmed.hasPrefix("BV") {
+            resolvedBVID = trimmed
+        } else if let aid = Int64(trimmed.replacing("av",with: "")) {
             resolvedBVID = BiliIdConverter.av2bv(aid: aid)
         } else {
             throw OfflineCacheError.invalidIdentifier
