@@ -489,7 +489,6 @@ struct VideoDetailPage: View {
                                 }
                                 .overlay {
                                     PlayerControlsOverlay(
-                                        showDebugPanel: $showDebugPanel,
                                         danmakuEnabled: $danmakuConfig.isEnabled,
                                         onShowDanmakuSettings: {
                                             if isFullscreen {
@@ -532,6 +531,13 @@ struct VideoDetailPage: View {
                                         },
                                         onFullscreen: {
                                             toggleFullscreenManually()
+                                        },
+                                        onCacheVideo: {
+                                            // TODO: 后续在这里接入视频缓存流程。
+                                            toastMessage = "缓存视频功能暂未开放"
+                                        },
+                                        onShowVideoStreamInfo: {
+                                            showDebugPanel.toggle()
                                         },
                                         onSelectQuality: { code in
                                             Task { @MainActor in
@@ -3013,6 +3019,42 @@ private struct QualityMenuView: View, Equatable {
     }
 }
 
+// MARK: - 独立的更多菜单，避免跟随播放进度高频重建导致系统 Menu 失效
+
+private struct MoreActionsMenuView: View, Equatable {
+    let onUserInteracted: () -> Void
+    let onCacheVideo: () -> Void
+    let onShowVideoStreamInfo: () -> Void
+
+    static func == (lhs: MoreActionsMenuView, rhs: MoreActionsMenuView) -> Bool {
+        true
+    }
+
+    var body: some View {
+        // 保持菜单结构静态，避免父视图因 currentTime 高频更新时重建系统 Menu。
+        Menu {
+            Button("缓存视频") {
+                onUserInteracted()
+                onCacheVideo()
+            }
+
+            Button("视频流信息") {
+                onUserInteracted()
+                onShowVideoStreamInfo()
+            }
+        } label: {
+            Image(systemName: "ellipsis")
+                .font(.system(size: 16, weight: .semibold))
+                .foregroundColor(.primary)
+                .frame(width: 40, height: 40)
+        }
+        .glassEffect(
+            .regular.interactive(),
+            in: .circle
+        )
+    }
+}
+
 // MARK: - 视频控制器覆盖
 
 struct PlayerLoadingOverlay: View {
@@ -3063,7 +3105,6 @@ struct PlayerLoadingOverlay: View {
 }
 
 private struct PlayerControlsOverlay: View {
-    @Binding var showDebugPanel: Bool
     @Binding var danmakuEnabled: Bool
 
     let onShowDanmakuSettings: () -> Void
@@ -3087,6 +3128,8 @@ private struct PlayerControlsOverlay: View {
     let onTogglePlayPause: () -> Void
     let onSeek: (TimeInterval) -> Void
     let onFullscreen: () -> Void
+    let onCacheVideo: () -> Void
+    let onShowVideoStreamInfo: () -> Void
     let onSelectQuality: (Int) -> Void
     let onSelectPlaybackRate: (Double) -> Void
     let onSeekPreviewChanged: (TimeInterval?) -> Void
@@ -3185,20 +3228,12 @@ private struct PlayerControlsOverlay: View {
                 )
             }
 
-            // 右上角更多
-            Button(action: {
-                onUserInteracted()
-                showDebugPanel.toggle()
-            }) {
-                Image(systemName: "ellipsis")
-                    .font(.system(size: 16, weight: .semibold))
-                    .foregroundColor(.primary)
-                    .frame(width: 40, height: 40)
-            }
-            .glassEffect(
-                .regular.interactive(),
-                in: .circle
+            MoreActionsMenuView(
+                onUserInteracted: onUserInteracted,
+                onCacheVideo: onCacheVideo,
+                onShowVideoStreamInfo: onShowVideoStreamInfo
             )
+            .equatable()
         }
         .padding(12)
     }
