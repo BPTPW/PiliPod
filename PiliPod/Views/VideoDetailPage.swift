@@ -99,6 +99,7 @@ struct VideoDetailPage: View {
     @State private var isFullscreenDanmakuPanelVisible = false
     @State private var lastDanmakuPrefetchSegment = 0
     @State private var selectedTab: VideoDetailTab = .intro
+    @State private var isDraggingVideoPageStrip = false
     @State private var toastMessage: String?
     @State private var sponsorBlockSettings = SponsorBlockSettingsStore.load()
     @State private var skippedSponsorSegmentIDs: Set<String> = []
@@ -773,7 +774,7 @@ struct VideoDetailPage: View {
                         ZStack(alignment: .bottom) {
                             VStack(spacing: 0) {
                                 tabBar
-                                tabContent
+                                tabContent(width: geo.size.width)
                             }
 
                             if let player = bindableViewModel.player, showsSponsorSubmitSheet {
@@ -1119,7 +1120,7 @@ struct VideoDetailPage: View {
         return config
     }
 
-    private enum VideoDetailTab: String, CaseIterable {
+    fileprivate enum VideoDetailTab: String, CaseIterable {
         case intro = "简介"
         case comments = "评论"
     }
@@ -1279,26 +1280,28 @@ struct VideoDetailPage: View {
         }
     }
 
-    @ViewBuilder
-    private var tabContent: some View {
-        switch selectedTab {
-        case .intro:
-            introTabContent
-                .simultaneousGesture(tabSwipeGesture(for: .intro))
-        case .comments:
-            VideoCommentsTabView(
-                aid: viewModel.aid,
-                onOpenUserSpace: { mid in
-                    guard mid > 0 else { return }
-                    selectedUserSpaceRoute = UserSpaceRoute(
-                        mid: mid,
-                        fromViewAid: viewModel.aid > 0 ? viewModel.aid : nil
-                    )
-                }
-            )
-            .background(Color(.systemBackground))
-            .simultaneousGesture(tabSwipeGesture(for: .comments))
-        }
+    private func tabContent(width: CGFloat) -> some View {
+        TabPager(
+            selectedTab: $selectedTab,
+            width: width,
+            isSwipeEnabled: !isDraggingVideoPageStrip,
+            introContent: {
+                introTabContent
+            },
+            commentsContent: {
+                VideoCommentsTabView(
+                    aid: viewModel.aid,
+                    onOpenUserSpace: { mid in
+                        guard mid > 0 else { return }
+                        selectedUserSpaceRoute = UserSpaceRoute(
+                            mid: mid,
+                            fromViewAid: viewModel.aid > 0 ? viewModel.aid : nil
+                        )
+                    }
+                )
+                .background(Color(.systemBackground))
+            }
+        )
     }
 
     private var introTabDisplayModel: IntroTabDisplayModel? {
@@ -1416,6 +1419,9 @@ struct VideoDetailPage: View {
                             await switchVideoPage(to: page)
                         }
                     },
+                    onPageStripDragStateChange: { isDragging in
+                        isDraggingVideoPageStrip = isDragging
+                    },
                     onOpenRelatedVideo: { item in
                         selectedRelatedVideo = item
                     }
@@ -1425,29 +1431,6 @@ struct VideoDetailPage: View {
                 Color(.systemBackground)
             }
         }
-    }
-
-    private func tabSwipeGesture(for tab: VideoDetailTab) -> some Gesture {
-        DragGesture(minimumDistance: 20)
-            .onEnded { value in
-                let dx = value.translation.width
-                let dy = value.translation.height
-
-                guard abs(dx) > abs(dy), abs(dx) > 50 else { return }
-
-                switch tab {
-                case .intro:
-                    guard dx < 0 else { return }
-                    withAnimation(.easeInOut(duration: 0.2)) {
-                        selectedTab = .comments
-                    }
-                case .comments:
-                    guard dx > 0 else { return }
-                    withAnimation(.easeInOut(duration: 0.2)) {
-                        selectedTab = .intro
-                    }
-                }
-            }
     }
 
     // MARK: - 显示控制条并在需要时自动隐藏
@@ -2165,6 +2148,77 @@ struct VideoDetailPage: View {
             // try? await Task.sleep(nanoseconds: 30000000)
             // viewModel.player?.refreshVideoOutput()
         }
+    }
+}
+
+private struct TabPager<IntroContent: View, CommentsContent: View>: View {
+    @Binding var selectedTab: VideoDetailPage.VideoDetailTab
+    let width: CGFloat
+    let isSwipeEnabled: Bool
+    @ViewBuilder let introContent: () -> IntroContent
+    @ViewBuilder let commentsContent: () -> CommentsContent
+
+    @GestureState private var dragTranslation: CGFloat = 0
+
+    private var currentIndex: CGFloat {
+        switch selectedTab {
+        case .intro:
+            return 0
+        case .comments:
+            return 1
+        }
+    }
+
+    var body: some View {
+        HStack(spacing: 0) {
+            introContent()
+                .frame(width: width)
+
+            commentsContent()
+                .frame(width: width)
+        }
+        .frame(width: width, alignment: .leading)
+        .offset(x: -currentIndex * width + dragOffset)
+        .animation(.interactiveSpring(response: 0.32, dampingFraction: 0.86), value: selectedTab)
+        .contentShape(Rectangle())
+        .gesture(pagerGesture)
+        .clipped()
+    }
+
+    private var dragOffset: CGFloat {
+        guard isSwipeEnabled else { return 0 }
+        return dragTranslation
+    }
+
+    private var pagerGesture: some Gesture {
+        DragGesture(minimumDistance: 12)
+            .updating($dragTranslation) { value, state, _ in
+                guard isSwipeEnabled else { return }
+                guard abs(value.translation.width) > abs(value.translation.height) else { return }
+
+                let translation = value.translation.width
+                if selectedTab == .intro {
+                    state = max(-width, min(0, translation))
+                } else {
+                    state = max(0, min(width, translation))
+                }
+            }
+            .onEnded { value in
+                guard isSwipeEnabled else { return }
+                let dx = value.translation.width
+                let dy = value.translation.height
+                guard abs(dx) > abs(dy) else { return }
+
+                let threshold = width * 0.2
+                switch selectedTab {
+                case .intro:
+                    guard dx < -threshold else { return }
+                    selectedTab = .comments
+                case .comments:
+                    guard dx > threshold else { return }
+                    selectedTab = .intro
+                }
+            }
     }
 }
 

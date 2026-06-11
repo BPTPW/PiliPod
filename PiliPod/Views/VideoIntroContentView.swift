@@ -60,6 +60,7 @@ struct IntroTabContentView: View, Equatable {
     let onLaterWatch: () -> Void
     let onOpenPageDrawer: () -> Void
     let onSelectPage: (VideoPageListItem) -> Void
+    let onPageStripDragStateChange: (Bool) -> Void
     let onOpenRelatedVideo: (VideoItem) -> Void
 
     static func == (lhs: IntroTabContentView, rhs: IntroTabContentView) -> Bool {
@@ -248,7 +249,6 @@ struct IntroTabContentView: View, Equatable {
                     || !model.relatedVideos.isEmpty
                 {
                     Divider()
-                        .padding(.top, 10)
 
                     HStack(spacing: 10) {
                         Text("推荐视频")
@@ -333,7 +333,7 @@ struct IntroTabContentView: View, Equatable {
                                 .foregroundStyle(isCurrent ? Color("BiliPink") : .primary)
                                 .lineLimit(1)
                                 .truncationMode(.tail)
-                                .frame(width: 132, height: 36, alignment: .leading)
+                                .frame(width: 120, height: 36, alignment: .leading)
                                 .padding(.horizontal, 14)
                         }
                         .buttonStyle(.plain)
@@ -343,8 +343,18 @@ struct IntroTabContentView: View, Equatable {
                         )
                     }
                 }
-                .padding(.vertical, 2)
+                .padding(.top, 2)
+                .padding(.bottom, 8)
             }
+            .simultaneousGesture(
+                DragGesture(minimumDistance: 4)
+                    .onChanged { _ in
+                        onPageStripDragStateChange(true)
+                    }
+                    .onEnded { _ in
+                        onPageStripDragStateChange(false)
+                    }
+            )
         }
         .padding(.top, 2)
     }
