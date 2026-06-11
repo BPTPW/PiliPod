@@ -311,7 +311,10 @@ struct OfflineCacheView: View {
             )
         case .downloading, .queued:
             cacheManager.stopDownload(id: item.id)
-            toastMessage = "已停止下载"
+            toastMessage = "已暂停下载"
+        case .paused:
+            cacheManager.restartDownload(id: item.id)
+            toastMessage = "正在继续下载"
         case .failed:
             cacheManager.restartDownload(id: item.id)
             toastMessage = "正在重新下载"
@@ -450,7 +453,7 @@ private struct OfflineCacheCardView: View {
                             .lineLimit(1)
                     }
 
-                    if item.status == .downloading || item.status == .queued {
+                    if item.status == .downloading || item.status == .queued || item.status == .paused {
                         VStack(alignment: .leading, spacing: 6) {
                             Text(progressText)
                                 .font(.system(size: 11))
@@ -508,7 +511,15 @@ private struct OfflineCacheCardView: View {
     }
 
     private var speedText: String {
-        let base = item.status == .queued ? "等待下载" : ""
+        let base: String
+        switch item.status {
+        case .queued:
+            base = "等待下载"
+        case .paused:
+            base = "暂停"
+        default:
+            base = ""
+        }
         guard item.speedBytesPerSecond > 0 else { return base }
         return "\(base)  \(CacheStorageService.formattedSize(Int64(item.speedBytesPerSecond))) /s"
     }

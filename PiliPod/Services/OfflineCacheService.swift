@@ -18,6 +18,7 @@ struct OfflineCacheItem: Identifiable, Codable, Hashable {
     enum Status: String, Codable {
         case queued
         case downloading
+        case paused
         case completed
         case failed
     }
@@ -230,6 +231,9 @@ final class OfflineCacheManager: ObservableObject {
     @Published private(set) var items: [OfflineCacheItem] = []
 
     private var runningTasks: [UUID: Task<Void, Never>] = [:]
+    private var activeDownloadBridges: [UUID: DownloadTaskBridge] = [:]
+    private var resumeStates: [UUID: DownloadResumeState] = [:]
+    private var pauseRequestedIDs: Set<UUID> = []
 
     private init() {
         items = OfflineCacheStorage.loadItems()
@@ -356,16 +360,20 @@ final class OfflineCacheManager: ObservableObject {
     }
 
     func stopDownload(id: UUID) {
-        runningTasks[id]?.cancel()
-        runningTasks[id] = nil
-
-        Task { @MainActor [weak self] in
-            guard let self else { return }
-            await self.updateItem(id) { item in
-                item.status = .failed
-                item.errorMessage = "下载已停止，点击重新下载"
-                item.speedBytesPerSecond = 0
-                item.updatedAt = Date()
+        pauseRequestedIDs.insert(id)
+        if let bridge = activeDownloadBridges[id] {
+            bridge.pause()
+        } else {
+            runningTasks[id]?.cancel()
+            runningTasks[id] = nil
+            Task { @MainActor [weak self] in
+                guard let self else { return }
+                await self.updateItem(id) { item in
+                    item.status = .paused
+                    item.errorMessage = "下载已暂停，点击继续下载"
+                    item.speedBytesPerSecond = 0
+                    item.updatedAt = Date()
+                }
             }
         }
     }
@@ -398,9 +406,11 @@ final class OfflineCacheManager: ObservableObject {
                 }
 
                 await self.updateItem(id) { current in
-                    current.totalBytes = 0
-                    current.downloadedBytes = 0
-                    current.fileSizeBytes = 0
+                    if current.status == .failed {
+                        current.totalBytes = 0
+                        current.downloadedBytes = 0
+                        current.fileSizeBytes = 0
+                    }
                     current.speedBytesPerSecond = 0
                     current.status = .queued
                     current.errorMessage = nil
@@ -422,8 +432,12 @@ final class OfflineCacheManager: ObservableObject {
         guard !ids.isEmpty else { return }
 
         for id in ids {
+            pauseRequestedIDs.remove(id)
             runningTasks[id]?.cancel()
             runningTasks[id] = nil
+            activeDownloadBridges[id]?.pause()
+            activeDownloadBridges[id] = nil
+            resumeStates[id] = nil
         }
 
         let removedItems = items.filter { ids.contains($0.id) }
@@ -459,6 +473,24 @@ final class OfflineCacheManager: ObservableObject {
                     queryResult: queryResult,
                     stream: stream
                 )
+            } catch let error as DownloadControlError {
+                switch error {
+                case let .paused(stage, resumeData):
+                    if let resumeData {
+                        self.resumeStates[itemID] = DownloadResumeState(stage: stage, resumeData: resumeData)
+                    }
+                    await self.updateItem(itemID) { item in
+                        item.status = .paused
+                        item.errorMessage = "下载已暂停，点击继续下载"
+                        item.speedBytesPerSecond = 0
+                        item.updatedAt = Date()
+                    }
+                case let .failed(error, stage, resumeData):
+                    if let resumeData {
+                        self.resumeStates[itemID] = DownloadResumeState(stage: stage, resumeData: resumeData)
+                    }
+                    await self.markFailed(itemID: itemID, message: error.localizedDescription)
+                }
             } catch {
                 await self.markFailed(itemID: itemID, message: error.localizedDescription)
             }
@@ -469,6 +501,8 @@ final class OfflineCacheManager: ObservableObject {
 
     private func clearRunningTask(itemID: UUID) {
         runningTasks[itemID] = nil
+        activeDownloadBridges[itemID] = nil
+        pauseRequestedIDs.remove(itemID)
     }
 
     private func performDownload(
@@ -502,16 +536,31 @@ final class OfflineCacheManager: ObservableObject {
         let audioTargetURL = directoryURL.appendingPathComponent("audio.m4s")
         let segmentCount = max(1, Int(ceil(Double(max(queryResult.detail.duration, 1)) / 360.0)))
 
-        let videoLength = try await downloadFile(
-            from: stream.videoURL,
-            to: videoTargetURL,
-            itemID: itemID
-        )
-        let audioLength = try await downloadFile(
-            from: stream.audioURL,
-            to: audioTargetURL,
-            itemID: itemID
-        )
+        let videoLength: Int64
+        if FileManager.default.fileExists(atPath: videoTargetURL.path) {
+            let values = try videoTargetURL.resourceValues(forKeys: [.fileSizeKey])
+            videoLength = Int64(values.fileSize ?? 0)
+        } else {
+            videoLength = try await downloadFile(
+                from: stream.videoURL,
+                to: videoTargetURL,
+                itemID: itemID,
+                stage: .video
+            )
+        }
+
+        let audioLength: Int64
+        if FileManager.default.fileExists(atPath: audioTargetURL.path) {
+            let values = try audioTargetURL.resourceValues(forKeys: [.fileSizeKey])
+            audioLength = Int64(values.fileSize ?? 0)
+        } else {
+            audioLength = try await downloadFile(
+                from: stream.audioURL,
+                to: audioTargetURL,
+                itemID: itemID,
+                stage: .audio
+            )
+        }
 
         for segmentIndex in 1 ... segmentCount {
             let data = try await BiliAPI.shared.fetchDanmakuSegmentData(
@@ -548,14 +597,17 @@ final class OfflineCacheManager: ObservableObject {
             item.downloadedBytes = max(item.downloadedBytes, totalSize)
             item.fileSizeBytes = max(item.downloadedBytes, totalSize)
             item.speedBytesPerSecond = 0
+            item.errorMessage = nil
             item.updatedAt = Date()
         }
+        resumeStates[itemID] = nil
     }
 
     private func downloadFile(
         from sourceURL: URL,
         to destinationURL: URL,
-        itemID: UUID
+        itemID: UUID,
+        stage: DownloadStage
     ) async throws -> Int64 {
         final class SpeedState {
             var lastSampleAt = Date()
@@ -568,61 +620,101 @@ final class OfflineCacheManager: ObservableObject {
         let request = makeMediaRequest(url: sourceURL)
         let downloadedBase = items.first(where: { $0.id == itemID })?.downloadedBytes ?? 0
         let speedState = SpeedState()
+        var pendingResumeData = resumeStates[itemID]?.stage == stage ? resumeStates[itemID]?.resumeData : nil
+        var attempts = 0
+        let maxRetryCount = 3
 
-        let (temporaryURL, response) = try await DownloadFileRunner.run(
-            request: request,
-            progress: { [weak self] completed, total in
-                guard let self else { return }
-                Task { @MainActor in
-                    let now = Date()
-                    let shouldUpdateSpeed = now.timeIntervalSince(speedState.lastSampleAt) >= 0.5
-                        || (total > 0 && completed >= total)
-                    let deltaBytes = completed - speedState.lastSampleBytes
-                    let deltaTime = max(now.timeIntervalSince(speedState.lastSampleAt), 0.001)
-                    let sampledSpeed = Double(max(deltaBytes, 0)) / deltaTime
+        while true {
+            let bridge = DownloadTaskBridge()
+            activeDownloadBridges[itemID] = bridge
 
-                    await self.updateItem(itemID) { item in
-                        if total > 0 {
-                            item.totalBytes = max(item.totalBytes, total)
+            do {
+                let (temporaryURL, response) = try await DownloadFileRunner.run(
+                    bridge: bridge,
+                    source: pendingResumeData.map(DownloadSource.resumeData) ?? .request(request),
+                    progress: { [weak self] completed, total in
+                        guard let self else { return }
+                        Task { @MainActor in
+                            let now = Date()
+                            let shouldUpdateSpeed = now.timeIntervalSince(speedState.lastSampleAt) >= 0.5
+                                || (total > 0 && completed >= total)
+                            let deltaBytes = completed - speedState.lastSampleBytes
+                            let deltaTime = max(now.timeIntervalSince(speedState.lastSampleAt), 0.001)
+                            let sampledSpeed = Double(max(deltaBytes, 0)) / deltaTime
+
+                            await self.updateItem(itemID) { item in
+                                if total > 0 {
+                                    item.totalBytes = max(item.totalBytes, total)
+                                }
+                                item.downloadedBytes = max(item.downloadedBytes, downloadedBase + completed)
+                                if shouldUpdateSpeed {
+                                    item.speedBytesPerSecond = sampledSpeed
+                                }
+                                item.updatedAt = Date()
+                            }
+
+                            if shouldUpdateSpeed {
+                                speedState.lastSampleAt = now
+                                speedState.lastSampleBytes = completed
+                            }
                         }
-                        item.downloadedBytes = max(item.downloadedBytes, downloadedBase + completed)
-                        if shouldUpdateSpeed {
-                            item.speedBytesPerSecond = sampledSpeed
-                        }
-                        item.updatedAt = Date()
                     }
+                )
+                try Task.checkCancellation()
 
-                    if shouldUpdateSpeed {
-                        speedState.lastSampleAt = now
-                        speedState.lastSampleBytes = completed
+                let expectedLength = response.expectedContentLength
+                if expectedLength > 0 {
+                    await updateItem(itemID) { item in
+                        item.totalBytes = max(item.totalBytes, downloadedBase + expectedLength)
                     }
                 }
+
+                if FileManager.default.fileExists(atPath: destinationURL.path) {
+                    try FileManager.default.removeItem(at: destinationURL)
+                }
+                try FileManager.default.moveItem(at: temporaryURL, to: destinationURL)
+
+                let values = try destinationURL.resourceValues(forKeys: [.fileSizeKey])
+                let fileSize = Int64(values.fileSize ?? 0)
+
+                await updateItem(itemID) { item in
+                    item.downloadedBytes = max(item.downloadedBytes, downloadedBase + fileSize)
+                    item.fileSizeBytes = max(item.fileSizeBytes, item.downloadedBytes)
+                    item.updatedAt = Date()
+                }
+
+                if resumeStates[itemID]?.stage == stage {
+                    resumeStates[itemID] = nil
+                }
+                activeDownloadBridges[itemID] = nil
+                return fileSize
+            } catch let error as DownloadTaskBridgeError {
+                activeDownloadBridges[itemID] = nil
+
+                if pauseRequestedIDs.contains(itemID) {
+                    throw DownloadControlError.paused(stage: stage, resumeData: error.resumeData)
+                }
+
+                if let resumeData = error.resumeData, attempts < maxRetryCount {
+                    attempts += 1
+                    pendingResumeData = resumeData
+                    resumeStates[itemID] = DownloadResumeState(stage: stage, resumeData: resumeData)
+                    continue
+                }
+
+                if pendingResumeData != nil, attempts < maxRetryCount {
+                    attempts += 1
+                    pendingResumeData = nil
+                    continue
+                }
+
+                throw DownloadControlError.failed(
+                    error: error.underlying ?? APIError.requestFailed,
+                    stage: stage,
+                    resumeData: error.resumeData
+                )
             }
-        )
-        try Task.checkCancellation()
-
-        let expectedLength = response.expectedContentLength
-        if expectedLength > 0 {
-            await updateItem(itemID) { item in
-                item.totalBytes += expectedLength
-            }
         }
-
-        if FileManager.default.fileExists(atPath: destinationURL.path) {
-            try FileManager.default.removeItem(at: destinationURL)
-        }
-        try FileManager.default.moveItem(at: temporaryURL, to: destinationURL)
-
-        let values = try destinationURL.resourceValues(forKeys: [.fileSizeKey])
-        let fileSize = Int64(values.fileSize ?? 0)
-
-        await updateItem(itemID) { item in
-            item.downloadedBytes = max(item.downloadedBytes, downloadedBase + fileSize)
-            item.fileSizeBytes = max(item.fileSizeBytes, item.downloadedBytes)
-            item.updatedAt = Date()
-        }
-
-        return fileSize
     }
 
     private func updateItem(
@@ -673,13 +765,14 @@ enum OfflineCacheError: LocalizedError {
 
 private enum DownloadFileRunner {
     static func run(
-        request: URLRequest,
+        bridge: DownloadTaskBridge,
+        source: DownloadSource,
         progress: @escaping @Sendable (Int64, Int64) -> Void
     ) async throws -> (URL, URLResponse) {
-        let delegate = DownloadTaskBridge(progress: progress)
+        bridge.setProgressHandler(progress)
         let session = URLSession(
             configuration: .default,
-            delegate: delegate,
+            delegate: bridge,
             delegateQueue: nil
         )
         defer {
@@ -687,29 +780,64 @@ private enum DownloadFileRunner {
         }
 
         return try await withCheckedThrowingContinuation { continuation in
-            delegate.attach(continuation: continuation, session: session)
-            let task = session.downloadTask(with: request)
-            delegate.task = task
+            bridge.attach(continuation: continuation, session: session)
+            let task: URLSessionDownloadTask
+            switch source {
+            case let .request(request):
+                task = session.downloadTask(with: request)
+            case let .resumeData(data):
+                task = session.downloadTask(withResumeData: data)
+            }
+            bridge.task = task
             task.resume()
         }
     }
 }
 
+private enum DownloadSource {
+    case request(URLRequest)
+    case resumeData(Data)
+}
+
+private enum DownloadStage: String {
+    case video
+    case audio
+}
+
+private struct DownloadResumeState {
+    let stage: DownloadStage
+    let resumeData: Data
+}
+
+private enum DownloadControlError: Error {
+    case paused(stage: DownloadStage, resumeData: Data?)
+    case failed(error: Error, stage: DownloadStage, resumeData: Data?)
+}
+
+private struct DownloadTaskBridgeError: Error {
+    let underlying: Error?
+    let resumeData: Data?
+}
+
 private final class DownloadTaskBridge: NSObject, URLSessionDownloadDelegate, URLSessionTaskDelegate {
     typealias Continuation = CheckedContinuation<(URL, URLResponse), Error>
 
-    private let progressHandler: @Sendable (Int64, Int64) -> Void
+    private var progressHandler: (@Sendable (Int64, Int64) -> Void)?
     private var continuation: Continuation?
     private weak var session: URLSession?
     weak var task: URLSessionDownloadTask?
 
-    init(progress: @escaping @Sendable (Int64, Int64) -> Void) {
-        self.progressHandler = progress
+    func setProgressHandler(_ handler: @escaping @Sendable (Int64, Int64) -> Void) {
+        self.progressHandler = handler
     }
 
     func attach(continuation: Continuation, session: URLSession) {
         self.continuation = continuation
         self.session = session
+    }
+
+    func pause() {
+        task?.cancel(byProducingResumeData: { _ in })
     }
 
     func urlSession(
@@ -719,7 +847,7 @@ private final class DownloadTaskBridge: NSObject, URLSessionDownloadDelegate, UR
         totalBytesWritten: Int64,
         totalBytesExpectedToWrite: Int64
     ) {
-        progressHandler(
+        progressHandler?(
             max(totalBytesWritten, 0),
             max(totalBytesExpectedToWrite, 0)
         )
@@ -757,7 +885,11 @@ private final class DownloadTaskBridge: NSObject, URLSessionDownloadDelegate, UR
         didCompleteWithError error: Error?
     ) {
         guard let error else { return }
-        continuation?.resume(throwing: error)
+        let resumeData = (error as NSError).userInfo[NSURLSessionDownloadTaskResumeData] as? Data
+        continuation?.resume(throwing: DownloadTaskBridgeError(
+            underlying: error,
+            resumeData: resumeData
+        ))
         continuation = nil
     }
 }
