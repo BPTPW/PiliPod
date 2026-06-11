@@ -497,11 +497,30 @@ final class OfflineCacheManager: ObservableObject {
         if FileManager.default.fileExists(atPath: destinationURL.path) {
             try FileManager.default.removeItem(at: destinationURL)
         }
-        FileManager.default.createFile(atPath: destinationURL.path, contents: nil)
-
         let request = makeMediaRequest(url: sourceURL)
-        let (bytes, response) = try await URLSession.shared.bytes(for: request)
+        let downloadedBase = items.first(where: { $0.id == itemID })?.downloadedBytes ?? 0
+        let start = Date()
+
+        let (temporaryURL, response) = try await DownloadFileRunner.run(
+            request: request,
+            progress: { [weak self] completed, total in
+                guard let self else { return }
+                Task { @MainActor in
+                    let elapsed = max(Date().timeIntervalSince(start), 0.001)
+                    let speed = Double(completed) / elapsed
+                    await self.updateItem(itemID) { item in
+                        if total > 0 {
+                            item.totalBytes = max(item.totalBytes, total)
+                        }
+                        item.downloadedBytes = max(item.downloadedBytes, downloadedBase + completed)
+                        item.speedBytesPerSecond = speed
+                        item.updatedAt = Date()
+                    }
+                }
+            }
+        )
         try Task.checkCancellation()
+
         let expectedLength = response.expectedContentLength
         if expectedLength > 0 {
             await updateItem(itemID) { item in
@@ -509,65 +528,21 @@ final class OfflineCacheManager: ObservableObject {
             }
         }
 
-        let handle = try FileHandle(forWritingTo: destinationURL)
-        defer {
-            try? handle.close()
+        if FileManager.default.fileExists(atPath: destinationURL.path) {
+            try FileManager.default.removeItem(at: destinationURL)
         }
+        try FileManager.default.moveItem(at: temporaryURL, to: destinationURL)
 
-        var iterator = bytes.makeAsyncIterator()
-        var chunk = Data()
-        chunk.reserveCapacity(64 * 1024)
-        var writtenBytes: Int64 = 0
-        let start = Date()
+        let values = try destinationURL.resourceValues(forKeys: [.fileSizeKey])
+        let fileSize = Int64(values.fileSize ?? 0)
 
-        while let byte = try await iterator.next() {
-            try Task.checkCancellation()
-            chunk.append(byte)
-            if chunk.count >= 64 * 1024 {
-                let chunkSize = Int64(chunk.count)
-                try handle.write(contentsOf: chunk)
-                writtenBytes += chunkSize
-                chunk.removeAll(keepingCapacity: true)
-                await updateDownloadProgress(
-                    itemID: itemID,
-                    increment: chunkSize,
-                    writtenBytesForCurrentFile: writtenBytes,
-                    startedAt: start
-                )
-            }
-        }
-
-        if !chunk.isEmpty {
-            try handle.write(contentsOf: chunk)
-            writtenBytes += Int64(chunk.count)
-            let finalChunkSize = Int64(chunk.count)
-            chunk.removeAll(keepingCapacity: false)
-            await updateDownloadProgress(
-                itemID: itemID,
-                increment: finalChunkSize,
-                writtenBytesForCurrentFile: writtenBytes,
-                startedAt: start
-            )
-        }
-
-        return writtenBytes
-    }
-
-    private func updateDownloadProgress(
-        itemID: UUID,
-        increment: Int64,
-        writtenBytesForCurrentFile: Int64,
-        startedAt: Date
-    ) async {
-        let now = Date()
-        let elapsed = max(now.timeIntervalSince(startedAt), 0.001)
-        let speed = Double(writtenBytesForCurrentFile) / elapsed
         await updateItem(itemID) { item in
-            item.downloadedBytes += increment
+            item.downloadedBytes = max(item.downloadedBytes, downloadedBase + fileSize)
             item.fileSizeBytes = max(item.fileSizeBytes, item.downloadedBytes)
-            item.speedBytesPerSecond = speed
-            item.updatedAt = now
+            item.updatedAt = Date()
         }
+
+        return fileSize
     }
 
     private func updateItem(
@@ -613,5 +588,84 @@ enum OfflineCacheError: LocalizedError {
         case .invalidIdentifier:
             return "请输入有效的 BVID 或 AID。"
         }
+    }
+}
+
+private enum DownloadFileRunner {
+    static func run(
+        request: URLRequest,
+        progress: @escaping @Sendable (Int64, Int64) -> Void
+    ) async throws -> (URL, URLResponse) {
+        let delegate = DownloadTaskBridge(progress: progress)
+        let session = URLSession(
+            configuration: .default,
+            delegate: delegate,
+            delegateQueue: nil
+        )
+        defer {
+            session.invalidateAndCancel()
+        }
+
+        return try await withCheckedThrowingContinuation { continuation in
+            delegate.attach(continuation: continuation, session: session)
+            let task = session.downloadTask(with: request)
+            delegate.task = task
+            task.resume()
+        }
+    }
+}
+
+private final class DownloadTaskBridge: NSObject, URLSessionDownloadDelegate, URLSessionTaskDelegate {
+    typealias Continuation = CheckedContinuation<(URL, URLResponse), Error>
+
+    private let progressHandler: @Sendable (Int64, Int64) -> Void
+    private var continuation: Continuation?
+    private weak var session: URLSession?
+    weak var task: URLSessionDownloadTask?
+
+    init(progress: @escaping @Sendable (Int64, Int64) -> Void) {
+        self.progressHandler = progress
+    }
+
+    func attach(continuation: Continuation, session: URLSession) {
+        self.continuation = continuation
+        self.session = session
+    }
+
+    func urlSession(
+        _ session: URLSession,
+        downloadTask: URLSessionDownloadTask,
+        didWriteData bytesWritten: Int64,
+        totalBytesWritten: Int64,
+        totalBytesExpectedToWrite: Int64
+    ) {
+        progressHandler(
+            max(totalBytesWritten, 0),
+            max(totalBytesExpectedToWrite, 0)
+        )
+    }
+
+    func urlSession(
+        _ session: URLSession,
+        downloadTask: URLSessionDownloadTask,
+        didFinishDownloadingTo location: URL
+    ) {
+        guard let response = downloadTask.response else {
+            continuation?.resume(throwing: APIError.requestFailed)
+            continuation = nil
+            return
+        }
+        continuation?.resume(returning: (location, response))
+        continuation = nil
+    }
+
+    func urlSession(
+        _ session: URLSession,
+        task: URLSessionTask,
+        didCompleteWithError error: Error?
+    ) {
+        guard let error else { return }
+        continuation?.resume(throwing: error)
+        continuation = nil
     }
 }
