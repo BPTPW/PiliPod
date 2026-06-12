@@ -13,6 +13,7 @@ struct HomeView: View {
     @State private var selectedVideo: VideoItem?
     @State private var isSearchViewPresented = false
     @State private var toastMessage: String?
+    @State private var liveHomeViewModel = LiveHomeViewModel()
     @Namespace private var videoHeroNamespace
     @Bindable var viewModel: HomeViewModel
     @ObservedObject private var loginSession = LoginSession.shared
@@ -123,27 +124,7 @@ struct HomeView: View {
                     .padding(.top, 8)
 
                     // 分类栏
-                    ScrollView(.horizontal, showsIndicators: false) {
-                        HStack(spacing: 24) {
-                            ForEach(tabs, id: \.self) { tab in
-                                VStack(spacing: 4) {
-                                    Text(tab)
-                                        .font(.system(size: 16, weight: selectedTab == tab ? .semibold : .regular))
-                                        .foregroundStyle(selectedTab == tab ? .primary : .secondary)
-
-                                    Capsule()
-                                        .fill(selectedTab == tab ? .biliPink : .clear)
-                                        .frame(height: 3)
-                                }
-                                .onTapGesture {
-                                    withAnimation(.easeInOut(duration: 0.2)) {
-                                        selectedTab = tab
-                                    }
-                                }
-                            }
-                        }
-                        .padding(.horizontal, 16)
-                    }
+                    tabBar
                 }
                 .padding(.bottom, 10)
                 .background(.regularMaterial)
@@ -155,14 +136,15 @@ struct HomeView: View {
                     let availableWidth = proxy.size.width - (horizontalPadding * 2)
                     let videoCardWidth = (availableWidth - columnSpacing) / 2
 
-                    Group {
-                        if selectedTab == "直播" {
-                            LiveHomeView(cardWidth: videoCardWidth)
-                        } else {
-                            recommendationContent(videoCardWidth: videoCardWidth)
+                    TabView(selection: $selectedTab) {
+                        ForEach(tabs, id: \.self) { tab in
+                            tabPage(for: tab, videoCardWidth: videoCardWidth)
+                                .tag(tab)
                         }
                     }
+                    .tabViewStyle(.page(indexDisplayMode: .never))
                 }
+                .ignoresSafeArea(edges: .bottom)
             }
             .navigationBarHidden(true)
             .navigationDestination(item: $selectedVideo) { video in
@@ -199,6 +181,48 @@ struct HomeView: View {
             }
         }
         .toast(message: $toastMessage)
+    }
+
+    private var tabBar: some View {
+        ScrollViewReader { proxy in
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 24) {
+                    ForEach(tabs, id: \.self) { tab in
+                        VStack(spacing: 4) {
+                            Text(tab)
+                                .font(.system(size: 16, weight: selectedTab == tab ? .semibold : .regular))
+                                .foregroundStyle(selectedTab == tab ? .primary : .secondary)
+
+                            Capsule()
+                                .fill(selectedTab == tab ? .biliPink : .clear)
+                                .frame(height: 3)
+                        }
+                        .contentShape(Rectangle())
+                        .id(tab)
+                        .onTapGesture {
+                            withAnimation(.easeInOut(duration: 0.2)) {
+                                selectedTab = tab
+                            }
+                        }
+                    }
+                }
+                .padding(.horizontal, 16)
+            }
+            .onChange(of: selectedTab) { _, newValue in
+                withAnimation(.easeInOut(duration: 0.2)) {
+                    proxy.scrollTo(newValue, anchor: .center)
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func tabPage(for tab: String, videoCardWidth: CGFloat) -> some View {
+        if tab == "直播" {
+            LiveHomeView(cardWidth: videoCardWidth, viewModel: liveHomeViewModel)
+        } else {
+            recommendationContent(videoCardWidth: videoCardWidth)
+        }
     }
 
     // MARK: - Feed 卡片分发

@@ -11,7 +11,7 @@ import SwiftUI
 struct LiveHomeView: View {
     let cardWidth: CGFloat
 
-    @State private var viewModel = LiveHomeViewModel()
+    @Bindable var viewModel: LiveHomeViewModel
     @State private var selectedRoom: LiveCardModel?
 
     private let columns = [
@@ -141,7 +141,7 @@ struct LiveHomeView: View {
 
 @Observable
 @MainActor
-private final class LiveHomeViewModel {
+final class LiveHomeViewModel {
     var followingItems: [LiveFollowingItem] = []
     var areaTabs: [LiveAreaTab] = []
     var selectedAreaID: String = "recommend"
@@ -201,5 +201,5 @@ private final class LiveHomeViewModel {
 }
 
 #Preview {
-    LiveHomeView(cardWidth: 180)
+    LiveHomeView(cardWidth: 180, viewModel: LiveHomeViewModel())
 }
