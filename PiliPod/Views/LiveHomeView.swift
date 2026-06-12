@@ -84,8 +84,6 @@ struct LiveHomeView: View {
                     }
 
                     if !viewModel.areaTabs.isEmpty {
-                        sectionTitle("分区")
-
                         ScrollView(.horizontal, showsIndicators: false) {
                             HStack(spacing: 10) {
                                 ForEach(viewModel.areaTabs) { tab in
@@ -103,8 +101,8 @@ struct LiveHomeView: View {
                                             Text(tab.title)
                                                 .font(.system(size: 14, weight: tab.id == viewModel.selectedAreaID ? .semibold : .regular))
                                                 .foregroundStyle(tab.id == viewModel.selectedAreaID ? .white : .secondary)
-                                                .padding(.horizontal, 14)
-                                                .padding(.vertical, 8)
+                                                .padding(.horizontal, 12)
+                                                .padding(.vertical, 6)
                                         }
                                     }
                                     .tint(.primary)
@@ -115,7 +113,7 @@ struct LiveHomeView: View {
                                 }
                             }
                             .padding(.horizontal, horizontalPadding)
-                            .padding(.vertical, 10)
+                            .padding(.vertical, 12)
                         }
                     }
 
