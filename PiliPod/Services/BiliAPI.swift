@@ -665,6 +665,7 @@ class BiliAPI {
         }
 
         let decoded = try JSONDecoder().decode(LiveRoomInfoResponse.self, from: data)
+        print("decoded\(decoded)")
         guard decoded.code == 0 else {
             throw APIError.businessError(code: decoded.code, message: decoded.message)
         }
@@ -680,7 +681,7 @@ class BiliAPI {
 
         return LiveRoomInfo(
             roomID: String(payload.roomInfo.roomID),
-            uid: payload.anchorInfo.baseInfo.uid,
+            uid: payload.roomInfo.uid,
             title: payload.roomInfo.title,
             coverURL: payload.roomInfo.cover.replacingOccurrences(of: "http://", with: "https://"),
             backgroundURL: backgroundURL?.replacingOccurrences(of: "http://", with: "https://"),
@@ -2493,6 +2494,7 @@ private struct LiveRoomInfoData: Codable {
 }
 
 private struct LiveRoomInfoRoom: Codable {
+    let uid: Int
     let roomID: Int
     let title: String
     let cover: String
@@ -2502,6 +2504,7 @@ private struct LiveRoomInfoRoom: Codable {
     let appBackground: String
 
     enum CodingKeys: String, CodingKey {
+        case uid
         case roomID = "room_id"
         case title
         case cover
@@ -2521,7 +2524,6 @@ private struct LiveRoomInfoAnchor: Codable {
 }
 
 private struct LiveRoomInfoAnchorBase: Codable {
-    let uid: Int
     let uname: String
     let face: String
 }
