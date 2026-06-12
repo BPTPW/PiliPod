@@ -24,12 +24,7 @@ struct LivePlayerView: View {
             } else {
                 ZStack {
                     Color.black
-
                     VStack(spacing: 8) {
-                        Image(systemName: "play.tv")
-                            .font(.system(size: 28))
-                            .foregroundStyle(.white.opacity(0.9))
-
                         Text(statusText)
                             .font(.system(size: 12))
                             .foregroundStyle(.white.opacity(0.7))
