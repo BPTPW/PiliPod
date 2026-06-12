@@ -308,6 +308,42 @@ class BiliAPI {
         }
     }
 
+    // MARK: - 获取热门视频
+
+    func fetchPopularVideos(
+        page: Int = 1,
+        pageSize: Int = 20
+    ) async throws -> (videos: [VideoItem], noMore: Bool) {
+        var components = URLComponents(
+            string: "https://api.bilibili.com/x/web-interface/popular"
+        )
+        components?.queryItems = [
+            URLQueryItem(name: "pn", value: String(page)),
+            URLQueryItem(name: "ps", value: String(pageSize))
+        ]
+
+        guard let url = components?.url else {
+            throw APIError.invalidURL
+        }
+
+        let request = makeRequest(url: url)
+        let (data, response) = try await URLSession.shared.data(for: request)
+        guard let httpResponse = response as? HTTPURLResponse,
+              (200 ... 299).contains(httpResponse.statusCode)
+        else {
+            throw APIError.requestFailed
+        }
+
+        let decoded = try JSONDecoder().decode(PopularVideoResponse.self, from: data)
+        guard decoded.code == 0 else {
+            throw APIError.businessError(code: decoded.code, message: decoded.message)
+        }
+
+        let payload = decoded.data
+        let videos = (payload?.list ?? []).map { VideoItem(from: $0) }
+        return (videos, payload?.noMore ?? true)
+    }
+
     // MARK: - 获取首页直播 Feed
 
     func fetchLiveHomeFeed() async throws -> LiveHomeFeedPayload {

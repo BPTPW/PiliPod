@@ -220,6 +220,11 @@ struct HomeView: View {
     private func tabPage(for tab: String, videoCardWidth: CGFloat) -> some View {
         if tab == "直播" {
             LiveHomeView(cardWidth: videoCardWidth, viewModel: liveHomeViewModel)
+        } else if tab == "热门" {
+            PopularVideosPage(
+                namespace: videoHeroNamespace,
+                onSelectVideo: { selectedVideo = $0 }
+            )
         } else {
             recommendationContent(videoCardWidth: videoCardWidth)
         }
