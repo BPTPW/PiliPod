@@ -30,6 +30,7 @@ struct OfflineCacheView: View {
                     ForEach(cacheManager.sortedItems) { item in
                         OfflineCacheCardView(
                             item: item,
+                            namespace: videoNamespace,
                             isSelectionMode: isSelectionMode,
                             isSelected: selectedItemIDs.contains(item.id),
                             onTap: {
@@ -98,8 +99,17 @@ struct OfflineCacheView: View {
             }
         }
         .navigationDestination(item: $selectedVideo) { video in
-            VideoDetailPage(video: video, namespace: videoNamespace) {
-                selectedVideo = nil
+            if #available(iOS 18.0, *) {
+                VideoDetailPage(video: video, namespace: videoNamespace) {
+                    selectedVideo = nil
+                }
+                .navigationTransition(
+                    .zoom(sourceID: "videoHero.\(video.bvid)", in: videoNamespace)
+                )
+            } else {
+                VideoDetailPage(video: video, namespace: videoNamespace) {
+                    selectedVideo = nil
+                }
             }
         }
         .confirmationDialog(
@@ -378,6 +388,7 @@ struct OfflineCacheView: View {
 
 private struct OfflineCacheCardView: View {
     let item: OfflineCacheItem
+    let namespace: Namespace.ID
     let isSelectionMode: Bool
     let isSelected: Bool
     let onTap: () -> Void
@@ -387,6 +398,7 @@ private struct OfflineCacheCardView: View {
     private let coverWidth: CGFloat = 140
     private let coverHeight: CGFloat = 88
     private let cornerRadius: CGFloat = 18
+    private var heroID: String { "videoHero.\(item.bvid)" }
 
     var body: some View {
         Button(action: onTap) {
@@ -431,6 +443,7 @@ private struct OfflineCacheCardView: View {
                     }
                 }
                 .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                .heroTransitionSource(id: heroID, in: namespace)
 
                 VStack(alignment: .leading, spacing: 8) {
                     Text(item.title)
@@ -546,5 +559,16 @@ private struct OfflineCacheCardView: View {
 #Preview {
     NavigationStack {
         OfflineCacheView(initialPrefill: nil)
+    }
+}
+
+private extension View {
+    @ViewBuilder
+    func heroTransitionSource(id: String, in namespace: Namespace.ID) -> some View {
+        if #available(iOS 18.0, *) {
+            self.matchedTransitionSource(id: id, in: namespace)
+        } else {
+            matchedGeometryEffect(id: id, in: namespace)
+        }
     }
 }
