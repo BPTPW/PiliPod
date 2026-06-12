@@ -179,29 +179,44 @@ final class LiveHomeViewModel {
 
     private var hasLoaded = false
     private var activeLoadToken = UUID()
+    private var recommendedRooms: [LiveCardModel] = []
+    private var areaRoomsByID: [String: [LiveCardModel]] = [:]
 
     func loadIfNeeded() async {
         guard !hasLoaded else { return }
-        await fetchData()
+        await fetchHomeData()
         hasLoaded = true
     }
 
     func refresh() async {
-        await fetchHomeData(preservingSelectionID: selectedAreaID)
+        if selectedAreaID == LiveAreaTab.recommend.id {
+            await fetchHomeData()
+        } else if let selectedTab = areaTabs.first(where: { $0.id == selectedAreaID }) {
+            await fetchAreaRooms(for: selectedTab, forceRefresh: true)
+        }
         hasLoaded = true
     }
 
     func selectArea(_ tab: LiveAreaTab) async {
-        guard tab.id != selectedAreaID || rooms.isEmpty else { return }
+        guard tab.id != selectedAreaID else { return }
 
         selectedAreaID = tab.id
-        rooms = []
         errorMessage = nil
 
         if tab.isRecommend {
-            await fetchHomeData(preservingSelectionID: tab.id)
+            if !recommendedRooms.isEmpty {
+                rooms = recommendedRooms
+            } else {
+                rooms = []
+                await fetchHomeData()
+            }
         } else {
-            await fetchAreaRooms(for: tab)
+            if let cachedRooms = areaRoomsByID[tab.id] {
+                rooms = cachedRooms
+            } else {
+                rooms = []
+                await fetchAreaRooms(for: tab, forceRefresh: true)
+            }
         }
     }
 
@@ -224,11 +239,7 @@ final class LiveHomeViewModel {
         )
     }
 
-    private func fetchData() async {
-        await fetchHomeData(preservingSelectionID: selectedAreaID)
-    }
-
-    private func fetchHomeData(preservingSelectionID selectionID: String?) async {
+    private func fetchHomeData() async {
         guard !isLoading else { return }
 
         let loadToken = UUID()
@@ -247,15 +258,10 @@ final class LiveHomeViewModel {
 
             followingItems = payload.followingItems
             areaTabs = payload.areaTabs
+            recommendedRooms = payload.rooms
 
-            let selectedTab = payload.areaTabs.first(where: { $0.id == selectionID }) ?? payload.areaTabs.first ?? .recommend
-            selectedAreaID = selectedTab.id
-
-            if selectedTab.isRecommend {
+            if selectedAreaID == LiveAreaTab.recommend.id {
                 rooms = payload.rooms
-            } else {
-                rooms = []
-                try await fetchAreaRooms(for: selectedTab, loadToken: loadToken)
             }
         } catch {
             guard activeLoadToken == loadToken else { return }
@@ -263,7 +269,7 @@ final class LiveHomeViewModel {
         }
     }
 
-    private func fetchAreaRooms(for tab: LiveAreaTab, loadToken: UUID? = nil) async {
+    private func fetchAreaRooms(for tab: LiveAreaTab, forceRefresh: Bool = false, loadToken: UUID? = nil) async {
         if loadToken == nil {
             guard !isLoading else { return }
             let newLoadToken = UUID()
@@ -276,7 +282,7 @@ final class LiveHomeViewModel {
                 }
             }
             do {
-                try await loadAreaRooms(for: tab, loadToken: newLoadToken)
+                try await loadAreaRooms(for: tab, loadToken: newLoadToken, forceRefresh: forceRefresh)
             } catch {
                 guard activeLoadToken == newLoadToken else { return }
                 errorMessage = error.localizedDescription
@@ -287,19 +293,26 @@ final class LiveHomeViewModel {
         guard let loadToken else { return }
 
         do {
-            try await loadAreaRooms(for: tab, loadToken: loadToken)
+            try await loadAreaRooms(for: tab, loadToken: loadToken, forceRefresh: forceRefresh)
         } catch {
             guard activeLoadToken == loadToken else { return }
             errorMessage = error.localizedDescription
         }
     }
 
-    private func loadAreaRooms(for tab: LiveAreaTab, loadToken: UUID) async throws {
+    private func loadAreaRooms(for tab: LiveAreaTab, loadToken: UUID, forceRefresh: Bool) async throws {
         guard let areaID = tab.areaID, let parentAreaID = tab.parentAreaID else {
             return
         }
 
-        let areaRooms = try await BiliAPI.shared.fetchLiveAreaFeed(areaID: areaID, parentAreaID: parentAreaID)
+        let areaRooms: [LiveCardModel]
+        if !forceRefresh, let cachedRooms = areaRoomsByID[tab.id] {
+            areaRooms = cachedRooms
+        } else {
+            areaRooms = try await BiliAPI.shared.fetchLiveAreaFeed(areaID: areaID, parentAreaID: parentAreaID)
+            areaRoomsByID[tab.id] = areaRooms
+        }
+
         guard activeLoadToken == loadToken, selectedAreaID == tab.id else { return }
         rooms = areaRooms
     }
