@@ -145,23 +145,50 @@ struct LivePlaybackPage: View {
 
     @ViewBuilder
     private func playerSection(geo: GeometryProxy) -> some View {
+        let fullscreenWidth = geo.size.width + geo.safeAreaInsets.leading + geo.safeAreaInsets.trailing
+        let fullscreenHeight = geo.size.height + geo.safeAreaInsets.top + geo.safeAreaInsets.bottom
+        let playerWidth = isFullscreen ? fullscreenWidth : geo.size.width
         let playerHeight = isFullscreen
-            ? geo.size.height
+            ? fullscreenHeight
             : min(
                 geo.size.width / max(viewModel.aspectRatio, 0.01),
                 geo.size.width * (4.0 / 3.0)
             )
+        let playerOffsetX = isFullscreen
+            ? (geo.safeAreaInsets.trailing - geo.safeAreaInsets.leading) / 2
+            : 0
+        let playerOffsetY = isFullscreen
+            ? ((geo.safeAreaInsets.bottom - geo.safeAreaInsets.top) / 2) - 10
+            : 0
+        let containerHeight = isFullscreen ? geo.size.height : playerHeight
 
-        LivePlayerView(
-            roomId: room.roomId,
-            streamURL: viewModel.streamURL,
-            aspectRatio: viewModel.aspectRatio,
-            statusText: viewModel.playerStatusText,
-            player: player
-        )
-        .frame(width: geo.size.width)
-        .frame(maxWidth: .infinity, maxHeight: isFullscreen ? .infinity : nil, alignment: .center)
-        .ignoresSafeArea(isFullscreen ? .all : [])
+        ZStack {
+            LivePlayerView(
+                roomId: room.roomId,
+                streamURL: viewModel.streamURL,
+                aspectRatio: viewModel.aspectRatio,
+                statusText: viewModel.playerStatusText,
+                player: player
+            )
+            .frame(width: playerWidth, height: playerHeight, alignment: .center)
+            .ignoresSafeArea(isFullscreen ? .all : [])
+            .offset(x: playerOffsetX, y: playerOffsetY)
+
+            PlayerLoadingOverlay(
+                isVisible: (viewModel.streamURL == nil && viewModel.isLoading) || playerUISnapshot.isBuffering,
+                speedBytesPerSecond: playerUISnapshot.loadingSpeedBytesPerSecond
+            )
+            .allowsHitTesting(false)
+
+            if controlsVisible {
+                ZStack {
+                    liveControlsBackdrop(geo: geo)
+                    liveControlsOverlay(geo: geo)
+                }
+                .transition(.opacity)
+            }
+        }
+        .frame(width: geo.size.width, height: containerHeight, alignment: .center)
         .background(Color.black)
         .contentShape(Rectangle())
         .onTapGesture {
@@ -192,24 +219,6 @@ struct LivePlaybackPage: View {
             setIdleTimerDisabled(snapshot.isPlaying)
 #endif
         }
-        .overlay {
-            PlayerLoadingOverlay(
-                isVisible: (viewModel.streamURL == nil && viewModel.isLoading) || playerUISnapshot.isBuffering,
-                speedBytesPerSecond: playerUISnapshot.loadingSpeedBytesPerSecond
-            )
-            .allowsHitTesting(false)
-        }
-        .overlay {
-            if controlsVisible {
-                ZStack {
-                    liveControlsBackdrop(geo: geo)
-                    liveControlsOverlay(geo: geo)
-                }
-                .transition(.opacity)
-            }
-        }
-        .frame(width: geo.size.width, height: playerHeight, alignment: .center)
-        .clipped()
         .layoutPriority(1)
     }
 
@@ -339,6 +348,9 @@ struct LivePlaybackPage: View {
 
     @ViewBuilder
     private func liveControlsOverlay(geo: GeometryProxy) -> some View {
+        let horizontalLeadingPadding = isFullscreen ? geo.safeAreaInsets.leading + 12 : 12
+        let horizontalTrailingPadding = isFullscreen ? geo.safeAreaInsets.trailing + 12 : 12
+
         VStack(spacing: 0) {
             if isFullscreen {
                 // 返回按钮
@@ -357,7 +369,8 @@ struct LivePlaybackPage: View {
 
                     Spacer(minLength: 0)
                 }
-                .padding(.horizontal, 12)
+                .padding(.leading, horizontalLeadingPadding)
+                .padding(.trailing, horizontalTrailingPadding)
                 .padding(.top, max(geo.safeAreaInsets.top, 12))
             }
 
@@ -395,7 +408,8 @@ struct LivePlaybackPage: View {
                     }
                 }
             }
-            .padding(.horizontal, 12)
+            .padding(.leading, horizontalLeadingPadding)
+            .padding(.trailing, horizontalTrailingPadding)
             .padding(.bottom, isFullscreen ? max(geo.safeAreaInsets.bottom, 10) : 10)
         }
         .animation(.easeOut(duration: 0.2), value: controlsVisible)
@@ -422,7 +436,6 @@ struct LivePlaybackPage: View {
             .frame(height: 65 + geo.safeAreaInsets.bottom / 2)
             .frame(maxWidth: .infinity, alignment: .bottom)
         }
-        .ignoresSafeArea()
         .allowsHitTesting(false)
     }
 

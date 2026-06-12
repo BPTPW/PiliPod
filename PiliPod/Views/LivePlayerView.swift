@@ -32,7 +32,7 @@ struct LivePlayerView: View {
                 }
             }
         }
-        .frame(maxWidth: .infinity)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
         .aspectRatio(aspectRatio, contentMode: .fit)
         .background(Color.black)
     }
