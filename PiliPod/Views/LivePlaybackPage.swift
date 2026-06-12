@@ -202,9 +202,7 @@ struct LivePlaybackPage: View {
         .overlay {
             if controlsVisible {
                 ZStack {
-                    if isFullscreen {
-                        liveControlsBackdrop(geo: geo)
-                    }
+                    liveControlsBackdrop(geo: geo)
                     liveControlsOverlay(geo: geo)
                 }
                 .transition(.opacity)
