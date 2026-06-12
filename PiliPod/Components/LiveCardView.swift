@@ -61,6 +61,20 @@ struct LiveCardView: View {
                     )
                     .padding(6)
             }
+            .overlay(alignment: .bottomLeading){
+                if let badgeText = model.badgeText, !badgeText.isEmpty {
+                    Text(badgeText)
+                        .font(.system(size: 12))
+                        .foregroundStyle(.white)
+                        .padding(.horizontal, 4)
+                        .padding(.vertical, 2)
+                        .glassEffect(
+                            .regular.tint(.biliPink),
+                            in: RoundedRectangle(cornerRadius: 6, style: .continuous)
+                        )
+                        .padding(6)
+                }
+            }
             .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
 
             VStack(alignment: .leading, spacing: 8) {
@@ -70,18 +84,6 @@ struct LiveCardView: View {
                     .multilineTextAlignment(.leading)
                     .foregroundStyle(.primary)
                     .frame(maxWidth: .infinity, minHeight: 38, alignment: .topLeading)
-
-                if let badgeText = model.badgeText, !badgeText.isEmpty {
-                    Text(badgeText)
-                        .font(.system(size: 12))
-                        .foregroundStyle(.white)
-                        .padding(.horizontal, 4)
-                        .padding(.vertical, 2)
-                        .glassEffect(
-                            .regular.tint(Color("BiliPink")),
-                            in: RoundedRectangle(cornerRadius: 5, style: .continuous)
-                        )
-                }
 
                 HStack(alignment: .center, spacing: 8) {
                     CachedAsyncImage(url: URL(string: model.faceURL)) { phase in
