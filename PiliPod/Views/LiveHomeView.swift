@@ -94,20 +94,28 @@ struct LiveHomeView: View {
                                             await viewModel.selectArea(tab)
                                         }
                                     } label: {
-                                        Text(tab.title)
-                                            .font(.system(size: 14, weight: tab.id == viewModel.selectedAreaID ? .semibold : .regular))
-                                            .foregroundStyle(tab.id == viewModel.selectedAreaID ? .primary : .secondary)
-                                            .padding(.horizontal, 14)
-                                            .padding(.vertical, 8)
-                                            .glassEffect(
-                                                tab.id == viewModel.selectedAreaID ? .regular.tint(.biliPink.opacity(0.18)) : .regular,
-                                                in: .capsule
-                                            )
+                                        ZStack{
+                                            Capsule()
+                                                .fill(tab.id == viewModel.selectedAreaID ?
+                                                        .biliPink :
+                                                        .clear
+                                                )
+                                            Text(tab.title)
+                                                .font(.system(size: 14, weight: tab.id == viewModel.selectedAreaID ? .semibold : .regular))
+                                                .foregroundStyle(tab.id == viewModel.selectedAreaID ? .white : .secondary)
+                                                .padding(.horizontal, 14)
+                                                .padding(.vertical, 8)
+                                        }
                                     }
-                                    .buttonStyle(.plain)
+                                    .tint(.primary)
+                                    .glassEffect(
+                                        .regular.interactive(),
+                                        in: .capsule
+                                    )
                                 }
                             }
                             .padding(.horizontal, horizontalPadding)
+                            .padding(.vertical, 10)
                         }
                     }
 

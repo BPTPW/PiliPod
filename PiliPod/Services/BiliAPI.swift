@@ -370,7 +370,7 @@ class BiliAPI {
             case "area_entrance_v3":
                 let tabs = (card.cardData.areaEntrance?.list ?? []).map { tab in
                     LiveAreaTab(
-                        id: "area_\(tab.areaV2ID)",
+                        id: LiveAreaTab.makeID(areaID: tab.areaV2ID, parentAreaID: tab.areaV2ParentID),
                         title: tab.title,
                         areaID: tab.areaV2ID,
                         parentAreaID: tab.areaV2ParentID

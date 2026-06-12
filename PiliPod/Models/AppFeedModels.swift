@@ -129,6 +129,10 @@ struct LiveAreaTab: Identifiable, Hashable {
     let areaID: Int?
     let parentAreaID: Int?
 
+    static func makeID(areaID: Int, parentAreaID: Int) -> String {
+        "area_\(parentAreaID)_\(areaID)"
+    }
+
     var isRecommend: Bool {
         areaID == nil || parentAreaID == nil
     }
