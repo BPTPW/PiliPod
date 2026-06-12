@@ -351,7 +351,7 @@ class BiliAPI {
         }
 
         var followingItems: [LiveFollowingItem] = []
-        var areaTabs: [LiveAreaTab] = [LiveAreaTab(id: "recommend", title: "推荐")]
+        var areaTabs: [LiveAreaTab] = [.recommend]
         var rooms: [LiveCardModel] = []
 
         for card in decoded.data?.cardList ?? [] {
@@ -369,7 +369,12 @@ class BiliAPI {
 
             case "area_entrance_v3":
                 let tabs = (card.cardData.areaEntrance?.list ?? []).map { tab in
-                    LiveAreaTab(id: "area_\(tab.id)", title: tab.title)
+                    LiveAreaTab(
+                        id: "area_\(tab.areaV2ID)",
+                        title: tab.title,
+                        areaID: tab.areaV2ID,
+                        parentAreaID: tab.areaV2ParentID
+                    )
                 }
                 if !tabs.isEmpty {
                     areaTabs.append(contentsOf: tabs)
@@ -389,6 +394,54 @@ class BiliAPI {
             areaTabs: areaTabs,
             rooms: rooms
         )
+    }
+
+    func fetchLiveAreaFeed(areaID: Int, parentAreaID: Int) async throws -> [LiveCardModel] {
+        let urlString = "https://api.live.bilibili.com/xlive/app-interface/v2/second/getList"
+        let params: [String: String] = [
+            "actionKey": "appkey",
+            "area_id": String(areaID),
+            "build": "8430300",
+            "c_locale": "zh_CN",
+            "channel": "master",
+            "device": "android",
+            "device_name": "android",
+            "device_type": "0",
+            "disable_rcmd": "0",
+            "fnval": "912",
+            "https_url_req": "1",
+            "mobi_app": "android",
+            "module_select": "0",
+            "network": "wifi",
+            "page": "1",
+            "page_size": "20",
+            "parent_area_id": String(parentAreaID),
+            "platform": "android",
+            "qn": "0",
+            "s_locale": "zh_CN",
+            "scale": "2",
+            "statistics": #"{"appId":1,"platform":3,"version":"8.43.0","abtest":""}"#,
+            "tag_version": "1",
+            "version": "8.43.0"
+        ]
+
+        guard let request = makeAppRequest(baseURLString: urlString, method: "GET", parameters: params) else {
+            throw APIError.invalidURL
+        }
+
+        let (data, response) = try await URLSession.shared.data(for: request)
+        guard let httpResponse = response as? HTTPURLResponse,
+              (200 ... 299).contains(httpResponse.statusCode)
+        else {
+            throw APIError.requestFailed
+        }
+
+        let decoded = try JSONDecoder().decode(LiveAreaFeedResponse.self, from: data)
+        guard decoded.code == 0 else {
+            throw APIError.businessError(code: decoded.code, message: decoded.message)
+        }
+
+        return (decoded.data?.list ?? []).map(mapLiveAreaRoom)
     }
 
     func fetchLivePlaybackInfo(roomID: String, qn: Int = 10000) async throws -> LivePlaybackInfo {
@@ -2242,6 +2295,15 @@ private struct LiveAreaEntranceContainer: Codable {
 private struct LiveAreaEntranceTab: Codable {
     let id: Int
     let title: String
+    let areaV2ID: Int
+    let areaV2ParentID: Int
+
+    enum CodingKeys: String, CodingKey {
+        case id
+        case title
+        case areaV2ID = "area_v2_id"
+        case areaV2ParentID = "area_v2_parent_id"
+    }
 }
 
 private struct LiveSmallCard: Codable {
@@ -2281,6 +2343,44 @@ private struct LiveSmallCardFeedTag: Codable {
 
     enum CodingKeys: String, CodingKey {
         case tagText = "tag_text"
+    }
+}
+
+private struct LiveAreaFeedResponse: Codable {
+    let code: Int
+    let message: String
+    let data: LiveAreaFeedData?
+}
+
+private struct LiveAreaFeedData: Codable {
+    let list: [LiveAreaFeedRoom]
+}
+
+private struct LiveAreaFeedRoom: Codable {
+    let roomID: Int
+    let uid: Int
+    let title: String
+    let uname: String
+    let online: Int
+    let cover: String
+    let face: String
+    let link: String?
+    let parentAreaName: String?
+    let areaName: String?
+    let watchedShow: LiveRecommendWatchedShow?
+
+    enum CodingKeys: String, CodingKey {
+        case roomID = "roomid"
+        case uid
+        case title
+        case uname
+        case online
+        case cover
+        case face
+        case link
+        case parentAreaName = "area_v2_parent_name"
+        case areaName = "area_v2_name"
+        case watchedShow = "watched_show"
     }
 }
 
@@ -2510,6 +2610,28 @@ private func mapLiveSmallCard(_ room: LiveSmallCard) -> LiveCardModel {
         faceURL: room.face.replacingOccurrences(of: "http://", with: "https://"),
         areaName: areaName,
         badgeText: room.feedTag?.tagText,
+        link: room.link
+    )
+}
+
+private func mapLiveAreaRoom(_ room: LiveAreaFeedRoom) -> LiveCardModel {
+    let areaParts = [room.parentAreaName, room.areaName]
+        .compactMap { value -> String? in
+            guard let value, !value.isEmpty else { return nil }
+            return value
+        }
+    let areaName = Array(NSOrderedSet(array: areaParts)).compactMap { $0 as? String }.joined(separator: " · ")
+
+    return LiveCardModel(
+        roomId: String(room.roomID),
+        uid: room.uid,
+        title: room.title,
+        coverURL: room.cover.replacingOccurrences(of: "http://", with: "https://"),
+        onlineCount: room.watchedShow?.textLarge ?? "\(VideoItem.formatCount(room.online))人气",
+        anchorName: room.uname,
+        faceURL: room.face.replacingOccurrences(of: "http://", with: "https://"),
+        areaName: areaName,
+        badgeText: nil,
         link: room.link
     )
 }

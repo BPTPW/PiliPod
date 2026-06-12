@@ -126,4 +126,17 @@ struct LiveFollowingItem: Identifiable, Hashable {
 struct LiveAreaTab: Identifiable, Hashable {
     let id: String
     let title: String
+    let areaID: Int?
+    let parentAreaID: Int?
+
+    var isRecommend: Bool {
+        areaID == nil || parentAreaID == nil
+    }
+
+    static let recommend = LiveAreaTab(
+        id: "recommend",
+        title: "推荐",
+        areaID: nil,
+        parentAreaID: nil
+    )
 }
