@@ -131,6 +131,7 @@ struct VideoDetailPage: View {
     let onBack: () -> Void
     private let maxHorizontalSeekOffset: TimeInterval = 50
     private let verticalBrightnessDragSensitivity: Double = 2.5
+    private let nonFullscreenBackSwipeReservedWidth: CGFloat = 20
 
     private var heroID: String { "videoHero.\(video.bvid)" }
     private var progressSegments: [ProgressSegment] {
@@ -287,6 +288,11 @@ struct VideoDetailPage: View {
                                 .simultaneousGesture(
                                     DragGesture(minimumDistance: 0)
                                         .onChanged { value in
+                                            // Keep the inline player's leading edge available for the interactive back swipe.
+                                            if !isFullscreen, value.startLocation.x <= nonFullscreenBackSwipeReservedWidth {
+                                                return
+                                            }
+
                                             if dragInteractionMode == .horizontalSeek {
                                                 let width = max(1, geo.size.width)
                                                 let ratio = Double(value.translation.width / width)
@@ -1297,6 +1303,7 @@ struct VideoDetailPage: View {
             selectedTab: $selectedTab,
             width: width,
             isSwipeEnabled: !isDraggingVideoPageStrip,
+            leadingSwipeExclusionWidth: nonFullscreenBackSwipeReservedWidth,
             introContent: {
                 introTabContent
             },
@@ -2167,6 +2174,7 @@ private struct TabPager<IntroContent: View, CommentsContent: View>: View {
     @Binding var selectedTab: VideoDetailPage.VideoDetailTab
     let width: CGFloat
     let isSwipeEnabled: Bool
+    let leadingSwipeExclusionWidth: CGFloat
     @ViewBuilder let introContent: () -> IntroContent
     @ViewBuilder let commentsContent: () -> CommentsContent
 
@@ -2206,6 +2214,7 @@ private struct TabPager<IntroContent: View, CommentsContent: View>: View {
         DragGesture(minimumDistance: 12)
             .updating($dragTranslation) { value, state, _ in
                 guard isSwipeEnabled else { return }
+                guard value.startLocation.x > leadingSwipeExclusionWidth else { return }
                 guard abs(value.translation.width) > abs(value.translation.height) else { return }
 
                 let translation = value.translation.width
@@ -2217,6 +2226,7 @@ private struct TabPager<IntroContent: View, CommentsContent: View>: View {
             }
             .onEnded { value in
                 guard isSwipeEnabled else { return }
+                guard value.startLocation.x > leadingSwipeExclusionWidth else { return }
                 let dx = value.translation.width
                 let dy = value.translation.height
                 guard abs(dx) > abs(dy) else { return }
