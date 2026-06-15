@@ -20,4 +20,16 @@ final class WatchLaterViewModel: ObservableObject {
             errorMessage = error.localizedDescription
         }
     }
+
+    func remove(_ video: VideoItem) async throws {
+        let previousVideos = videos
+        videos.removeAll { $0.bvid == video.bvid }
+
+        do {
+            try await BiliAPI.shared.removeFromWatchLater(bvid: video.bvid)
+        } catch {
+            videos = previousVideos
+            throw error
+        }
+    }
 }

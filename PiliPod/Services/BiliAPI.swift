@@ -1876,6 +1876,48 @@ class BiliAPI {
         }
     }
 
+    func removeFromWatchLater(aid: Int? = nil, bvid: String? = nil) async throws {
+        guard let sessData = LoginSession.shared.cookies?.SESSDATA, !sessData.isEmpty else {
+            throw APIError.responseError(-101)
+        }
+        guard let csrf = LoginSession.shared.cookies?.bili_jct, !csrf.isEmpty else {
+            throw APIError.responseError(-111)
+        }
+        let resolvedAid: Int?
+        if let aid {
+            resolvedAid = aid
+        } else if let bvid {
+            resolvedAid = Int(BiliIdConverter.bv2av(bvid: bvid))
+        } else {
+            resolvedAid = nil
+        }
+
+        guard let resolvedAid else {
+            throw APIError.invalidURL
+        }
+
+        let params: [String: String] = [
+            "aid": String(resolvedAid),
+            "csrf": csrf
+        ]
+
+        guard let request = makePostFormRequest(
+            urlString: "https://api.bilibili.com/x/v2/history/toview/del",
+            parameters: params
+        ) else {
+            throw APIError.invalidURL
+        }
+
+        let (data, _) = try await URLSession.shared.data(for: request)
+        let response = try JSONDecoder().decode(
+            SimpleAPIResponse<EmptyCodable>.self,
+            from: data
+        )
+        if response.code != 0 {
+            throw APIError.responseError(response.code)
+        }
+    }
+
     func fetchWatchLaterList() async throws -> WatchLaterData {
         guard let url = URL(string: "https://api.bilibili.com/x/v2/history/toview") else {
             throw APIError.invalidURL
