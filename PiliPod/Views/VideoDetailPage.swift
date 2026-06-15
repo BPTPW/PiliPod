@@ -56,18 +56,7 @@ struct VideoDetailPage: View {
         case rotation
     }
 
-    private enum DragInteractionMode {
-        case none
-        case speedBoost
-        case horizontalSeek
-        case brightnessAdjust
-        case volumeAdjust
-    }
-
     @State var viewModel: VideoDetailViewModel
-    @State private var showDebugPanel = false
-    @State private var controlsVisible = true
-    @State private var hideControlsTask: Task<Void, Never>?
     @State private var isVideoDetailExpanded = false
     @State private var isFavoriteSheetPresented = false
     @State private var favoriteFolders: [FavoriteFolderItem] = []
@@ -76,28 +65,10 @@ struct VideoDetailPage: View {
     @State private var favoriteIsLoading = false
     @State private var selectedRelatedVideo: VideoItem?
     @State private var selectedUserSpaceRoute: UserSpaceRoute?
-    @State private var isSpeedBoostActive = false
-    @State private var speedBoostMultiplier: Double = 2.0
-    @State private var isSpeedBoostPressing = false
-    @State private var speedBoostTriggerTask: Task<Void, Never>?
-    @State private var isHorizontalSeeking = false
-    @State private var horizontalSeekBaseTime: TimeInterval = 0
-    @State private var horizontalSeekPreviewTime: TimeInterval?
-    @State private var progressDragPreviewTime: TimeInterval?
-    @State private var isBrightnessAdjusting = false
-    @State private var brightnessAdjustBaseValue: Double = 0
-    @State private var brightnessPreviewValue: Double = 0
-    @State private var isVolumeAdjusting = false
-    @State private var volumeAdjustBaseValue: Double = 0
-    @State private var volumePreviewValue: Double = 0
-    @State private var systemVolumeControl = SystemVolumeController()
-    @State private var dragInteractionMode: DragInteractionMode = .none
     @State private var danmakuConfig = DanmakuConfigStore.load()
     @State private var isDanmakuSettingsPresented = false
     @State private var isFullscreen = false
     @State private var fullscreenTrigger: FullscreenTrigger = .none
-    @State private var isFullscreenDanmakuPanelVisible = false
-    @State private var lastDanmakuPrefetchSegment = 0
     @State private var selectedTab: VideoDetailTab = .intro
     @State private var isDraggingVideoPageStrip = false
     @State private var toastMessage: String?
@@ -114,9 +85,6 @@ struct VideoDetailPage: View {
     @State private var sponsorIsSubmitting = false
     @State private var previewDraftSegmentID: SponsorBlockDraftSegment.ID?
     @State private var showsVideoPageDrawer = false
-    @State private var playerUISnapshot = PlayerUIPlaybackSnapshot()
-    @State private var debugPanelRefreshTask: Task<Void, Never>?
-    @State private var lastNowPlayingSyncedSecond: Int?
     @State private var cachedIntroDescriptionText = AttributedString("")
     @State private var shouldResumeAfterBackgroundPause = false
     @State private var backgroundPauseRestoreTime: TimeInterval?
@@ -225,8 +193,8 @@ struct VideoDetailPage: View {
     }
 
     private var resolvedVideoDuration: TimeInterval {
-        if playerUISnapshot.duration > 0 {
-            return playerUISnapshot.duration
+        if let playerDuration = viewModel.player?.duration, playerDuration > 0 {
+            return playerDuration
         }
         if let detailDuration = viewModel.videoDetail?.duration, detailDuration > 0 {
             return TimeInterval(detailDuration)
@@ -265,479 +233,87 @@ struct VideoDetailPage: View {
                     if let stream = bindableViewModel.dashStream, let
                         player = bindableViewModel.player
                     {
-                        ZStack(alignment: .center) {
-                            // DASH 播放器容器
-                            MPVKitPlayerView(player: player)
-                                .id(bindableViewModel.currentPlayerViewID)
-                                .aspectRatio(stream.aspectRatio, contentMode: .fit)
-                                .frame(maxWidth: .infinity, maxHeight: isFullscreen ? .infinity : nil, alignment: .center)
-                                .clipped()
-                                .ignoresSafeArea(isFullscreen ? .all : [])
-                                .background(Color.black)
-                                .contentShape(Rectangle())
-                                .onTapGesture {
-                                    showControlsAndAutoHideIfNeeded(player: player)
-                                }
-                                .highPriorityGesture(
-                                    TapGesture(count: 2)
-                                        .onEnded {
-                                            togglePlayback(player: player)
-                                            showControlsAndAutoHideIfNeeded(player: player, forceShow: true)
-                                        }
+                        VideoDetailPlayerSurfaceView(
+                            stream: stream,
+                            player: player,
+                            playerViewID: bindableViewModel.currentPlayerViewID,
+                            containerSize: geo.size,
+                            safeAreaInsets: geo.safeAreaInsets,
+                            nonFullscreenBackSwipeReservedWidth: nonFullscreenBackSwipeReservedWidth,
+                            maxHorizontalSeekOffset: maxHorizontalSeekOffset,
+                            verticalBrightnessDragSensitivity: verticalBrightnessDragSensitivity,
+                            progressSegments: progressSegments,
+                            danmakuElements: bindableViewModel.danmakuElements,
+                            danmakuOverlayConfig: fullscreenAwareDanmakuConfig,
+                            qualityOptions: bindableViewModel.qualityOptions,
+                            selectedQualityCode: bindableViewModel.selectedQualityCode,
+                            selectedPlaybackRate: bindableViewModel.selectedPlaybackRate,
+                            showsSponsorButton: showsSponsorButton,
+                            showsSponsorInfoButton: showsSponsorInfoButton,
+                            videoShotMetadata: bindableViewModel.videoShotMetadata,
+                            manualSkipTitle: manualSkipSegment?.displayTitle,
+                            previewDraftInfo: previewDraftSegment.map {
+                                VideoPlayerPreviewDraftInfo(
+                                    start: $0.start,
+                                    end: $0.end,
+                                    actionType: $0.actionType
                                 )
-                                .simultaneousGesture(
-                                    DragGesture(minimumDistance: 0)
-                                        .onChanged { value in
-                                            // Keep the inline player's leading edge available for the interactive back swipe.
-                                            if !isFullscreen, value.startLocation.x <= nonFullscreenBackSwipeReservedWidth {
-                                                return
-                                            }
-
-                                            if dragInteractionMode == .horizontalSeek {
-                                                let width = max(1, geo.size.width)
-                                                let ratio = Double(value.translation.width / width)
-                                                let delta = ratio * maxHorizontalSeekOffset
-                                                let target = clampSeekTime(horizontalSeekBaseTime + delta, duration: playerUISnapshot.duration)
-                                                horizontalSeekPreviewTime = target
-                                                return
-                                            }
-
-                                            if dragInteractionMode == .brightnessAdjust {
-                                                let height = max(1, geo.size.height)
-                                                let delta = Double(-value.translation.height / height) * verticalBrightnessDragSensitivity
-                                                let target = clampUnit(brightnessAdjustBaseValue + delta)
-                                                brightnessPreviewValue = target
-                                                setScreenBrightness(target)
-                                                return
-                                            }
-
-                                            if dragInteractionMode == .volumeAdjust {
-                                                let height = max(1, geo.size.height)
-                                                let delta = Double(-value.translation.height / height) * verticalBrightnessDragSensitivity
-                                                let target = clampUnit(volumeAdjustBaseValue + delta)
-                                                volumePreviewValue = target
-                                                setSystemVolume(target)
-                                                return
-                                            }
-
-                                            if dragInteractionMode == .speedBoost {
-                                                return
-                                            }
-
-                                            let dx = value.translation.width
-                                            let dy = value.translation.height
-                                            let shouldStartHorizontalSeek =
-                                                !isHorizontalSeeking &&
-                                                abs(dx) > 18 &&
-                                                abs(dx) > abs(dy)
-
-                                            if shouldStartHorizontalSeek {
-                                                dragInteractionMode = .horizontalSeek
-                                                isHorizontalSeeking = true
-                                                horizontalSeekBaseTime = playerUISnapshot.currentTime
-                                                speedBoostTriggerTask?.cancel()
-                                                speedBoostTriggerTask = nil
-                                                isSpeedBoostPressing = false
-                                                endSpeedBoostIfNeeded(player: player)
-                                            }
-
-                                            if isHorizontalSeeking {
-                                                let width = max(1, geo.size.width)
-                                                let ratio = Double(dx / width)
-                                                let delta = ratio * maxHorizontalSeekOffset
-                                                let target = clampSeekTime(horizontalSeekBaseTime + delta, duration: playerUISnapshot.duration)
-                                                horizontalSeekPreviewTime = target
-                                                return
-                                            }
-
-                                            let shouldStartBrightnessAdjust =
-                                                !isHorizontalSeeking &&
-                                                !isBrightnessAdjusting &&
-                                                value.startLocation.x <= geo.size.width * 0.5 &&
-                                                abs(dy) > 18 &&
-                                                abs(dy) > abs(dx)
-
-                                            if shouldStartBrightnessAdjust {
-                                                dragInteractionMode = .brightnessAdjust
-                                                isBrightnessAdjusting = true
-                                                brightnessAdjustBaseValue = currentScreenBrightness()
-                                                brightnessPreviewValue = brightnessAdjustBaseValue
-                                                speedBoostTriggerTask?.cancel()
-                                                speedBoostTriggerTask = nil
-                                                isSpeedBoostPressing = false
-                                                endSpeedBoostIfNeeded(player: player)
-                                            }
-
-                                            if isBrightnessAdjusting {
-                                                let height = max(1, geo.size.height)
-                                                let delta = Double(-dy / height) * verticalBrightnessDragSensitivity
-                                                let target = clampUnit(brightnessAdjustBaseValue + delta)
-                                                brightnessPreviewValue = target
-                                                setScreenBrightness(target)
-                                                return
-                                            }
-
-                                            let shouldStartVolumeAdjust =
-                                                !isHorizontalSeeking &&
-                                                !isBrightnessAdjusting &&
-                                                !isVolumeAdjusting &&
-                                                value.startLocation.x > geo.size.width * 0.5 &&
-                                                abs(dy) > 18 &&
-                                                abs(dy) > abs(dx)
-
-                                            if shouldStartVolumeAdjust {
-                                                dragInteractionMode = .volumeAdjust
-                                                isVolumeAdjusting = true
-                                                volumeAdjustBaseValue = currentSystemVolume()
-                                                volumePreviewValue = volumeAdjustBaseValue
-                                                speedBoostTriggerTask?.cancel()
-                                                speedBoostTriggerTask = nil
-                                                isSpeedBoostPressing = false
-                                                endSpeedBoostIfNeeded(player: player)
-                                            }
-
-                                            if isVolumeAdjusting {
-                                                let height = max(1, geo.size.height)
-                                                let delta = Double(-dy / height) * verticalBrightnessDragSensitivity
-                                                let target = clampUnit(volumeAdjustBaseValue + delta)
-                                                volumePreviewValue = target
-                                                setSystemVolume(target)
-                                                return
-                                            }
-
-                                            if !isSpeedBoostPressing {
-                                                isSpeedBoostPressing = true
-                                                speedBoostTriggerTask?.cancel()
-                                                speedBoostTriggerTask = Task { @MainActor in
-                                                    do {
-                                                        try await Task.sleep(nanoseconds: 200000000)
-                                                    } catch {
-                                                        return
-                                                    }
-                                                    if isSpeedBoostPressing {
-                                                        beginSpeedBoostIfNeeded(player: player)
-                                                    }
-                                                }
-                                            }
-                                        }
-                                        .onEnded { _ in
-                                            if dragInteractionMode == .horizontalSeek, isHorizontalSeeking {
-                                                if let seekTarget = horizontalSeekPreviewTime {
-                                                    seekPlayback(to: seekTarget, player: player)
-                                                }
-                                                horizontalSeekPreviewTime = nil
-                                                isHorizontalSeeking = false
-                                            }
-                                            if isBrightnessAdjusting {
-                                                isBrightnessAdjusting = false
-                                            }
-                                            if isVolumeAdjusting {
-                                                isVolumeAdjusting = false
-                                            }
-
-                                            isSpeedBoostPressing = false
-                                            speedBoostTriggerTask?.cancel()
-                                            speedBoostTriggerTask = nil
-                                            endSpeedBoostIfNeeded(player: player)
-                                            dragInteractionMode = .none
-                                        }
+                            },
+                            currentVideoDurationFallback: resolvedVideoDuration,
+                            onBack: { handleBackAction() },
+                            onShowDanmakuSettingsSheet: {
+                                isDanmakuSettingsPresented = true
+                            },
+                            onShowSponsorSegments: {
+                                showsSponsorList.toggle()
+                            },
+                            onShowSponsorSubmit: {
+                                withAnimation(.spring(response: 0.32, dampingFraction: 0.88)) {
+                                    openSponsorSubmitDrawer()
+                                }
+                            },
+                            onCacheVideo: {
+                                offlineCachePrefill = OfflineCacheQueryPrefill(
+                                    bvid: viewModel.bvid,
+                                    cid: viewModel.cid > 0 ? viewModel.cid : video.cid
                                 )
-                                .overlay {
-                                    DanmakuOverlayView(
-                                        currentTime: player.currentTime,
-                                        isPlaying: player.isPlaying,
-                                        elements: bindableViewModel.danmakuElements,
-                                        config: fullscreenAwareDanmakuConfig
-                                    )
+                            },
+                            onSelectQuality: { code in
+                                Task { @MainActor in
+                                    await bindableViewModel.switchQuality(to: code)
                                 }
-                                .overlay {
-                                    PlayerLoadingOverlay(
-                                        isVisible: playerUISnapshot.isBuffering,
-                                        speedBytesPerSecond: playerUISnapshot.loadingSpeedBytesPerSecond
-                                    )
-                                    .allowsHitTesting(false)
+                            },
+                            onSelectPlaybackRate: { rate in
+                                bindableViewModel.setPlaybackRate(rate)
+                            },
+                            onManualSkip: {
+                                if let manualSkipSegment {
+                                    performManualSponsorSkip(for: manualSkipSegment, player: player)
                                 }
-                                .overlay {
-                                    if isFullscreen && controlsVisible {
-                                        VStack(spacing: 0) {
-                                            LinearGradient(
-                                                colors: [Color.black.opacity(0.65), Color.black.opacity(0)],
-                                                startPoint: .top,
-                                                endPoint: .bottom
-                                            )
-                                            .frame(height: 60 + geo.safeAreaInsets.top / 2)
-                                            .frame(maxWidth: .infinity, alignment: .top)
-
-                                            Spacer(minLength: 0)
-
-                                            LinearGradient(
-                                                colors: [Color.black.opacity(0), Color.black.opacity(0.68)],
-                                                startPoint: .top,
-                                                endPoint: .bottom
-                                            )
-                                            .frame(height: 65 + geo.safeAreaInsets.bottom / 2)
-                                            .frame(maxWidth: .infinity, alignment: .bottom)
-                                        }
-                                        .ignoresSafeArea()
-                                        .allowsHitTesting(false)
-                                    }
+                            },
+                            onPlaybackStateSync: { reason in
+                                syncSystemMediaControl(reason: reason)
+                            },
+                            onPlaybackTick: { currentTime in
+                                handleSponsorSegmentPlayback(currentTime: currentTime, player: player)
+                            },
+                            onPreloadDanmakuBoundary: { currentTime in
+                                Task {
+                                    await bindableViewModel.preloadDanmakuIfNeeded(currentTime: currentTime)
                                 }
-                                .overlay {
-                                    if !isFullscreen && !controlsVisible {
-                                        ReadOnlyVideoProgressBar(
-                                            currentTime: activeSeekPreviewTime(duration: playerUISnapshot.duration) ?? playerUISnapshot.currentTime,
-                                            duration: playerUISnapshot.duration,
-                                            bufferedUntil: playerUISnapshot.bufferedUntil,
-                                            segments: progressSegments
-                                        )
-                                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
-                                        .allowsHitTesting(false)
-                                    }
-                                }
-                                .overlay {
-                                    PlayerControlsOverlay(
-                                        danmakuEnabled: $danmakuConfig.isEnabled,
-                                        onShowDanmakuSettings: {
-                                            if isFullscreen {
-                                                isFullscreenDanmakuPanelVisible.toggle()
-                                            } else {
-                                                isDanmakuSettingsPresented = true
-                                            }
-                                        },
-                                        onShowSponsorSegments: {
-                                            showsSponsorList.toggle()
-                                        },
-                                        onShowSponsorSubmit: {
-                                            withAnimation(.spring(response: 0.32, dampingFraction: 0.88)) {
-                                                openSponsorSubmitDrawer()
-                                            }
-                                        },
-                                        isFullscreen: isFullscreen,
-                                        isFullscreenDanmakuPanelVisible: isFullscreenDanmakuPanelVisible,
-                                        qualityOptions: bindableViewModel.qualityOptions,
-                                        selectedQualityCode: bindableViewModel.selectedQualityCode,
-                                        selectedPlaybackRate: bindableViewModel.selectedPlaybackRate,
-                                        isVisible: controlsVisible,
-                                        showsSponsorButton: showsSponsorButton,
-                                        showsSponsorInfoButton: showsSponsorInfoButton,
-                                        currentTime: activeSeekPreviewTime(duration: playerUISnapshot.duration) ?? playerUISnapshot.currentTime,
-                                        duration: playerUISnapshot.duration,
-                                        bufferedUntil: playerUISnapshot.bufferedUntil,
-                                        isPlaying: playerUISnapshot.isPlaying,
-                                        segments: progressSegments,
-                                        onBack: { handleBackAction() },
-                                        onUserInteracted: {
-                                            showControlsAndAutoHideIfNeeded(player: player, forceShow: true)
-                                        },
-                                        onTogglePlayPause: {
-                                            togglePlayback(player: player)
-                                        },
-                                        onSeek: { time in
-                                            seekPlayback(to: time, player: player)
-                                            showControlsAndAutoHideIfNeeded(player: player, forceShow: true)
-                                        },
-                                        onFullscreen: {
-                                            toggleFullscreenManually()
-                                        },
-                                        onCacheVideo: {
-                                            offlineCachePrefill = OfflineCacheQueryPrefill(
-                                                bvid: viewModel.bvid,
-                                                cid: viewModel.cid > 0 ? viewModel.cid : video.cid
-                                            )
-                                        },
-                                        onShowVideoStreamInfo: {
-                                            showDebugPanel.toggle()
-                                        },
-                                        onSelectQuality: { code in
-                                            Task { @MainActor in
-                                                await bindableViewModel.switchQuality(to: code)
-                                            }
-                                        },
-                                        onSelectPlaybackRate: { rate in
-                                            bindableViewModel.setPlaybackRate(rate)
-                                        },
-                                        onSeekPreviewChanged: { previewTime in
-                                            progressDragPreviewTime = previewTime
-                                        }
-                                    )
-                                }
-                                .overlay(alignment: .trailing) {
-                                    if controlsVisible && isFullscreen && isFullscreenDanmakuPanelVisible {
-                                        DanmakuSettingsPanel(
-                                            config: $danmakuConfig,
-                                            onClose: {
-                                                isFullscreenDanmakuPanelVisible = false
-                                            }
-                                        )
-                                        .padding(.trailing, 12)
-                                        .transition(.move(edge: .trailing).combined(with: .opacity))
-                                    }
-                                }
-                                .overlay(alignment: .top) {
-                                    if let seekPreview = activeSeekPreviewTime(duration: playerUISnapshot.duration) {
-                                        Text("\(formatMMSS(seekPreview))/\(formatMMSS(playerUISnapshot.duration))")
-                                            .font(.system(size: 12, weight: .semibold, design: .rounded))
-                                            .foregroundStyle(.primary)
-                                            .padding(.horizontal, 12)
-                                            .padding(.vertical, 6)
-                                            .glassEffect(.regular, in: .capsule)
-                                            .padding(.top, 12)
-                                            .transition(.opacity)
-                                    } else if isSpeedBoostActive {
-                                        Text(formatSpeedBoostLabel(speedBoostMultiplier))
-                                            .font(.system(size: 12, weight: .semibold, design: .rounded))
-                                            .foregroundStyle(.primary)
-                                            .padding(.horizontal, 12)
-                                            .padding(.vertical, 6)
-                                            .glassEffect(.regular, in: .capsule)
-                                            .padding(.top, 12)
-                                            .transition(.opacity)
-                                    }
-                                }
-                                .overlay {
-                                    if let previewTime = activeSeekPreviewTime(duration: playerUISnapshot.duration) {
-                                        VideoShotPreviewCard(
-                                            frame: bindableViewModel.videoShotMetadata?.frame(at: previewTime),
-                                            fallbackAspectRatio: stream.aspectRatio
-                                        )
-                                        .transition(.opacity.combined(with: .scale(scale: 0.96)))
-                                    }
-                                }
-                                .overlay(alignment: .bottomLeading) {
-                                    if let manualSkipSegment {
-                                        Button {
-                                            performManualSponsorSkip(for: manualSkipSegment, player: player)
-                                        } label: {
-                                            Text("跳过：\(manualSkipSegment.displayTitle)")
-                                                .font(.system(size: 13, weight: .semibold))
-                                                .foregroundStyle(.primary)
-                                                .padding(.horizontal, 14)
-                                                .padding(.vertical, 9)
-                                                .glassEffect(
-                                                    .regular.interactive(),
-                                                    in: Capsule()
-                                                )
-                                        }
-                                        .tint(.primary)
-                                        .padding(.leading, 16)
-                                        .padding(.bottom, isFullscreen ? 120 : 50)
-                                        .transition(.move(edge: .leading).combined(with: .opacity))
-                                    }
-                                }
-                                .overlay {
-                                    if isBrightnessAdjusting {
-                                        HStack(alignment: .center, spacing: 10) {
-                                            Image(systemName: "sun.max")
-                                                .font(.system(size: 12, weight: .semibold))
-                                                .foregroundStyle(.white)
-                                            GeometryReader { brightnessGeo in
-                                                let barWidth = max(1, brightnessGeo.size.width)
-                                                ZStack(alignment: .leading) {
-                                                    Capsule(style: .continuous)
-                                                        .fill(Color.white.opacity(0.24))
-                                                        .frame(height: 4)
-                                                    Capsule(style: .continuous)
-                                                        .fill(Color.white.opacity(0.95))
-                                                        .frame(width: barWidth * clampUnit(brightnessPreviewValue), height: 4)
-                                                }
-                                                .padding(.top, 2)
-                                            }
-                                            .frame(width: 100, height: 10)
-                                        }
-                                        .frame(height: 24, alignment: .center)
-                                        .padding(.horizontal, 8)
-                                        .padding(.vertical, 4)
-                                        .glassEffect(.clear.tint(.black), in: .capsule)
-                                        .transition(.opacity)
-                                    }
-                                }
-                                .overlay {
-                                    if isVolumeAdjusting {
-                                        HStack(alignment: .center, spacing: 10) {
-                                            Image(systemName: "speaker.wave.3",
-                                                  variableValue: volumePreviewValue)
-                                                .font(.system(size: 12, weight: .semibold))
-                                                .foregroundStyle(.white)
-                                            GeometryReader { volumeGeo in
-                                                let barWidth = max(1, volumeGeo.size.width)
-                                                ZStack(alignment: .leading) {
-                                                    Capsule(style: .continuous)
-                                                        .fill(Color.white.opacity(0.24))
-                                                        .frame(height: 4)
-                                                    Capsule(style: .continuous)
-                                                        .fill(Color.white.opacity(0.95))
-                                                        .frame(width: barWidth * clampUnit(volumePreviewValue), height: 4)
-                                                }
-                                                .padding(.top, 2)
-                                            }
-                                            .frame(width: 100, height: 10)
-                                        }
-                                        .frame(height: 24, alignment: .center)
-                                        .padding(.horizontal, 8)
-                                        .padding(.vertical, 4)
-                                        .glassEffect(.clear.tint(.black), in: .capsule)
-                                        .transition(.opacity)
-                                    }
-                                }
-                                .onAppear {
-                                    // 初次进入时给用户一个可发现的控制层
-                                    playerUISnapshot = player.uiSnapshot
-                                    showControlsAndAutoHideIfNeeded(player: player, forceShow: true)
-                                }
-                                .onChange(of: player.uiSnapshot) { oldSnapshot, snapshot in
-                                    playerUISnapshot = snapshot
-#if canImport(UIKit)
-                                    if oldSnapshot.isPlaying != snapshot.isPlaying {
-                                        lastNowPlayingSyncedSecond = Int(snapshot.currentTime.rounded(.down))
-                                        syncSystemMediaControl(reason: "player-snapshot-state-changed")
-                                    } else if snapshot.isPlaying {
-                                        let currentSecond = Int(snapshot.currentTime.rounded(.down))
-                                        if lastNowPlayingSyncedSecond != currentSecond {
-                                            lastNowPlayingSyncedSecond = currentSecond
-                                            syncSystemMediaControl(reason: "player-progress-changed")
-                                        }
-                                    }
-                                    setIdleTimerDisabled(snapshot.isPlaying)
-#endif
-                                    if !oldSnapshot.isPlaying && snapshot.isPlaying && controlsVisible {
-                                        refreshControlsAutoHideIfNeeded(player: player)
-                                    } else if oldSnapshot.isPlaying && !snapshot.isPlaying {
-                                        hideControlsTask?.cancel()
-                                    }
-                                    if !snapshot.isPlaying, isPlaybackEnded(player: player) {
-                                        pausePlayback(player: player)
-                                    }
-                                    handleSponsorSegmentPlayback(currentTime: snapshot.currentTime, player: player)
-                                    let segment = max(1, Int(snapshot.currentTime / 360.0) + 1)
-                                    guard segment != lastDanmakuPrefetchSegment else { return }
-                                    lastDanmakuPrefetchSegment = segment
-                                    Task {
-                                        await bindableViewModel.preloadDanmakuIfNeeded(currentTime: snapshot.currentTime)
-                                    }
-                                }
-                                .onChange(of: showDebugPanel) { _, newValue in
-                                    if newValue {
-                                        startDebugPanelRefresh(player: player)
-                                    } else {
-                                        stopDebugPanelRefresh()
-                                    }
-                                    if !newValue {
-                                        showControlsAndAutoHideIfNeeded(player: player, forceShow: true)
-                                    } else {
-                                        controlsVisible = true
-                                        hideControlsTask?.cancel()
-                                    }
-                                }
-                        }
-                        .frame(
-                            width: geo.size.width,
-                            height: isFullscreen
-                                ? geo.size.height + geo.safeAreaInsets.top + geo.safeAreaInsets.bottom
-                                : min(geo.size.width / stream.aspectRatio, geo.size.width * (4.0 / 3.0)),
-                            alignment: .center
+                            },
+                            onPreviewDraftFinished: {
+                                previewDraftSegmentID = nil
+                            },
+                            onPlaybackEnded: {
+                                pausePlayback(player: player)
+                            },
+                            onToggleFullscreen: {
+                                toggleFullscreenManually()
+                            },
+                            danmakuConfig: $danmakuConfig,
+                            isFullscreen: $isFullscreen
                         )
-                        .clipped()
-                        .layoutPriority(1)
                     } else {
                         // 加载状态：先展示封面，保证卡片→详情的 Hero 动画有目标视图
                         ZStack {
@@ -797,8 +373,8 @@ struct VideoDetailPage: View {
                                     segments: $sponsorDraftSegments,
                                     errorText: sponsorSubmitErrorText,
                                     isSubmitting: sponsorIsSubmitting,
-                                    currentPlayerTime: playerUISnapshot.currentTime,
-                                    videoDuration: max(playerUISnapshot.duration, resolvedVideoDuration),
+                                    currentPlayerTime: player.currentTime,
+                                    videoDuration: resolvedVideoDuration,
                                     onClose: {
                                         withAnimation(.spring(response: 0.32, dampingFraction: 0.88)) {
                                             showsSponsorSubmitSheet = false
@@ -809,7 +385,7 @@ struct VideoDetailPage: View {
                                     },
                                     onSetStartToCurrent: { id in
                                         updateSponsorDraftSegment(id: id) { draft in
-                                            draft.start = playerUISnapshot.currentTime
+                                            draft.start = player.currentTime
                                             if draft.end < draft.start {
                                                 draft.end = draft.start
                                             }
@@ -817,7 +393,7 @@ struct VideoDetailPage: View {
                                     },
                                     onSetEndToCurrent: { id in
                                         updateSponsorDraftSegment(id: id) { draft in
-                                            draft.end = playerUISnapshot.currentTime
+                                            draft.end = player.currentTime
                                             if draft.end < draft.start {
                                                 draft.start = draft.end
                                             }
@@ -833,7 +409,7 @@ struct VideoDetailPage: View {
                                     },
                                     onSetEndToBoundary: { id in
                                         updateSponsorDraftSegment(id: id) { draft in
-                                            let end = max(playerUISnapshot.duration, resolvedVideoDuration)
+                                            let end = resolvedVideoDuration
                                             draft.end = end
                                             if draft.end < draft.start {
                                                 draft.start = draft.end
@@ -957,16 +533,6 @@ struct VideoDetailPage: View {
                     .presentationDragIndicator(.visible)
                 }
 
-                // 调试信息面板
-                if showDebugPanel, let stream = bindableViewModel.dashStream {
-                    DashStreamDebugPanel(
-                        stream: stream,
-                        player: bindableViewModel.player,
-                        playerSnapshot: playerUISnapshot,
-                        selectedQualityCode: bindableViewModel.selectedQualityCode,
-                        onDismiss: { showDebugPanel = false }
-                    )
-                }
             }
             .overlay(alignment: .top) {
                 if !isFullscreen {
@@ -1004,12 +570,6 @@ struct VideoDetailPage: View {
             shouldResumeAfterBackgroundPause = false
             backgroundPauseRestoreTime = nil
             ensureSponsorSegmentsLoadedIfNeeded()
-#if canImport(UIKit)
-            if let player = bindableViewModel.player {
-                playerUISnapshot = player.uiSnapshot
-            }
-            setIdleTimerDisabled(playerUISnapshot.isPlaying)
-#endif
         }
         .onChange(of: sponsorBlockSettings) { _, newValue in
             sponsorBlockSettings = newValue.clamped()
@@ -1020,7 +580,6 @@ struct VideoDetailPage: View {
             DanmakuConfigStore.save(danmakuConfig)
         }
         .task {
-            lastDanmakuPrefetchSegment = 0
             sponsorBlockSettings = SponsorBlockSettingsStore.load()
             sponsorSegmentVotes = [:]
             sponsorSegmentCategoryOverrides = [:]
@@ -1029,7 +588,6 @@ struct VideoDetailPage: View {
 #endif
             await bindableViewModel.loadVideoData()
             refreshCachedIntroDescription()
-            playerUISnapshot = bindableViewModel.player?.uiSnapshot ?? PlayerUIPlaybackSnapshot()
             ensureSponsorSegmentsLoadedIfNeeded()
 #if canImport(UIKit)
             audioSessionManager.activate()
@@ -1046,20 +604,7 @@ struct VideoDetailPage: View {
             }
         }
         .onDisappear {
-            hideControlsTask?.cancel()
-            stopDebugPanelRefresh()
             if let player = bindableViewModel.player {
-                speedBoostTriggerTask?.cancel()
-                speedBoostTriggerTask = nil
-                if isSpeedBoostActive {
-                    endSpeedBoostIfNeeded(player: player)
-                }
-                isHorizontalSeeking = false
-                horizontalSeekPreviewTime = nil
-                progressDragPreviewTime = nil
-                isBrightnessAdjusting = false
-                isVolumeAdjusting = false
-                dragInteractionMode = .none
                 player.pause()
                 bindableViewModel.stopHistoryReporting(with: player)
             }
@@ -1452,91 +997,6 @@ struct VideoDetailPage: View {
         }
     }
 
-    // MARK: - 显示控制条并在需要时自动隐藏
-
-    private func showControlsAndAutoHideIfNeeded(player: MPVKitPlayer, forceShow: Bool = false) {
-        guard !showDebugPanel else {
-            controlsVisible = true
-            hideControlsTask?.cancel()
-            return
-        }
-
-        if forceShow {
-            controlsVisible = true
-        } else {
-            // 点一下显示；若已显示则切换为隐藏
-            controlsVisible.toggle()
-        }
-
-        refreshControlsAutoHideIfNeeded(player: player)
-    }
-
-    private func refreshControlsAutoHideIfNeeded(player: MPVKitPlayer) {
-        hideControlsTask?.cancel()
-        guard controlsVisible, playerUISnapshot.isPlaying else { return }
-
-        hideControlsTask = Task { @MainActor in
-            do {
-                try await Task.sleep(nanoseconds: 3000000000)
-            } catch {
-                // 重要：若被取消，请勿继续隐藏控制条
-                return
-            }
-            if Task.isCancelled { return }
-            withAnimation(.easeOut(duration: 0.22)) {
-                controlsVisible = false
-            }
-        }
-    }
-
-    // MARK: - 检查播放是否结束
-
-    private func isPlaybackEnded(player: MPVKitPlayer) -> Bool {
-        guard playerUISnapshot.duration > 0 else { return false }
-        return playerUISnapshot.currentTime >= playerUISnapshot.duration - 0.05
-    }
-
-    // MARK: - 开始倍速播放
-
-    private func beginSpeedBoostIfNeeded(player: MPVKitPlayer) {
-        guard !isSpeedBoostActive else { return }
-        guard dragInteractionMode == .none else { return }
-        dragInteractionMode = .speedBoost
-        isSpeedBoostActive = true
-        player.setPlaybackRate(speedBoostMultiplier)
-#if canImport(UIKit)
-        let generator = UIImpactFeedbackGenerator(style: .rigid)
-        generator.prepare()
-        generator.impactOccurred()
-#endif
-    }
-
-    // MARK: - 结束倍速播放
-
-    private func endSpeedBoostIfNeeded(player: MPVKitPlayer) {
-        guard isSpeedBoostActive else { return }
-        isSpeedBoostActive = false
-        player.setPlaybackRate(1.0)
-    }
-
-    // MARK: - 格式化倍速标签
-
-    private func formatSpeedBoostLabel(_ rate: Double) -> String {
-        if rate.rounded() == rate {
-            return "\(Int(rate))x倍速中"
-        }
-
-        return String(format: "%.1fx倍速中", rate)
-    }
-
-    private func formatMMSS(_ seconds: TimeInterval) -> String {
-        guard seconds.isFinite, seconds > 0 else { return "00:00" }
-        let s = Int(seconds.rounded(.down))
-        let m = s / 60
-        let r = s % 60
-        return String(format: "%02d:%02d", m, r)
-    }
-
     private func handleSponsorSegmentPlayback(currentTime: TimeInterval, player: MPVKitPlayer) {
         if let previewDraftSegment {
             if previewDraftSegment.actionType == .skip,
@@ -1702,11 +1162,9 @@ struct VideoDetailPage: View {
             showsVideoPageDrawer = false
         }
         await viewModel.switchToPage(page)
-        playerUISnapshot = viewModel.player?.uiSnapshot ?? PlayerUIPlaybackSnapshot()
         skippedSponsorSegmentIDs = []
         hiddenManualSponsorSegmentIDs = []
         manualSkipSegment = nil
-        lastDanmakuPrefetchSegment = 0
         refreshCachedIntroDescription()
         syncSystemMediaControl(reason: "video-page-changed")
     }
@@ -1738,28 +1196,6 @@ struct VideoDetailPage: View {
         previewDraftSegmentID = id
         seekPlayback(to: max(0, draft.start - 3), player: player, shouldPreloadDanmaku: false)
         resumePlayback(player: player)
-    }
-
-    private func startDebugPanelRefresh(player: MPVKitPlayer) {
-        debugPanelRefreshTask?.cancel()
-        player.refreshDebugSnapshot()
-        playerUISnapshot = player.uiSnapshot
-        debugPanelRefreshTask = Task { @MainActor in
-            while !Task.isCancelled, showDebugPanel {
-                do {
-                    try await Task.sleep(nanoseconds: 100000000)
-                } catch {
-                    return
-                }
-                player.refreshDebugSnapshot()
-                playerUISnapshot = player.uiSnapshot
-            }
-        }
-    }
-
-    private func stopDebugPanelRefresh() {
-        debugPanelRefreshTask?.cancel()
-        debugPanelRefreshTask = nil
     }
 
     private func submitSponsorDraftSegments() {
@@ -1820,16 +1256,6 @@ struct VideoDetailPage: View {
         }
     }
 
-    private func activeSeekPreviewTime(duration: TimeInterval) -> TimeInterval? {
-        if let horizontalSeekPreviewTime {
-            return clampSeekTime(horizontalSeekPreviewTime, duration: duration)
-        }
-        if let progressDragPreviewTime {
-            return clampSeekTime(progressDragPreviewTime, duration: duration)
-        }
-        return nil
-    }
-
     private func clampSeekTime(_ time: TimeInterval, duration: TimeInterval) -> TimeInterval {
         let safeDuration = max(0, duration)
         return min(max(0, time), safeDuration)
@@ -1846,12 +1272,10 @@ struct VideoDetailPage: View {
 
     private func pausePlayback(player: MPVKitPlayer) {
         player.pause()
-        playerUISnapshot = player.uiSnapshot
     }
 
     private func resumePlayback(player: MPVKitPlayer) {
         player.resume()
-        playerUISnapshot = player.uiSnapshot
     }
 
     private func seekPlayback(
@@ -1860,7 +1284,6 @@ struct VideoDetailPage: View {
         shouldPreloadDanmaku: Bool = true
     ) {
         player.seek(to: time)
-        playerUISnapshot = player.uiSnapshot
         syncSystemMediaControl(reason: "seek")
 
         guard shouldPreloadDanmaku else { return }
@@ -1882,7 +1305,7 @@ struct VideoDetailPage: View {
             },
             onSeek: { time in
                 guard let player = viewModel.player else { return }
-                let target = clampSeekTime(time, duration: playerUISnapshot.duration)
+                let target = clampSeekTime(time, duration: resolvedVideoDuration)
                 seekPlayback(to: target, player: player)
             }
         )
@@ -1893,7 +1316,7 @@ struct VideoDetailPage: View {
         let artist = viewModel.videoDetail?.owner.name ?? video.uploader
         let artworkURL = URL(string: viewModel.cover)
         let player = viewModel.player
-        let effectiveSnapshot = player?.uiSnapshot ?? playerUISnapshot
+        let effectiveSnapshot = player?.uiSnapshot ?? PlayerUIPlaybackSnapshot()
         let duration = effectiveSnapshot.duration > 0 ? effectiveSnapshot.duration : resolvedVideoDuration
         let elapsedTime = player?.currentTime ?? effectiveSnapshot.currentTime
         let isPlaying = player?.isPlaying ?? effectiveSnapshot.isPlaying
@@ -1925,8 +1348,6 @@ struct VideoDetailPage: View {
         for _ in 0..<20 {
             let snapshot = player.uiSnapshot
             if snapshot.isPlaying {
-                playerUISnapshot = snapshot
-                lastNowPlayingSyncedSecond = Int(snapshot.currentTime.rounded(.down))
                 syncSystemMediaControl(reason: "initial-playback-start")
                 return
             }
@@ -1941,7 +1362,7 @@ struct VideoDetailPage: View {
         else { return }
 
         shouldResumeAfterBackgroundPause = player.isPlaying
-        backgroundPauseRestoreTime = playerUISnapshot.currentTime
+        backgroundPauseRestoreTime = player.currentTime
 
         guard shouldResumeAfterBackgroundPause else {
             syncSystemMediaControl(reason: "background-noresume")
@@ -1970,33 +1391,6 @@ struct VideoDetailPage: View {
         resumePlayback(player: player)
     }
 #endif
-
-    private func clampUnit(_ value: Double) -> Double {
-        min(max(0, value), 1)
-    }
-
-#if canImport(UIKit)
-    private func currentScreenBrightness() -> Double {
-        Double(UIScreen.main.brightness)
-    }
-
-    private func setScreenBrightness(_ value: Double) {
-        UIScreen.main.brightness = CGFloat(clampUnit(value))
-    }
-#else
-    private func currentScreenBrightness() -> Double { 0.5 }
-    private func setScreenBrightness(_ value: Double) {
-        _ = value
-    }
-#endif
-
-    private func currentSystemVolume() -> Double {
-        clampUnit(systemVolumeControl.currentVolume)
-    }
-
-    private func setSystemVolume(_ value: Double) {
-        systemVolumeControl.setVolume(clampUnit(value))
-    }
 
     // MARK: - 设置空闲计时器
 
@@ -2102,9 +1496,6 @@ struct VideoDetailPage: View {
         withAnimation(.easeInOut(duration: 0.2)) {
             isFullscreen = willEnterFullscreen
             fullscreenTrigger = willEnterFullscreen ? .manual : .none
-            if !willEnterFullscreen {
-                isFullscreenDanmakuPanelVisible = false
-            }
         }
         viewModel.player?.setKeepAspect(true)
 #if canImport(UIKit)
@@ -2132,7 +1523,6 @@ struct VideoDetailPage: View {
                 withAnimation(.easeInOut(duration: 0.2)) {
                     isFullscreen = false
                     fullscreenTrigger = .none
-                    isFullscreenDanmakuPanelVisible = false
                 }
                 viewModel.player?.setKeepAspect(true)
                 refreshPlayerLayoutAfterFullscreenChange()
@@ -2146,7 +1536,6 @@ struct VideoDetailPage: View {
             withAnimation(.easeInOut(duration: 0.2)) {
                 isFullscreen = false
                 fullscreenTrigger = .none
-                isFullscreenDanmakuPanelVisible = false
             }
             viewModel.player?.setKeepAspect(true)
 #if canImport(UIKit)
@@ -2245,7 +1634,7 @@ private struct TabPager<IntroContent: View, CommentsContent: View>: View {
 }
 
 #if canImport(UIKit)
-private struct SystemVolumeController {
+struct SystemVolumeController {
     private let volumeView: MPVolumeView
     private let slider: UISlider?
 
@@ -2867,7 +2256,7 @@ private struct DanmakuSettingsSheet: View {
     }
 }
 
-private struct DanmakuSettingsPanel: View {
+struct DanmakuSettingsPanel: View {
     @Binding var config: DanmakuEngineConfig
     let onClose: () -> Void
 
@@ -3120,7 +2509,7 @@ struct PlayerLoadingOverlay: View {
     }
 }
 
-private struct PlayerControlsOverlay: View {
+struct PlayerControlsOverlay: View {
     @Binding var danmakuEnabled: Bool
 
     let onShowDanmakuSettings: () -> Void
@@ -3494,7 +2883,7 @@ func formatSegmentTime(_ seconds: TimeInterval) -> String {
     return String(format: "%02d:%02d", minutes, remainingSeconds)
 }
 
-private struct ProgressSegment: Identifiable, Equatable {
+struct ProgressSegment: Identifiable, Equatable {
     let id = UUID()
     /// 0...1
     let start: Double
@@ -3569,7 +2958,7 @@ private struct VideoProgressBar: View {
     }
 }
 
-private struct ReadOnlyVideoProgressBar: View {
+struct ReadOnlyVideoProgressBar: View {
     let currentTime: TimeInterval
     let duration: TimeInterval
     let bufferedUntil: TimeInterval
@@ -3592,7 +2981,7 @@ private struct ReadOnlyVideoProgressBar: View {
     }
 }
 
-private struct VideoShotPreviewCard: View {
+struct VideoShotPreviewCard: View {
     let frame: VideoShotFrame?
     let fallbackAspectRatio: Double
 
