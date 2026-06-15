@@ -212,6 +212,11 @@ struct VideoDetailPage: View {
         return viewModel.videoPages.first
     }
 
+    private func nonFullscreenPlayerHeight(for size: CGSize) -> CGFloat {
+        let aspectRatio = viewModel.dashStream?.aspectRatio ?? (16.0 / 9.0)
+        return min(size.width / aspectRatio, size.width * (4.0 / 3.0))
+    }
+
     init(video: VideoItem, namespace: Namespace.ID, onBack: @escaping () -> Void) {
         self.video = video
         self.namespace = namespace
@@ -362,11 +367,19 @@ struct VideoDetailPage: View {
                     }
 
                     if !isFullscreen {
+                        let bottomContentHeight = max(
+                            0,
+                            geo.size.height + geo.safeAreaInsets.bottom - nonFullscreenPlayerHeight(for: geo.size)
+                        )
+
                         ZStack(alignment: .bottom) {
                             VStack(spacing: 0) {
                                 tabBar
                                 tabContent(width: geo.size.width)
+                                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
                             }
+                            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+                            .background(Color(.systemBackground))
 
                             if let player = bindableViewModel.player, showsSponsorSubmitSheet {
                                 SponsorBlockSubmitDrawer(
@@ -449,6 +462,10 @@ struct VideoDetailPage: View {
                                 .zIndex(2)
                             }
                         }
+                        .frame(width: geo.size.width, height: bottomContentHeight, alignment: .top)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+                        .background(Color(.systemBackground))
+                        .ignoresSafeArea(edges: .bottom)
                         .animation(.spring(response: 0.32, dampingFraction: 0.88), value: showsSponsorSubmitSheet)
                         .animation(.spring(response: 0.32, dampingFraction: 0.88), value: showsVideoPageDrawer)
                     }
@@ -547,7 +564,7 @@ struct VideoDetailPage: View {
                 if isFullscreen {
                     Color.black.ignoresSafeArea()
                 } else {
-                    Color.clear
+                    Color(.systemBackground).ignoresSafeArea(edges: .bottom)
                 }
             }
         }
@@ -1582,11 +1599,14 @@ private struct TabPager<IntroContent: View, CommentsContent: View>: View {
         HStack(spacing: 0) {
             introContent()
                 .frame(width: width)
+                .frame(maxHeight: .infinity, alignment: .top)
 
             commentsContent()
                 .frame(width: width)
+                .frame(maxHeight: .infinity, alignment: .top)
         }
         .frame(width: width, alignment: .leading)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .offset(x: -currentIndex * width + dragOffset)
         .animation(.interactiveSpring(response: 0.32, dampingFraction: 0.86), value: selectedTab)
         .contentShape(Rectangle())
