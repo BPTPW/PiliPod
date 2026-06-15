@@ -22,34 +22,44 @@ struct OfflineCacheView: View {
     @Namespace private var videoNamespace
 
     var body: some View {
-        ScrollView {
-            LazyVStack(spacing: 14) {
-                if cacheManager.sortedItems.isEmpty {
-                    emptyState
-                } else {
-                    ForEach(cacheManager.sortedItems) { item in
-                        OfflineCacheCardView(
-                            item: item,
-                            namespace: videoNamespace,
-                            isSelectionMode: isSelectionMode,
-                            isSelected: selectedItemIDs.contains(item.id),
-                            onTap: {
-                                handleItemTap(item)
-                            },
-                            onDelete: {
-                                itemPendingDeletion = item
-                                isSingleDeleteDialogPresented = true
-                            },
-                            onSelect: {
-                                enterSelectionMode(selecting: item.id)
+        List {
+            if cacheManager.sortedItems.isEmpty {
+                emptyState
+                    .offlineCacheListRow()
+            } else {
+                ForEach(cacheManager.sortedItems) { item in
+                    OfflineCacheCardView(
+                        item: item,
+                        namespace: videoNamespace,
+                        isSelectionMode: isSelectionMode,
+                        isSelected: selectedItemIDs.contains(item.id),
+                        onTap: {
+                            handleItemTap(item)
+                        },
+                        onDelete: {
+                            itemPendingDeletion = item
+                            isSingleDeleteDialogPresented = true
+                        },
+                        onSelect: {
+                            enterSelectionMode(selecting: item.id)
+                        }
+                    )
+                    .padding(.vertical, 7)
+                    .offlineCacheListRow()
+                    .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                        if !isSelectionMode {
+                            Button(role: .destructive) {
+                                deleteItemImmediately(item)
+                            } label: {
+                                Label("删除", systemImage: "trash")
                             }
-                        )
+                        }
                     }
                 }
             }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 18)
         }
+        .listStyle(.plain)
+        .scrollContentBackground(.hidden)
         .background(Color(.systemGroupedBackground))
         .navigationTitle("离线缓存")
         .navigationBarBackButtonHidden(isSelectionMode)
@@ -353,6 +363,10 @@ struct OfflineCacheView: View {
         isDeleteSelectionDialogPresented = false
     }
 
+    private func deleteItemImmediately(_ item: OfflineCacheItem) {
+        cacheManager.deleteItem(id: item.id)
+    }
+
     @MainActor
     private func runQuery() async {
         guard !isQuerying else { return }
@@ -563,6 +577,12 @@ private struct OfflineCacheCardView: View {
 }
 
 private extension View {
+    func offlineCacheListRow() -> some View {
+        listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 0, trailing: 16))
+            .listRowSeparator(.hidden)
+            .listRowBackground(Color.clear)
+    }
+
     @ViewBuilder
     func heroTransitionSource(id: String, in namespace: Namespace.ID) -> some View {
         if #available(iOS 18.0, *) {
