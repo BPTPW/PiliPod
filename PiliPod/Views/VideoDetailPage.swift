@@ -2480,7 +2480,7 @@ private struct MoreActionsMenuView: View, Equatable {
     }
 }
 
-// MARK: - 视频控制器覆盖
+// MARK: - 视频加载中覆盖
 
 struct PlayerLoadingOverlay: View {
     let isVisible: Bool
@@ -2491,20 +2491,17 @@ struct PlayerLoadingOverlay: View {
             VStack(spacing: 8) {
                 ProgressView()
                     .progressViewStyle(.circular)
-                    .tint(.white)
+                    .tint(.primary)
                     .controlSize(.regular)
 
                 Text(formattedSpeed)
                     .font(.system(size: 12, weight: .semibold, design: .rounded))
                     .monospacedDigit()
-                    .foregroundStyle(.white.opacity(0.92))
+                    .foregroundStyle(.primary)
             }
             .padding(.horizontal, 14)
             .padding(.vertical, 12)
-            .background(
-                .black.opacity(0.42),
-                in: RoundedRectangle(cornerRadius: 16, style: .continuous)
-            )
+            .glassEffect(.regular, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
             .transition(.opacity.combined(with: .scale(scale: 0.96)))
         }
     }
