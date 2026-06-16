@@ -729,6 +729,9 @@ struct LivePlaybackPage: View {
 @Observable
 @MainActor
 private final class LivePlaybackViewModel {
+    private static let maxDanmakuMessages = 100
+    private static let danmakuFlushIntervalNanoseconds: UInt64 = 250_000_000
+
     let room: LiveCardModel
 
     var roomInfo: LiveRoomInfo?
@@ -741,12 +744,14 @@ private final class LivePlaybackViewModel {
     private var currentQn: Int
     private var hasLoaded = false
     private let danmakuService = LiveDanmakuService()
+    private var pendingMessages: [LiveDanmakuMessage] = []
+    private var danmakuFlushTask: Task<Void, Never>?
 
     init(room: LiveCardModel) {
         self.room = room
         currentQn = Self.preferredInitialLiveQualityCode()
         danmakuService.onMessage = { [weak self] message in
-            self?.messages.append(message)
+            self?.enqueueDanmakuMessage(message)
         }
     }
 
@@ -825,6 +830,8 @@ private final class LivePlaybackViewModel {
     }
 
     func teardown() {
+        danmakuFlushTask?.cancel()
+        danmakuFlushTask = nil
         danmakuService.close()
     }
 
@@ -906,11 +913,49 @@ private final class LivePlaybackViewModel {
     private func loadDanmakuIfNeeded() async {
         guard let roomID = Int(room.roomId) else { return }
         do {
-            messages = try await BiliAPI.shared.fetchLiveDanmakuHistory(roomID: roomID)
+            messages = Self.trimDanmakuMessages(
+                try await BiliAPI.shared.fetchLiveDanmakuHistory(roomID: roomID)
+            )
         } catch {
             print("fetchLiveDanmakuHistory failed: \(error.localizedDescription)")
         }
         await danmakuService.connect(roomID: roomID)
+    }
+
+    private func enqueueDanmakuMessage(_ message: LiveDanmakuMessage) {
+        pendingMessages.append(message)
+        guard danmakuFlushTask == nil else { return }
+
+        danmakuFlushTask = Task { @MainActor [weak self] in
+            guard let self else { return }
+            while !Task.isCancelled {
+                try? await Task.sleep(nanoseconds: Self.danmakuFlushIntervalNanoseconds)
+                guard !Task.isCancelled else { return }
+                flushPendingDanmakuMessages()
+                if pendingMessages.isEmpty {
+                    danmakuFlushTask = nil
+                    return
+                }
+            }
+        }
+    }
+
+    private func flushPendingDanmakuMessages() {
+        guard !pendingMessages.isEmpty else { return }
+        let incomingMessages = pendingMessages
+        pendingMessages.removeAll(keepingCapacity: true)
+
+        let overflowCount = max(0, messages.count + incomingMessages.count - Self.maxDanmakuMessages)
+        if overflowCount > 0 {
+            messages.removeFirst(overflowCount)
+        }
+
+        messages.append(contentsOf: incomingMessages)
+    }
+
+    private static func trimDanmakuMessages(_ messages: [LiveDanmakuMessage]) -> [LiveDanmakuMessage] {
+        guard messages.count > maxDanmakuMessages else { return messages }
+        return Array(messages.suffix(maxDanmakuMessages))
     }
 }
 
@@ -976,7 +1021,7 @@ private struct LiveDanmakuListView: View {
             ScrollViewReader { proxy in
                 ZStack(alignment: .bottom) {
                     ScrollView {
-                        VStack(alignment: .leading, spacing: 10) {
+                        LazyVStack(alignment: .leading, spacing: 10) {
                             ForEach(messages) { message in
                                 LiveDanmakuRow(message: message)
                                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -1010,10 +1055,15 @@ private struct LiveDanmakuListView: View {
                         let newIsAtBottom = bottomY <= threshold
                         isAtBottom = newIsAtBottom
                     }
-                    .onChange(of: messages.count) { _, _ in
+                    .onChange(of: messages.last?.id) { _, newValue in
+                        guard newValue != nil else { return }
                         guard autoScrollEnabled else { return }
-                        withAnimation(.easeOut(duration: 0.2)) {
-                            proxy.scrollTo(bottomAnchorID, anchor: .bottom)
+
+                        Task { @MainActor in
+                            await Task.yield()
+                            withAnimation(.easeOut(duration: 0.2)) {
+                                proxy.scrollTo(bottomAnchorID, anchor: .bottom)
+                            }
                         }
                     }
                     .onAppear {
