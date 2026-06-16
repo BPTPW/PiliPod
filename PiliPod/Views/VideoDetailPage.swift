@@ -73,6 +73,7 @@ struct VideoDetailPage: View {
     @State private var isDraggingVideoPageStrip = false
     @State private var toastMessage: String?
     @State private var activeSharePayload: SharePayload?
+    @State private var isGeneratingShareImage = false
     @State private var sponsorBlockSettings = SponsorBlockSettingsStore.load()
     @State private var skippedSponsorSegmentIDs: Set<String> = []
     @State private var hiddenManualSponsorSegmentIDs: Set<String> = []
@@ -987,6 +988,7 @@ struct VideoDetailPage: View {
                     },
                     onShare: shareShortLink,
                     onShareWithTime: shareTimestampLink,
+                    onShareImage: sharePosterImage,
                     onLaterWatch: {
                         if !viewModel.isWatchLater {
                             viewModel.addToWatchLater()
@@ -1072,6 +1074,41 @@ struct VideoDetailPage: View {
             items: ["https://www.bilibili.com/video/\(video.bvid)/?&t=\(currentTime)"]
         )
     }
+
+#if canImport(UIKit)
+    private func sharePosterImage() {
+        guard !isGeneratingShareImage else { return }
+        isGeneratingShareImage = true
+
+        Task {
+            let shareURL = URL(string: "https://b23.tv/\(video.bvid)")!
+            let coverURL = URL(string: video.cover)
+            let coverImage: UIImage?
+            if let coverURL {
+                coverImage = await SharedRemoteImageStore.shared.image(for: coverURL)
+            } else {
+                coverImage = nil
+            }
+            let posterImage = await MainActor.run {
+                VideoShareCardRenderer.renderImage(
+                    coverImage: coverImage,
+                    title: video.title,
+                    uploaderName: video.uploader,
+                    shareURL: shareURL
+                )
+            }
+
+            await MainActor.run {
+                isGeneratingShareImage = false
+                guard let posterImage else {
+                    toastMessage = "分享图片生成失败"
+                    return
+                }
+                activeSharePayload = SharePayload(items: [posterImage])
+            }
+        }
+    }
+#endif
 
     private func performAutoSponsorSkip(for segment: PlaybackSponsorSegment, player: MPVKitPlayer) {
         skippedSponsorSegmentIDs.insert(segment.id)
@@ -1736,6 +1773,7 @@ struct VideoActionBar: View {
     let onToggleFavorite: () -> Void
     let onShare: () -> Void
     let onShareWithTime: () -> Void
+    let onShareImage: () -> Void
     let onLaterWatch: () -> Void
 
     var body: some View {
@@ -1782,7 +1820,8 @@ struct VideoActionBar: View {
                 systemImage: "square.and.arrow.up.fill",
                 isDisabled: false,
                 onShare: onShare,
-                onShareWithTime: onShareWithTime
+                onShareWithTime: onShareWithTime,
+                onShareImage: onShareImage
             )
 
             VideoActionButton(
@@ -1862,12 +1901,13 @@ private struct VideoShareMenuButton: View {
     let isDisabled: Bool
     let onShare: () -> Void
     let onShareWithTime: () -> Void
+    let onShareImage: () -> Void
 
     var body: some View {
         Menu {
             Button("分享链接") { onShare() }
             Button("分享链接（带时间）") { onShareWithTime() }
-            Button("分享图片") {}
+            Button("分享图片") { onShareImage() }
         } label: {
             VStack(spacing: 6) {
                 ZStack {

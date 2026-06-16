@@ -58,6 +58,7 @@ struct IntroTabContentView: View, Equatable {
     let onToggleFavorite: () -> Void
     let onShare: () -> Void
     let onShareWithTime: () -> Void
+    let onShareImage: () -> Void
     let onLaterWatch: () -> Void
     let onOpenPageDrawer: () -> Void
     let onSelectPage: (VideoPageListItem) -> Void
@@ -238,6 +239,7 @@ struct IntroTabContentView: View, Equatable {
                     onToggleFavorite: onToggleFavorite,
                     onShare: onShare,
                     onShareWithTime: onShareWithTime,
+                    onShareImage: onShareImage,
                     onLaterWatch: onLaterWatch
                 )
                 .padding(.top, 4)
