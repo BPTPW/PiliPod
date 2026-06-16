@@ -1046,6 +1046,43 @@ class BiliAPI {
         return decoded.data?.list ?? []
     }
 
+    // MARK: - 获取搜索联想
+
+    func fetchSearchSuggestions(term: String) async throws -> [SearchSuggestItem] {
+        var components = URLComponents(string: "https://s.search.bilibili.com/main/suggest")
+        components?.queryItems = [
+            URLQueryItem(name: "term", value: term),
+            URLQueryItem(name: "main_ver", value: "v1"),
+            URLQueryItem(name: "highlight", value: term)
+        ]
+
+        guard let url = components?.url else {
+            throw APIError.invalidURL
+        }
+
+        var request = makeRequest(url: url)
+        request.setValue("https://www.bilibili.com", forHTTPHeaderField: "Referer")
+        request.setValue(
+            "Mozilla/5.0 (iPhone; CPU iPhone OS 18_2 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.2 Mobile/15E148 Safari/604.1",
+            forHTTPHeaderField: "User-Agent"
+        )
+
+        let (data, response) = try await URLSession.shared.data(for: request)
+
+        guard let httpResponse = response as? HTTPURLResponse,
+              (200 ... 299).contains(httpResponse.statusCode)
+        else {
+            throw APIError.requestFailed
+        }
+
+        let decoded = try JSONDecoder().decode(SearchSuggestResponse.self, from: data)
+        guard decoded.code == 0 else {
+            throw APIError.businessError(code: decoded.code, message: nil)
+        }
+
+        return decoded.result?.tag ?? []
+    }
+
     // MARK: - 综合搜索
 
     func fetchComprehensiveSearch(keyword: String) async throws -> [SearchComprehensiveModule] {
