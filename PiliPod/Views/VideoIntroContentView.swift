@@ -57,6 +57,7 @@ struct IntroTabContentView: View, Equatable {
     let onCoin2: () -> Void
     let onToggleFavorite: () -> Void
     let onShare: () -> Void
+    let onShareWithTime: () -> Void
     let onLaterWatch: () -> Void
     let onOpenPageDrawer: () -> Void
     let onSelectPage: (VideoPageListItem) -> Void
@@ -236,6 +237,7 @@ struct IntroTabContentView: View, Equatable {
                     onCoin2: onCoin2,
                     onToggleFavorite: onToggleFavorite,
                     onShare: onShare,
+                    onShareWithTime: onShareWithTime,
                     onLaterWatch: onLaterWatch
                 )
                 .padding(.top, 4)

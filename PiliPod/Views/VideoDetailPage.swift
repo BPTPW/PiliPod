@@ -72,6 +72,7 @@ struct VideoDetailPage: View {
     @State private var selectedTab: VideoDetailTab = .intro
     @State private var isDraggingVideoPageStrip = false
     @State private var toastMessage: String?
+    @State private var activeSharePayload: SharePayload?
     @State private var sponsorBlockSettings = SponsorBlockSettingsStore.load()
     @State private var skippedSponsorSegmentIDs: Set<String> = []
     @State private var hiddenManualSponsorSegmentIDs: Set<String> = []
@@ -549,6 +550,9 @@ struct VideoDetailPage: View {
                     .presentationDetents([.medium, .large])
                     .presentationDragIndicator(.visible)
                 }
+                .sheet(item: $activeSharePayload) { payload in
+                    ActivityShareSheet(activityItems: payload.items)
+                }
 
             }
             .overlay(alignment: .top) {
@@ -981,9 +985,8 @@ struct VideoDetailPage: View {
                     onToggleFavorite: {
                         isFavoriteSheetPresented = true
                     },
-                    onShare: {
-                        // TODO: add share logic later
-                    },
+                    onShare: shareShortLink,
+                    onShareWithTime: shareTimestampLink,
                     onLaterWatch: {
                         if !viewModel.isWatchLater {
                             viewModel.addToWatchLater()
@@ -1055,6 +1058,19 @@ struct VideoDetailPage: View {
         } else {
             manualSkipSegment = nil
         }
+    }
+
+    private func shareShortLink() {
+        activeSharePayload = SharePayload(
+            items: ["https://b23.tv/\(video.bvid)"]
+        )
+    }
+
+    private func shareTimestampLink() {
+        let currentTime = max(0, Int((viewModel.player?.currentTime ?? 0).rounded(.down)))
+        activeSharePayload = SharePayload(
+            items: ["https://www.bilibili.com/video/\(video.bvid)/?&t=\(currentTime)"]
+        )
     }
 
     private func performAutoSponsorSkip(for segment: PlaybackSponsorSegment, player: MPVKitPlayer) {
@@ -1719,6 +1735,7 @@ struct VideoActionBar: View {
     let onCoin2: () -> Void
     let onToggleFavorite: () -> Void
     let onShare: () -> Void
+    let onShareWithTime: () -> Void
     let onLaterWatch: () -> Void
 
     var body: some View {
@@ -1760,12 +1777,12 @@ struct VideoActionBar: View {
                 onTap: onToggleFavorite
             )
 
-            VideoActionButton(
+            VideoShareMenuButton(
                 title: formatCount(shareCount),
                 systemImage: "square.and.arrow.up.fill",
-                isActive: false,
                 isDisabled: false,
-                onTap: onShare
+                onShare: onShare,
+                onShareWithTime: onShareWithTime
             )
 
             VideoActionButton(
@@ -1818,6 +1835,48 @@ private struct VideoCoinMenuButton: View {
                         .scaledToFit()
                         .frame(width: 18, height: 18)
                         .foregroundStyle(isActive ? .white : .primary)
+                }
+                .frame(width: 44, height: 44)
+                .glassEffect(
+                    .regular.interactive(),
+                    in: .circle
+                )
+
+                Text(title)
+                    .font(.system(size: 11, weight: .regular))
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
+            }
+            .frame(maxWidth: .infinity)
+        }
+        .buttonStyle(.plain)
+        .disabled(isDisabled)
+        .opacity(isDisabled ? 0.6 : 1.0)
+    }
+}
+
+private struct VideoShareMenuButton: View {
+    let title: String
+    let systemImage: String
+    let isDisabled: Bool
+    let onShare: () -> Void
+    let onShareWithTime: () -> Void
+
+    var body: some View {
+        Menu {
+            Button("分享链接") { onShare() }
+            Button("分享链接（带时间）") { onShareWithTime() }
+            Button("分享图片") {}
+        } label: {
+            VStack(spacing: 6) {
+                ZStack {
+                    RoundedRectangle(cornerRadius: 22, style: .continuous)
+                        .fill(Color.white.opacity(0))
+
+                    Image(systemName: systemImage)
+                        .font(.system(size: 18, weight: .semibold))
+                        .foregroundStyle(.primary)
                 }
                 .frame(width: 44, height: 44)
                 .glassEffect(
@@ -3398,6 +3457,23 @@ struct URIRow: View {
         }
     }
 }
+
+private struct SharePayload: Identifiable {
+    let id = UUID()
+    let items: [Any]
+}
+
+#if canImport(UIKit)
+private struct ActivityShareSheet: UIViewControllerRepresentable {
+    let activityItems: [Any]
+
+    func makeUIViewController(context: Context) -> UIActivityViewController {
+        UIActivityViewController(activityItems: activityItems, applicationActivities: nil)
+    }
+
+    func updateUIViewController(_ uiViewController: UIActivityViewController, context: Context) {}
+}
+#endif
 
 #Preview {
     struct PreviewWrapper: View {
