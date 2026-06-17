@@ -147,13 +147,6 @@ struct SponsorBlockSettings: Codable, Equatable {
         }
         copy.behaviors = normalized
 
-        let trimmedBaseURL = copy.serverBaseURL.trimmingCharacters(in: .whitespacesAndNewlines)
-        if trimmedBaseURL.isEmpty {
-            copy.serverBaseURL = SponsorBlockSettings.defaultServerBaseURL
-        } else {
-            copy.serverBaseURL = normalizedSponsorBlockBaseURL(trimmedBaseURL) ?? SponsorBlockSettings.defaultServerBaseURL
-        }
-
         if let userID = copy.userID?.trimmingCharacters(in: .whitespacesAndNewlines),
            !userID.isEmpty
         {
@@ -187,33 +180,16 @@ struct SponsorBlockSettings: Codable, Equatable {
     }
 }
 
-private func normalizedSponsorBlockBaseURL(_ rawValue: String) -> String? {
-    var candidate = rawValue.trimmingCharacters(in: .whitespacesAndNewlines)
-    guard !candidate.isEmpty else { return nil }
+private func normalizedSponsorBlockBasePath(_ rawPath: String) -> String {
+    let trimmed = rawPath.trimmingCharacters(in: .whitespacesAndNewlines)
+    guard !trimmed.isEmpty, trimmed != "/" else { return "/" }
 
-    if !candidate.contains("://") {
-        candidate = "https://" + candidate
-    }
+    let components = trimmed
+        .split(separator: "/", omittingEmptySubsequences: true)
+        .map(String.init)
 
-    guard var components = URLComponents(string: candidate) else { return nil }
-    components.path = ""
-    components.query = nil
-    components.fragment = nil
-
-    guard let scheme = components.scheme?.lowercased(),
-          let host = components.host?.lowercased(),
-          !host.isEmpty
-    else {
-        return nil
-    }
-
-    components.scheme = scheme
-    components.host = host
-
-    if let port = components.port {
-        return "\(scheme)://\(host):\(port)"
-    }
-    return "\(scheme)://\(host)"
+    guard !components.isEmpty else { return "/" }
+    return "/" + components.joined(separator: "/")
 }
 
 enum SponsorBlockSettingsStore {
@@ -352,8 +328,21 @@ enum SponsorBlockAPI {
     }
 
     private static func endpointURL(_ path: String) -> URL? {
-        guard let baseURL = URL(string: baseURLString) else { return nil }
-        return URL(string: path, relativeTo: baseURL)?.absoluteURL
+        guard var components = URLComponents(string: baseURLString) else { return nil }
+
+        let basePath = normalizedSponsorBlockBasePath(components.path)
+        let trimmedPath = path.trimmingCharacters(in: CharacterSet(charactersIn: "/"))
+        let joinedPath: String
+        if trimmedPath.isEmpty {
+            joinedPath = basePath
+        } else if basePath == "/" {
+            joinedPath = "/" + trimmedPath
+        } else {
+            joinedPath = basePath + "/" + trimmedPath
+        }
+
+        components.path = joinedPath
+        return components.url
     }
 
     static func fetchPrimaryVideoLabelIfAvailable(videoID: String) async -> SponsorBlockVideoLabel? {
@@ -380,7 +369,8 @@ enum SponsorBlockAPI {
 
     static func fetchSkipSegments(
         videoID: String,
-        cid: Int? = nil
+        cid: Int? = nil,
+        refreshServerCache: Bool = false
     ) async throws -> [SkipSegment] {
         guard let endpoint = endpointURL("/api/skipSegments"),
               var components = URLComponents(url: endpoint, resolvingAgainstBaseURL: false)
@@ -400,6 +390,9 @@ enum SponsorBlockAPI {
 
         var request = URLRequest(url: url)
         request.timeoutInterval = 8
+        if refreshServerCache {
+            request.setValue("1", forHTTPHeaderField: "x-skip-cache")
+        }
 
         let (data, response) = try await URLSession.shared.data(for: request)
         guard let httpResponse = response as? HTTPURLResponse else {

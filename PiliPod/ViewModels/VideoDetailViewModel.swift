@@ -674,7 +674,10 @@ class VideoDetailViewModel {
     }
 
     @MainActor
-    func loadSkipSegments(cid: Int? = nil) async {
+    func loadSkipSegments(
+        cid: Int? = nil,
+        refreshServerCache: Bool = false
+    ) async {
         let targetCid = cid ?? self.cid
         skipSegmentsCID = targetCid
         skipSegmentsIsLoading = true
@@ -688,7 +691,8 @@ class VideoDetailViewModel {
         do {
             let segments = try await SponsorBlockAPI.fetchSkipSegments(
                 videoID: bvid,
-                cid: targetCid > 0 ? targetCid : nil
+                cid: targetCid > 0 ? targetCid : nil,
+                refreshServerCache: refreshServerCache
             )
             guard skipSegmentsCID == targetCid else { return }
             skipSegments = segments

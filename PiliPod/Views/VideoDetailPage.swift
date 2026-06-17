@@ -1314,7 +1314,7 @@ struct VideoDetailPage: View {
                         showsSponsorSubmitSheet = false
                     }
                     Task { @MainActor in
-                        await viewModel.loadSkipSegments()
+                        await viewModel.loadSkipSegments(refreshServerCache: true)
                     }
                 }
             } catch {
