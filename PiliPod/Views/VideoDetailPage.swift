@@ -2583,19 +2583,28 @@ private struct MoreActionsMenuView: View, Equatable {
     var body: some View {
         // 保持菜单结构静态，避免父视图因 currentTime 高频更新时重建系统 Menu。
         Menu {
-            Button("缓存视频") {
+            Button {
                 onUserInteracted()
                 onCacheVideo()
+            } label: {
+                Image(systemName:"square.and.arrow.down")
+                Text("缓存视频")
             }
 
-            Button("重载视频") {
+            Button {
                 onUserInteracted()
                 onReloadVideo()
+            } label: {
+                Image(systemName:"arrow.clockwise")
+                Text("重载视频")
             }
 
-            Button("视频流信息") {
+            Button {
                 onUserInteracted()
                 onShowVideoStreamInfo()
+            } label: {
+                Image(systemName:"info.circle")
+                Text("视频流信息")
             }
         } label: {
             Image(systemName: "ellipsis")
