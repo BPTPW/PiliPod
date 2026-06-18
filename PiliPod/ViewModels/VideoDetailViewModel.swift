@@ -338,14 +338,18 @@ class VideoDetailViewModel {
                 }
             }
 
-            let seekTime = await MainActor.run { self.initialSeekTime }
+            let (seekTime, activePlayer, resumeRate) = await MainActor.run {
+                (self.initialSeekTime, self.player, self.selectedPlaybackRate)
+            }
 
-            // 历史记录跳转播放：在播放器加载后 seek；避免未 ready 时 seek 无效
-            if let seekTo = seekTime, seekTo > 0 {
-                try? await Task.sleep(nanoseconds: 300000000)
-                await MainActor.run {
-                    self.player?.seek(to: seekTo)
-                }
+            // 历史记录跳转播放：等待播放器状态开始更新后再恢复，避免 load 后被底层 0 位置覆盖。
+            if let seekTo = seekTime, seekTo > 0, let activePlayer {
+                await restorePlaybackState(
+                    on: activePlayer,
+                    time: seekTo,
+                    rate: resumeRate,
+                    shouldResume: true
+                )
             }
         } catch {
             print("视频加载出现错误: ")
