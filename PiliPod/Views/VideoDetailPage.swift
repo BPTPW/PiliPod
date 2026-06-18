@@ -66,6 +66,7 @@ struct VideoDetailPage: View {
     @State private var selectedRelatedVideo: VideoItem?
     @State private var selectedUserSpaceRoute: UserSpaceRoute?
     @State private var danmakuConfig = DanmakuConfigStore.load()
+    @State private var isDanmakuEnabled = DanmakuConfigStore.load().isEnabled
     @State private var isDanmakuSettingsPresented = false
     @State private var isFullscreen = false
     @State private var fullscreenTrigger: FullscreenTrigger = .none
@@ -319,6 +320,7 @@ struct VideoDetailPage: View {
                                 toggleFullscreenManually()
                             },
                             danmakuConfig: $danmakuConfig,
+                            isDanmakuEnabled: $isDanmakuEnabled,
                             isFullscreen: $isFullscreen
                         )
                     } else {
@@ -524,6 +526,7 @@ struct VideoDetailPage: View {
                 .sheet(isPresented: $isDanmakuSettingsPresented) {
                     DanmakuSettingsSheet(
                         config: $danmakuConfig,
+                        isDanmakuEnabled: $isDanmakuEnabled,
                         onClose: { isDanmakuSettingsPresented = false }
                     )
                     .presentationDetents([.medium, .large])
@@ -575,6 +578,7 @@ struct VideoDetailPage: View {
         }
         .onAppear {
             danmakuConfig = DanmakuConfigStore.load()
+            isDanmakuEnabled = danmakuConfig.isEnabled
             sponsorBlockSettings = SponsorBlockSettingsStore.load()
             cachedIntroDescriptionText = AttributedString("")
             skippedSponsorSegmentIDs = []
@@ -598,8 +602,11 @@ struct VideoDetailPage: View {
             ensureSponsorSegmentsLoadedIfNeeded()
         }
         .onChange(of: danmakuConfig) { _, newValue in
-            danmakuConfig = newValue.clamped()
-            DanmakuConfigStore.save(danmakuConfig)
+            let clampedConfig = newValue.clamped()
+            danmakuConfig = clampedConfig
+            var persistedConfig = clampedConfig
+            persistedConfig.isEnabled = DanmakuConfigStore.load().isEnabled
+            DanmakuConfigStore.save(persistedConfig)
         }
         .task {
             sponsorBlockSettings = SponsorBlockSettingsStore.load()
@@ -699,6 +706,7 @@ struct VideoDetailPage: View {
 
     private var fullscreenAwareDanmakuConfig: DanmakuEngineConfig {
         var config = danmakuConfig
+        config.isEnabled = isDanmakuEnabled
         if isFullscreen {
             config.fontScale = danmakuConfig.fullscreenFontScale
         }
@@ -2101,6 +2109,7 @@ private struct FavoriteFolderSheet: View {
 
 private struct DanmakuSettingsSheet: View {
     @Binding var config: DanmakuEngineConfig
+    @Binding var isDanmakuEnabled: Bool
     let onClose: () -> Void
 
     private let defaultConfig = DanmakuEngineConfig()
@@ -2109,6 +2118,9 @@ private struct DanmakuSettingsSheet: View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 16) {
+                    Toggle("显示弹幕", isOn: $isDanmakuEnabled)
+                        .tint(Color("BiliPink"))
+
                     sliderSection(
                         title: "屏蔽等级",
                         valueText: "\(config.blockLevel)",
@@ -2377,6 +2389,7 @@ private struct DanmakuSettingsSheet: View {
 
 struct DanmakuSettingsPanel: View {
     @Binding var config: DanmakuEngineConfig
+    @Binding var isDanmakuEnabled: Bool
     let onClose: () -> Void
 
     var body: some View {
@@ -2392,6 +2405,8 @@ struct DanmakuSettingsPanel: View {
                 }
             }
 
+            Toggle("显示弹幕", isOn: $isDanmakuEnabled)
+                .tint(Color("BiliPink"))
             Toggle("屏蔽滚动", isOn: $config.blockScroll)
                 .tint(Color("BiliPink"))
             Toggle("屏蔽顶部", isOn: $config.blockTop)

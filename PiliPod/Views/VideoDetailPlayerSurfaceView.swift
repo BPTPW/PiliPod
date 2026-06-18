@@ -55,6 +55,7 @@ struct VideoDetailPlayerSurfaceView: View {
     let onToggleFullscreen: () -> Void
 
     @Binding var danmakuConfig: DanmakuEngineConfig
+    @Binding var isDanmakuEnabled: Bool
     @Binding var isFullscreen: Bool
 
     @State private var controlsVisible = true
@@ -215,6 +216,7 @@ struct VideoDetailPlayerSurfaceView: View {
                     if controlsVisible && isFullscreen && isFullscreenDanmakuPanelVisible {
                         DanmakuSettingsPanel(
                             config: $danmakuConfig,
+                            isDanmakuEnabled: $isDanmakuEnabled,
                             onClose: {
                                 isFullscreenDanmakuPanelVisible = false
                             }
@@ -482,8 +484,8 @@ struct VideoDetailPlayerSurfaceView: View {
 
     private var danmakuEnabledBinding: Binding<Bool> {
         Binding(
-            get: { danmakuConfig.isEnabled },
-            set: { danmakuConfig.isEnabled = $0 }
+            get: { isDanmakuEnabled },
+            set: { isDanmakuEnabled = $0 }
         )
     }
 
