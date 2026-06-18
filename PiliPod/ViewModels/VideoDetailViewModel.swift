@@ -84,6 +84,7 @@ class VideoDetailViewModel {
     private var lastReportedProgress = 0
     private var playerRebuildToken = UUID()
     private var isRebuildingPlayer = false
+    private var isReloadingCurrentVideo = false
 
     var currentPlayerViewID: String {
         playerRebuildToken.uuidString
@@ -384,6 +385,74 @@ class VideoDetailViewModel {
 
         await restorePlaybackState(
             on: player,
+            time: resumeTime,
+            rate: resumeRate,
+            shouldResume: shouldResume
+        )
+    }
+
+    @MainActor
+    func reloadCurrentVideoPreservingPlaybackState() async throws {
+        guard !isReloadingCurrentVideo else { return }
+
+        let targetCID = cid > 0 ? cid : (videoDetail?.cid ?? 0)
+        guard targetCID > 0 else {
+            throw NSError(
+                domain: "VideoDetailViewModel",
+                code: 1,
+                userInfo: [NSLocalizedDescriptionKey: "无效的视频分P"]
+            )
+        }
+
+        let currentPlayer = player
+        let resumeTime = currentPlayer?.currentTime ?? 0
+        let resumeRate = selectedPlaybackRate
+        let shouldResume = currentPlayer?.isPlaying ?? true
+        let preferredQualityCode = selectedQualityCode
+        let playbackSettings = AudioVideoSettingsStore.load()
+        let preferredCodec = playbackSettings.preferredCodec
+
+        isReloadingCurrentVideo = true
+        defer { isReloadingCurrentVideo = false }
+
+        let playUrlResponse = try await BiliAPI.shared.fetchPlayUrl(
+            bvid: bvid,
+            cid: targetCID
+        )
+        let options = DashStreamSelector.qualityOptions(from: playUrlResponse)
+        let availableQualityCodes = options.map(\.code)
+        let fallbackQuality =
+            DashStreamSelector.resolvePreferredQualityCode(
+                from: availableQualityCodes,
+                preferred: preferredQuality(for: playbackSettings)
+            ) ?? availableQualityCodes.max()
+        let targetQuality = preferredQualityCode.flatMap { code in
+            availableQualityCodes.contains(code) ? code : nil
+        } ?? fallbackQuality
+
+        guard let resolvedQuality = targetQuality,
+              let stream = DashStreamSelector.selectStream(
+                  from: playUrlResponse,
+                  qualityCode: resolvedQuality,
+                  preferredCodec: preferredCodec
+              )
+        else {
+            throw APIError.noVideoOrAudio
+        }
+
+        playUrlData = playUrlResponse
+        qualityOptions = options
+        selectedQualityCode = resolvedQuality
+        dashStream = stream
+        isPlayingOfflineCache = false
+        error = nil
+
+        guard let currentPlayer else { return }
+        currentPlayer.play(stream: stream)
+        currentPlayer.setPlaybackRate(resumeRate)
+
+        await restorePlaybackState(
+            on: currentPlayer,
             time: resumeTime,
             rate: resumeRate,
             shouldResume: shouldResume

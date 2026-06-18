@@ -286,6 +286,16 @@ struct VideoDetailPage: View {
                                     cid: viewModel.cid > 0 ? viewModel.cid : video.cid
                                 )
                             },
+                            onReloadVideo: {
+                                Task { @MainActor in
+                                    do {
+                                        try await bindableViewModel.reloadCurrentVideoPreservingPlaybackState()
+                                        syncSystemMediaControl(reason: "video-reloaded")
+                                    } catch {
+                                        toastMessage = error.localizedDescription
+                                    }
+                                }
+                            },
                             onSelectQuality: { code in
                                 Task { @MainActor in
                                     await bindableViewModel.switchQuality(to: code)
@@ -2563,6 +2573,7 @@ private struct QualityMenuView: View, Equatable {
 private struct MoreActionsMenuView: View, Equatable {
     let onUserInteracted: () -> Void
     let onCacheVideo: () -> Void
+    let onReloadVideo: () -> Void
     let onShowVideoStreamInfo: () -> Void
 
     static func == (lhs: MoreActionsMenuView, rhs: MoreActionsMenuView) -> Bool {
@@ -2575,6 +2586,11 @@ private struct MoreActionsMenuView: View, Equatable {
             Button("缓存视频") {
                 onUserInteracted()
                 onCacheVideo()
+            }
+
+            Button("重载视频") {
+                onUserInteracted()
+                onReloadVideo()
             }
 
             Button("视频流信息") {
@@ -2665,6 +2681,7 @@ struct PlayerControlsOverlay: View {
     let onSeek: (TimeInterval) -> Void
     let onFullscreen: () -> Void
     let onCacheVideo: () -> Void
+    let onReloadVideo: () -> Void
     let onShowVideoStreamInfo: () -> Void
     let onSelectQuality: (Int) -> Void
     let onSelectPlaybackRate: (Double) -> Void
@@ -2767,6 +2784,7 @@ struct PlayerControlsOverlay: View {
             MoreActionsMenuView(
                 onUserInteracted: onUserInteracted,
                 onCacheVideo: onCacheVideo,
+                onReloadVideo: onReloadVideo,
                 onShowVideoStreamInfo: onShowVideoStreamInfo
             )
             .equatable()
