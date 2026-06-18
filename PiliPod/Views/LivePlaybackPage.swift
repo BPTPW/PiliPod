@@ -327,8 +327,8 @@ struct LivePlaybackPage: View {
                             .font(.system(size: 14, weight: .medium))
                             .foregroundStyle(.white)
 
-                        if !viewModel.areaName.isEmpty {
-                            Text(viewModel.areaName)
+                        if !viewModel.areaMetadataText.isEmpty {
+                            Text(viewModel.areaMetadataText)
                                 .font(.system(size: 12))
                                 .foregroundStyle(.white.opacity(0.78))
                         }
@@ -783,6 +783,17 @@ private final class LivePlaybackViewModel {
         roomInfo?.areaName ?? room.areaName
     }
 
+    var areaMetadataText: String {
+        let segments = [areaName, liveDurationText].filter { !$0.isEmpty }
+        return segments.joined(separator: "   ")
+    }
+
+    private var liveDurationText: String {
+        guard let liveStartTime = roomInfo?.liveStartTime else { return "" }
+        let elapsedSeconds = max(Int(Date().timeIntervalSince1970) - liveStartTime, 0)
+        return "开播 \(Self.formatLiveDuration(elapsedSeconds))"
+    }
+
     var faceURL: URL? {
         URL(string: roomInfo?.faceURL ?? room.faceURL)
     }
@@ -900,6 +911,21 @@ private final class LivePlaybackViewModel {
             return minimumCode
         }
         return currentQn
+    }
+
+    private static func formatLiveDuration(_ totalSeconds: Int) -> String {
+        let days = totalSeconds / 86_400
+        let hours = (totalSeconds % 86_400) / 3_600
+        let minutes = (totalSeconds % 3_600) / 60
+        let seconds = totalSeconds % 60
+
+        if days > 0 {
+            return String(format: "%d天 %02d:%02d:%02d", days, hours, minutes, seconds)
+        }
+        if totalSeconds >= 3_600 {
+            return String(format: "%02d:%02d:%02d", hours, minutes, seconds)
+        }
+        return String(format: "%02d:%02d", minutes, seconds)
     }
 
     private func loadRoomInfo() async {

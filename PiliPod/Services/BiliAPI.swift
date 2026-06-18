@@ -724,7 +724,8 @@ class BiliAPI {
             onlineCount: onlineText,
             anchorName: payload.anchorInfo.baseInfo.uname,
             faceURL: payload.anchorInfo.baseInfo.face.replacingOccurrences(of: "http://", with: "https://"),
-            areaName: areaName
+            areaName: areaName,
+            liveStartTime: payload.roomInfo.liveStartTime
         )
     }
 
@@ -2348,6 +2349,7 @@ struct LiveRoomInfo {
     let anchorName: String
     let faceURL: String
     let areaName: String
+    let liveStartTime: Int?
 }
 
 struct LiveHomeFeedPayload {
@@ -2617,6 +2619,7 @@ private struct LiveRoomInfoRoom: Codable {
     let areaName: String
     let parentAreaName: String
     let appBackground: String
+    let liveStartTime: Int?
 
     enum CodingKeys: String, CodingKey {
         case uid
@@ -2627,6 +2630,7 @@ private struct LiveRoomInfoRoom: Codable {
         case areaName = "area_name"
         case parentAreaName = "parent_area_name"
         case appBackground = "app_background"
+        case liveStartTime = "live_start_time"
     }
 }
 
