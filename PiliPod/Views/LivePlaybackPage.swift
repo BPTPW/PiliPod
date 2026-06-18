@@ -35,6 +35,7 @@ struct LivePlaybackPage: View {
     @State private var selectedUserSpaceRoute: UserSpaceRoute?
     @State private var fullscreenTrigger: FullscreenTrigger = .none
     @State private var mediaControlSyncTask: Task<Void, Never>?
+    @State private var playbackRefreshTask: Task<Void, Never>?
 #if canImport(UIKit)
     @State private var preferredFullscreenOrientation: UIInterfaceOrientation = .landscapeRight
     @StateObject private var audioSessionManager = VideoPlaybackAudioSessionManager()
@@ -99,6 +100,8 @@ struct LivePlaybackPage: View {
             hideControlsTask?.cancel()
             mediaControlSyncTask?.cancel()
             mediaControlSyncTask = nil
+            playbackRefreshTask?.cancel()
+            playbackRefreshTask = nil
             player.pause()
 #if canImport(UIKit)
             audioSessionManager.deactivate()
@@ -496,6 +499,21 @@ struct LivePlaybackPage: View {
         refreshControlsAutoHideIfNeeded()
     }
 
+    private func schedulePlaybackRefresh(
+        reason: String,
+        delayNanoseconds: UInt64 = 250_000_000
+    ) {
+        playbackRefreshTask?.cancel()
+        playbackRefreshTask = Task { @MainActor in
+            if delayNanoseconds > 0 {
+                try? await Task.sleep(nanoseconds: delayNanoseconds)
+            }
+            guard !Task.isCancelled else { return }
+            print("auto refresh playback: \(reason)")
+            await refreshPlayback()
+        }
+    }
+
     private func togglePlayback() {
         if player.isPlaying {
             pausePlayback()
@@ -605,11 +623,13 @@ struct LivePlaybackPage: View {
     private func handleDidBecomeActive() {
         guard shouldResumeAfterBackgroundPause else {
             restoreFullscreenOrientationIfNeeded()
+            schedulePlaybackRefresh(reason: "didBecomeActive", delayNanoseconds: 450_000_000)
             return
         }
         shouldResumeAfterBackgroundPause = false
         resumePlayback()
         restoreFullscreenOrientationIfNeeded()
+        schedulePlaybackRefresh(reason: "didBecomeActiveAfterResume", delayNanoseconds: 450_000_000)
     }
 
     private func updateDeviceOrientationForFullscreen(isFullscreen: Bool) {
@@ -688,7 +708,7 @@ struct LivePlaybackPage: View {
                     controlsVisible = true
                 }
                 player.setKeepAspect(true)
-                refreshPlayerLayoutAfterFullscreenChange()
+                refreshPlayerLayoutAfterFullscreenChange(reason: "rotationToLandscape")
                 refreshControlsAutoHideIfNeeded()
             }
         } else if interfaceOrientation.isPortrait, isFullscreen, fullscreenTrigger == .rotation {
@@ -698,16 +718,19 @@ struct LivePlaybackPage: View {
                 controlsVisible = true
             }
             player.setKeepAspect(true)
-            refreshPlayerLayoutAfterFullscreenChange()
+            refreshPlayerLayoutAfterFullscreenChange(reason: "rotationToPortrait")
             refreshControlsAutoHideIfNeeded()
         }
     }
 
-    private func refreshPlayerLayoutAfterFullscreenChange() {
+    private func refreshPlayerLayoutAfterFullscreenChange(reason: String? = nil) {
         Task { @MainActor in
             player.refreshVideoOutput()
             try? await Task.sleep(nanoseconds: 80_000_000)
             player.refreshVideoOutput()
+            if let reason {
+                schedulePlaybackRefresh(reason: reason, delayNanoseconds: 180_000_000)
+            }
         }
     }
 #else
