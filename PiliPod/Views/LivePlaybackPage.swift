@@ -357,20 +357,25 @@ struct LivePlaybackPage: View {
         VStack(spacing: 0) {
             if isFullscreen {
                 // 返回按钮
-                HStack(spacing: 12) {
-                    Button {
-                        showControlsAndAutoHideIfNeeded(forceShow: true)
-                        handleBackAction()
-                    } label: {
-                        Image(systemName: "chevron.left")
-                            .font(.system(size: 16, weight: .semibold))
-                            .foregroundStyle(.primary)
-                            .frame(width: 40, height: 40)
-                    }
-                    .glassEffect(.regular.interactive(), in: .circle)
-                    .tint(.primary)
+                ZStack {
+                    HStack(spacing: 12) {
+                        Button {
+                            showControlsAndAutoHideIfNeeded(forceShow: true)
+                            handleBackAction()
+                        } label: {
+                            Image(systemName: "chevron.left")
+                                .font(.system(size: 16, weight: .semibold))
+                                .foregroundStyle(.primary)
+                                .frame(width: 40, height: 40)
+                        }
+                        .glassEffect(.regular.interactive(), in: .circle)
+                        .tint(.primary)
 
-                    Spacer(minLength: 0)
+                        Spacer(minLength: 0)
+                    }
+
+                    LandscapeSystemStatusView()
+                        .frame(maxWidth: 170)
                 }
                 .padding(.leading, horizontalLeadingPadding)
                 .padding(.trailing, horizontalTrailingPadding)

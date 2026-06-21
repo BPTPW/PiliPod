@@ -2712,91 +2712,96 @@ struct PlayerControlsOverlay: View {
     }
 
     private var topBar: some View {
-        HStack(spacing: 12) {
-            // 左上角返回
-            Button(action: {
-                onUserInteracted()
-                onBack()
-            }) {
-                Image(systemName: "chevron.left")
-                    .font(.system(size: 16, weight: .semibold))
-                    .foregroundColor(.primary)
-                    .frame(width: 40, height: 40)
-            }
-            .glassEffect(
-                .regular.interactive(),
-                in: .circle
-            )
-
-            Spacer()
-
-            // 空降助手-标记片段 按钮
-            if showsSponsorButton && !isFullscreen {
+        ZStack {
+            HStack(spacing: 12) {
+                // 左上角返回
                 Button(action: {
                     onUserInteracted()
-                    onShowSponsorSubmit()
+                    onBack()
                 }) {
-                    Image("SponsorBlockerStart")
-                        .renderingMode(.template)
-                        .resizable()
-                        .scaledToFit()
-                        .frame(width: 16, height: 16)
+                    Image(systemName: "chevron.left")
+                        .font(.system(size: 16, weight: .semibold))
                         .foregroundColor(.primary)
-                        .frame(width: 32, height: 32)
+                        .frame(width: 40, height: 40)
                 }
                 .glassEffect(
                     .regular.interactive(),
                     in: .circle
                 )
-            }
 
-            // 空降助手-列表 按钮
-            if showsSponsorButton && showsSponsorInfoButton {
-                Button(action: {
-                    onUserInteracted()
-                    onShowSponsorSegments()
-                }) {
-                    Image("SponsorBlockerInfo")
-                        .renderingMode(.template)
-                        .resizable()
-                        .scaledToFit()
-                        .frame(width: 16, height: 16)
-                        .foregroundColor(.primary)
-                        .frame(width: 32, height: 32)
+                Spacer()
+
+                if isFullscreen {
+                    LandscapeSystemStatusView()
+                        .frame(maxWidth: 170)
+                } else {
+                    // 空降助手-标记片段 按钮
+                    if showsSponsorButton {
+                        Button(action: {
+                            onUserInteracted()
+                            onShowSponsorSubmit()
+                        }) {
+                            Image("SponsorBlockerStart")
+                                .renderingMode(.template)
+                                .resizable()
+                                .scaledToFit()
+                                .frame(width: 16, height: 16)
+                                .foregroundColor(.primary)
+                                .frame(width: 32, height: 32)
+                        }
+                        .glassEffect(
+                            .regular.interactive(),
+                            in: .circle
+                        )
+                    }
+
+                    // 空降助手-列表 按钮
+                    if showsSponsorButton && showsSponsorInfoButton {
+                        Button(action: {
+                            onUserInteracted()
+                            onShowSponsorSegments()
+                        }) {
+                            Image("SponsorBlockerInfo")
+                                .renderingMode(.template)
+                                .resizable()
+                                .scaledToFit()
+                                .frame(width: 16, height: 16)
+                                .foregroundColor(.primary)
+                                .frame(width: 32, height: 32)
+                        }
+                        .glassEffect(
+                            .regular.interactive(),
+                            in: .circle
+                        )
+                    }
+
+                    // 右上角弹幕设置按钮
+                    Button(action: {
+                        onUserInteracted()
+                        onShowDanmakuSettings()
+                    }) {
+                        Image("DanmakuSetting")
+                            .renderingMode(.template)
+                            .resizable()
+                            .scaledToFit()
+                            .frame(width: 16, height: 16)
+                            .foregroundColor(.primary)
+                            .frame(width: 32, height: 32)
+                    }
+                    .glassEffect(
+                        .regular.interactive(),
+                        in: .circle
+                    )
+
+                    MoreActionsMenuView(
+                        onUserInteracted: onUserInteracted,
+                        onCacheVideo: onCacheVideo,
+                        onReloadVideo: onReloadVideo,
+                        onShowVideoStreamInfo: onShowVideoStreamInfo
+                    )
+                    .equatable()
                 }
-                .glassEffect(
-                    .regular.interactive(),
-                    in: .circle
-                )
             }
-
-            if !isFullscreen {
-                // 右上角弹幕设置按钮
-                Button(action: {
-                    onUserInteracted()
-                    onShowDanmakuSettings()
-                }) {
-                    Image("DanmakuSetting")
-                        .renderingMode(.template)
-                        .resizable()
-                        .scaledToFit()
-                        .frame(width: 16, height: 16)
-                        .foregroundColor(.primary)
-                        .frame(width: 32, height: 32)
-                }
-                .glassEffect(
-                    .regular.interactive(),
-                    in: .circle
-                )
-            }
-
-            MoreActionsMenuView(
-                onUserInteracted: onUserInteracted,
-                onCacheVideo: onCacheVideo,
-                onReloadVideo: onReloadVideo,
-                onShowVideoStreamInfo: onShowVideoStreamInfo
-            )
-            .equatable()
         }
         .padding(12)
     }
