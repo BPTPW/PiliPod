@@ -109,12 +109,20 @@ struct VideoDetailPage: View {
         let duration = resolvedVideoDuration
         guard duration > 0, sponsorBlockSettings.isEnabled else { return [] }
 
-        return playableSponsorSegments.compactMap { segment -> ProgressSegment? in
-            guard let color = progressColorForCategory(segment.category.rawValue) else { return nil }
+        return viewModel.progressSkipSegments.compactMap { segment -> ProgressSegment? in
+            guard let category = sponsorCategory(for: segment),
+                  let color = progressColorForCategory(category.rawValue)
+            else {
+                return nil
+            }
+            guard segment.segment.count >= 2 else { return nil }
+
+            let start = min(max(segment.segment[0], 0), duration)
+            let end = min(max(segment.segment[1], start), duration)
 
             return ProgressSegment(
-                start: segment.start / duration,
-                end: segment.end / duration,
+                start: start / duration,
+                end: end / duration,
                 color: color,
                 opacity: 0.8
             )
@@ -3315,21 +3323,38 @@ private struct VideoProgressTrack: View {
             Capsule(style: .continuous)
                 .fill(Color.white.opacity(0.5))
                 .frame(width: width * clampedBufferedProgress, height: height)
-
+            
             ForEach(segments) { seg in
-                let s = min(max(seg.start, 0), 1)
-                let e = min(max(seg.end, 0), 1)
-                if e > s {
-                    Capsule(style: .continuous)
-                        .fill(seg.color.opacity(seg.opacity))
-                        .frame(width: width * (e - s), height: height)
-                        .offset(x: width * s)
+                if seg.end > clampedPlayedProgress{
+                    let s = min(max(seg.start, 0), 1)
+                    let e = min(max(seg.end, 0), 1)
+                    let segWidth = max(width * (e - s), height)
+                    if e >= s {
+                        Capsule(style: .continuous)
+                            .fill(seg.color.opacity(seg.opacity))
+                            .frame(width: segWidth, height: height)
+                            .offset(x: width * s)
+                    }
                 }
             }
 
             Capsule(style: .continuous)
                 .fill(playedColor)
                 .frame(width: width * clampedPlayedProgress, height: height)
+
+            ForEach(segments) { seg in
+                if seg.end <= clampedPlayedProgress{
+                    let s = min(max(seg.start, 0), 1)
+                    let e = min(max(seg.end, 0), 1)
+                    let segWidth = max(width * (e - s), height)
+                    if e >= s {
+                        Capsule(style: .continuous)
+                            .fill(seg.color.opacity(seg.opacity))
+                            .frame(width: segWidth, height: height)
+                            .offset(x: width * s)
+                    }
+                }
+            }
 
             if showsKnob {
                 Circle()
