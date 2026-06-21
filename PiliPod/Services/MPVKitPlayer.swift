@@ -295,11 +295,11 @@ class MPVKitPlayer: NSObject {
             duration = total
         }
 
-        let cacheAhead = controller.demuxerCacheTime()
+        let bufferedTime = controller.demuxerCacheTime()
         let cacheSpeedBytesPerSecond = max(controller.cacheSpeedBytesPerSecond(), 0)
         let downloadSpeedBytesPerSecond = max(controller.downloadSpeedBytesPerSecond(), 0)
         if duration > 0 {
-            bufferedUntil = min(max(currentTime + max(cacheAhead, 0), 0), duration)
+            bufferedUntil = min(max(bufferedTime, 0), duration)
         } else {
             bufferedUntil = 0
         }
@@ -311,7 +311,8 @@ class MPVKitPlayer: NSObject {
         let isControllerPaused = controller.isPaused()
         let reachedPlaybackEnd = duration > 0 && currentTime >= duration - 0.05
         let stalledFor = now - lastPlaybackProgressUptime
-        let cacheAheadIsLow = max(cacheAhead, 0) < Self.bufferingCacheAheadThreshold
+        let cacheAhead = max(bufferedTime - currentTime, 0)
+        let cacheAheadIsLow = cacheAhead < Self.bufferingCacheAheadThreshold
         let stalledWhileTryingToPlay =
             playbackIntent &&
             !reachedPlaybackEnd &&

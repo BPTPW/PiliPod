@@ -57,6 +57,7 @@ enum PreferredLiveQuality: Int, CaseIterable, Codable, Hashable {
 
 enum VideoBufferSizeOption: String, CaseIterable, Codable, Hashable {
     case auto
+    case huge
     case mb64
     case mb32
     case mb16
@@ -68,6 +69,7 @@ enum VideoBufferSizeOption: String, CaseIterable, Codable, Hashable {
     var title: String {
         switch self {
         case .auto: "自动"
+        case .huge: "超大"
         case .mb64: "64MB"
         case .mb32: "32MB"
         case .mb16: "16MB"
@@ -81,6 +83,7 @@ enum VideoBufferSizeOption: String, CaseIterable, Codable, Hashable {
     var mpvByteString: String? {
         switch self {
         case .auto: nil
+        case .huge: "2048MiB"
         case .mb64: "64MiB"
         case .mb32: "32MiB"
         case .mb16: "16MiB"
@@ -154,7 +157,7 @@ struct AudioVideoSettings: Codable, Equatable {
     var cellularDefaultQuality: PreferredVideoQuality = .ultraHD4K
     var liveDefaultQuality: PreferredLiveQuality = .original
     var cellularLiveDefaultQuality: PreferredLiveQuality = .blueRay
-    var bufferSize: VideoBufferSizeOption = .auto
+    var bufferSize: VideoBufferSizeOption = .mb8
     var preferredCodec: PreferredCodecOption = .hevc
     var autosync: Int = 0
     var videoSync: MPVVideoSyncOption = .audio
@@ -202,7 +205,7 @@ struct AudioVideoSettings: Codable, Equatable {
         cellularDefaultQuality = try container.decodeIfPresent(PreferredVideoQuality.self, forKey: .cellularDefaultQuality) ?? .ultraHD4K
         liveDefaultQuality = try container.decodeIfPresent(PreferredLiveQuality.self, forKey: .liveDefaultQuality) ?? .original
         cellularLiveDefaultQuality = try container.decodeIfPresent(PreferredLiveQuality.self, forKey: .cellularLiveDefaultQuality) ?? .blueRay
-        bufferSize = try container.decodeIfPresent(VideoBufferSizeOption.self, forKey: .bufferSize) ?? .auto
+        bufferSize = try container.decodeIfPresent(VideoBufferSizeOption.self, forKey: .bufferSize) ?? .mb8
         preferredCodec = try container.decodeIfPresent(PreferredCodecOption.self, forKey: .preferredCodec) ?? .hevc
         autosync = try container.decodeIfPresent(Int.self, forKey: .autosync) ?? 0
         videoSync = try container.decodeIfPresent(MPVVideoSyncOption.self, forKey: .videoSync) ?? .audio

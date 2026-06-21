@@ -25,6 +25,7 @@ private struct AudioVideoSettingsView: View {
     @Binding var autosyncText: String
 
     private let defaultSettings = AudioVideoSettings()
+    private let hugeBufferWarningText = "设置为超大后会显著增大播放器缓存上限，并尽量预取更多视频内容来尽可能保持播放流畅度，这将造成较多的网络和存储消耗。只建议在网络环境不稳定时使用。"
 
     var body: some View {
         Form {
@@ -87,11 +88,9 @@ private struct AudioVideoSettingsView: View {
 
             Section {
                 NavigationLink {
-                    ChoiceListView(
-                        title: "缓冲大小",
-                        options: VideoBufferSizeOption.allCases,
+                    BufferSizeChoiceListView(
                         selection: $settings.bufferSize,
-                        titleFor: \.title
+                        warningText: hugeBufferWarningText
                     )
                 } label: {
                     selectionRow(title: "缓冲大小", value: settings.bufferSize.title)
@@ -99,7 +98,10 @@ private struct AudioVideoSettingsView: View {
             } header: {
                 Text("缓存")
             } footer: {
-                Text("非自动模式下会同时调整 demuxer-max-bytes 和 demuxer-max-back-bytes。")
+                if settings.bufferSize == .huge {
+                    Text(hugeBufferWarningText)
+                        .foregroundStyle(.red)
+                }
             }
 
             Section {
@@ -194,5 +196,69 @@ private struct AudioVideoSettingsView: View {
             Text(value)
                 .foregroundStyle(.secondary)
         }
+    }
+}
+
+private struct BufferSizeChoiceListView: View {
+    @Binding var selection: VideoBufferSizeOption
+
+    let warningText: String
+
+    @State private var pendingSelection: VideoBufferSizeOption?
+    @State private var previousSelection: VideoBufferSizeOption?
+    @State private var showsHugeConfirmation = false
+
+    var body: some View {
+        List {
+            ForEach(VideoBufferSizeOption.allCases, id: \.self) { option in
+                Button {
+                    handleSelection(option)
+                } label: {
+                    HStack {
+                        Text(option.title)
+                            .foregroundStyle(.primary)
+                        Spacer()
+                        if selection == option {
+                            Image(systemName: "checkmark")
+                                .foregroundStyle(Color("BiliPink"))
+                        }
+                    }
+                }
+                .tint(.primary)
+            }
+        }
+        .navigationTitle("缓冲大小")
+        .navigationBarTitleDisplayMode(.inline)
+        .alert("确认使用超大缓冲", isPresented: $showsHugeConfirmation) {
+            Button("继续使用") {
+                selection = .huge
+                pendingSelection = nil
+                previousSelection = nil
+            }
+            Button("取消", role: .cancel) {
+                if let previousSelection {
+                    selection = previousSelection
+                }
+                pendingSelection = nil
+                previousSelection = nil
+            }
+        } message: {
+            Text(warningText)
+        }
+    }
+
+    private func handleSelection(_ option: VideoBufferSizeOption) {
+        guard option == .huge else {
+            pendingSelection = nil
+            previousSelection = nil
+            showsHugeConfirmation = false
+            selection = option
+            return
+        }
+
+        guard selection != .huge else { return }
+        previousSelection = selection
+        pendingSelection = option
+        showsHugeConfirmation = true
     }
 }

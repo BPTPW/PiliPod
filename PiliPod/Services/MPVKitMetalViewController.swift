@@ -239,6 +239,12 @@ final class MPVKitMetalViewController: UIViewController {
                 context: "demuxer-max-back-bytes"
             )
         }
+        if pendingPlaybackSettings.bufferSize == .huge {
+            checkError(
+                mpv_set_option_string(mpv, "cache-on-disk", "yes"),
+                context: "cache-on-disk"
+            )
+        }
         checkError(mpv_set_option_string(mpv, "video-rotate", "no"), context: "video-rotate")
         checkError(mpv_set_option_string(mpv, "keep-open", "yes"), context: "keep-open")
         checkError(mpv_set_option_string(mpv, "network-timeout", "10"), context: "network-timeout")
