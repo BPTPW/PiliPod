@@ -203,6 +203,12 @@
             "state" : "translated",
             "value" : "• You can set your own private ID; it must be a string consisting solely of characters and at least 30 characters long. A random string will be generated when the application is launched for the first time."
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "• プライベートIDは自由に設定できます。30文字以上の純粋な文字列である必要があり、初回起動時にはランダムな文字列が生成されます。"
+          }
         }
       }
     },
@@ -212,6 +218,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "• Your private ID should be kept confidential. If someone else obtains your private ID, they will be able to impersonate you. The server does not store any private IDs, so if you are unfortunate enough to lose your private ID, there is no way to recover it."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "• プライベートIDは秘密にしておく必要があります。他人があなたのプライベートIDを入手した場合、その人物はあなたになりすますことができます。サーバーにはプライベートIDは一切保存されません。万が一プライベートIDを紛失した場合、二度と取り戻すことはできません。"
           }
         }
       }
