@@ -2462,7 +2462,7 @@ private struct FavoriteFolderRow: View {
                         .font(.subheadline)
                         .foregroundStyle(.primary)
 
-                    Text("\(folder.mediaCount)个内容 \(folder.isPrivate ? "私密" : "公开")")
+                    Text("\(folder.mediaCount)个内容 \(folder.isPrivate ? L10n.string("permission.private") : L10n.string("permission.public"))")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
