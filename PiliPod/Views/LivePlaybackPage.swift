@@ -297,11 +297,11 @@ struct LivePlaybackPage: View {
             } label: {
                 Image(systemName: "chevron.left")
                     .font(.system(size: 17, weight: .semibold))
-                    .foregroundStyle(.primary)
+                    .foregroundStyle(.white)
                     .frame(width: 38, height: 38)
             }
-            .tint(.primary)
-            .glassEffect(.regular.interactive(), in: .circle)
+            .background(Circle().fill(Color(.black.opacity(0.2))))
+            .glassEffect(.clear.interactive(), in: .circle)
 
             Button {
                 guard let anchorMid = viewModel.anchorMid else { return }
@@ -365,11 +365,11 @@ struct LivePlaybackPage: View {
                         } label: {
                             Image(systemName: "chevron.left")
                                 .font(.system(size: 16, weight: .semibold))
-                                .foregroundStyle(.primary)
+                                .foregroundStyle(.white)
                                 .frame(width: 40, height: 40)
                         }
-                        .glassEffect(.regular.interactive(), in: .circle)
-                        .tint(.primary)
+                        .background(Circle().fill(Color(.black.opacity(0.2))))
+                        .glassEffect(.clear.interactive(), in: .circle)
 
                         Spacer(minLength: 0)
                     }
@@ -462,11 +462,11 @@ struct LivePlaybackPage: View {
         Button(action: action) {
             Image(systemName: systemName)
                 .font(.system(size: 13, weight: .semibold))
-                .foregroundStyle(.primary)
+                .foregroundStyle(.white)
                 .frame(width: 32, height: 32)
         }
-        .tint(.primary)
-        .glassEffect(.regular.interactive(), in: .circle)
+        .background(Circle().fill(Color(.black.opacity(0.2))))
+        .glassEffect(.clear.interactive(), in: .circle)
     }
     
     private func showControlsAndAutoHideIfNeeded(forceShow: Bool = false) {

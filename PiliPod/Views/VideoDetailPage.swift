@@ -2617,11 +2617,12 @@ private struct MoreActionsMenuView: View, Equatable {
         } label: {
             Image(systemName: "ellipsis")
                 .font(.system(size: 16, weight: .semibold))
-                .foregroundColor(.primary)
+                .foregroundColor(.white)
                 .frame(width: 40, height: 40)
         }
+        .background(Circle().fill(Color(.black.opacity(0.2))))
         .glassEffect(
-            .regular.interactive(),
+            .clear.interactive(),
             in: .circle
         )
     }
@@ -2729,11 +2730,12 @@ struct PlayerControlsOverlay: View {
                 }) {
                     Image(systemName: "chevron.left")
                         .font(.system(size: 16, weight: .semibold))
-                        .foregroundColor(.primary)
+                        .foregroundColor(.white)
                         .frame(width: 40, height: 40)
                 }
+                .background(Circle().fill(Color(.black.opacity(0.2))))
                 .glassEffect(
-                    .regular.interactive(),
+                    .clear.interactive(),
                     in: .circle
                 )
 
@@ -2751,11 +2753,12 @@ struct PlayerControlsOverlay: View {
                                 .resizable()
                                 .scaledToFit()
                                 .frame(width: 16, height: 16)
-                                .foregroundColor(.primary)
+                                .foregroundColor(.white)
                                 .frame(width: 32, height: 32)
                         }
+                        .background(Circle().fill(Color(.black.opacity(0.2))))
                         .glassEffect(
-                            .regular.interactive(),
+                            .clear.interactive(),
                             in: .circle
                         )
                     }
@@ -2771,11 +2774,12 @@ struct PlayerControlsOverlay: View {
                             .resizable()
                             .scaledToFit()
                             .frame(width: 16, height: 16)
-                            .foregroundColor(.primary)
+                            .foregroundColor(.white)
                             .frame(width: 32, height: 32)
                     }
+                    .background(Circle().fill(Color(.black.opacity(0.2))))
                     .glassEffect(
-                        .regular.interactive(),
+                        .clear.interactive(),
                         in: .circle
                     )
                 }
@@ -2790,11 +2794,12 @@ struct PlayerControlsOverlay: View {
                         .resizable()
                         .scaledToFit()
                         .frame(width: 16, height: 16)
-                        .foregroundColor(.primary)
+                        .foregroundColor(.white)
                         .frame(width: 32, height: 32)
                 }
+                .background(Circle().fill(Color(.black.opacity(0.2))))
                 .glassEffect(
-                    .regular.interactive(),
+                    .clear.interactive(),
                     in: .circle
                 )
 
@@ -2833,11 +2838,12 @@ struct PlayerControlsOverlay: View {
             }) {
                 Image(systemName: isPlaying ? "pause.fill" : "play.fill")
                     .font(.system(size: 13, weight: .semibold))
-                    .foregroundColor(.primary)
+                    .foregroundColor(.white)
                     .frame(width: 32, height: 32)
             }
+            .background(Circle().fill(Color(.black.opacity(0.2))))
             .glassEffect(
-                .regular.interactive(),
+                .clear.interactive(),
                 in: .circle
             )
 
@@ -2853,11 +2859,12 @@ struct PlayerControlsOverlay: View {
 
             Text("\(formatMMSS(currentTime))/\(formatMMSS(duration))")
                 .font(.system(size: 10, weight: .semibold, design: .monospaced))
-                .foregroundStyle(.primary)
+                .foregroundStyle(.white)
                 .padding(.horizontal, 8)
                 .padding(.vertical, 5)
+                .background(Circle().fill(Color(.black.opacity(0.2))))
                 .glassEffect(
-                    .regular,
+                    .clear,
                     in: .capsule
                 )
 
@@ -2867,11 +2874,12 @@ struct PlayerControlsOverlay: View {
             }) {
                 Image(systemName: "arrow.up.left.and.arrow.down.right")
                     .font(.system(size: 13, weight: .semibold))
-                    .foregroundColor(.primary)
+                    .foregroundColor(.white)
                     .frame(width: 32, height: 32)
             }
+            .background(Circle().fill(Color(.black.opacity(0.2))))
             .glassEffect(
-                .regular.interactive(),
+                .clear.interactive(),
                 in: .circle
             )
             .accessibilityLabel("全屏")
@@ -2955,20 +2963,21 @@ struct PlayerControlsOverlay: View {
                 if let systemName {
                     Image(systemName: systemName)
                         .font(.system(size: 13, weight: .semibold))
-                        .foregroundColor(.primary)
+                        .foregroundColor(.white)
                 } else if let imageName {
                     Image(imageName)
                         .renderingMode(.template)
                         .resizable()
                         .scaledToFit()
                         .frame(width: 16, height: 16)
-                        .foregroundColor(.primary)
+                        .foregroundColor(.white)
                 }
             }
             .frame(width: 32, height: 32)
         }
+        .background(Circle().fill(Color(.black.opacity(0.2))))
         .glassEffect(
-            .regular.interactive(),
+            .clear.interactive(),
             in: .circle
         )
     }
