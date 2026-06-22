@@ -1,4 +1,29 @@
 import SwiftUI
+import UniformTypeIdentifiers
+
+private struct OfflineCacheTransferDocument: FileDocument {
+    static var readableContentTypes: [UTType] { [.data, .zip, .json] }
+    static var writableContentTypes: [UTType] { [.data, .zip, .json] }
+
+    let sourceURL: URL
+
+    init(sourceURL: URL) {
+        self.sourceURL = sourceURL
+    }
+
+    init(configuration: ReadConfiguration) throws {
+        let tempURL = FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString)
+            .appendingPathExtension("data")
+        let data = configuration.file.regularFileContents ?? Data()
+        try data.write(to: tempURL, options: .atomic)
+        sourceURL = tempURL
+    }
+
+    func fileWrapper(configuration: WriteConfiguration) throws -> FileWrapper {
+        try FileWrapper(url: sourceURL, options: .immediate)
+    }
+}
 
 struct OfflineCacheView: View {
     let initialPrefill: OfflineCacheQueryPrefill?
@@ -18,6 +43,18 @@ struct OfflineCacheView: View {
     @State private var itemPendingDeletion: OfflineCacheItem?
     @State private var isSingleDeleteDialogPresented = false
     @State private var isDeleteSelectionDialogPresented = false
+    @State private var itemPendingExport: OfflineCacheItem?
+    @State private var exportOptions: [OfflineCacheExportOption] = []
+    @State private var exportDocument = OfflineCacheTransferDocument(
+        sourceURL: FileManager.default.temporaryDirectory
+            .appendingPathComponent("offline-cache-placeholder.txt")
+    )
+    @State private var exportFilename = "offline-cache-export.zip"
+    @State private var exportContentType: UTType = .zip
+    @State private var isExporterPresented = false
+    @State private var isImporterPresented = false
+    @State private var transferErrorTitle: String?
+    @State private var transferErrorMessage: String?
     @State private var toastMessage: String?
     @Namespace private var videoNamespace
 
@@ -37,8 +74,7 @@ struct OfflineCacheView: View {
                             handleItemTap(item)
                         },
                         onDelete: {
-                            itemPendingDeletion = item
-                            isSingleDeleteDialogPresented = true
+                            presentDeleteDialog(for: item)
                         },
                         onSelect: {
                             enterSelectionMode(selecting: item.id)
@@ -52,6 +88,15 @@ struct OfflineCacheView: View {
                                 deleteItemImmediately(item)
                             } label: {
                                 Label("删除", systemImage: "trash")
+                            }
+
+                            if item.status == .completed {
+                                Button {
+                                    presentExportOptions(for: item)
+                                } label: {
+                                    Label("导出", systemImage: "square.and.arrow.up")
+                                }
+                                .tint(.blue)
                             }
                         }
                     }
@@ -81,8 +126,18 @@ struct OfflineCacheView: View {
                     .disabled(cacheManager.sortedItems.isEmpty)
                 }
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button {
-                        presentAddTaskSheet(prefill: nil, autoQuery: false)
+                    Menu {
+                        Button {
+                            presentAddTaskSheet(prefill: nil, autoQuery: false)
+                        } label: {
+                            Label("添加缓存任务", systemImage: "plus")
+                        }
+
+                        Button {
+                            isImporterPresented = true
+                        } label: {
+                            Label("导入缓存文件", systemImage: "square.and.arrow.down")
+                        }
                     } label: {
                         Image(systemName: "plus")
                     }
@@ -101,6 +156,20 @@ struct OfflineCacheView: View {
                 .presentationDetents([.medium, .large])
                 .presentationDragIndicator(.visible)
         }
+        .fileImporter(
+            isPresented: $isImporterPresented,
+            allowedContentTypes: [.zip]
+        ) { result in
+            handleImportResult(result)
+            isImporterPresented = false
+        }
+        .modifier(OfflineCacheExporter(
+            isPresented: $isExporterPresented,
+            document: exportDocument,
+            exportContentType: exportContentType,
+            defaultFilename: exportFilename,
+            onComplete: handleExportResult
+        ))
         .task {
             guard !hasConsumedInitialPrefill else { return }
             hasConsumedInitialPrefill = true
@@ -138,6 +207,49 @@ struct OfflineCacheView: View {
             }
         } message: {
             Text("这个项目将从你的设备上移除")
+        }
+        .alert(
+            itemPendingExport.map { "导出 \($0.title)" } ?? "导出缓存",
+            isPresented: Binding(
+                get: { itemPendingExport != nil && !exportOptions.isEmpty },
+                set: { isPresented in
+                    if !isPresented {
+                        dismissExportOptions()
+                    }
+                }
+            )
+        ) {
+            ForEach(exportOptions) { option in
+                if option.kind == .packageZip {
+                    Button(option.title) {
+                        export(item: itemPendingExport, option: option)
+                    }
+                    .keyboardShortcut(.defaultAction)
+                } else {
+                    Button(option.title) {
+                        export(item: itemPendingExport, option: option)
+                    }
+                }
+            }
+            Button("取消", role: .cancel) {
+                dismissExportOptions()
+            }
+        } message: {
+            Text("选择要导出的缓存内容")
+        }
+        .alert(
+            transferErrorTitle ?? "导入导出",
+            isPresented: Binding(
+                get: { transferErrorMessage != nil },
+                set: { if !$0 {
+                    transferErrorTitle = nil
+                    transferErrorMessage = nil
+                } }
+            )
+        ) {
+            Button("确定", role: .cancel) {}
+        } message: {
+            Text(transferErrorMessage ?? "未知错误")
         }
         .toast(message: $toastMessage)
     }
@@ -341,6 +453,27 @@ struct OfflineCacheView: View {
         }
     }
 
+    private func presentDeleteDialog(for item: OfflineCacheItem) {
+        itemPendingDeletion = item
+        isSingleDeleteDialogPresented = true
+    }
+
+    private func presentExportOptions(for item: OfflineCacheItem) {
+        let options = OfflineCacheTransferService.exportOptions(for: item)
+        guard !options.isEmpty else {
+            transferErrorTitle = "导出失败"
+            transferErrorMessage = "当前缓存没有可导出的文件。"
+            return
+        }
+        itemPendingExport = item
+        exportOptions = options
+    }
+
+    private func dismissExportOptions() {
+        itemPendingExport = nil
+        exportOptions = []
+    }
+
     private func enterSelectionMode(selecting itemID: UUID? = nil) {
         isSelectionMode = true
         isDeleteSelectionDialogPresented = false
@@ -365,6 +498,50 @@ struct OfflineCacheView: View {
 
     private func deleteItemImmediately(_ item: OfflineCacheItem) {
         cacheManager.deleteItem(id: item.id)
+    }
+
+    private func export(item: OfflineCacheItem?, option: OfflineCacheExportOption) {
+        guard let item else { return }
+        do {
+            let file = try OfflineCacheTransferService.prepareExport(
+                for: item,
+                option: option.kind
+            )
+            exportDocument = OfflineCacheTransferDocument(sourceURL: file.url)
+            exportFilename = file.filename
+            exportContentType = file.contentType
+            dismissExportOptions()
+            isExporterPresented = true
+        } catch {
+            transferErrorTitle = "导出失败"
+            transferErrorMessage = error.localizedDescription
+        }
+    }
+
+    private func handleExportResult(_ result: Result<URL, Error>) {
+        switch result {
+        case .success:
+            toastMessage = "导出成功"
+        case let .failure(error):
+            transferErrorTitle = "导出失败"
+            transferErrorMessage = error.localizedDescription
+        }
+    }
+
+    private func handleImportResult(_ result: Result<URL, Error>) {
+        switch result {
+        case let .success(url):
+            do {
+                let importedItem = try cacheManager.importCacheArchive(from: url)
+                toastMessage = "已导入 \(importedItem.title)"
+            } catch {
+                transferErrorTitle = "导入失败"
+                transferErrorMessage = error.localizedDescription
+            }
+        case let .failure(error):
+            transferErrorTitle = "导入失败"
+            transferErrorMessage = error.localizedDescription
+        }
     }
 
     @MainActor
@@ -397,6 +574,44 @@ struct OfflineCacheView: View {
         )
         isAddTaskSheetPresented = false
         toastMessage = "已添加缓存任务"
+    }
+}
+
+private struct OfflineCacheExporter: ViewModifier {
+    @Binding var isPresented: Bool
+    let document: OfflineCacheTransferDocument
+    let exportContentType: UTType
+    let defaultFilename: String
+    let onComplete: (Result<URL, Error>) -> Void
+
+    @ViewBuilder
+    func body(content: Content) -> some View {
+        switch exportContentType {
+        case .json:
+            content.fileExporter(
+                isPresented: $isPresented,
+                document: document,
+                contentType: .json,
+                defaultFilename: defaultFilename,
+                onCompletion: onComplete
+            )
+        case .zip:
+            content.fileExporter(
+                isPresented: $isPresented,
+                document: document,
+                contentType: .zip,
+                defaultFilename: defaultFilename,
+                onCompletion: onComplete
+            )
+        default:
+            content.fileExporter(
+                isPresented: $isPresented,
+                document: document,
+                contentType: .data,
+                defaultFilename: defaultFilename,
+                onCompletion: onComplete
+            )
+        }
     }
 }
 

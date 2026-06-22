@@ -9,6 +9,7 @@
 /* Begin PBXBuildFile section */
 		C31A86E82FC467D40064DFDC /* SwiftProtobuf in Frameworks */ = {isa = PBXBuildFile; productRef = C31A86E72FC467D40064DFDC /* SwiftProtobuf */; };
 		C38E5EE02FBFF03C00899168 /* MPVKit in Frameworks */ = {isa = PBXBuildFile; productRef = C38E5EDF2FBFF03C00899168 /* MPVKit */; };
+		C3B9223D30084A4A00A1F2C1 /* ZIPFoundation in Frameworks */ = {isa = PBXBuildFile; productRef = C3B9223C30084A4A00A1F2C1 /* ZIPFoundation */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -85,6 +86,7 @@
 			files = (
 				C38E5EE02FBFF03C00899168 /* MPVKit in Frameworks */,
 				C31A86E82FC467D40064DFDC /* SwiftProtobuf in Frameworks */,
+				C3B9223D30084A4A00A1F2C1 /* ZIPFoundation in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -156,6 +158,7 @@
 			packageProductDependencies = (
 				C38E5EDF2FBFF03C00899168 /* MPVKit */,
 				C31A86E72FC467D40064DFDC /* SwiftProtobuf */,
+				C3B9223C30084A4A00A1F2C1 /* ZIPFoundation */,
 			);
 			productName = PiliPod;
 			productReference = C3E76F7E2FBED5AF00DD7377 /* PiliPod.app */;
@@ -242,6 +245,7 @@
 			packageReferences = (
 				C38E5EDE2FBFF03C00899168 /* XCRemoteSwiftPackageReference "MPVKit" */,
 				C38E61B32FC466FD00899168 /* XCRemoteSwiftPackageReference "swift-protobuf" */,
+				C3B9223B30084A4A00A1F2C1 /* XCRemoteSwiftPackageReference "ZIPFoundation" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = C3E76F7F2FBED5AF00DD7377 /* Products */;
@@ -723,6 +727,14 @@
 				minimumVersion = 1.38.0;
 			};
 		};
+		C3B9223B30084A4A00A1F2C1 /* XCRemoteSwiftPackageReference "ZIPFoundation" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/weichsel/ZIPFoundation.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 0.9.20;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -730,6 +742,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = C38E61B32FC466FD00899168 /* XCRemoteSwiftPackageReference "swift-protobuf" */;
 			productName = SwiftProtobuf;
+		};
+		C3B9223C30084A4A00A1F2C1 /* ZIPFoundation */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = C3B9223B30084A4A00A1F2C1 /* XCRemoteSwiftPackageReference "ZIPFoundation" */;
+			productName = ZIPFoundation;
 		};
 		C38E5EDF2FBFF03C00899168 /* MPVKit */ = {
 			isa = XCSwiftPackageProductDependency;

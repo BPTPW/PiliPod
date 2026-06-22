@@ -1,6 +1,8 @@
 import Combine
 import Foundation
 import SwiftProtobuf
+import UniformTypeIdentifiers
+import ZIPFoundation
 
 struct OfflineCacheQueryPrefill: Identifiable, Hashable {
     let id = UUID()
@@ -222,6 +224,425 @@ private struct OfflineCacheManifest: Codable {
     let audioBitrate: Int
     let videoCodec: String
     let audioCodec: String
+}
+
+enum OfflineCacheTransferError: LocalizedError {
+    case itemNotCompleted
+    case missingFile(String)
+    case invalidArchive
+    case unsupportedArchiveLayout
+
+    var errorDescription: String? {
+        switch self {
+        case .itemNotCompleted:
+            return "只有已完成的缓存才可以导出。"
+        case let .missingFile(name):
+            return "缓存文件不完整，缺少 \(name)。"
+        case .invalidArchive:
+            return "无法识别该缓存压缩包。"
+        case .unsupportedArchiveLayout:
+            return "压缩包内容不符合 PiliPod 离线缓存格式。"
+        }
+    }
+}
+
+struct OfflineCacheExportOption: Identifiable {
+    enum Kind {
+        case video
+        case audio
+        case danmaku
+        case manifest
+        case detail
+        case packageZip
+    }
+
+    let id = UUID()
+    let kind: Kind
+    let title: String
+    let subtitle: String
+}
+
+struct OfflineCacheExportFile {
+    let url: URL
+    let filename: String
+    let contentType: UTType
+}
+
+enum OfflineCacheTransferService {
+    private static let videoFileName = "video.m4s"
+    private static let audioFileName = "audio.m4s"
+    private static let detailFileName = "detail.json"
+    private static let manifestFileName = "manifest.json"
+
+    static func exportOptions(for item: OfflineCacheItem) -> [OfflineCacheExportOption] {
+        guard item.status == .completed else { return [] }
+
+        do {
+            let directoryURL = try OfflineCacheStorage.itemDirectoryURL(
+                relativeDirectory: item.relativeDirectory
+            )
+            let contents = try FileManager.default.contentsOfDirectory(
+                at: directoryURL,
+                includingPropertiesForKeys: nil,
+                options: [.skipsHiddenFiles]
+            )
+
+            var options: [OfflineCacheExportOption] = []
+
+            if contents.contains(where: { $0.lastPathComponent == videoFileName }) {
+                options.append(.init(
+                    kind: .video,
+                    title: "导出视频",
+                    subtitle: videoFileName
+                ))
+            }
+
+            if contents.contains(where: { $0.lastPathComponent == audioFileName }) {
+                options.append(.init(
+                    kind: .audio,
+                    title: "导出音频",
+                    subtitle: audioFileName
+                ))
+            }
+
+            let danmakuFiles = contents.filter {
+                $0.lastPathComponent.hasPrefix("danmaku-") && $0.pathExtension == "pb"
+            }
+            if !danmakuFiles.isEmpty {
+                let subtitle = danmakuFiles.count == 1
+                    ? danmakuFiles[0].lastPathComponent
+                    : "共 \(danmakuFiles.count) 个文件，导出为 zip"
+                options.append(.init(
+                    kind: .danmaku,
+                    title: "导出弹幕数据",
+                    subtitle: subtitle
+                ))
+            }
+
+            if contents.contains(where: { $0.lastPathComponent == manifestFileName }) {
+                options.append(.init(
+                    kind: .manifest,
+                    title: "导出 manifest",
+                    subtitle: manifestFileName
+                ))
+            }
+
+            if contents.contains(where: { $0.lastPathComponent == detailFileName }) {
+                options.append(.init(
+                    kind: .detail,
+                    title: "导出详情数据",
+                    subtitle: detailFileName
+                ))
+            }
+
+            options.append(.init(
+                kind: .packageZip,
+                title: "导出缓存文件包",
+                subtitle: "\(item.relativeDirectory).zip"
+            ))
+
+            return options
+        } catch {
+            return []
+        }
+    }
+
+    static func prepareExport(
+        for item: OfflineCacheItem,
+        option: OfflineCacheExportOption.Kind
+    ) throws -> OfflineCacheExportFile {
+        guard item.status == .completed else {
+            throw OfflineCacheTransferError.itemNotCompleted
+        }
+
+        let directoryURL = try OfflineCacheStorage.itemDirectoryURL(
+            relativeDirectory: item.relativeDirectory
+        )
+
+        switch option {
+        case .video:
+            let url = directoryURL.appendingPathComponent(videoFileName)
+            guard FileManager.default.fileExists(atPath: url.path) else {
+                throw OfflineCacheTransferError.missingFile(videoFileName)
+            }
+            return .init(url: url, filename: "\(item.relativeDirectory)-video.m4s", contentType: .data)
+
+        case .audio:
+            let url = directoryURL.appendingPathComponent(audioFileName)
+            guard FileManager.default.fileExists(atPath: url.path) else {
+                throw OfflineCacheTransferError.missingFile(audioFileName)
+            }
+            return .init(url: url, filename: "\(item.relativeDirectory)-audio.m4s", contentType: .data)
+
+        case .manifest:
+            let url = directoryURL.appendingPathComponent(manifestFileName)
+            guard FileManager.default.fileExists(atPath: url.path) else {
+                throw OfflineCacheTransferError.missingFile(manifestFileName)
+            }
+            return .init(url: url, filename: "\(item.relativeDirectory)-manifest.json", contentType: .json)
+
+        case .detail:
+            let url = directoryURL.appendingPathComponent(detailFileName)
+            guard FileManager.default.fileExists(atPath: url.path) else {
+                throw OfflineCacheTransferError.missingFile(detailFileName)
+            }
+            return .init(url: url, filename: "\(item.relativeDirectory)-detail.json", contentType: .json)
+
+        case .danmaku:
+            let files = try FileManager.default.contentsOfDirectory(
+                at: directoryURL,
+                includingPropertiesForKeys: nil,
+                options: [.skipsHiddenFiles]
+            )
+            .filter { $0.lastPathComponent.hasPrefix("danmaku-") && $0.pathExtension == "pb" }
+            .sorted { $0.lastPathComponent < $1.lastPathComponent }
+
+            guard !files.isEmpty else {
+                throw OfflineCacheTransferError.missingFile("danmaku-*.pb")
+            }
+
+            if files.count == 1, let file = files.first {
+                return .init(
+                    url: file,
+                    filename: "\(item.relativeDirectory)-\(file.lastPathComponent)",
+                    contentType: .data
+                )
+            }
+
+            let zipURL = temporaryExportURL(filename: "\(item.relativeDirectory)-danmaku.zip")
+            try recreateItem(at: zipURL)
+            let stagingURL = temporaryDirectoryURL(name: "\(item.relativeDirectory)-danmaku")
+            try recreateDirectory(at: stagingURL)
+            for file in files {
+                let targetURL = stagingURL.appendingPathComponent(file.lastPathComponent)
+                try FileManager.default.copyItem(at: file, to: targetURL)
+            }
+            try zipDirectory(at: stagingURL, to: zipURL)
+            return .init(url: zipURL, filename: zipURL.lastPathComponent, contentType: .zip)
+
+        case .packageZip:
+            let zipURL = temporaryExportURL(filename: "\(item.relativeDirectory).zip")
+            try recreateItem(at: zipURL)
+            try zipDirectory(at: directoryURL, to: zipURL)
+            return .init(url: zipURL, filename: zipURL.lastPathComponent, contentType: .zip)
+        }
+    }
+
+    static func importArchive(from sourceURL: URL) throws -> OfflineCacheItem {
+        let accessGranted = sourceURL.startAccessingSecurityScopedResource()
+        defer {
+            if accessGranted {
+                sourceURL.stopAccessingSecurityScopedResource()
+            }
+        }
+
+        let extractionRoot = temporaryDirectoryURL(name: "offline-cache-import")
+        try recreateDirectory(at: extractionRoot)
+        try unzipArchive(at: sourceURL, to: extractionRoot)
+
+        let payloadDirectory = try locatePayloadDirectory(in: extractionRoot)
+        let relativeDirectory = try parseRelativeDirectory(from: payloadDirectory.lastPathComponent)
+        let detailURL = payloadDirectory.appendingPathComponent(detailFileName)
+        let manifestURL = payloadDirectory.appendingPathComponent(manifestFileName)
+
+        guard FileManager.default.fileExists(atPath: detailURL.path) else {
+            throw OfflineCacheTransferError.missingFile(detailFileName)
+        }
+        guard FileManager.default.fileExists(atPath: manifestURL.path) else {
+            throw OfflineCacheTransferError.missingFile(manifestFileName)
+        }
+
+        let detailData = try Data(contentsOf: detailURL)
+        let manifestData = try Data(contentsOf: manifestURL)
+        let detail = try JSONDecoder().decode(VideoDetailData.self, from: detailData)
+        let manifest = try JSONDecoder().decode(OfflineCacheManifest.self, from: manifestData)
+
+        let videoURL = payloadDirectory.appendingPathComponent(manifest.videoFileName)
+        let audioURL = payloadDirectory.appendingPathComponent(manifest.audioFileName)
+        guard FileManager.default.fileExists(atPath: videoURL.path) else {
+            throw OfflineCacheTransferError.missingFile(manifest.videoFileName)
+        }
+        guard FileManager.default.fileExists(atPath: audioURL.path) else {
+            throw OfflineCacheTransferError.missingFile(manifest.audioFileName)
+        }
+
+        let (_, cid, qualityCode) = try parseDirectoryComponents(from: relativeDirectory)
+        let finalDirectoryURL = try OfflineCacheStorage.itemDirectoryURL(relativeDirectory: relativeDirectory)
+        if FileManager.default.fileExists(atPath: finalDirectoryURL.path) {
+            try FileManager.default.removeItem(at: finalDirectoryURL)
+        }
+        try FileManager.default.copyItem(at: payloadDirectory, to: finalDirectoryURL)
+
+        let fileSizeBytes = try directorySize(at: finalDirectoryURL)
+        return OfflineCacheItem(
+            id: UUID(),
+            bvid: detail.bvid,
+            aid: detail.aid,
+            cid: cid,
+            title: detail.title,
+            cover: detail.pic.replacingOccurrences(of: "http://", with: "https://"),
+            uploader: detail.owner.name,
+            duration: detail.duration,
+            qualityCode: qualityCode,
+            qualityLabel: DashStreamSelector.qualityLabel(for: qualityCode),
+            videoCodec: manifest.videoCodec,
+            audioCodec: manifest.audioCodec,
+            totalBytes: fileSizeBytes,
+            downloadedBytes: fileSizeBytes,
+            fileSizeBytes: fileSizeBytes,
+            speedBytesPerSecond: 0,
+            status: .completed,
+            errorMessage: nil,
+            relativeDirectory: relativeDirectory,
+            createdAt: Date(),
+            updatedAt: Date()
+        )
+    }
+
+    private static func locatePayloadDirectory(in rootURL: URL) throws -> URL {
+        let fm = FileManager.default
+        if hasRequiredFiles(in: rootURL) {
+            return rootURL
+        }
+
+        let children = try fm.contentsOfDirectory(
+            at: rootURL,
+            includingPropertiesForKeys: nil,
+            options: [.skipsHiddenFiles]
+        )
+        for child in children where hasRequiredFiles(in: child) {
+            return child
+        }
+        throw OfflineCacheTransferError.invalidArchive
+    }
+
+    private static func hasRequiredFiles(in directoryURL: URL) -> Bool {
+        var isDirectory: ObjCBool = false
+        guard FileManager.default.fileExists(atPath: directoryURL.path, isDirectory: &isDirectory),
+              isDirectory.boolValue
+        else {
+            return false
+        }
+
+        let detailURL = directoryURL.appendingPathComponent(detailFileName)
+        let manifestURL = directoryURL.appendingPathComponent(manifestFileName)
+        return FileManager.default.fileExists(atPath: detailURL.path)
+            && FileManager.default.fileExists(atPath: manifestURL.path)
+    }
+
+    private static func parseRelativeDirectory(from name: String) throws -> String {
+        _ = try parseDirectoryComponents(from: name)
+        return name
+    }
+
+    private static func parseDirectoryComponents(from name: String) throws -> (String, Int, Int) {
+        let parts = name.split(separator: "_")
+        guard parts.count >= 3,
+              let cid = Int(parts[parts.count - 2]),
+              let qualityCode = Int(parts[parts.count - 1].dropFirst()),
+              parts[parts.count - 1].hasPrefix("q")
+        else {
+            throw OfflineCacheTransferError.unsupportedArchiveLayout
+        }
+        let bvid = parts.dropLast(2).joined(separator: "_")
+        guard !bvid.isEmpty else {
+            throw OfflineCacheTransferError.unsupportedArchiveLayout
+        }
+        return (bvid, cid, qualityCode)
+    }
+
+    private static func temporaryExportURL(filename: String) -> URL {
+        FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString, isDirectory: true)
+            .appendingPathComponent(filename)
+    }
+
+    private static func temporaryDirectoryURL(name: String) -> URL {
+        FileManager.default.temporaryDirectory
+            .appendingPathComponent("\(name)-\(UUID().uuidString)", isDirectory: true)
+    }
+
+    private static func recreateItem(at url: URL) throws {
+        let directoryURL = url.deletingLastPathComponent()
+        try FileManager.default.createDirectory(
+            at: directoryURL,
+            withIntermediateDirectories: true,
+            attributes: nil
+        )
+        if FileManager.default.fileExists(atPath: url.path) {
+            try FileManager.default.removeItem(at: url)
+        }
+    }
+
+    private static func recreateDirectory(at url: URL) throws {
+        if FileManager.default.fileExists(atPath: url.path) {
+            try FileManager.default.removeItem(at: url)
+        }
+        try FileManager.default.createDirectory(
+            at: url,
+            withIntermediateDirectories: true,
+            attributes: nil
+        )
+    }
+
+    private static func directorySize(at url: URL) throws -> Int64 {
+        let resourceKeys: Set<URLResourceKey> = [.isRegularFileKey, .fileSizeKey]
+        let enumerator = FileManager.default.enumerator(
+            at: url,
+            includingPropertiesForKeys: Array(resourceKeys),
+            options: [.skipsHiddenFiles]
+        )
+
+        var total: Int64 = 0
+        while let fileURL = enumerator?.nextObject() as? URL {
+            let values = try fileURL.resourceValues(forKeys: resourceKeys)
+            if values.isRegularFile == true {
+                total += Int64(values.fileSize ?? 0)
+            }
+        }
+        return total
+    }
+
+    private static func zipDirectory(at sourceURL: URL, to destinationURL: URL) throws {
+        guard let archive = Archive(url: destinationURL, accessMode: .create) else {
+            throw OfflineCacheTransferError.invalidArchive
+        }
+
+        let baseParentURL = sourceURL.deletingLastPathComponent()
+        let enumerator = FileManager.default.enumerator(
+            at: sourceURL,
+            includingPropertiesForKeys: [.isDirectoryKey],
+            options: [.skipsHiddenFiles]
+        )
+
+        try archive.addEntry(
+            with: sourceURL.lastPathComponent,
+            relativeTo: baseParentURL,
+            compressionMethod: .deflate
+        )
+
+        while let fileURL = enumerator?.nextObject() as? URL {
+            let relativePath = fileURL.path.replacingOccurrences(
+                of: baseParentURL.path + "/",
+                with: ""
+            )
+            try archive.addEntry(
+                with: relativePath,
+                relativeTo: baseParentURL,
+                compressionMethod: .deflate
+            )
+        }
+    }
+
+    private static func unzipArchive(at sourceURL: URL, to destinationURL: URL) throws {
+        guard let archive = Archive(url: sourceURL, accessMode: .read) else {
+            throw OfflineCacheTransferError.invalidArchive
+        }
+
+        for entry in archive {
+            _ = try archive.extract(entry, to: destinationURL.appendingPathComponent(entry.path))
+        }
+    }
 }
 
 @MainActor
@@ -456,6 +877,34 @@ final class OfflineCacheManager: ObservableObject {
                 print("删除离线缓存目录失败: \(error)")
             }
         }
+    }
+
+    func importCacheArchive(from url: URL) throws -> OfflineCacheItem {
+        let importedItem = try OfflineCacheTransferService.importArchive(from: url)
+
+        if let existingIndex = items.firstIndex(where: {
+            $0.bvid == importedItem.bvid &&
+            $0.cid == importedItem.cid &&
+            $0.qualityCode == importedItem.qualityCode
+        }) {
+            let existing = items.remove(at: existingIndex)
+            if existing.relativeDirectory != importedItem.relativeDirectory {
+                do {
+                    let oldDirectoryURL = try OfflineCacheStorage.itemDirectoryURL(
+                        relativeDirectory: existing.relativeDirectory
+                    )
+                    if FileManager.default.fileExists(atPath: oldDirectoryURL.path) {
+                        try FileManager.default.removeItem(at: oldDirectoryURL)
+                    }
+                } catch {
+                    print("删除旧导入缓存失败: \(error)")
+                }
+            }
+        }
+
+        items.append(importedItem)
+        persistItems()
+        return importedItem
     }
 
     private func startDownload(
