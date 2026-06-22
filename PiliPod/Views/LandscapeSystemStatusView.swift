@@ -70,28 +70,28 @@ struct LandscapeSystemStatusView: View {
 #endif
 
     var body: some View {
-        HStack(spacing: 12) {
-            Spacer()
-            
+        ZStack{
             Text(currentTimeText)
                 .font(.system(size: 11, weight: .semibold, design: .rounded))
                 .foregroundStyle(.white)
             
-            Spacer()
+            HStack(spacing: 12) {
+                Spacer()
 
-            if let networkIconName = networkStatus.iconName {
-                Image(systemName: networkIconName)
-                    .font(.system(size: 12, weight: .medium))
-                    .foregroundStyle(.white)
-            }
+                if let networkIconName = networkStatus.iconName {
+                    Image(systemName: networkIconName)
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundStyle(.white)
+                }
 
-            HStack(spacing: 4) {
-                batteryIcon
+                HStack(spacing: 4) {
+                    batteryIcon
 
-                Text(batteryStatus.text)
-                    .font(.system(size: 11, weight: .medium, design: .monospaced))
-                    .monospacedDigit()
-                    .foregroundStyle(.white)
+                    Text(batteryStatus.text)
+                        .font(.system(size: 11, weight: .medium, design: .rounded))
+                        .monospacedDigit()
+                        .foregroundStyle(.white)
+                }
             }
         }
         .frame(maxWidth: .infinity,maxHeight: .infinity, alignment: .top)
