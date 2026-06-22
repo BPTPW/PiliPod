@@ -547,6 +547,16 @@
         }
       }
     },
+    "不透明度" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Opacity"
+          }
+        }
+      }
+    },
     "为大家节省了 %@ 片段" : {
       "localizations" : {
         "en" : {
@@ -645,6 +655,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Full Screen"
+          }
+        }
+      }
+    },
+    "全屏字体大小" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Full Screen Font Size"
           }
         }
       }
@@ -991,6 +1011,26 @@
         }
       }
     },
+    "字体大小" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Font Size"
+          }
+        }
+      }
+    },
+    "字体粗细" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Font Weight"
+          }
+        }
+      }
+    },
     "密码" : {
       "localizations" : {
         "en" : {
@@ -1131,6 +1171,16 @@
         }
       }
     },
+    "屏蔽等级" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Block Level"
+          }
+        }
+      }
+    },
     "屏蔽顶部" : {
       "localizations" : {
         "en" : {
@@ -1167,6 +1217,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Danmaku"
+          }
+        }
+      }
+    },
+    "弹幕行高" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Danmaku Line Height"
           }
         }
       }
@@ -1311,6 +1371,16 @@
         }
       }
     },
+    "描边粗细" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Outline Thickness"
+          }
+        }
+      }
+    },
     "搜索中…" : {
       "localizations" : {
         "en" : {
@@ -1387,6 +1457,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Display"
+          }
+        }
+      }
+    },
+    "显示区域" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Display Area"
           }
         }
       }
@@ -1651,6 +1731,16 @@
         }
       }
     },
+    "滚动弹幕时长" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Scrolling Danmaku Duration"
+          }
+        }
+      }
+    },
     "片段处理方式" : {
       "localizations" : {
         "en" : {
@@ -1751,6 +1841,16 @@
         }
       }
     },
+    "直播默认画质" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Default Live Quality"
+          }
+        }
+      }
+    },
     "相关评论" : {
       "localizations" : {
         "en" : {
@@ -1821,6 +1921,16 @@
         }
       }
     },
+    "视频同步" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Video Sync"
+          }
+        }
+      }
+    },
     "视频后台播放" : {
       "localizations" : {
         "en" : {
@@ -1867,6 +1977,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Offline Cache"
+          }
+        }
+      }
+    },
+    "移动网络默认画质" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Default Mobile Data Quality"
           }
         }
       }
@@ -2337,12 +2457,32 @@
         }
       }
     },
+    "静态弹幕时长" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Static Danmaku Duration"
+          }
+        }
+      }
+    },
     "音视频" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Audio & Video"
+          }
+        }
+      }
+    },
+    "首选编码格式" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Preferred Codec"
           }
         }
       }
@@ -2383,6 +2523,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "HDR"
+          }
+        }
+      }
+    },
+    "默认画质" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Default Quality"
           }
         }
       }

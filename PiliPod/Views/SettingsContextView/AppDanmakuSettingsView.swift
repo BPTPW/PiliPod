@@ -169,7 +169,7 @@ private struct AppDanmakuSettingsView: View {
     }
 
     private func percentageSliderRow(
-        title: String,
+        title: LocalizedStringKey,
         value: Binding<Double>,
         range: ClosedRange<Double>,
         step: Double,
@@ -186,7 +186,7 @@ private struct AppDanmakuSettingsView: View {
     }
 
     private func settingStepperRow(
-        title: String,
+        title: LocalizedStringKey,
         valueText: String,
         onReset: @escaping () -> Void,
         @ViewBuilder control: () -> some View
@@ -211,7 +211,7 @@ private struct AppDanmakuSettingsView: View {
     }
 
     private func settingSliderRow(
-        title: String,
+        title: LocalizedStringKey,
         valueText: String,
         onReset: @escaping () -> Void,
         @ViewBuilder control: () -> some View
