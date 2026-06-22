@@ -291,11 +291,6 @@ struct UserSpaceView: View {
                 RoundedRectangle(cornerRadius: 14, style: .continuous)
                     .fill(Color(.systemBackground))
                     .frame(height: 320)
-                    .overlay {
-                        Text("\(selectedTab.rawValue)内容暂时留空")
-                            .font(.subheadline)
-                            .foregroundStyle(.secondary)
-                    }
             }
         }
         .padding(.horizontal, 16)
