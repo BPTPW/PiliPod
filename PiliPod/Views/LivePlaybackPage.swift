@@ -357,7 +357,7 @@ struct LivePlaybackPage: View {
         VStack(spacing: 0) {
             if isFullscreen {
                 // 返回按钮
-                ZStack {
+                ZStack(alignment: .top) {
                     HStack(spacing: 12) {
                         Button {
                             showControlsAndAutoHideIfNeeded(forceShow: true)
@@ -373,13 +373,14 @@ struct LivePlaybackPage: View {
 
                         Spacer(minLength: 0)
                     }
+                    .padding(.top, max(geo.safeAreaInsets.top, 12))
 
                     LandscapeSystemStatusView()
-                        .frame(maxWidth: 170)
+                        .frame(maxWidth: .infinity)
+                        .padding(2)
                 }
                 .padding(.leading, horizontalLeadingPadding)
                 .padding(.trailing, horizontalTrailingPadding)
-                .padding(.top, max(geo.safeAreaInsets.top, 12))
             }
 
             Spacer(minLength: 0)

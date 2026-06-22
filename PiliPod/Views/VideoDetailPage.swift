@@ -2720,7 +2720,7 @@ struct PlayerControlsOverlay: View {
     }
 
     private var topBar: some View {
-        ZStack {
+        ZStack(alignment: .top) {
             HStack(spacing: 12) {
                 // 左上角返回
                 Button(action: {
@@ -2739,10 +2739,7 @@ struct PlayerControlsOverlay: View {
 
                 Spacer()
 
-                if isFullscreen {
-                    LandscapeSystemStatusView()
-                        .frame(maxWidth: 170)
-                } else {
+                if !isFullscreen {
                     // 空降助手-标记片段 按钮
                     if showsSponsorButton {
                         Button(action: {
@@ -2762,33 +2759,14 @@ struct PlayerControlsOverlay: View {
                             in: .circle
                         )
                     }
-
-                    // 空降助手-列表 按钮
-                    if showsSponsorButton && showsSponsorInfoButton {
-                        Button(action: {
-                            onUserInteracted()
-                            onShowSponsorSegments()
-                        }) {
-                            Image("SponsorBlockerInfo")
-                                .renderingMode(.template)
-                                .resizable()
-                                .scaledToFit()
-                                .frame(width: 16, height: 16)
-                                .foregroundColor(.primary)
-                                .frame(width: 32, height: 32)
-                        }
-                        .glassEffect(
-                            .regular.interactive(),
-                            in: .circle
-                        )
-                    }
-
-                    // 右上角弹幕设置按钮
+                }
+                // 空降助手-列表 按钮
+                if showsSponsorButton && showsSponsorInfoButton {
                     Button(action: {
                         onUserInteracted()
-                        onShowDanmakuSettings()
+                        onShowSponsorSegments()
                     }) {
-                        Image("DanmakuSetting")
+                        Image("SponsorBlockerInfo")
                             .renderingMode(.template)
                             .resizable()
                             .scaledToFit()
@@ -2800,18 +2778,41 @@ struct PlayerControlsOverlay: View {
                         .regular.interactive(),
                         in: .circle
                     )
-
-                    MoreActionsMenuView(
-                        onUserInteracted: onUserInteracted,
-                        onCacheVideo: onCacheVideo,
-                        onReloadVideo: onReloadVideo,
-                        onShowVideoStreamInfo: onShowVideoStreamInfo
-                    )
-                    .equatable()
                 }
+
+                // 右上角弹幕设置按钮
+                Button(action: {
+                    onUserInteracted()
+                    onShowDanmakuSettings()
+                }) {
+                    Image("DanmakuSetting")
+                        .renderingMode(.template)
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: 16, height: 16)
+                        .foregroundColor(.primary)
+                        .frame(width: 32, height: 32)
+                }
+                .glassEffect(
+                    .regular.interactive(),
+                    in: .circle
+                )
+
+                MoreActionsMenuView(
+                    onUserInteracted: onUserInteracted,
+                    onCacheVideo: onCacheVideo,
+                    onReloadVideo: onReloadVideo,
+                    onShowVideoStreamInfo: onShowVideoStreamInfo
+                )
+                .equatable()
+            }
+            .padding(12)
+            if isFullscreen {
+                LandscapeSystemStatusView()
+                    .frame(maxWidth: .infinity)
+                    .padding(2)
             }
         }
-        .padding(12)
     }
 
     private var bottomBar: some View {

@@ -71,9 +71,13 @@ struct LandscapeSystemStatusView: View {
 
     var body: some View {
         HStack(spacing: 12) {
+            Spacer()
+            
             Text(currentTimeText)
                 .font(.system(size: 11, weight: .semibold, design: .rounded))
                 .foregroundStyle(.white)
+            
+            Spacer()
 
             if let networkIconName = networkStatus.iconName {
                 Image(systemName: networkIconName)
@@ -90,6 +94,7 @@ struct LandscapeSystemStatusView: View {
                     .foregroundStyle(.white)
             }
         }
+        .frame(maxWidth: .infinity,maxHeight: .infinity, alignment: .top)
         .task {
             updateBatteryStatus()
             startNetworkMonitoring()
