@@ -9,7 +9,29 @@ import Observation
 import SwiftUI
 
 struct HomeView: View {
-    @State private var selectedTab: String = "推荐"
+    private enum HomeTab: String, CaseIterable, Identifiable {
+        case live
+        case recommended
+        case popular
+        case section
+
+        var id: Self { self }
+
+        var title: String {
+            switch self {
+            case .live:
+                L10n.string("tab.live")
+            case .recommended:
+                L10n.string("tab.recommended")
+            case .popular:
+                L10n.string("tab.popular")
+            case .section:
+                L10n.string("tab.section")
+            }
+        }
+    }
+
+    @State private var selectedTab: HomeTab = .recommended
     @State private var selectedVideo: VideoItem?
     @State private var isSearchViewPresented = false
     @State private var toastMessage: String?
@@ -17,8 +39,7 @@ struct HomeView: View {
     @Namespace private var videoHeroNamespace
     @Bindable var viewModel: HomeViewModel
     @ObservedObject private var loginSession = LoginSession.shared
-
-    let tabs = ["直播", "推荐", "热门", "分区"]
+    private let tabs = HomeTab.allCases
 
     private let columns = [
         GridItem(.flexible(), spacing: 12),
@@ -189,7 +210,7 @@ struct HomeView: View {
                 HStack(spacing: 24) {
                     ForEach(tabs, id: \.self) { tab in
                         VStack(spacing: 4) {
-                            Text(tab)
+                            Text(tab.title)
                                 .font(.system(size: 16, weight: selectedTab == tab ? .semibold : .regular))
                                 .foregroundStyle(selectedTab == tab ? .primary : .secondary)
 
@@ -217,10 +238,10 @@ struct HomeView: View {
     }
 
     @ViewBuilder
-    private func tabPage(for tab: String, videoCardWidth: CGFloat) -> some View {
-        if tab == "直播" {
+    private func tabPage(for tab: HomeTab, videoCardWidth: CGFloat) -> some View {
+        if tab == .live {
             LiveHomeView(cardWidth: videoCardWidth, viewModel: liveHomeViewModel)
-        } else if tab == "热门" {
+        } else if tab == .popular {
             PopularVideosPage(
                 namespace: videoHeroNamespace,
                 onSelectVideo: { selectedVideo = $0 }
