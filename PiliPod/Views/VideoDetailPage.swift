@@ -1513,14 +1513,11 @@ struct VideoDetailPage: View {
     // MARK: - 格式化计数
 
     private func formatCount(_ count: Int) -> String {
-        if count >= 10000 {
-            return String(
-                format: "%.1f万",
-                Double(count) / 10000
-            )
-        }
-
-        return "\(count)"
+        count.formatted(
+            .number
+                .notation(.compactName)
+                .precision(.fractionLength(0 ... 1))
+        )
     }
 
     // MARK: - 格式化时间戳
@@ -1864,14 +1861,11 @@ struct VideoActionBar: View {
     // MARK: - 格式化计数（VideoActionBar中的辅助函数）
 
     private func formatCount(_ count: Int) -> String {
-        if count >= 10000 {
-            return String(
-                format: "%.1f万",
-                Double(count) / 10000
-            )
-        }
-
-        return "\(count)"
+        count.formatted(
+            .number
+                .notation(.compactName)
+                .precision(.fractionLength(0 ... 1))
+        )
     }
 }
 

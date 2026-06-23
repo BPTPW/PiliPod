@@ -171,10 +171,11 @@ final class UserSpaceViewModel: ObservableObject {
 
     private func formatCount(_ value: Int?) -> String {
         guard let value else { return "-" }
-        if value >= 10_000 {
-            return String(format: "%.1f万", Double(value) / 10_000.0)
-        }
-        return "\(value)"
+        return value.formatted(
+            .number
+                .notation(.compactName)
+                .precision(.fractionLength(0 ... 1))
+        )
     }
 
     private func normalizeIPLocation(_ raw: String) -> String {

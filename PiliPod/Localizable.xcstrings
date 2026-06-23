@@ -156,6 +156,28 @@
         }
       }
     },
+    "%@粉丝  %@视频" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ followers  %2$@ videos"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@フォロワー  %2$@動画"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@粉丝  %2$@视频"
+          }
+        }
+      }
+    },
     "%@粉丝  %lld视频" : {
       "localizations" : {
         "en" : {
@@ -186,28 +208,6 @@
           "stringUnit" : {
             "state" : "new",
             "value" : "%1$@粉丝  %2$lld视频"
-          }
-        }
-      }
-    },
-    "%@粉丝 · %@视频" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%1$@ followers · %2$@ videos"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%1$@フォロワー · %2$@動画"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "%1$@粉丝 · %2$@视频"
           }
         }
       }

@@ -5,6 +5,7 @@
 //  Created by Codex on 2026/6/4.
 //
 
+import Foundation
 import SwiftUI
 
 struct UserLargeCardView: View {
@@ -29,7 +30,7 @@ struct UserLargeCardView: View {
                                 .foregroundStyle(.primary)
                                 .lineLimit(1)
 
-                            Text("\(formatCount(user.followerCount))粉丝 · \(formatCount(user.videoCount))视频")
+                            Text("\(formatCount(user.followerCount))粉丝  \(formatCount(user.videoCount))视频")
                                 .font(.system(size: 13))
                                 .foregroundStyle(.secondary)
                                 .lineLimit(1)
@@ -153,10 +154,11 @@ struct UserLargeCardView: View {
     }
 
     private func formatCount(_ count: Int) -> String {
-        if count >= 10_000 {
-            return String(format: "%.1f万", Double(count) / 10_000)
-        }
-        return "\(count)"
+        count.formatted(
+            .number
+                .notation(.compactName)
+                .precision(.fractionLength(0 ... 1))
+        )
     }
 }
 
