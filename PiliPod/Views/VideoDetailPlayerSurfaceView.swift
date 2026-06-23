@@ -90,6 +90,18 @@ struct VideoDetailPlayerSurfaceView: View {
             : min(containerSize.width / stream.aspectRatio, containerSize.width * (4.0 / 3.0))
     }
 
+    private var topGestureExclusionHeight: CGFloat {
+        isFullscreen ? max(18, safeAreaInsets.top + 8) : 14
+    }
+
+    private var bottomGestureExclusionHeight: CGFloat {
+        isFullscreen ? max(18, safeAreaInsets.bottom + 8) : 14
+    }
+
+    private var gestureHitAreaHeight: CGFloat {
+        max(0, playerHeight - topGestureExclusionHeight - bottomGestureExclusionHeight)
+    }
+
     var body: some View {
         ZStack(alignment: .center) {
             MPVKitPlayerView(player: player)
@@ -103,18 +115,24 @@ struct VideoDetailPlayerSurfaceView: View {
                 .clipped()
                 .ignoresSafeArea(isFullscreen ? .all : [])
                 .background(Color.black)
-                .contentShape(Rectangle())
-                .onTapGesture {
-                    showControlsAndAutoHideIfNeeded(forceShow: false)
-                }
-                .highPriorityGesture(
-                    TapGesture(count: 2)
-                        .onEnded {
-                            togglePlayback()
-                            showControlsAndAutoHideIfNeeded(forceShow: true)
+                .overlay {
+                    Color.clear
+                        .contentShape(Rectangle())
+                        .frame(maxWidth: .infinity)
+                        .frame(height: gestureHitAreaHeight)
+                        .onTapGesture {
+                            showControlsAndAutoHideIfNeeded(forceShow: false)
                         }
-                )
-                .simultaneousGesture(playerGesture)
+                        .highPriorityGesture(
+                            TapGesture(count: 2)
+                                .onEnded {
+                                    togglePlayback()
+                                    showControlsAndAutoHideIfNeeded(forceShow: true)
+                                }
+                        )
+                        .simultaneousGesture(playerGesture)
+                        .allowsHitTesting(gestureHitAreaHeight > 0)
+                }
                 .overlay {
                     DanmakuOverlayView(
                         currentTime: player.currentTime,
