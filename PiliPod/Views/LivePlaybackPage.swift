@@ -171,7 +171,9 @@ struct LivePlaybackPage: View {
                 streamURL: viewModel.streamURL,
                 aspectRatio: viewModel.aspectRatio,
                 statusText: viewModel.playerStatusText,
-                player: player
+                player: player,
+                isFullscreen: isFullscreen,
+                safeAreaInsets: geo.safeAreaInsets
             )
             .frame(width: playerWidth, height: playerHeight, alignment: .center)
             .ignoresSafeArea(isFullscreen ? .all : [])
