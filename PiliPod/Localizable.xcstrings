@@ -466,7 +466,7 @@
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "投稿"
+            "value" : "ポスト"
           }
         },
         "zh-Hans" : {
@@ -590,7 +590,7 @@
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "人気"
+            "value" : "急上昇"
           }
         },
         "zh-Hans" : {
@@ -713,6 +713,75 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "URL レスポンスキャッシュ"
+          }
+        }
+      }
+    },
+    "userSpace.home" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Home"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ホーム"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "主页"
+          }
+        }
+      }
+    },
+    "userSpace.posts" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Posts"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ポスト"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "动态"
+          }
+        }
+      }
+    },
+    "userSpaces.video" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Video"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "投稿"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "投稿"
           }
         }
       }
@@ -2005,7 +2074,7 @@
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "マイ"
+            "value" : "マイページ"
           }
         }
       }
@@ -2885,7 +2954,7 @@
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "配信の読み込みに失敗しました"
+            "value" : "ライブの読み込みに失敗しました"
           }
         }
       }
@@ -2901,7 +2970,7 @@
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "配信のバックグラウンド再生"
+            "value" : "ライブのバックグラウンド再生"
           }
         }
       }
@@ -2917,7 +2986,7 @@
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "配信画質"
+            "value" : "ライブ画質"
           }
         }
       }
@@ -2933,7 +3002,7 @@
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "配信のデフォルト画質"
+            "value" : "ライブのデフォルト画質"
           }
         }
       }
@@ -2997,7 +3066,7 @@
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "コイン %@"
+            "value" : "Bコイン %@"
           }
         }
       }
@@ -3141,7 +3210,7 @@
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "オフラインキャッシュ"
+            "value" : "オフライン保存"
           }
         }
       }
@@ -3173,7 +3242,7 @@
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "あとで見る"
+            "value" : "後で見る"
           }
         }
       }
@@ -3222,6 +3291,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "ジャンプアシスタント設定"
+          }
+        }
+      }
+    },
+    "粉丝" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Followers"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "フォロワー"
           }
         }
       }
@@ -3440,6 +3525,22 @@
         }
       }
     },
+    "获赞" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Likes"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "いいね獲得"
+          }
+        }
+      }
+    },
     "行为" : {
       "localizations" : {
         "en" : {
@@ -3467,7 +3568,7 @@
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "視聴履歴"
+            "value" : "履歴"
           }
         }
       }
@@ -3723,7 +3824,7 @@
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "まだ視聴履歴はありません"
+            "value" : "まだ履歴はありません"
           }
         }
       }
