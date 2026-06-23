@@ -157,7 +157,7 @@ struct LiveHomeView: View {
         }
     }
 
-    private func sectionTitle(_ title: String) -> some View {
+    private func sectionTitle(_ title: LocalizedStringKey) -> some View {
         Text(title)
             .font(.system(size: 18, weight: .semibold))
             .foregroundStyle(.primary)

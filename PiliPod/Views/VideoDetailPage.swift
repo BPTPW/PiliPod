@@ -732,8 +732,8 @@ struct VideoDetailPage: View {
     }
 
     fileprivate enum VideoDetailTab: String, CaseIterable {
-        case intro = "简介"
-        case comments = "评论"
+        case intro = "video.tab.intro"
+        case comments = "video.tab.comments"
     }
 
     private enum IntroLink {
@@ -882,10 +882,10 @@ struct VideoDetailPage: View {
     private func titleForTab(_ tab: VideoDetailTab) -> String {
         switch tab {
         case .intro:
-            return tab.rawValue
+            return L10n.string(tab.rawValue)
         case .comments:
             if let reply = viewModel.videoDetail?.stat.reply {
-                return "\(tab.rawValue) (\(reply))"
+                return "\(L10n.string(tab.rawValue)) (\(reply))"
             }
             return tab.rawValue
         }
@@ -1814,7 +1814,7 @@ struct VideoActionBar: View {
             )
 
             VideoActionButton(
-                title: "点踩",
+                title: L10n.string("video.dislike"),
                 systemImage: "hand.thumbsdown.fill",
                 isActive: isDisliked,
                 // isDisabled: isDislikeRequesting,
@@ -1851,7 +1851,7 @@ struct VideoActionBar: View {
             )
 
             VideoActionButton(
-                title: "稍后再看",
+                title: L10n.string("稍后再看"),
                 systemImage: "clock.badge",
                 isActive: isWatchLater,
                 isDisabled: isWatchLaterRequesting,
