@@ -156,31 +156,31 @@ struct MyView: View {
         if let stat = viewModel.stat {
             HStack {
                 Spacer()
-                statItem(value: stat.dynamicCount, title: "动态")
+                statItem(value: stat.dynamicCount, title: L10n.string("my.posts"))
                 Spacer()
                 if let user = viewModel.user {
                     Button {
                         followingRoute = MyFollowingRoute(mid: user.mid)
                     } label: {
-                        statItem(value: stat.following, title: "关注")
+                        statItem(value: stat.following, title: L10n.string("my.posts"))
                     }
                     .buttonStyle(.plain)
                 } else {
-                    statItem(value: stat.following, title: "关注")
+                    statItem(value: stat.following, title: L10n.string("my.following"))
                 }
                 Spacer()
-                statItem(value: stat.follower, title: "粉丝")
+                statItem(value: stat.follower, title:  L10n.string("my.followers"))
                 Spacer()
             }
             .padding(.top, 2)
         } else {
             HStack {
                 Spacer()
-                statItem(value: 0, title: "动态")
+                statItem(value: 0, title: L10n.string("my.posts"))
                 Spacer()
-                statItem(value: 0, title: "关注")
+                statItem(value: 0, title: L10n.string("my.following"))
                 Spacer()
-                statItem(value: 0, title: "粉丝")
+                statItem(value: 0, title: L10n.string("my.followers"))
                 Spacer()
             }
             .padding(.top, 2)
@@ -190,19 +190,19 @@ struct MyView: View {
     private var quickActionRow: some View {
         HStack(spacing: 12) {
             quickActionButton(
-                title: "离线缓存",
+                title: L10n.string("离线缓存"),
                 systemImage: "square.and.arrow.down",
                 action: { showOfflineCache = true }
             )
 
             quickActionButton(
-                title: "观看记录",
+                title: L10n.string("观看记录"),
                 systemImage: "memories",
                 action: { showHistory = true }
             )
 
             quickActionButton(
-                title: "稍后再看",
+                title: L10n.string("稍后再看"),
                 systemImage: "clock.badge",
                 action: { showWatchLater = true }
             )

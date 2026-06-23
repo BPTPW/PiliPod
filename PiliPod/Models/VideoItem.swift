@@ -105,14 +105,11 @@ extension VideoItem {
     }
 
     static func formatCount(_ count: Int) -> String {
-        if count >= 10000 {
-            return String(
-                format: "%.1f万",
-                Double(count) / 10000
-            )
-        }
-
-        return "\(count)"
+        count.formatted(
+            .number
+                .notation(.compactName)
+                .precision(.fractionLength(0 ... 1))
+        )
     }
 
     static func formatTimestamp(_ timestamp: Int?) -> String {

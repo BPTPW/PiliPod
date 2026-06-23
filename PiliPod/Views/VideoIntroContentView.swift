@@ -120,6 +120,7 @@ struct IntroTabContentView: View, Equatable {
                                     .foregroundColor(.secondary)
                             }
                         }
+                        Spacer()
                     }
                     .contentShape(Rectangle())
                     .onTapGesture {
@@ -127,7 +128,6 @@ struct IntroTabContentView: View, Equatable {
                     }
 
                     HStack {
-                        Spacer()
                         ZStack {
                             Capsule(style: .continuous)
                                 .fill(model.isOwnerFollowing ? .followedBackground : Color("BiliPink"))

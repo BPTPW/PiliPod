@@ -732,8 +732,8 @@ struct VideoDetailPage: View {
     }
 
     fileprivate enum VideoDetailTab: String, CaseIterable {
-        case intro = "简介"
-        case comments = "评论"
+        case intro = "video.tab.intro"
+        case comments = "video.tab.comments"
     }
 
     private enum IntroLink {
@@ -882,10 +882,10 @@ struct VideoDetailPage: View {
     private func titleForTab(_ tab: VideoDetailTab) -> String {
         switch tab {
         case .intro:
-            return tab.rawValue
+            return L10n.string(tab.rawValue)
         case .comments:
             if let reply = viewModel.videoDetail?.stat.reply {
-                return "\(tab.rawValue) (\(reply))"
+                return "\(L10n.string(tab.rawValue)) (\(reply))"
             }
             return tab.rawValue
         }
@@ -1513,14 +1513,11 @@ struct VideoDetailPage: View {
     // MARK: - 格式化计数
 
     private func formatCount(_ count: Int) -> String {
-        if count >= 10000 {
-            return String(
-                format: "%.1f万",
-                Double(count) / 10000
-            )
-        }
-
-        return "\(count)"
+        count.formatted(
+            .number
+                .notation(.compactName)
+                .precision(.fractionLength(0 ... 1))
+        )
     }
 
     // MARK: - 格式化时间戳
@@ -1814,7 +1811,7 @@ struct VideoActionBar: View {
             )
 
             VideoActionButton(
-                title: "点踩",
+                title: L10n.string("video.dislike"),
                 systemImage: "hand.thumbsdown.fill",
                 isActive: isDisliked,
                 // isDisabled: isDislikeRequesting,
@@ -1851,7 +1848,7 @@ struct VideoActionBar: View {
             )
 
             VideoActionButton(
-                title: "稍后再看",
+                title: L10n.string("稍后再看"),
                 systemImage: "clock.badge",
                 isActive: isWatchLater,
                 isDisabled: isWatchLaterRequesting,
@@ -1864,14 +1861,11 @@ struct VideoActionBar: View {
     // MARK: - 格式化计数（VideoActionBar中的辅助函数）
 
     private func formatCount(_ count: Int) -> String {
-        if count >= 10000 {
-            return String(
-                format: "%.1f万",
-                Double(count) / 10000
-            )
-        }
-
-        return "\(count)"
+        count.formatted(
+            .number
+                .notation(.compactName)
+                .precision(.fractionLength(0 ... 1))
+        )
     }
 }
 
@@ -2462,7 +2456,7 @@ private struct FavoriteFolderRow: View {
                         .font(.subheadline)
                         .foregroundStyle(.primary)
 
-                    Text("\(folder.mediaCount)个内容 \(folder.isPrivate ? "私密" : "公开")")
+                    Text("\(folder.mediaCount)个内容 \(folder.isPrivate ? L10n.string("permission.private") : L10n.string("permission.public"))")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }

@@ -1,19 +1,19 @@
 import SwiftUI
 
 struct SettingsCategoryRow: View {
-    let title: String
+    let title: LocalizedStringKey
     let systemImage: String?
     let imageName: String?
     let tint: Color
 
-    init(title: String, systemImage: String, tint: Color) {
+    init(title: LocalizedStringKey, systemImage: String, tint: Color) {
         self.title = title
         self.systemImage = systemImage
         self.imageName = nil
         self.tint = tint
     }
 
-    init(title: String, imageName: String, tint: Color) {
+    init(title: LocalizedStringKey, imageName: String, tint: Color) {
         self.title = title
         self.systemImage = nil
         self.imageName = imageName
@@ -62,7 +62,7 @@ struct SettingsPlaceholderView: View {
 }
 
 struct ChoiceListView<Option: Hashable>: View {
-    let title: String
+    let title: LocalizedStringKey
     let options: [Option]
     @Binding var selection: Option
     let titleFor: KeyPath<Option, String>

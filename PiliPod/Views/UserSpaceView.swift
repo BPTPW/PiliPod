@@ -16,7 +16,7 @@ extension UINavigationController: @retroactive UIGestureRecognizerDelegate {
 struct UserSpaceView: View {
     @Environment(\.dismiss) private var dismiss
     @StateObject private var viewModel = UserSpaceViewModel()
-    @State private var selectedTab: UserSpaceTab = .posts
+    @State private var selectedTab: UserSpaceTab = .video
     @State private var toastMessage: String?
     @Namespace private var topToolsGlass
     @Namespace private var videoHeroNamespace
@@ -280,22 +280,17 @@ struct UserSpaceView: View {
         VStack(alignment: .leading, spacing: 14) {
             Picker("分区", selection: $selectedTab) {
                 ForEach(UserSpaceTab.allCases, id: \.self) { tab in
-                    Text(tab.rawValue).tag(tab)
+                    Text(L10n.string(tab.rawValue)).tag(tab)
                 }
             }
             .pickerStyle(.segmented)
 
-            if selectedTab == .posts {
+            if selectedTab == .video {
                 postsTabContent
             } else {
                 RoundedRectangle(cornerRadius: 14, style: .continuous)
                     .fill(Color(.systemBackground))
                     .frame(height: 320)
-                    .overlay {
-                        Text("\(selectedTab.rawValue)内容暂时留空")
-                            .font(.subheadline)
-                            .foregroundStyle(.secondary)
-                    }
             }
         }
         .padding(.horizontal, 16)
@@ -352,7 +347,7 @@ struct UserSpaceView: View {
         }
     }
 
-    private func stat(_ value: String, _ title: String) -> some View {
+    private func stat(_ value: String, _ title: LocalizedStringKey) -> some View {
         VStack(spacing: 3) {
             Text(value)
                 .font(.headline)
@@ -365,9 +360,9 @@ struct UserSpaceView: View {
 }
 
 private enum UserSpaceTab: String, CaseIterable {
-    case home = "主页"
-    case dynamic = "动态"
-    case posts = "投稿"
+    case home = "userSpace.home"
+    case posts = "userSpace.posts"
+    case video = "userSpaces.video"
 }
 
 #Preview {
