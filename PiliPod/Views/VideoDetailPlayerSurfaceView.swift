@@ -704,11 +704,9 @@ struct VideoDetailPlayerSurfaceView: View {
                 ZStack(alignment: .leading) {
                     Capsule(style: .continuous)
                         .fill(Color.white.opacity(0.24))
-                        //.fill(.tertiary)
                         .frame(height: 4)
                     Capsule(style: .continuous)
                         .fill(Color.white.opacity(0.95))
-                        //.fill(.primary)
                         .frame(width: barWidth * clampUnit(value), height: 4)
                 }
                 .padding(.top, 2)
@@ -718,7 +716,8 @@ struct VideoDetailPlayerSurfaceView: View {
         .frame(height: 24, alignment: .center)
         .padding(.horizontal, 8)
         .padding(.vertical, 4)
-        .glassEffect(.clear.tint(.gray), in: .capsule)
+        .background(Capsule().fill(.black.opacity(0.2)))
+        .glassEffect(.clear, in: .capsule)
         .transition(.opacity)
     }
 }
