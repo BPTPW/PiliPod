@@ -1727,6 +1727,22 @@
         }
       }
     },
+    "导入缓存文件" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Import Cache File"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "キャッシュファイルのインポート"
+          }
+        }
+      }
+    },
     "导入设置数据" : {
       "localizations" : {
         "en" : {
@@ -1739,6 +1755,38 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "設定データをインポート"
+          }
+        }
+      }
+    },
+    "导出" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Export"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "エクスポート"
+          }
+        }
+      }
+    },
+    "导出 %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Export %@"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ をエクスポートする"
           }
         }
       }
@@ -1771,6 +1819,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "ログイン情報をエクスポート"
+          }
+        }
+      }
+    },
+    "导出缓存" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Export Cache"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "キャッシュのエクスポート"
           }
         }
       }
@@ -2747,6 +2811,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "タスクを追加"
+          }
+        }
+      }
+    },
+    "添加缓存任务" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add Cache Task"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "キャッシュタスクを追加する"
           }
         }
       }
@@ -3937,6 +4017,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "お気に入りを選択"
+          }
+        }
+      }
+    },
+    "选择要导出的缓存内容" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Select the cache contents to export"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "エクスポートする内容を選択する"
           }
         }
       }
