@@ -11,6 +11,12 @@
             "state" : "translated",
             "value" : "—Followers  —Videos"
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "—フォロワー  —動画"
+          }
         }
       }
     },
@@ -21,12 +27,24 @@
             "state" : "translated",
             "value" : "(%@ of Life)"
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "(%@の命)"
+          }
         }
       }
     },
     "%@ · %@" : {
       "localizations" : {
         "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ · %2$@"
+          }
+        },
+        "ja" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "%1$@ · %2$@"
@@ -47,6 +65,12 @@
             "state" : "translated",
             "value" : "%@:"
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@:"
+          }
         }
       }
     },
@@ -57,12 +81,24 @@
             "state" : "translated",
             "value" : "%@:"
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@: "
+          }
         }
       }
     },
     "%@: %@" : {
       "localizations" : {
         "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@: %2$@"
+          }
+        },
+        "ja" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "%1$@: %2$@"
@@ -84,6 +120,12 @@
             "value" : "%1$@/%2$@"
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@/%2$@"
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "new",
@@ -98,6 +140,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%@ watching"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@人が視聴中"
           }
         },
         "zh-Hans" : {
@@ -128,6 +176,12 @@
             }
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@フォロワー  %2$lld動画"
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "new",
@@ -142,6 +196,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%1$@ followers · %2$@ videos"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@フォロワー · %2$@動画"
           }
         },
         "zh-Hans" : {
@@ -178,6 +238,12 @@
             }
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$lld件のコンテンツ %2$@"
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "new",
@@ -193,6 +259,12 @@
             "state" : "translated",
             "value" : "• Video synchronisation: the --video-sync parameter in mpv"
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "• 映像同期: mpvの--video-sync"
+          }
         }
       }
     },
@@ -207,7 +279,7 @@
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "• プライベートIDは自由に設定できます。30文字以上の純粋な文字列である必要があり、初回起動時にはランダムな文字列が生成されます。"
+            "value" : "• プライベートIDは自分で設定できます。30文字以上の純粋な文字列である必要があり、初回起動時にはランダムな文字列が生成されます。"
           }
         }
       }
@@ -223,7 +295,7 @@
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "• プライベートIDは秘密にしておく必要があります。他人があなたのプライベートIDを入手した場合、その人物はあなたになりすますことができます。サーバーにはプライベートIDは一切保存されません。万が一プライベートIDを紛失した場合、二度と取り戻すことはできません。"
+            "value" : "• プライベートIDは秘密にしておく必要があります。他人があなたのプライベートIDを入手すると、あなたになりすますことができます。サーバーはプライベートIDを一切保存しないため、万が一プライベートIDを失くした場合、二度と取り戻すことはできません。"
           }
         }
       }
@@ -234,6 +306,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "• Automatic synchronisation: the --autosync parameter in mpv"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "• 自動同期: mpvの--autosync"
           }
         }
       }
@@ -254,6 +332,12 @@
             "state" : "translated",
             "value" : "BVID/AVID"
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "BV番号 / AV番号"
+          }
         }
       }
     },
@@ -264,6 +348,12 @@
             "state" : "translated",
             "value" : "CID (Optional)"
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "CID（任意）"
+          }
         }
       }
     },
@@ -273,6 +363,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "DASH Stream Details"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "DASH ストリーム詳細"
           }
         }
       }
@@ -287,12 +383,24 @@
             "state" : "translated",
             "value" : "Library/Caches"
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Library/Caches"
+          }
         }
       }
     },
     "LIVE" : {
       "localizations" : {
         "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LIVE"
+          }
+        },
+        "ja" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "LIVE"
@@ -307,6 +415,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Followers"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "フォロワー"
           }
         },
         "zh-Hans" : {
@@ -326,6 +440,12 @@
             "value" : "Following"
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "フォロー中"
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -343,6 +463,12 @@
             "value" : "Posts"
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "投稿"
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -358,6 +484,12 @@
             "state" : "translated",
             "value" : "P%lld"
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "P%lld"
+          }
         }
       }
     },
@@ -368,6 +500,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Private"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "非公開"
           }
         },
         "zh-Hans" : {
@@ -387,6 +525,12 @@
             "value" : "Public"
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "公開"
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -402,6 +546,12 @@
             "state" : "translated",
             "value" : "PiliPod"
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "PiliPod"
+          }
         }
       }
     },
@@ -412,6 +562,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Live"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ライブ"
           }
         },
         "zh-Hans" : {
@@ -431,6 +587,12 @@
             "value" : "Popular"
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "人気"
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -446,6 +608,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Recommended"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "おすすめ"
           }
         },
         "zh-Hans" : {
@@ -465,6 +633,12 @@
             "value" : "Section"
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "カテゴリ"
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -480,6 +654,12 @@
             "state" : "translated",
             "value" : "tmp temporary directory"
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "tmp 一時ディレクトリ"
+          }
         }
       }
     },
@@ -489,6 +669,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "UID: %1$@  IP location: %2$@"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "UID: %1$@  IP所在地: %2$@"
           }
         },
         "zh-Hans" : {
@@ -506,6 +692,12 @@
             "state" : "translated",
             "value" : "Liked by the creator"
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "投稿者がとても気に入っています"
+          }
         }
       }
     },
@@ -515,6 +707,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "URL response cache"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "URL レスポンスキャッシュ"
           }
         }
       }
@@ -526,6 +724,12 @@
             "state" : "translated",
             "value" : "Load more"
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "上にスワイプしてさらに読み込む"
+          }
         }
       }
     },
@@ -535,6 +739,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Load more replies"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "上にスワイプして返信をさらに読み込む"
           }
         }
       }
@@ -546,6 +756,12 @@
             "state" : "translated",
             "value" : "Upper limit %@"
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "上限 %@"
+          }
         }
       }
     },
@@ -555,6 +771,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Not recommended to change unless you have your own server."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "独自のサーバーを持っている場合を除き、変更はおすすめしません。"
           }
         }
       }
@@ -566,6 +788,12 @@
             "state" : "translated",
             "value" : "Opacity"
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "不透明度"
+          }
         }
       }
     },
@@ -575,6 +803,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Saved %@ segments for everyone"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "みんなのために %@ 件の断片を節約しました"
           }
         }
       }
@@ -586,6 +820,12 @@
             "state" : "translated",
             "value" : "Report"
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "通報"
+          }
         }
       }
     },
@@ -596,6 +836,12 @@
             "state" : "translated",
             "value" : "CAPTCHA"
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "CAPTCHA認証"
+          }
         }
       }
     },
@@ -605,6 +851,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "This will clear the URL response cache, Library/Caches, and temporary files in tmp. Covers, avatars, emojis, and preview images will be cached again the next time they are used."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "URLレスポンスキャッシュ、Library/Caches、tmp の一時ファイルが削除されます。カバー、アバター、絵文字、プレビュー画像のキャッシュは次回使用時に再作成されます。"
           }
         }
       }
@@ -628,6 +880,12 @@
               }
             }
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "あなたは %lld 件の断片を投稿しました"
+          }
         }
       }
     },
@@ -637,6 +895,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "About You"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "あなたのデータ"
           }
         }
       }
@@ -648,6 +912,12 @@
             "state" : "translated",
             "value" : "Save"
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "保存"
+          }
         }
       }
     },
@@ -657,6 +927,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Changes will take effect the next time the home page recommendations are refreshed."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "変更は次回ホームのおすすめ内容が更新される際に反映されます。"
           }
         }
       }
@@ -668,6 +944,12 @@
             "state" : "translated",
             "value" : "Full Screen"
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "全画面"
+          }
         }
       }
     },
@@ -678,6 +960,12 @@
             "state" : "translated",
             "value" : "Full Screen Font Size"
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "全画面の文字サイズ"
+          }
         }
       }
     },
@@ -687,6 +975,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Display All as Scrolling Danmaku"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "すべてをスクロール弾幕で表示"
           }
         }
       }
@@ -710,6 +1004,12 @@
               }
             }
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "全%lld話"
+          }
         }
       }
     },
@@ -719,6 +1019,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "About"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "について"
           }
         }
       }
@@ -730,6 +1036,12 @@
             "state" : "translated",
             "value" : "About SponsorBlock"
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "空降助手について"
+          }
         }
       }
     },
@@ -739,6 +1051,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Follow"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "フォロー"
           }
         }
       }
@@ -750,6 +1068,12 @@
             "state" : "translated",
             "value" : "Close"
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "閉じる"
+          }
         }
       }
     },
@@ -759,6 +1083,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Other Settings"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "その他の設定"
           }
         }
       }
@@ -770,6 +1100,12 @@
             "state" : "translated",
             "value" : "Share Image"
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "画像を共有"
+          }
         }
       }
     },
@@ -779,6 +1115,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Share Link"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "リンクを共有"
           }
         }
       }
@@ -790,6 +1132,12 @@
             "state" : "translated",
             "value" : "Share Link (with Timestamp)"
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "リンクを共有（時間付き）"
+          }
         }
       }
     },
@@ -799,6 +1147,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Section"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "カテゴリ"
           }
         }
       }
@@ -810,6 +1164,12 @@
             "state" : "translated",
             "value" : "Delete"
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "削除"
+          }
         }
       }
     },
@@ -819,6 +1179,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Delete %lld Videos"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld本の動画を削除"
           }
         }
       }
@@ -830,6 +1196,12 @@
             "state" : "translated",
             "value" : "Clear Cache"
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "キャッシュを削除"
+          }
         }
       }
     },
@@ -839,6 +1211,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Refresh Cache Statistics"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "キャッシュ統計を更新"
           }
         }
       }
@@ -850,6 +1228,12 @@
             "state" : "translated",
             "value" : "Loading..."
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "読み込み中…"
+          }
         }
       }
     },
@@ -859,6 +1243,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Loading Following List..."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "フォロー一覧を読み込み中…"
           }
         }
       }
@@ -870,6 +1260,12 @@
             "state" : "translated",
             "value" : "Loading History..."
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "履歴を読み込み中…"
+          }
         }
       }
     },
@@ -879,6 +1275,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Loading Videos…"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "投稿を読み込み中…"
           }
         }
       }
@@ -890,6 +1292,12 @@
             "state" : "translated",
             "value" : "Loading Favorites..."
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "お気に入りを読み込み中…"
+          }
         }
       }
     },
@@ -899,6 +1307,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Loading More Comments..."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "返信をさらに読み込み中…"
           }
         }
       }
@@ -910,6 +1324,12 @@
             "state" : "translated",
             "value" : "Loading More Replies..."
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "コメントをさらに読み込み中…"
+          }
         }
       }
     },
@@ -919,6 +1339,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Loading Popular Videos..."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "人気動画を読み込み中…"
           }
         }
       }
@@ -930,6 +1356,12 @@
             "state" : "translated",
             "value" : "Loading Emojis..."
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "絵文字を読み込み中…"
+          }
         }
       }
     },
@@ -939,6 +1371,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Send Verification Code"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "認証コードを送信"
           }
         }
       }
@@ -950,6 +1388,12 @@
             "state" : "translated",
             "value" : "Cancel"
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "キャンセル"
+          }
         }
       }
     },
@@ -959,6 +1403,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Sync"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "同期"
           }
         }
       }
@@ -970,6 +1420,12 @@
             "state" : "translated",
             "value" : "Background Playback"
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "バックグラウンド再生"
+          }
         }
       }
     },
@@ -979,6 +1435,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Failed to Load Replies"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "返信の読み込みに失敗しました"
           }
         }
       }
@@ -990,6 +1452,12 @@
             "state" : "translated",
             "value" : "On supported devices, enable brighter highlights and a wider color gamut for high dynamic range videos such as HDR and Dolby Vision. When turned off, they will be displayed as standard SDR videos."
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "対応デバイスでは、HDRやDolby Visionなどのハイダイナミックレンジ動画で、より明るいハイライトとより広い色域を有効にします。オフにすると、通常のSDR動画として表示されます。"
+          }
         }
       }
     },
@@ -999,6 +1467,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Show badges on video covers"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "動画のサムネイルに動画マークを表示"
           }
         }
       }
@@ -1010,6 +1484,12 @@
             "state" : "translated",
             "value" : "Enhance HDR Video Display"
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "HDR動画の表示を強化"
+          }
         }
       }
     },
@@ -1019,6 +1499,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "If you encounter playback issues, please turn this off."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "再生に異常が発生した場合はオフにしてください。"
           }
         }
       }
@@ -1030,6 +1516,12 @@
             "state" : "translated",
             "value" : "Font Size"
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "フォントサイズ"
+          }
         }
       }
     },
@@ -1039,6 +1531,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Font Weight"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "フォントの太さ"
           }
         }
       }
@@ -1050,6 +1548,12 @@
             "state" : "translated",
             "value" : "Password"
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "パスワード"
+          }
         }
       }
     },
@@ -1059,6 +1563,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Import login JSON to sync account status."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ログインJSONをインポートすると、アカウントの状態を同期できます。"
           }
         }
       }
@@ -1070,6 +1580,12 @@
             "state" : "translated",
             "value" : "Import Login Data"
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ログイン情報をインポート"
+          }
         }
       }
     },
@@ -1079,6 +1595,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Import Settings Data"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "設定データをインポート"
           }
         }
       }
@@ -1090,6 +1612,12 @@
             "state" : "translated",
             "value" : "Export Failed"
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "エクスポートに失敗しました"
+          }
         }
       }
     },
@@ -1099,6 +1627,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Export Login Data"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ログイン情報をエクスポート"
           }
         }
       }
@@ -1110,6 +1644,12 @@
             "state" : "translated",
             "value" : "Export Settings Data"
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "設定データをエクスポート"
+          }
         }
       }
     },
@@ -1119,6 +1659,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Block"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "非表示"
           }
         }
       }
@@ -1130,6 +1676,12 @@
             "state" : "translated",
             "value" : "Block Bottom"
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "下部を非表示"
+          }
         }
       }
     },
@@ -1139,6 +1691,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Block Bottom Danmaku"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "下部の弾幕を非表示"
           }
         }
       }
@@ -1150,6 +1708,12 @@
             "state" : "translated",
             "value" : "Block Colorful"
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "カラーを非表示"
+          }
         }
       }
     },
@@ -1159,6 +1723,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Block Colorful Danmaku"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "カラー弾幕を非表示"
           }
         }
       }
@@ -1170,6 +1740,12 @@
             "state" : "translated",
             "value" : "Block Scrolling"
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "スクロールを非表示"
+          }
         }
       }
     },
@@ -1179,6 +1755,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Block Scrolling Danmaku"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "スクロール弾幕を非表示"
           }
         }
       }
@@ -1190,6 +1772,12 @@
             "state" : "translated",
             "value" : "Block Level"
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "非表示レベル"
+          }
         }
       }
     },
@@ -1199,6 +1787,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Block Top"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "上部を非表示"
           }
         }
       }
@@ -1210,6 +1804,12 @@
             "state" : "translated",
             "value" : "Block Top Danmaku"
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "上部の弾幕を非表示"
+          }
         }
       }
     },
@@ -1219,6 +1819,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Following"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "フォロー中"
           }
         }
       }
@@ -1230,6 +1836,12 @@
             "state" : "translated",
             "value" : "Danmaku"
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "弾幕"
+          }
         }
       }
     },
@@ -1239,6 +1851,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Danmaku Line Height"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "弾幕の行高"
           }
         }
       }
@@ -1250,6 +1868,12 @@
             "state" : "translated",
             "value" : "Danmaku Settings"
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "弾幕設定"
+          }
         }
       }
     },
@@ -1259,6 +1883,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Not Logged In"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "現在ログインしていません"
           }
         }
       }
@@ -1270,6 +1900,12 @@
             "state" : "translated",
             "value" : "Current Version"
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "現在のバージョン"
+          }
         }
       }
     },
@@ -1279,6 +1915,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Restore Defaults"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "デフォルトに戻す"
           }
         }
       }
@@ -1290,6 +1932,12 @@
             "state" : "translated",
             "value" : "Me"
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "マイ"
+          }
         }
       }
     },
@@ -1299,6 +1947,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Room ID %@"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ルーム番号 %@"
           }
         }
       }
@@ -1310,6 +1964,12 @@
             "state" : "translated",
             "value" : "If the selected codec is unavailable, it will automatically fall back to another available codec."
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "選択したコーデックが利用できない場合、自動的にほかの利用可能なコーデックにフォールバックします。"
+          }
         }
       }
     },
@@ -1319,6 +1979,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Phone Number Verification"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "携帯電話番号認証"
           }
         }
       }
@@ -1330,6 +1996,12 @@
             "state" : "translated",
             "value" : "Give 1"
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1個送る"
+          }
         }
       }
     },
@@ -1339,6 +2011,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Give 2"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "2個送る"
           }
         }
       }
@@ -1350,6 +2028,12 @@
             "state" : "translated",
             "value" : "Block"
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ブロック"
+          }
         }
       }
     },
@@ -1359,6 +2043,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Recommended Sources"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "おすすめのソース"
           }
         }
       }
@@ -1370,6 +2060,12 @@
             "state" : "translated",
             "value" : "Recommended Feed"
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "おすすめフィード"
+          }
         }
       }
     },
@@ -1379,6 +2075,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Recommended Videos"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "おすすめ動画"
           }
         }
       }
@@ -1390,6 +2092,12 @@
             "state" : "translated",
             "value" : "Outline Thickness"
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "輪郭線の太さ"
+          }
         }
       }
     },
@@ -1399,6 +2107,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Searching…"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "検索中…"
           }
         }
       }
@@ -1410,6 +2124,12 @@
             "state" : "translated",
             "value" : "Search Videos"
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "動画を検索"
+          }
         }
       }
     },
@@ -1419,6 +2139,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Player"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "プレーヤー"
           }
         }
       }
@@ -1430,6 +2156,12 @@
             "state" : "translated",
             "value" : "Player Status"
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "プレーヤーの状態"
+          }
         }
       }
     },
@@ -1439,6 +2171,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Coming Soon"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ご期待ください"
           }
         }
       }
@@ -1450,6 +2188,12 @@
             "state" : "translated",
             "value" : "Add Segments"
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "クリップを追加"
+          }
         }
       }
     },
@@ -1459,6 +2203,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Add Cache Task"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "キャッシュタスクを追加"
           }
         }
       }
@@ -1470,6 +2220,12 @@
             "state" : "translated",
             "value" : "Display"
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "表示"
+          }
         }
       }
     },
@@ -1479,6 +2235,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Display Area"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "表示領域"
           }
         }
       }
@@ -1490,6 +2252,12 @@
             "state" : "translated",
             "value" : "Show Danmaku"
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "弾幕を表示"
+          }
         }
       }
     },
@@ -1499,6 +2267,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "No Emojis Available"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "利用可能なスタンプはありません"
           }
         }
       }
@@ -1510,6 +2284,12 @@
             "state" : "translated",
             "value" : "No Favorites Yet"
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "お気に入りはありません"
+          }
         }
       }
     },
@@ -1519,6 +2299,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "No Data"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "データがありません"
           }
         }
       }
@@ -1530,6 +2316,12 @@
             "state" : "translated",
             "value" : "No Segments Yet"
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "クリップはありません"
+          }
         }
       }
     },
@@ -1539,6 +2331,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Nothing in Watch Later"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "後で見る内容はありません"
           }
         }
       }
@@ -1550,6 +2348,12 @@
             "state" : "translated",
             "value" : "No Cached Videos"
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "キャッシュ済みの動画はありません"
+          }
         }
       }
     },
@@ -1559,6 +2363,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "No Comments Yet"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "コメントはありません"
           }
         }
       }
@@ -1570,6 +2380,12 @@
             "state" : "translated",
             "value" : "No Search Discover Content Available at the Moment"
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "現在、表示できる検索ディスカバーの内容はありません"
+          }
         }
       }
     },
@@ -1579,6 +2395,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "No Trending Videos at the Moment"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "現在、人気動画はありません"
           }
         }
       }
@@ -1590,6 +2412,12 @@
             "state" : "translated",
             "value" : "Server"
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "サーバー"
+          }
         }
       }
     },
@@ -1599,6 +2427,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Server Address"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "サーバーアドレス"
           }
         }
       }
@@ -1610,6 +2444,12 @@
             "state" : "translated",
             "value" : "Server Status"
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "サーバーの状態"
+          }
         }
       }
     },
@@ -1619,6 +2459,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Loading"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "読み込み中"
           }
         }
       }
@@ -1630,6 +2476,12 @@
             "state" : "translated",
             "value" : "Loading profile…"
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "個人情報を読み込み中…"
+          }
         }
       }
     },
@@ -1639,6 +2491,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Loading all replies…"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "すべての返信を読み込み中…"
           }
         }
       }
@@ -1650,6 +2508,12 @@
             "state" : "translated",
             "value" : "Clearing cache"
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "キャッシュをクリーンアップ中"
+          }
         }
       }
     },
@@ -1659,6 +2523,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Calculating cache size"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "キャッシュを集計中"
           }
         }
       }
@@ -1670,6 +2540,12 @@
             "state" : "translated",
             "value" : "No results found"
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "関連する結果が見つかりませんでした"
+          }
         }
       }
     },
@@ -1679,6 +2555,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Stream URL"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ストリームアドレス"
           }
         }
       }
@@ -1690,6 +2572,12 @@
             "state" : "translated",
             "value" : "Allow Overlapping Danmaku When There Are Many"
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "大量の弾幕の重なりを許可"
+          }
         }
       }
     },
@@ -1699,6 +2587,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Add Task"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "タスクを追加"
           }
         }
       }
@@ -1710,6 +2604,12 @@
             "state" : "translated",
             "value" : "Add cache tasks or cache on the video playback page"
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "キャッシュタスクを追加するか、動画再生ページでキャッシュしてください"
+          }
         }
       }
     },
@@ -1719,6 +2619,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Clear URL Cache and Temporary Files"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "URLキャッシュと一時ファイルを削除"
           }
         }
       }
@@ -1730,6 +2636,12 @@
             "state" : "translated",
             "value" : "Clear Cache"
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "キャッシュを削除"
+          }
         }
       }
     },
@@ -1739,6 +2651,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Source Code Repo"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ソースコードリポジトリ"
           }
         }
       }
@@ -1750,6 +2668,12 @@
             "state" : "translated",
             "value" : "Scrolling Danmaku Duration"
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "スクロール弾幕の表示時間"
+          }
         }
       }
     },
@@ -1759,6 +2683,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Clip Processing Method"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "セグメントの処理方法"
           }
         }
       }
@@ -1770,6 +2700,12 @@
             "state" : "translated",
             "value" : "User"
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ユーザー"
+          }
         }
       }
     },
@@ -1779,6 +2715,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "User ID"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ユーザーID"
           }
         }
       }
@@ -1790,6 +2732,12 @@
             "state" : "translated",
             "value" : "Video Quality"
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "画質"
+          }
         }
       }
     },
@@ -1799,6 +2747,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Log In"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ログイン"
           }
         }
       }
@@ -1810,6 +2764,12 @@
             "state" : "translated",
             "value" : "Login Data"
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ログインデータ"
+          }
         }
       }
     },
@@ -1819,6 +2779,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "LIVE"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "配信中"
           }
         }
       }
@@ -1830,6 +2796,12 @@
             "state" : "translated",
             "value" : "Failed to Load Live Stream"
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "配信の読み込みに失敗しました"
+          }
         }
       }
     },
@@ -1839,6 +2811,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Background Playback for Live Streams"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "配信のバックグラウンド再生"
           }
         }
       }
@@ -1850,6 +2828,12 @@
             "state" : "translated",
             "value" : "Live Stream Quality"
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "配信画質"
+          }
         }
       }
     },
@@ -1859,6 +2843,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Default Live Quality"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "配信のデフォルト画質"
           }
         }
       }
@@ -1870,6 +2860,12 @@
             "state" : "translated",
             "value" : "Related Comments"
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "関連コメント"
+          }
         }
       }
     },
@@ -1879,6 +2875,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Bitrate"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ビットレート"
           }
         }
       }
@@ -1890,6 +2892,12 @@
             "state" : "translated",
             "value" : "Hardware Decoding"
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ハードウェアデコード"
+          }
         }
       }
     },
@@ -1899,6 +2907,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Coins %@"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "コイン %@"
           }
         }
       }
@@ -1910,6 +2924,12 @@
             "state" : "translated",
             "value" : "Confirm"
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "確認"
+          }
         }
       }
     },
@@ -1919,6 +2939,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Confirm Use of Extra-Large Buffer"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "超大バッファを使用することを確認"
           }
         }
       }
@@ -1930,6 +2956,12 @@
             "state" : "translated",
             "value" : "Video Parameters"
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "動画パラメータ"
+          }
         }
       }
     },
@@ -1939,6 +2971,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Video Sync"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "動画同期"
           }
         }
       }
@@ -1950,6 +2988,12 @@
             "state" : "translated",
             "value" : "Background Video Playback"
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "動画のバックグラウンド再生"
+          }
         }
       }
     },
@@ -1959,6 +3003,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Video Stream Information"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "動画ストリーム情報"
           }
         }
       }
@@ -1970,6 +3020,12 @@
             "state" : "translated",
             "value" : "Video Quality"
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "動画画質"
+          }
         }
       }
     },
@@ -1979,6 +3035,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Episode Selection"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "動画のエピソード選択"
           }
         }
       }
@@ -1990,6 +3052,12 @@
             "state" : "translated",
             "value" : "Offline Cache"
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "オフラインキャッシュ"
+          }
         }
       }
     },
@@ -1999,6 +3067,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Default Mobile Data Quality"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "モバイルネットワークのデフォルト画質"
           }
         }
       }
@@ -2010,6 +3084,12 @@
             "state" : "translated",
             "value" : "Watch Later"
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "あとで見る"
+          }
         }
       }
     },
@@ -2019,6 +3099,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "SponsorBlock"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ジャンプアシスタント"
           }
         }
       }
@@ -2030,6 +3116,12 @@
             "state" : "translated",
             "value" : "SponsorBlock Clip"
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ジャンプアシスタントのクリップ"
+          }
         }
       }
     },
@@ -2040,6 +3132,12 @@
             "state" : "translated",
             "value" : "SponsorBlock Settings"
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ジャンプアシスタント設定"
+          }
         }
       }
     },
@@ -2049,6 +3147,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Exp %1$lld/%2$@"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "経験値 %1$lld/%2$@"
           }
         },
         "zh-Hans" : {
@@ -2066,6 +3170,12 @@
             "state" : "translated",
             "value" : "Continue"
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "引き続き利用する"
+          }
         }
       }
     },
@@ -2075,6 +3185,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Buffer Size"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "バッファサイズ"
           }
         }
       }
@@ -2086,6 +3202,12 @@
             "state" : "translated",
             "value" : "Cache"
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "キャッシュ"
+          }
         }
       }
     },
@@ -2095,6 +3217,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Total Cache Size"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "キャッシュ総サイズ"
           }
         }
       }
@@ -2106,6 +3234,12 @@
             "state" : "translated",
             "value" : "Cache Overview"
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "キャッシュ概要"
+          }
         }
       }
     },
@@ -2115,6 +3249,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Cached Video Quality: "
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "キャッシュ画質: "
           }
         }
       }
@@ -2126,6 +3266,12 @@
             "state" : "translated",
             "value" : "Cached Video"
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "キャッシュ動画"
+          }
         }
       }
     },
@@ -2135,6 +3281,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Cache Management"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "キャッシュ管理"
           }
         }
       }
@@ -2146,6 +3298,12 @@
             "state" : "translated",
             "value" : "Encoder"
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "コーデック"
+          }
         }
       }
     },
@@ -2155,6 +3313,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Encoding Information"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "コーデック情報"
           }
         }
       }
@@ -2166,6 +3330,12 @@
             "state" : "translated",
             "value" : "Edit user ID"
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ユーザーIDを編集"
+          }
         }
       }
     },
@@ -2175,6 +3345,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Auto Sync"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "自動同期"
           }
         }
       }
@@ -2186,6 +3362,12 @@
             "state" : "translated",
             "value" : "Behavior"
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "動作"
+          }
         }
       }
     },
@@ -2195,6 +3377,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Watch History"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "視聴履歴"
           }
         }
       }
@@ -2206,6 +3394,12 @@
             "state" : "translated",
             "value" : "Decode"
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "デコード"
+          }
         }
       }
     },
@@ -2215,6 +3409,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Decoder"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "デコーダ"
           }
         }
       }
@@ -2226,6 +3426,12 @@
             "state" : "translated",
             "value" : "Settings"
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "設定"
+          }
         }
       }
     },
@@ -2235,6 +3441,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Settings Data"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "データを設定"
           }
         }
       }
@@ -2246,6 +3458,12 @@
             "state" : "translated",
             "value" : "Loading comments…"
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "コメントを読み込み中…"
+          }
         }
       }
     },
@@ -2255,6 +3473,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Loading comments…"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "コメントの読み込みに失敗しました"
           }
         }
       }
@@ -2266,6 +3490,12 @@
             "state" : "translated",
             "value" : "Please enter the SMS verification code"
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "SMS認証コードを入力してください"
+          }
         }
       }
     },
@@ -2275,6 +3505,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Please enter a plain string with at least 30 characters."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "30文字以上のプレーンテキスト文字列を入力してください。"
           }
         }
       }
@@ -2286,6 +3522,12 @@
             "state" : "translated",
             "value" : "Account"
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "アカウント"
+          }
         }
       }
     },
@@ -2295,6 +3537,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Skip: %@"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "スキップ：%@"
           }
         }
       }
@@ -2306,6 +3554,12 @@
             "state" : "translated",
             "value" : "Show skipped prompts"
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "スキップの案内"
+          }
         }
       }
     },
@@ -2315,6 +3569,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Skipped count tracking"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "スキップ回数の統計追跡"
           }
         }
       }
@@ -2326,6 +3586,12 @@
             "state" : "translated",
             "value" : "Back"
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "戻る"
+          }
         }
       }
     },
@@ -2335,6 +3601,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "No Followed Users Yet"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "まだフォローしているユーザーはいません"
           }
         }
       }
@@ -2346,6 +3618,12 @@
             "state" : "translated",
             "value" : "No Uploaded Content Yet"
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "まだ投稿内容はありません"
+          }
         }
       }
     },
@@ -2355,6 +3633,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "No Watch History Yet"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "まだ視聴履歴はありません"
           }
         }
       }
@@ -2366,6 +3650,12 @@
             "state" : "translated",
             "value" : "This will not affect your login status or settings, but covers, avatars, and preview images on pages will be reloaded next time."
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "これはログイン状態や設定には影響しませんが、ページ内のカバー画像、アバター、プレビュー画像は次回再読み込みされます。"
+          }
         }
       }
     },
@@ -2375,6 +3665,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "This item will be removed from your device"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "この項目はデバイスから削除されます"
           }
         }
       }
@@ -2386,6 +3682,12 @@
             "state" : "translated",
             "value" : "These items will be removed from your device"
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "これらの項目はデバイスから削除されます"
+          }
         }
       }
     },
@@ -2395,6 +3697,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "This shows the cache space that can be cleared directly. “Documents & Data” shown by the system may also include other persistent content such as cookies, databases, and preferences."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ここに表示されるのは直接削除できるキャッシュ容量です。システム上に表示される「書類とデータ」には、Cookie、データベース、環境設定など、ほかの永続化された内容が含まれている場合もあります。"
           }
         }
       }
@@ -2406,6 +3714,12 @@
             "state" : "translated",
             "value" : "Log Out"
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ログアウト"
+          }
         }
       }
     },
@@ -2415,6 +3729,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Select"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "選択"
           }
         }
       }
@@ -2426,6 +3746,12 @@
             "state" : "translated",
             "value" : "Select Favorites"
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "お気に入りを選択"
+          }
         }
       }
     },
@@ -2435,6 +3761,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Reset"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "リセット"
           }
         }
       }
@@ -2446,6 +3778,12 @@
             "state" : "translated",
             "value" : "Reload Video"
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "動画を再読み込み"
+          }
         }
       }
     },
@@ -2455,6 +3793,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Random"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ランダム"
           }
         }
       }
@@ -2466,6 +3810,12 @@
             "state" : "translated",
             "value" : "Phone Number Verification Required"
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "電話番号の認証が必要です"
+          }
         }
       }
     },
@@ -2475,6 +3825,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Static Danmaku Duration"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "静止弾幕の表示時間"
           }
         }
       }
@@ -2486,6 +3842,12 @@
             "state" : "translated",
             "value" : "Audio & Video"
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "音声・映像"
+          }
         }
       }
     },
@@ -2495,6 +3857,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Preferred Codec"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "優先するエンコード形式"
           }
         }
       }
@@ -2506,6 +3874,12 @@
             "state" : "translated",
             "value" : "Home"
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ホーム"
+          }
         }
       }
     },
@@ -2515,6 +3889,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Verify and Log In"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "認証してログイン"
           }
         }
       }
@@ -2526,6 +3906,12 @@
             "state" : "translated",
             "value" : "HDR Video"
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "HDR動画"
+          }
         }
       }
     },
@@ -2536,6 +3922,12 @@
             "state" : "translated",
             "value" : "HDR"
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ハイダイナミックレンジ"
+          }
         }
       }
     },
@@ -2545,6 +3937,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Default Quality"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "デフォルト画質"
           }
         }
       }
