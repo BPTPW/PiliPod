@@ -23,7 +23,7 @@ jobs:
             - name: Set up Xcode Version
               uses: maxim-lobanov/setup-xcode@v1
               with:
-                  xcode-version: 'latest' # 使用最新稳定版 Xcode
+                  xcode-version: '26.5' # 与本地开发环境保持一致，避免 CI 随 runner 漂移
 
             - name: Generate Build Number & Build IPA
               id: build_ipa
