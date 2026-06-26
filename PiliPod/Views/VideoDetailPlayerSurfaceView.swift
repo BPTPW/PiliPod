@@ -104,238 +104,278 @@ struct VideoDetailPlayerSurfaceView: View {
 
     var body: some View {
         ZStack(alignment: .center) {
-            MPVKitPlayerView(player: player)
-                .id(playerViewID)
-                .aspectRatio(stream.aspectRatio, contentMode: .fit)
-                .frame(
-                    maxWidth: .infinity,
-                    maxHeight: isFullscreen ? .infinity : nil,
-                    alignment: .center
+            playerLayer
+        }
+    }
+
+    private var playerLayer: some View {
+        MPVKitPlayerView(player: player)
+            .id(playerViewID)
+            .aspectRatio(stream.aspectRatio, contentMode: .fit)
+            .frame(
+                maxWidth: .infinity,
+                maxHeight: isFullscreen ? .infinity : nil,
+                alignment: .center
+            )
+            .clipped()
+            .ignoresSafeArea(isFullscreen ? .all : [])
+            .background(Color.black)
+            .overlay { gestureOverlay }
+            .overlay { danmakuOverlay }
+            .overlay { loadingOverlay }
+            .overlay { fullscreenGradientOverlay }
+            .overlay { collapsedProgressOverlay }
+            .overlay { controlsOverlay }
+            .overlay(alignment: .trailing) { fullscreenDanmakuPanelOverlay }
+            .overlay(alignment: .top) { topStatusOverlay }
+            .overlay { videoShotPreviewOverlay }
+            .overlay(alignment: .bottomLeading) { manualSkipOverlay }
+            .overlay { brightnessHudOverlay }
+            .overlay { volumeHudOverlay }
+            .overlay { debugPanelOverlay }
+            .onAppear {
+                playerUISnapshot = player.uiSnapshot
+                showControlsAndAutoHideIfNeeded(forceShow: true)
+            }
+            .onDisappear {
+                hideControlsTask?.cancel()
+                speedBoostTriggerTask?.cancel()
+                stopDebugPanelRefresh()
+            }
+            .onChange(of: player.uiSnapshot) { oldSnapshot, snapshot in
+                playerUISnapshot = snapshot
+                handleSnapshotChange(oldSnapshot: oldSnapshot, snapshot: snapshot)
+            }
+            .frame(width: containerSize.width, height: playerHeight, alignment: .center)
+            .clipped()
+            .layoutPriority(1)
+    }
+
+    private var currentOverlayTime: TimeInterval {
+        activeSeekPreviewTime(duration: playerUISnapshot.duration) ?? playerUISnapshot.currentTime
+    }
+
+    private var gestureOverlay: some View {
+        Color.clear
+            .contentShape(Rectangle())
+            .frame(maxWidth: .infinity)
+            .frame(height: gestureHitAreaHeight)
+            .onTapGesture {
+                showControlsAndAutoHideIfNeeded(forceShow: false)
+            }
+            .highPriorityGesture(
+                TapGesture(count: 2)
+                    .onEnded {
+                        togglePlayback()
+                        showControlsAndAutoHideIfNeeded(forceShow: true)
+                    }
+            )
+            .simultaneousGesture(playerGesture)
+            .allowsHitTesting(gestureHitAreaHeight > 0)
+    }
+
+    private var danmakuOverlay: some View {
+        DanmakuOverlayView(
+            currentTime: player.currentTime,
+            isPlaying: player.isPlaying,
+            elements: danmakuElements,
+            config: danmakuOverlayConfig
+        )
+    }
+
+    private var loadingOverlay: some View {
+        PlayerLoadingOverlay(
+            isVisible: playerUISnapshot.isBuffering,
+            speedBytesPerSecond: playerUISnapshot.loadingSpeedBytesPerSecond
+        )
+        .allowsHitTesting(false)
+    }
+
+    @ViewBuilder
+    private var fullscreenGradientOverlay: some View {
+        if isFullscreen && controlsVisible {
+            VStack(spacing: 0) {
+                LinearGradient(
+                    colors: [Color.black.opacity(0.65), Color.black.opacity(0)],
+                    startPoint: .top,
+                    endPoint: .bottom
                 )
-                .clipped()
-                .ignoresSafeArea(isFullscreen ? .all : [])
-                .background(Color.black)
-                .overlay {
-                    Color.clear
-                        .contentShape(Rectangle())
-                        .frame(maxWidth: .infinity)
-                        .frame(height: gestureHitAreaHeight)
-                        .onTapGesture {
-                            showControlsAndAutoHideIfNeeded(forceShow: false)
-                        }
-                        .highPriorityGesture(
-                            TapGesture(count: 2)
-                                .onEnded {
-                                    togglePlayback()
-                                    showControlsAndAutoHideIfNeeded(forceShow: true)
-                                }
-                        )
-                        .simultaneousGesture(playerGesture)
-                        .allowsHitTesting(gestureHitAreaHeight > 0)
-                }
-                .overlay {
-                    DanmakuOverlayView(
-                        currentTime: player.currentTime,
-                        isPlaying: player.isPlaying,
-                        elements: danmakuElements,
-                        config: danmakuOverlayConfig
-                    )
-                }
-                .overlay {
-                    PlayerLoadingOverlay(
-                        isVisible: playerUISnapshot.isBuffering,
-                        speedBytesPerSecond: playerUISnapshot.loadingSpeedBytesPerSecond
-                    )
-                    .allowsHitTesting(false)
-                }
-                .overlay {
-                    if isFullscreen && controlsVisible {
-                        VStack(spacing: 0) {
-                            LinearGradient(
-                                colors: [Color.black.opacity(0.65), Color.black.opacity(0)],
-                                startPoint: .top,
-                                endPoint: .bottom
-                            )
-                            .frame(height: 60 + safeAreaInsets.top / 2)
-                            .frame(maxWidth: .infinity, alignment: .top)
+                .frame(height: 60 + safeAreaInsets.top / 2)
+                .frame(maxWidth: .infinity, alignment: .top)
 
-                            Spacer(minLength: 0)
+                Spacer(minLength: 0)
 
-                            LinearGradient(
-                                colors: [Color.black.opacity(0), Color.black.opacity(0.68)],
-                                startPoint: .top,
-                                endPoint: .bottom
-                            )
-                            .frame(height: 65 + safeAreaInsets.bottom / 2)
-                            .frame(maxWidth: .infinity, alignment: .bottom)
-                        }
-                        .ignoresSafeArea()
-                        .allowsHitTesting(false)
-                    }
+                LinearGradient(
+                    colors: [Color.black.opacity(0), Color.black.opacity(0.68)],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+                .frame(height: 65 + safeAreaInsets.bottom / 2)
+                .frame(maxWidth: .infinity, alignment: .bottom)
+            }
+            .ignoresSafeArea()
+            .allowsHitTesting(false)
+        }
+    }
+
+    @ViewBuilder
+    private var collapsedProgressOverlay: some View {
+        if !isFullscreen && !controlsVisible {
+            ReadOnlyVideoProgressBar(
+                currentTime: currentOverlayTime,
+                duration: effectiveDuration,
+                bufferedUntil: playerUISnapshot.bufferedUntil,
+                segments: progressSegments
+            )
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
+            .allowsHitTesting(false)
+        }
+    }
+
+    private var controlsOverlay: some View {
+        PlayerControlsOverlay(
+            danmakuEnabled: danmakuEnabledBinding,
+            onShowDanmakuSettings: {
+                if isFullscreen {
+                    isFullscreenDanmakuPanelVisible.toggle()
+                } else {
+                    onShowDanmakuSettingsSheet()
                 }
-                .overlay {
-                    if !isFullscreen && !controlsVisible {
-                        ReadOnlyVideoProgressBar(
-                            currentTime: activeSeekPreviewTime(duration: playerUISnapshot.duration) ?? playerUISnapshot.currentTime,
-                            duration: effectiveDuration,
-                            bufferedUntil: playerUISnapshot.bufferedUntil,
-                            segments: progressSegments
-                        )
-                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
-                        .allowsHitTesting(false)
-                    }
+            },
+            onShowSponsorSegments: onShowSponsorSegments,
+            onShowSponsorSubmit: onShowSponsorSubmit,
+            isFullscreen: isFullscreen,
+            isFullscreenDanmakuPanelVisible: isFullscreenDanmakuPanelVisible,
+            qualityOptions: qualityOptions,
+            selectedQualityCode: selectedQualityCode,
+            selectedPlaybackRate: selectedPlaybackRate,
+            isVisible: controlsVisible,
+            showsSponsorButton: showsSponsorButton,
+            showsSponsorInfoButton: showsSponsorInfoButton,
+            currentTime: currentOverlayTime,
+            duration: effectiveDuration,
+            bufferedUntil: playerUISnapshot.bufferedUntil,
+            isPlaying: playerUISnapshot.isPlaying,
+            segments: progressSegments,
+            onBack: onBack,
+            onUserInteracted: {
+                showControlsAndAutoHideIfNeeded(forceShow: true)
+            },
+            onTogglePlayPause: {
+                togglePlayback()
+            },
+            onSeek: { time in
+                seekPlayback(to: time)
+                showControlsAndAutoHideIfNeeded(forceShow: true)
+            },
+            onFullscreen: onToggleFullscreen,
+            onCacheVideo: onCacheVideo,
+            onReloadVideo: onReloadVideo,
+            onShowVideoStreamInfo: toggleDebugPanel,
+            onSelectQuality: onSelectQuality,
+            onSelectPlaybackRate: onSelectPlaybackRate,
+            onSeekPreviewChanged: { previewTime in
+                progressDragPreviewTime = previewTime
+            }
+        )
+    }
+
+    @ViewBuilder
+    private var fullscreenDanmakuPanelOverlay: some View {
+        if controlsVisible && isFullscreen && isFullscreenDanmakuPanelVisible {
+            DanmakuSettingsPanel(
+                config: $danmakuConfig,
+                isDanmakuEnabled: $isDanmakuEnabled,
+                onClose: {
+                    isFullscreenDanmakuPanelVisible = false
                 }
-                .overlay {
-                    PlayerControlsOverlay(
-                        danmakuEnabled: danmakuEnabledBinding,
-                        onShowDanmakuSettings: {
-                            if isFullscreen {
-                                isFullscreenDanmakuPanelVisible.toggle()
-                            } else {
-                                onShowDanmakuSettingsSheet()
-                            }
-                        },
-                        onShowSponsorSegments: onShowSponsorSegments,
-                        onShowSponsorSubmit: onShowSponsorSubmit,
-                        isFullscreen: isFullscreen,
-                        isFullscreenDanmakuPanelVisible: isFullscreenDanmakuPanelVisible,
-                        qualityOptions: qualityOptions,
-                        selectedQualityCode: selectedQualityCode,
-                        selectedPlaybackRate: selectedPlaybackRate,
-                        isVisible: controlsVisible,
-                        showsSponsorButton: showsSponsorButton,
-                        showsSponsorInfoButton: showsSponsorInfoButton,
-                        currentTime: activeSeekPreviewTime(duration: playerUISnapshot.duration) ?? playerUISnapshot.currentTime,
-                        duration: effectiveDuration,
-                        bufferedUntil: playerUISnapshot.bufferedUntil,
-                        isPlaying: playerUISnapshot.isPlaying,
-                        segments: progressSegments,
-                        onBack: onBack,
-                        onUserInteracted: {
-                            showControlsAndAutoHideIfNeeded(forceShow: true)
-                        },
-                        onTogglePlayPause: {
-                            togglePlayback()
-                        },
-                        onSeek: { time in
-                            seekPlayback(to: time)
-                            showControlsAndAutoHideIfNeeded(forceShow: true)
-                        },
-                        onFullscreen: onToggleFullscreen,
-                        onCacheVideo: onCacheVideo,
-                        onReloadVideo: onReloadVideo,
-                        onShowVideoStreamInfo: toggleDebugPanel,
-                        onSelectQuality: onSelectQuality,
-                        onSelectPlaybackRate: onSelectPlaybackRate,
-                        onSeekPreviewChanged: { previewTime in
-                            progressDragPreviewTime = previewTime
-                        }
-                    )
-                }
-                .overlay(alignment: .trailing) {
-                    if controlsVisible && isFullscreen && isFullscreenDanmakuPanelVisible {
-                        DanmakuSettingsPanel(
-                            config: $danmakuConfig,
-                            isDanmakuEnabled: $isDanmakuEnabled,
-                            onClose: {
-                                isFullscreenDanmakuPanelVisible = false
-                            }
-                        )
-                        .padding(.trailing, 12)
-                        .transition(.move(edge: .trailing).combined(with: .opacity))
-                    }
-                }
-                .overlay(alignment: .top) {
-                    if let seekPreview = activeSeekPreviewTime(duration: playerUISnapshot.duration) {
-                        Text("\(formatMMSS(seekPreview))/\(formatMMSS(effectiveDuration))")
-                            .font(.system(size: 12, weight: .semibold, design: .rounded))
-                            .foregroundStyle(.primary)
-                            .padding(.horizontal, 12)
-                            .padding(.vertical, 6)
-                            .glassEffect(.regular, in: .capsule)
-                            .padding(.top, 12)
-                            .transition(.opacity)
-                    } else if isSpeedBoostActive {
-                        Text(formatSpeedBoostLabel(speedBoostMultiplier))
-                            .font(.system(size: 12, weight: .semibold, design: .rounded))
-                            .foregroundStyle(.primary)
-                            .padding(.horizontal, 12)
-                            .padding(.vertical, 6)
-                            .glassEffect(.regular, in: .capsule)
-                            .padding(.top, 12)
-                            .transition(.opacity)
-                    }
-                }
-                .overlay {
-                    if let previewTime = activeSeekPreviewTime(duration: playerUISnapshot.duration) {
-                        VideoShotPreviewCard(
-                            frame: videoShotMetadata?.frame(at: previewTime),
-                            fallbackAspectRatio: stream.aspectRatio
-                        )
-                        .transition(.opacity.combined(with: .scale(scale: 0.96)))
-                    }
-                }
-                .overlay(alignment: .bottomLeading) {
-                    if let manualSkipTitle {
-                        Button(action: onManualSkip) {
-                            Text("跳过：\(manualSkipTitle)")
-                                .font(.system(size: 13, weight: .semibold))
-                                .foregroundStyle(.primary)
-                                .padding(.horizontal, 14)
-                                .padding(.vertical, 9)
-                                .glassEffect(.regular.interactive(), in: Capsule())
-                        }
-                        .tint(.primary)
-                        .padding(.leading, 16)
-                        .padding(.bottom, isFullscreen ? 120 : 50)
-                        .transition(.move(edge: .leading).combined(with: .opacity))
-                    }
-                }
-                .overlay {
-                    if isBrightnessAdjusting {
-                        valueHud(systemName: "sun.max", value: brightnessPreviewValue)
-                    }
-                }
-                .overlay {
-                    if isVolumeAdjusting {
-                        valueHud(
-                            systemName: "speaker.wave.3",
-                            value: volumePreviewValue,
-                            variableValue: volumePreviewValue
-                        )
-                    }
-                }
-                .overlay {
-                    if showDebugPanel {
-                        DashStreamDebugPanel(
-                            stream: stream,
-                            player: player,
-                            playerSnapshot: playerUISnapshot,
-                            selectedQualityCode: selectedQualityCode,
-                            onDismiss: {
-                                showDebugPanel = false
-                                stopDebugPanelRefresh()
-                            }
-                        )
-                    }
-                }
-                .onAppear {
-                    playerUISnapshot = player.uiSnapshot
-                    showControlsAndAutoHideIfNeeded(forceShow: true)
-                }
-                .onDisappear {
-                    hideControlsTask?.cancel()
-                    speedBoostTriggerTask?.cancel()
+            )
+            .padding(.trailing, 12)
+            .transition(.move(edge: .trailing).combined(with: .opacity))
+        }
+    }
+
+    @ViewBuilder
+    private var topStatusOverlay: some View {
+        if let seekPreview = activeSeekPreviewTime(duration: playerUISnapshot.duration) {
+            overlayCapsuleText("\(formatMMSS(seekPreview))/\(formatMMSS(effectiveDuration))")
+        } else if isSpeedBoostActive {
+            overlayCapsuleText(formatSpeedBoostLabel(speedBoostMultiplier))
+        }
+    }
+
+    @ViewBuilder
+    private var videoShotPreviewOverlay: some View {
+        if let previewTime = activeSeekPreviewTime(duration: playerUISnapshot.duration) {
+            VideoShotPreviewCard(
+                frame: videoShotMetadata?.frame(at: previewTime),
+                fallbackAspectRatio: stream.aspectRatio
+            )
+            .transition(.opacity.combined(with: .scale(scale: 0.96)))
+        }
+    }
+
+    @ViewBuilder
+    private var manualSkipOverlay: some View {
+        if let manualSkipTitle {
+            Button(action: onManualSkip) {
+                Text("跳过：\(manualSkipTitle)")
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(.primary)
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 9)
+                    .glassEffect(.regular.interactive(), in: Capsule())
+            }
+            .tint(.primary)
+            .padding(.leading, 16)
+            .padding(.bottom, isFullscreen ? 120 : 50)
+            .transition(.move(edge: .leading).combined(with: .opacity))
+        }
+    }
+
+    @ViewBuilder
+    private var brightnessHudOverlay: some View {
+        if isBrightnessAdjusting {
+            valueHud(systemName: "sun.max", value: brightnessPreviewValue)
+        }
+    }
+
+    @ViewBuilder
+    private var volumeHudOverlay: some View {
+        if isVolumeAdjusting {
+            valueHud(
+                systemName: "speaker.wave.3",
+                value: volumePreviewValue,
+                variableValue: volumePreviewValue
+            )
+        }
+    }
+
+    @ViewBuilder
+    private var debugPanelOverlay: some View {
+        if showDebugPanel {
+            DashStreamDebugPanel(
+                stream: stream,
+                player: player,
+                playerSnapshot: playerUISnapshot,
+                selectedQualityCode: selectedQualityCode,
+                onDismiss: {
+                    showDebugPanel = false
                     stopDebugPanelRefresh()
                 }
-                .onChange(of: player.uiSnapshot) { oldSnapshot, snapshot in
-                    playerUISnapshot = snapshot
-                    handleSnapshotChange(oldSnapshot: oldSnapshot, snapshot: snapshot)
-                }
-                .frame(width: containerSize.width, height: playerHeight, alignment: .center)
-                .clipped()
-                .layoutPriority(1)
+            )
         }
+    }
+
+    private func overlayCapsuleText(_ text: String) -> some View {
+        Text(text)
+            .font(.system(size: 12, weight: .semibold, design: .rounded))
+            .foregroundStyle(.primary)
+            .padding(.horizontal, 12)
+            .padding(.vertical, 6)
+            .glassEffect(.regular, in: .capsule)
+            .padding(.top, 12)
+            .transition(.opacity)
     }
 
     private var playerGesture: some Gesture {

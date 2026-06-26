@@ -185,45 +185,54 @@ class VideoDetailViewModel {
             }
 
             // 获取播放器信息（用于历史记录跳转播放/在线人数等；失败不阻塞播放）
-            var playbackCid = self.cid > 0 ? self.cid : detail.cid
+            let currentCID = await MainActor.run { self.cid }
+            var playbackCid = currentCID > 0 ? currentCID : detail.cid
             var playerInitialSeekTime: Double?
             if preferredCachedAsset == nil {
                 do {
-                let playerInfoResponse = try await BiliAPI.shared.fetchPlayerWbiV2(
-                    bvid: bvid,
-                    cid: detail.cid
-                )
-                await MainActor.run {
-                    self.playerInfo = playerInfoResponse.data
-                    if let lastMs = playerInfoResponse.data?.lastPlayTime, lastMs > 0 {
-                        self.initialSeekTime = Double(lastMs) / 1000.0
-                    } else {
-                        self.initialSeekTime = nil
+                    let playerInfoResponse = try await BiliAPI.shared.fetchPlayerWbiV2(
+                        bvid: bvid,
+                        cid: detail.cid
+                    )
+                    let playerInfoData = playerInfoResponse.data
+                    let lastPlayCID = playerInfoData?.lastPlayCid
+                    let lastPlayTimeMilliseconds = playerInfoData?.lastPlayTime
+                    let resolvedInitialSeekTime: Double? =
+                        if let lastPlayTimeMilliseconds, lastPlayTimeMilliseconds > 0 {
+                            Double(lastPlayTimeMilliseconds) / 1000.0
+                        } else {
+                            nil
+                        }
+
+                    await MainActor.run {
+                        self.playerInfo = playerInfoData
                     }
-                }
-                if self.cid <= 0, let lastCid = playerInfoResponse.data?.lastPlayCid, lastCid > 0 {
-                    playbackCid = lastCid
-                }
-                if let lastMs = playerInfoResponse.data?.lastPlayTime, lastMs > 0 {
-                    playerInitialSeekTime = Double(lastMs) / 1000.0
-                }
+
+                    if currentCID <= 0, let lastPlayCID, lastPlayCID > 0 {
+                        playbackCid = lastPlayCID
+                    }
+                    playerInitialSeekTime = resolvedInitialSeekTime
                 } catch {
                     print("获取播放器信息失败: \(error)")
                 }
             }
 
+            let resolvedPlaybackCID = playbackCid
+            let resolvedInitialSeekTime = playerInitialSeekTime
+
             await MainActor.run {
-                self.cid = playbackCid
-                self.initialSeekTime = playerInitialSeekTime
+                self.cid = resolvedPlaybackCID
+                self.initialSeekTime = resolvedInitialSeekTime
             }
 
             if SponsorBlockSettingsStore.load().isEnabled {
+                let skipSegmentsCID = resolvedPlaybackCID
                 Task {
-                    await loadSkipSegments(cid: playbackCid)
+                    await loadSkipSegments(cid: skipSegmentsCID)
                 }
             }
 
-            if let cachedAsset = OfflineCacheStorage.loadPlayableAsset(bvid: bvid, cid: playbackCid) ?? preferredCachedAsset {
+            if let cachedAsset = OfflineCacheStorage.loadPlayableAsset(bvid: bvid, cid: resolvedPlaybackCID) ?? preferredCachedAsset {
                 await MainActor.run {
                     self.danmakuElements = OfflineCacheStorage.loadDanmakuElements(
                         bvid: bvid,
@@ -233,13 +242,15 @@ class VideoDetailViewModel {
                 }
             } else {
                 // 先加载第一包弹幕，供后续渲染层接入
+                let firstDanmakuCID = resolvedPlaybackCID
                 Task {
-                    await loadDanmakuSegment(cid: playbackCid, segmentIndex: 1)
+                    await loadDanmakuSegment(cid: firstDanmakuCID, segmentIndex: 1)
                 }
             }
 
+            let videoShotCID = resolvedPlaybackCID
             Task {
-                await loadVideoShotMetadata(cid: playbackCid)
+                await loadVideoShotMetadata(cid: videoShotCID)
             }
 
             // 获取用户对该视频的操作状态（点赞/点踩/投币/收藏）
@@ -302,7 +313,7 @@ class VideoDetailViewModel {
                 // 获取播放地址
                 let playUrlResponse = try await BiliAPI.shared.fetchPlayUrl(
                     bvid: bvid,
-                    cid: playbackCid
+                    cid: resolvedPlaybackCID
                 )
                 let options = DashStreamSelector.qualityOptions(from: playUrlResponse)
                 let availableQualityCodes = options.map(\.code)
@@ -1052,7 +1063,7 @@ class VideoDetailViewModel {
 
     // MARK: - History Report
 
-    func startHistoryReporting() {
+	    func startHistoryReporting() {
         guard !isPlayingOfflineCache else { return }
         historyReportStartTask?.cancel()
         historyReportTimer?.invalidate()
@@ -1062,19 +1073,17 @@ class VideoDetailViewModel {
             try? await Task.sleep(nanoseconds: 1000000000)
             guard let self, !Task.isCancelled, let player = self.player else { return }
 
-            self.reportHistoryIfNeeded(with: player)
+	            self.reportHistoryIfNeeded(with: player)
 
-            self.historyReportTimer = Timer.scheduledTimer(
-                withTimeInterval: 15,
-                repeats: true
-            ) { [weak self] _ in
-                Task { @MainActor [weak self] in
-                    guard let self, let currentPlayer = self.player else { return }
-                    self.reportHistoryIfNeeded(with: currentPlayer)
-                }
-            }
-        }
-    }
+	            self.historyReportTimer = Timer.scheduledTimer(
+	                withTimeInterval: 15,
+	                repeats: true
+	            ) { [weak self] _ in
+	                guard let self, let currentPlayer = self.player else { return }
+	                self.reportHistoryIfNeeded(with: currentPlayer)
+	            }
+	        }
+	    }
 
     private func reportHistoryIfNeeded(with player: MPVKitPlayer) {
         guard !isPlayingOfflineCache else { return }
