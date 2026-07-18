@@ -1869,6 +1869,8 @@ struct VideoActionBar: View {
     }
 }
 
+// 投币按钮
+
 private struct VideoCoinMenuButton: View {
     let title: String
     let assetImage: String
@@ -1909,11 +1911,14 @@ private struct VideoCoinMenuButton: View {
             }
             .frame(maxWidth: .infinity)
         }
-        .buttonStyle(.plain)
+        .menuStyle(.borderlessButton)
+        .tint(.primary)
         .disabled(isDisabled)
         .opacity(isDisabled ? 0.6 : 1.0)
     }
 }
+
+// 分享按钮
 
 private struct VideoShareMenuButton: View {
     let title: String
@@ -1952,7 +1957,8 @@ private struct VideoShareMenuButton: View {
             }
             .frame(maxWidth: .infinity)
         }
-        .buttonStyle(.plain)
+        .menuStyle(.borderlessButton)
+        .tint(.primary)
         .disabled(isDisabled)
         .opacity(isDisabled ? 0.6 : 1.0)
     }
@@ -1996,7 +2002,7 @@ private struct VideoActionButton: View {
         self.onTap = onTap
     }
 
-    // 点赞/投币/收藏等按钮
+    // 点赞收藏等按钮
     var body: some View {
         Button(action: onTap) {
             VStack(spacing: 6) {
