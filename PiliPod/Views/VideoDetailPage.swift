@@ -887,7 +887,7 @@ struct VideoDetailPage: View {
             if let reply = viewModel.videoDetail?.stat.reply {
                 return "\(L10n.string(tab.rawValue)) (\(reply))"
             }
-            return tab.rawValue
+            return L10n.string(tab.rawValue)
         }
     }
 
