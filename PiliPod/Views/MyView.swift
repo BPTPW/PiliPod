@@ -162,7 +162,7 @@ struct MyView: View {
                     Button {
                         followingRoute = MyFollowingRoute(mid: user.mid)
                     } label: {
-                        statItem(value: stat.following, title: L10n.string("my.posts"))
+                        statItem(value: stat.following, title: L10n.string("my.following"))
                     }
                     .buttonStyle(.plain)
                 } else {
