@@ -982,6 +982,48 @@ class BiliAPI {
         return followingData
     }
 
+    // MARK: - 搜索关注列表
+
+    func searchFollowingList(
+        vmid: Int,
+        keyword: String,
+        pn: Int = 1,
+        ps: Int = 50
+    ) async throws -> FollowingData {
+        var components = URLComponents(string: "https://api.bilibili.com/x/relation/followings/search")
+        var queryItems: [URLQueryItem] = [
+            URLQueryItem(name: "vmid", value: String(vmid)),
+            URLQueryItem(name: "name", value: keyword),
+            URLQueryItem(name: "pn", value: String(pn)),
+            URLQueryItem(name: "ps", value: String(ps))
+        ]
+
+        components?.queryItems = queryItems
+
+        guard let url = components?.url else {
+            throw APIError.invalidURL
+        }
+
+        let request = makeRequest(url: url)
+        let (data, response) = try await URLSession.shared.data(for: request)
+
+        guard let httpResponse = response as? HTTPURLResponse,
+              (200 ... 299).contains(httpResponse.statusCode)
+        else {
+            throw APIError.requestFailed
+        }
+
+        let decoded = try JSONDecoder().decode(FollowingResponse.self, from: data)
+        guard decoded.code == 0 else {
+            throw APIError.businessError(code: decoded.code, message: decoded.message)
+        }
+        guard let followingData = decoded.data else {
+            throw APIError.requestFailed
+        }
+
+        return followingData
+    }
+
     // MARK: - 获取搜索热榜
 
     func fetchSearchTrending(limit: Int = 10) async throws -> [SearchTrendingItem] {

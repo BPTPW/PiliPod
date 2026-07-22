@@ -24,11 +24,16 @@ final class FollowingListViewModel: ObservableObject {
     @Published var errorMessage: String?
     @Published var hasMore = true
     @Published var sortOption: SortOption = .followSequence
+    @Published private(set) var searchUsers: [FollowingUser] = []
+    @Published private(set) var isSearching = false
+    @Published private(set) var searchErrorMessage: String?
+    @Published private(set) var searchKeyword: String?
 
     private let mid: Int
     private let pageSize = 50
     private var currentPage = 1
     private var totalCount = 0
+    private var searchRequestID = UUID()
 
     init(mid: Int) {
         self.mid = mid
@@ -87,6 +92,44 @@ final class FollowingListViewModel: ObservableObject {
             errorMessage = error.localizedDescription
             hasMore = false
         }
+    }
+
+    func search(keyword: String) async {
+        let trimmedKeyword = keyword.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedKeyword.isEmpty else {
+            return
+        }
+
+        let requestID = UUID()
+        searchRequestID = requestID
+        searchKeyword = trimmedKeyword
+        isSearching = true
+        searchErrorMessage = nil
+        searchUsers = []
+
+        do {
+            let page = try await BiliAPI.shared.searchFollowingList(
+                vmid: mid,
+                keyword: trimmedKeyword,
+                ps: pageSize
+            )
+            guard searchRequestID == requestID else { return }
+            searchUsers = page.list ?? []
+        } catch {
+            guard searchRequestID == requestID else { return }
+            searchErrorMessage = error.localizedDescription
+        }
+
+        guard searchRequestID == requestID else { return }
+        isSearching = false
+    }
+
+    func clearSearch() {
+        searchRequestID = UUID()
+        searchKeyword = nil
+        searchUsers = []
+        searchErrorMessage = nil
+        isSearching = false
     }
 
     private func shouldLoadMore(loadedCount: Int, receivedCount: Int) -> Bool {

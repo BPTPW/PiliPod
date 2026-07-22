@@ -373,6 +373,29 @@
         }
       }
     },
+    "followinglist.search.placeholder" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Search"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "検索"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "搜索关注"
+          }
+        }
+      }
+    },
     "https://www.bsbsb.top" : {
       "shouldTranslate" : false
     },
@@ -2747,6 +2770,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "キャッシュを集計中"
+          }
+        }
+      }
+    },
+    "没有找到匹配的用户" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No matching users"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ユーザーが見つかりません"
           }
         }
       }
