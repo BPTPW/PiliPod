@@ -95,7 +95,10 @@ struct LivePlayerView: View {
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .aspectRatio(aspectRatio, contentMode: .fit)
+        // Keep the Metal viewport at physical-screen size in fullscreen. mpv
+        // applies the stream aspect ratio inside this viewport without moving
+        // either video or danmaku back inside the horizontal safe area.
+        .aspectRatio(isFullscreen ? nil : aspectRatio, contentMode: .fit)
         .background(Color.black)
     }
 

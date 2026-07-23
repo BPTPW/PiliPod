@@ -109,6 +109,7 @@ class MPVKitPlayer: NSObject {
         pendingDirectVideoURL = nil
         guard let controller else { return }
 
+        controller.setAllowsViewportVideoRebind(true)
         controller.loadFile(stream.videoURL)
         controller.addAudio(stream.audioURL)
         controller.play()
@@ -125,6 +126,7 @@ class MPVKitPlayer: NSObject {
         pendingStream = nil
         guard let controller else { return }
 
+        controller.setAllowsViewportVideoRebind(false)
         controller.loadFile(videoURL)
         controller.play()
         resetPlaybackProgressTracking()
@@ -158,14 +160,6 @@ class MPVKitPlayer: NSObject {
 
     func setPlaybackRate(_ rate: Double) {
         controller?.setPlaybackRate(rate)
-    }
-
-    func setKeepAspect(_ enabled: Bool) {
-        controller?.setKeepAspect(enabled)
-    }
-
-    func refreshVideoOutput() {
-        controller?.refreshVideoOutput()
     }
 
     func stop() {

@@ -19,6 +19,9 @@ final class MPVKitMetalViewController: UIViewController {
     private var audioAdded = false
     private var isShuttingDown = false
     private var isInBackground = false
+    private var allowsViewportVideoRebind = false
+    private var lastViewportSize = CGSize.zero
+    private var viewportRebindGeneration = 0
     private let eventQueue = DispatchQueue(label: "mpv.event", qos: .userInitiated)
     private let eventQueueKey = DispatchSpecificKey<Void>()
     private var wakeupContextPtr: UnsafeMutableRawPointer?
@@ -50,6 +53,7 @@ final class MPVKitMetalViewController: UIViewController {
     override func viewDidLayoutSubviews() {
         super.viewDidLayoutSubviews()
         syncMetalLayerLayout()
+        scheduleViewportVideoRebindIfNeeded()
     }
 
     /// Called from SwiftUI update cycle to ensure frame changes are pushed to
@@ -92,6 +96,12 @@ final class MPVKitMetalViewController: UIViewController {
     func applyPlaybackSettings(_ settings: AudioVideoSettings) {
         pendingPlaybackSettings = settings.clamped()
         applyDynamicRangeLayerPreferences()
+    }
+
+    func setAllowsViewportVideoRebind(_ enabled: Bool) {
+        allowsViewportVideoRebind = enabled
+        lastViewportSize = .zero
+        viewportRebindGeneration += 1
     }
 
     private func setHTTPHeaders(_ mpv: OpaquePointer, headers: [String: String]) {
@@ -144,21 +154,35 @@ final class MPVKitMetalViewController: UIViewController {
         setDouble(MPVKitProperty.playbackRate, rate)
     }
 
-    func setKeepAspect(_ enabled: Bool) {
-        guard let mpv else { return }
-        let value = enabled ? "yes" : "no"
-        checkError(
-            mpv_set_property_string(mpv, "keepaspect", value),
-            context: "set keepaspect=\(value)"
-        )
-    }
+    private func scheduleViewportVideoRebindIfNeeded() {
+        guard allowsViewportVideoRebind,
+              !isShuttingDown,
+              view.bounds.size.width > 0,
+              view.bounds.size.height > 0,
+              view.bounds.size != lastViewportSize
+        else {
+            return
+        }
 
-    /// Force mpv VO to rebind the current rendering surface size without
-    /// recreating player instance or reloading stream.
-    func refreshVideoOutput() {
-        guard let mpv, !isShuttingDown else { return }
-        checkError(mpv_set_property_string(mpv, "vid", "no"), context: "refresh vid=no")
-        checkError(mpv_set_property_string(mpv, "vid", "auto"), context: "refresh vid=auto")
+        lastViewportSize = view.bounds.size
+        viewportRebindGeneration += 1
+        let generation = viewportRebindGeneration
+
+        // `wid + gpu-next` on iOS can keep the pre-rotation MoltenVK viewport.
+        // Rebind once after UIKit has committed its final bounds. Live streams
+        // opt out because their independently muxed audio/video can drift.
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.12) { [weak self] in
+            guard let self,
+                  self.viewportRebindGeneration == generation,
+                  self.allowsViewportVideoRebind,
+                  !self.isShuttingDown,
+                  let mpv = self.mpv
+            else {
+                return
+            }
+            self.checkError(mpv_set_property_string(mpv, "vid", "no"), context: "viewport vid=no")
+            self.checkError(mpv_set_property_string(mpv, "vid", "auto"), context: "viewport vid=auto")
+        }
     }
 
     func stop() {
@@ -437,22 +461,15 @@ final class MPVKitMetalViewController: UIViewController {
     }
 
     @objc private func enterBackground() {
-        guard !isShuttingDown, let mpv else { return }
+        guard !isShuttingDown else { return }
         isInBackground = true
-        print("[mpv] entering background, disabling video output")
-
-        // Disable the video track in background to avoid touching invalid GPU resources,
-        // but keep the playback state decision in the higher-level view logic.
-        checkError(mpv_set_option_string(mpv, "vid", "no"), context: "vid")
+        // Keep the selected video track intact. Toggling vid tears down and
+        // rebuilds the decoder/output chain, which is visible as a stall and can
+        // desynchronize independently muxed live audio and video streams.
     }
 
     @objc private func enterForeground() {
-        guard !isShuttingDown, let mpv else { return }
-        print("[mpv] entering foreground, restoring video")
-
-        // Re-enable video output and preserve whichever play/pause state the app decided on.
-        checkError(mpv_set_option_string(mpv, "vid", "auto"), context: "vid")
-
+        guard !isShuttingDown else { return }
         isInBackground = false
     }
 

@@ -688,7 +688,6 @@ struct VideoDetailPage: View {
             .onReceive(NotificationCenter.default.publisher(
                 for: UIApplication.didBecomeActiveNotification
             )) { _ in
-                restoreFullscreenOrientationIfNeeded()
                 handleDidBecomeActive()
             }
 #endif
@@ -1569,14 +1568,6 @@ struct VideoDetailPage: View {
         preferredFullscreenOrientation = orientation == .landscapeLeft ? .landscapeLeft : .landscapeRight
     }
 
-    private func restoreFullscreenOrientationIfNeeded() {
-        guard isFullscreen else { return }
-        updateDeviceOrientationForFullscreen(
-            isFullscreen: true,
-            orientation: preferredFullscreenOrientation
-        )
-        refreshPlayerLayoutAfterFullscreenChange()
-    }
 #endif
 
     private func toggleFullscreenManually() {
@@ -1590,11 +1581,9 @@ struct VideoDetailPage: View {
             isFullscreen = willEnterFullscreen
             fullscreenTrigger = willEnterFullscreen ? .manual : .none
         }
-        viewModel.player?.setKeepAspect(true)
 #if canImport(UIKit)
         updateDeviceOrientationForFullscreen(isFullscreen: willEnterFullscreen)
 #endif
-        refreshPlayerLayoutAfterFullscreenChange()
     }
 
 #if canImport(UIKit)
@@ -1608,8 +1597,6 @@ struct VideoDetailPage: View {
                     isFullscreen = true
                     fullscreenTrigger = .rotation
                 }
-                viewModel.player?.setKeepAspect(true)
-                refreshPlayerLayoutAfterFullscreenChange()
             }
         } else if interfaceOrientation.isPortrait {
             if isFullscreen, fullscreenTrigger == .rotation {
@@ -1617,8 +1604,6 @@ struct VideoDetailPage: View {
                     isFullscreen = false
                     fullscreenTrigger = .none
                 }
-                viewModel.player?.setKeepAspect(true)
-                refreshPlayerLayoutAfterFullscreenChange()
             }
         }
     }
@@ -1630,26 +1615,14 @@ struct VideoDetailPage: View {
                 isFullscreen = false
                 fullscreenTrigger = .none
             }
-            viewModel.player?.setKeepAspect(true)
 #if canImport(UIKit)
             updateDeviceOrientationForFullscreen(isFullscreen: false)
 #endif
-            refreshPlayerLayoutAfterFullscreenChange()
         } else {
             onBack()
         }
     }
 
-    private func refreshPlayerLayoutAfterFullscreenChange() {
-        Task { @MainActor in
-            viewModel.player?.refreshVideoOutput()
-            // 多次刷新保证成功
-            try? await Task.sleep(nanoseconds: 80000000)
-            viewModel.player?.refreshVideoOutput()
-            // try? await Task.sleep(nanoseconds: 30000000)
-            // viewModel.player?.refreshVideoOutput()
-        }
-    }
 }
 
 private struct TabPager<IntroContent: View, CommentsContent: View>: View {

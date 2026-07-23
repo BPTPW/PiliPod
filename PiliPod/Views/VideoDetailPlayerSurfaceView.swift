@@ -90,6 +90,14 @@ struct VideoDetailPlayerSurfaceView: View {
             : min(containerSize.width / stream.aspectRatio, containerSize.width * (4.0 / 3.0))
     }
 
+    /// GeometryReader is laid out inside the safe area. The playback canvas must
+    /// use the complete display in fullscreen, while controls stay inset below.
+    private var playerWidth: CGFloat {
+        isFullscreen
+            ? containerSize.width + safeAreaInsets.leading + safeAreaInsets.trailing
+            : containerSize.width
+    }
+
     private var topGestureExclusionHeight: CGFloat {
         isFullscreen ? max(18, safeAreaInsets.top + 8) : 14
     }
@@ -111,13 +119,10 @@ struct VideoDetailPlayerSurfaceView: View {
     private var playerLayer: some View {
         MPVKitPlayerView(player: player)
             .id(playerViewID)
-            .aspectRatio(stream.aspectRatio, contentMode: .fit)
-            .frame(
-                maxWidth: .infinity,
-                maxHeight: isFullscreen ? .infinity : nil,
-                alignment: .center
-            )
-            .clipped()
+            // Establish the UIKit render surface before adding overlays. Putting
+            // this frame after overlays leaves mpv and controls in the smaller
+            // aspect-ratio layout while only their outer container expands.
+            .frame(width: playerWidth, height: playerHeight, alignment: .center)
             .ignoresSafeArea(isFullscreen ? .all : [])
             .background(Color.black)
             .overlay { gestureOverlay }
@@ -146,8 +151,6 @@ struct VideoDetailPlayerSurfaceView: View {
                 playerUISnapshot = snapshot
                 handleSnapshotChange(oldSnapshot: oldSnapshot, snapshot: snapshot)
             }
-            .frame(width: containerSize.width, height: playerHeight, alignment: .center)
-            .clipped()
             .layoutPriority(1)
     }
 
@@ -278,6 +281,10 @@ struct VideoDetailPlayerSurfaceView: View {
                 progressDragPreviewTime = previewTime
             }
         )
+        // The render canvas ignores safe areas, but controls must not. Let
+        // SwiftUI apply the scene's real insets once instead of manually
+        // padding a GeometryReader whose coordinate space has rotated.
+        .safeAreaPadding(isFullscreen ? .all : [])
     }
 
     @ViewBuilder
