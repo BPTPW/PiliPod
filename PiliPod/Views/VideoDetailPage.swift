@@ -686,6 +686,11 @@ struct VideoDetailPage: View {
                 handleDidEnterBackground()
             }
             .onReceive(NotificationCenter.default.publisher(
+                for: UIApplication.willEnterForegroundNotification
+            )) { _ in
+                restoreFullscreenOrientationBeforeActivation()
+            }
+            .onReceive(NotificationCenter.default.publisher(
                 for: UIApplication.didBecomeActiveNotification
             )) { _ in
                 handleDidBecomeActive()
@@ -1566,6 +1571,14 @@ struct VideoDetailPage: View {
     private func updatePreferredFullscreenOrientation(from orientation: UIInterfaceOrientation?) {
         guard let orientation, orientation.isLandscape else { return }
         preferredFullscreenOrientation = orientation == .landscapeLeft ? .landscapeLeft : .landscapeRight
+    }
+
+    private func restoreFullscreenOrientationBeforeActivation() {
+        guard isFullscreen else { return }
+        updateDeviceOrientationForFullscreen(
+            isFullscreen: true,
+            orientation: preferredFullscreenOrientation
+        )
     }
 
 #endif

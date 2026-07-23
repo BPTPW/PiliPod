@@ -113,7 +113,12 @@ struct VideoDetailPlayerSurfaceView: View {
     var body: some View {
         ZStack(alignment: .center) {
             playerLayer
+            controlsOverlay
+                .frame(width: containerSize.width, height: playerHeight, alignment: .center)
         }
+        // Controls deliberately use the page's normal layout width. The video
+        // canvas is wider in fullscreen so it can render into unsafe areas.
+        .frame(width: containerSize.width, height: playerHeight, alignment: .center)
     }
 
     private var playerLayer: some View {
@@ -130,7 +135,6 @@ struct VideoDetailPlayerSurfaceView: View {
             .overlay { loadingOverlay }
             .overlay { fullscreenGradientOverlay }
             .overlay { collapsedProgressOverlay }
-            .overlay { controlsOverlay }
             .overlay(alignment: .trailing) { fullscreenDanmakuPanelOverlay }
             .overlay(alignment: .top) { topStatusOverlay }
             .overlay { videoShotPreviewOverlay }
@@ -281,10 +285,6 @@ struct VideoDetailPlayerSurfaceView: View {
                 progressDragPreviewTime = previewTime
             }
         )
-        // The render canvas ignores safe areas, but controls must not. Let
-        // SwiftUI apply the scene's real insets once instead of manually
-        // padding a GeometryReader whose coordinate space has rotated.
-        .safeAreaPadding(isFullscreen ? .all : [])
     }
 
     @ViewBuilder
