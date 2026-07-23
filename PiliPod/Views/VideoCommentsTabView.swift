@@ -114,16 +114,16 @@ struct VideoCommentsTabView: View {
             } label: {
                 Image(systemName: "square.and.pencil")
                     .foregroundStyle(.primary)
-                    .frame(width: 16, height: 16)
-                    .padding(14)
+                    .frame(width: 30, height: 30)
+                    .padding(10)
                     .glassEffect(
                         .regular.interactive(),
                         in: Circle()
                     )
             }
             .tint(.primary)
-            .padding(.trailing, 16)
-            .padding(.bottom, 16)
+            .padding(.trailing, 24)
+            .padding(.bottom, 24)
         }
         .sheet(isPresented: $showComposer) {
             CommentComposerSheet(
