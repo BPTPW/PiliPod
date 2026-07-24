@@ -9,7 +9,7 @@ import Foundation
 import Libmpv
 import UIKit
 
-final class MPVKitMetalViewController: UIViewController {
+final class MPVKitMetalViewController: UIViewController, MPVPlaybackController {
     private var metalLayer = MPVKitMetalLayer()
     private var mpv: OpaquePointer?
     private var pendingHeaders: [String: String] = [:]

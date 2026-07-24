@@ -55,7 +55,7 @@ struct LivePlayerView: View {
             ZStack {
                 Group {
                     if let streamURL {
-                        MPVKitPlayerView(player: player)
+                        MPVKitOpenGLPlayerView(player: player)
                             .task(id: streamURL.absoluteString) {
                                 player.play(videoURL: streamURL)
                             }

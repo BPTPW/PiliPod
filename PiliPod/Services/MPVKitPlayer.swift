@@ -9,6 +9,45 @@ import Foundation
 import Observation
 import UIKit
 
+/// Rendering is deliberately independent from playback state. VOD uses the
+/// existing Metal embedder while live streams use libmpv's render API, which
+/// can redraw into its current viewport without recreating the video track.
+protocol MPVPlaybackController: AnyObject {
+    func applyHTTPHeaders(_ headers: [String: String])
+    func applyPlaybackSettings(_ settings: AudioVideoSettings)
+    func setAllowsViewportVideoRebind(_ enabled: Bool)
+    func loadFile(_ url: URL)
+    func addAudio(_ url: URL)
+    func play()
+    func pause()
+    func setPlaybackRate(_ rate: Double)
+    func stop()
+    func seek(to time: TimeInterval)
+    func timePosition() -> TimeInterval
+    func durationValue() -> TimeInterval
+    func demuxerCacheTime() -> TimeInterval
+    func cacheSpeedBytesPerSecond() -> Double
+    func downloadSpeedBytesPerSecond() -> Double
+    func isPaused() -> Bool
+    func isPausedForCache() -> Bool
+    func videoCodec() -> String
+    func audioCodec() -> String
+    func hwdecCurrent() -> String
+    func videoPixelFormat() -> String
+    func videoHardwarePixelFormat() -> String
+    func videoPrimaries() -> String
+    func videoGamma() -> String
+    func videoSignalPeak() -> String
+    func videoColorLevels() -> String
+    func videoColorMatrix() -> String
+    func currentToneMapping() -> String
+    func isExtendedDynamicRangeRequested() -> Bool
+    func displayColorSpaceName() -> String
+    func currentEDRHeadroom() -> CGFloat
+    func potentialEDRHeadroom() -> CGFloat
+    func displayGamut() -> String
+}
+
 struct PlayerUIPlaybackSnapshot: Equatable {
     var currentTime: TimeInterval = 0
     var duration: TimeInterval = 0
@@ -55,7 +94,7 @@ class MPVKitPlayer: NSObject {
     private static let bufferingStallThreshold: TimeInterval = 0.6
     private static let bufferingCacheAheadThreshold: TimeInterval = 0.5
 
-    private weak var controller: MPVKitMetalViewController?
+    private weak var controller: (any MPVPlaybackController)?
     private var displayLink: CADisplayLink?
     private var uiRefreshTimer: Timer?
     private var pendingStream: DashStream?
@@ -92,7 +131,7 @@ class MPVKitPlayer: NSObject {
         hdrDiagnostics.prefersEDROutput = playbackSettings.prefersEDROutput
     }
 
-    func attach(_ controller: MPVKitMetalViewController) {
+    func attach(_ controller: any MPVPlaybackController) {
         self.controller = controller
         controller.applyHTTPHeaders(httpHeaders)
         controller.applyPlaybackSettings(playbackSettings)
