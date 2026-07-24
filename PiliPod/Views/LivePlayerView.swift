@@ -21,7 +21,6 @@ struct LivePlayerView: View {
 
     let roomId: String
     let streamURL: URL?
-    let aspectRatio: CGFloat
     let statusText: String
     let player: MPVKitPlayer
     let isFullscreen: Bool
@@ -95,10 +94,6 @@ struct LivePlayerView: View {
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        // Keep the Metal viewport at physical-screen size in fullscreen. mpv
-        // applies the stream aspect ratio inside this viewport without moving
-        // either video or danmaku back inside the horizontal safe area.
-        .aspectRatio(isFullscreen ? nil : aspectRatio, contentMode: .fit)
         .background(Color.black)
     }
 
@@ -211,7 +206,6 @@ struct LivePlayerView: View {
     LivePlayerView(
         roomId: "226000",
         streamURL: nil,
-        aspectRatio: 16.0 / 9.0,
         statusText: "room id: 226000",
         player: MPVKitPlayer(),
         isFullscreen: false,

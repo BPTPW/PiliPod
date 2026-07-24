@@ -154,19 +154,12 @@ struct LivePlaybackPage: View {
                 geo.size.width / max(viewModel.aspectRatio, 0.01),
                 geo.size.width * (4.0 / 3.0)
             )
-        let playerOffsetX = isFullscreen
-            ? (geo.safeAreaInsets.trailing - geo.safeAreaInsets.leading) / 2
-            : 0
-        let playerOffsetY = isFullscreen
-            ? ((geo.safeAreaInsets.bottom - geo.safeAreaInsets.top) / 2) - 10
-            : 0
         let containerHeight = isFullscreen ? geo.size.height : playerHeight
 
         ZStack {
             LivePlayerView(
                 roomId: room.roomId,
                 streamURL: viewModel.streamURL,
-                aspectRatio: viewModel.aspectRatio,
                 statusText: viewModel.playerStatusText,
                 player: player,
                 isFullscreen: isFullscreen,
@@ -174,7 +167,6 @@ struct LivePlaybackPage: View {
             )
             .frame(width: playerWidth, height: playerHeight, alignment: .center)
             .ignoresSafeArea(isFullscreen ? .all : [])
-            .offset(x: playerOffsetX, y: playerOffsetY)
 
             PlayerLoadingOverlay(
                 isVisible: (viewModel.streamURL == nil && viewModel.isLoading) || playerUISnapshot.isBuffering,

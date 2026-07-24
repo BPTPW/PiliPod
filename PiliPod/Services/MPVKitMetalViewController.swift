@@ -169,8 +169,8 @@ final class MPVKitMetalViewController: UIViewController {
         let generation = viewportRebindGeneration
 
         // `wid + gpu-next` on iOS can keep the pre-rotation MoltenVK viewport.
-        // Rebind once after UIKit has committed its final bounds. Live streams
-        // opt out because their independently muxed audio/video can drift.
+        // Rebind once after UIKit has committed its final bounds. Callers opt
+        // in only for playback paths that need this compatibility step.
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.12) { [weak self] in
             guard let self,
                   self.viewportRebindGeneration == generation,
