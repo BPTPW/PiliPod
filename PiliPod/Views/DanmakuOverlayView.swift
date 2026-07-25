@@ -1,6 +1,6 @@
-import Combine
 import SwiftUI
 import UIKit
+import CoreImage
 
 struct DanmakuEngineConfig: Sendable, Equatable {
     var isEnabled = true
@@ -40,14 +40,8 @@ struct DanmakuEngineConfig: Sendable, Equatable {
 
     var uiFontWeight: UIFont.Weight {
         switch fontWeightValue {
-        case 1: .ultraLight
-        case 2: .thin
-        case 3: .light
-        case 4: .regular
-        case 5: .medium
-        case 6: .semibold
-        case 7: .bold
-        case 8: .heavy
+        case 1: .ultraLight; case 2: .thin; case 3: .light; case 4: .regular
+        case 5: .medium; case 6: .semibold; case 7: .bold; case 8: .heavy
         default: .black
         }
     }
@@ -55,503 +49,435 @@ struct DanmakuEngineConfig: Sendable, Equatable {
 
 extension DanmakuEngineConfig: Codable {
     private enum CodingKeys: String, CodingKey {
-        case isEnabled
-        case blockLevel
-        case blockScroll
-        case blockTop
-        case blockBottom
-        case blockColorful
-        case allowOverlapWhenMassive
-        case forceAllScroll
-        case topRegionRatio
-        case bottomRegionRatio
-        case opacity
-        case fontWeightValue
-        case strokeWidth
-        case fontScale
-        case fullscreenFontScale
-        case scrollDuration
-        case staticDuration
-        case lineHeightMultiplier
+        case isEnabled, blockLevel, blockScroll, blockTop, blockBottom, blockColorful
+        case allowOverlapWhenMassive, forceAllScroll, topRegionRatio, bottomRegionRatio
+        case opacity, fontWeightValue, strokeWidth, fontScale, fullscreenFontScale
+        case scrollDuration, staticDuration, lineHeightMultiplier
     }
 
     init(from decoder: Decoder) throws {
-        let container = try decoder.container(keyedBy: CodingKeys.self)
-        isEnabled = try container.decodeIfPresent(Bool.self, forKey: .isEnabled) ?? true
-        blockLevel = try container.decodeIfPresent(Int.self, forKey: .blockLevel) ?? 0
-        blockScroll = try container.decodeIfPresent(Bool.self, forKey: .blockScroll) ?? false
-        blockTop = try container.decodeIfPresent(Bool.self, forKey: .blockTop) ?? false
-        blockBottom = try container.decodeIfPresent(Bool.self, forKey: .blockBottom) ?? false
-        blockColorful = try container.decodeIfPresent(Bool.self, forKey: .blockColorful) ?? false
-        allowOverlapWhenMassive = try container.decodeIfPresent(Bool.self, forKey: .allowOverlapWhenMassive) ?? false
-        forceAllScroll = try container.decodeIfPresent(Bool.self, forKey: .forceAllScroll) ?? false
-        topRegionRatio = try container.decodeIfPresent(Double.self, forKey: .topRegionRatio) ?? 1.0
-        bottomRegionRatio = try container.decodeIfPresent(Double.self, forKey: .bottomRegionRatio) ?? 1.0
-        opacity = try container.decodeIfPresent(Double.self, forKey: .opacity) ?? 1.0
-        fontWeightValue = try container.decodeIfPresent(Int.self, forKey: .fontWeightValue) ?? 6
-        strokeWidth = try container.decodeIfPresent(Double.self, forKey: .strokeWidth) ?? 0.8
-        fontScale = try container.decodeIfPresent(Double.self, forKey: .fontScale) ?? 1.0
-        fullscreenFontScale = try container.decodeIfPresent(Double.self, forKey: .fullscreenFontScale) ?? 1.2
-        scrollDuration = try container.decodeIfPresent(Double.self, forKey: .scrollDuration) ?? 7.0
-        staticDuration = try container.decodeIfPresent(Double.self, forKey: .staticDuration) ?? 4.0
-        lineHeightMultiplier = try container.decodeIfPresent(Double.self, forKey: .lineHeightMultiplier) ?? 1.6
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        isEnabled = try c.decodeIfPresent(Bool.self, forKey: .isEnabled) ?? true
+        blockLevel = try c.decodeIfPresent(Int.self, forKey: .blockLevel) ?? 0
+        blockScroll = try c.decodeIfPresent(Bool.self, forKey: .blockScroll) ?? false
+        blockTop = try c.decodeIfPresent(Bool.self, forKey: .blockTop) ?? false
+        blockBottom = try c.decodeIfPresent(Bool.self, forKey: .blockBottom) ?? false
+        blockColorful = try c.decodeIfPresent(Bool.self, forKey: .blockColorful) ?? false
+        allowOverlapWhenMassive = try c.decodeIfPresent(Bool.self, forKey: .allowOverlapWhenMassive) ?? false
+        forceAllScroll = try c.decodeIfPresent(Bool.self, forKey: .forceAllScroll) ?? false
+        topRegionRatio = try c.decodeIfPresent(Double.self, forKey: .topRegionRatio) ?? 1
+        bottomRegionRatio = try c.decodeIfPresent(Double.self, forKey: .bottomRegionRatio) ?? 1
+        opacity = try c.decodeIfPresent(Double.self, forKey: .opacity) ?? 1
+        fontWeightValue = try c.decodeIfPresent(Int.self, forKey: .fontWeightValue) ?? 6
+        strokeWidth = try c.decodeIfPresent(Double.self, forKey: .strokeWidth) ?? 0.8
+        fontScale = try c.decodeIfPresent(Double.self, forKey: .fontScale) ?? 1
+        fullscreenFontScale = try c.decodeIfPresent(Double.self, forKey: .fullscreenFontScale) ?? 1.2
+        scrollDuration = try c.decodeIfPresent(Double.self, forKey: .scrollDuration) ?? 7
+        staticDuration = try c.decodeIfPresent(Double.self, forKey: .staticDuration) ?? 4
+        lineHeightMultiplier = try c.decodeIfPresent(Double.self, forKey: .lineHeightMultiplier) ?? 1.6
     }
 }
 
 enum DanmakuConfigStore {
     private static let key = "pili.danmaku.config.v1"
-
     static func load() -> DanmakuEngineConfig {
-        guard
-            let data = UserDefaults.standard.data(forKey: key),
-            let decoded = try? JSONDecoder().decode(DanmakuEngineConfig.self, from: data)
-        else {
-            return DanmakuEngineConfig().clamped()
-        }
-        return decoded.clamped()
+        guard let data = UserDefaults.standard.data(forKey: key), let value = try? JSONDecoder().decode(DanmakuEngineConfig.self, from: data) else { return DanmakuEngineConfig().clamped() }
+        return value.clamped()
     }
-
     static func save(_ config: DanmakuEngineConfig) {
-        let clamped = config.clamped()
-        guard let data = try? JSONEncoder().encode(clamped) else { return }
+        guard let data = try? JSONEncoder().encode(config.clamped()) else { return }
         UserDefaults.standard.set(data, forKey: key)
     }
 }
 
-enum DanmakuRenderKind: Sendable {
-    case scroll
-    case top
-    case bottom
-}
+private enum DanmakuRenderKind { case scroll, top, bottom }
 
-struct DanmakuPreparedItem: Identifiable {
+private struct DanmakuPreparedItem {
     let id: Int64
     let appearTime: Double
     let kind: DanmakuRenderKind
     let text: String
-    let color: Color
+    let color: UIColor
     let duration: Double
     let width: CGFloat
     let fontSize: CGFloat
-    let zSeed: Int
 }
 
-struct DanmakuActiveItem: Identifiable {
-    let id: Int64
-    let kind: DanmakuRenderKind
-    let text: String
-    let color: Color
-    let appearTime: Double
-    let duration: Double
-    let width: CGFloat
-    let fontSize: CGFloat
-    let line: Int
+private struct DanmakuActiveItem {
+    let item: DanmakuPreparedItem
     let topY: CGFloat
     let lineHeight: CGFloat
-    let zIndexValue: Double
 }
 
+private struct DanmakuWindowStamp: Equatable {
+    let count: Int
+    let firstID: Int64
+    let firstProgress: Int64
+    let lastID: Int64
+    let lastProgress: Int64
+
+    init(_ elements: [Bilibili_Community_Service_Dm_V1_DanmakuElem]) {
+        count = elements.count
+        firstID = elements.first?.id ?? 0
+        firstProgress = Int64(elements.first?.progress ?? 0)
+        lastID = elements.last?.id ?? 0
+        lastProgress = Int64(elements.last?.progress ?? 0)
+    }
+}
+
+/// A bounded scheduler. Window replacement is incremental; config/layout/seek rebuild explicitly.
 @MainActor
-final class DanmakuEngine: ObservableObject {
-    @Published private(set) var activeItems: [DanmakuActiveItem] = []
-
+private final class DanmakuEngine {
     private var config: DanmakuEngineConfig
-    private var items: [DanmakuPreparedItem] = []
+    private var itemsByID: [Int64: DanmakuPreparedItem] = [:]
+    private var ordered: [DanmakuPreparedItem] = []
+    private(set) var activeItems: [DanmakuActiveItem] = []
+    private var attemptedIDs: Set<Int64> = []
     private var cursor = 0
-    private var topLaneNextFree: [Double] = []
-    private var bottomLaneNextFree: [Double] = []
-    private var scrollLaneNextFree: [Double] = []
-    private var containerWidth: CGFloat = 0
-    private var containerHeight: CGFloat = 0
+    private var lastTick = 0.0
+    private var width: CGFloat = 0
+    private var height: CGFloat = 0
     private var lineHeight: CGFloat = 28
-    private var maxPreparedFontSize: CGFloat = 18
-    private var topLaneCount = 0
-    private var bottomLaneCount = 0
-    private var scrollLaneCount = 0
+    private var topFree: [Double] = []
+    private var bottomFree: [Double] = []
+    private var scrollFree: [Double] = []
 
-    init(config: DanmakuEngineConfig = DanmakuEngineConfig()) {
-        self.config = config.clamped()
-    }
+    init(config: DanmakuEngineConfig) { self.config = config.clamped() }
 
-    func updateConfig(_ config: DanmakuEngineConfig) {
-        self.config = config.clamped()
-    }
+    func setConfig(_ value: DanmakuEngineConfig) { config = value.clamped() }
 
-    func load(elements: [Bilibili_Community_Service_Dm_V1_DanmakuElem], config: DanmakuEngineConfig? = nil) {
-        if let config {
-            self.config = config.clamped()
-        }
-        items = prepareItems(from: elements)
-        maxPreparedFontSize = items.map(\.fontSize).max() ?? 18
-        cursor = 0
-        activeItems = []
-        topLaneNextFree = []
-        bottomLaneNextFree = []
-        scrollLaneNextFree = []
-    }
-
-    func reset() {
-        cursor = 0
-        activeItems = []
-        topLaneNextFree = []
-        bottomLaneNextFree = []
-        scrollLaneNextFree = []
-    }
-
-    func updateLayout(width: CGFloat, height: CGFloat, isFullscreen: Bool = false) {
-        guard width > 0, height > 0 else { return }
-        containerWidth = width
-        containerHeight = height
-
+    func updateLayout(size: CGSize, isFullscreen: Bool) {
+        guard size.width > 0, size.height > 0 else { return }
+        let largest = ordered.map(\.fontSize).max() ?? 18
         let fullscreenRatio = config.fullscreenFontScale / max(config.fontScale, 0.01)
-        let effectiveFontSize = isFullscreen ? (maxPreparedFontSize * CGFloat(fullscreenRatio)) : maxPreparedFontSize
-        lineHeight = max(12, effectiveFontSize * CGFloat(config.lineHeightMultiplier))
-
-        topLaneCount = max(1, Int((height * CGFloat(config.topRegionRatio)) / lineHeight))
-        bottomLaneCount = max(1, Int((height * CGFloat(config.bottomRegionRatio)) / lineHeight))
-        scrollLaneCount = max(1, Int((height * CGFloat(config.topRegionRatio)) / lineHeight))
-
-        ensureLaneStorage()
+        let nextLineHeight = max(12, (isFullscreen ? largest * fullscreenRatio : largest) * config.lineHeightMultiplier)
+        let nextTopCount = laneCount(height: size.height, lineHeight: nextLineHeight, ratio: config.topRegionRatio)
+        let nextBottomCount = laneCount(height: size.height, lineHeight: nextLineHeight, ratio: config.bottomRegionRatio)
+        guard width != size.width || height != size.height || lineHeight != nextLineHeight || topFree.count != nextTopCount || bottomFree.count != nextBottomCount else { return }
+        width = size.width; height = size.height; lineHeight = nextLineHeight
+        topFree = Array(repeating: 0, count: nextTopCount)
+        bottomFree = Array(repeating: 0, count: nextBottomCount)
+        scrollFree = Array(repeating: 0, count: nextTopCount)
     }
 
-    func tick(currentTime: Double) {
-        if containerWidth <= 0 || containerHeight <= 0 { return }
+    func installWindow(_ elements: [Bilibili_Community_Service_Dm_V1_DanmakuElem], at currentTime: Double) {
+        let prepared = prepare(elements)
+        let nextByID = Dictionary(prepared.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
+        let windowChanged = Set(itemsByID.keys) != Set(nextByID.keys)
+        let newItems = nextByID.values.filter { itemsByID[$0.id] == nil }
+        itemsByID = nextByID
+        ordered = nextByID.values.sorted { lhs, rhs in
+            lhs.appearTime == rhs.appearTime ? lhs.id < rhs.id : lhs.appearTime < rhs.appearTime
+        }
 
-        activeItems.removeAll { currentTime >= $0.appearTime + $0.duration }
-
-        while cursor < items.count {
-            let item = items[cursor]
-            if item.appearTime > currentTime { break }
-            tryActivate(item: item, currentTime: currentTime)
-            cursor += 1
+        // A late protobuf response may contain items already on screen. Admit only live,
+        // fully filtered items without resetting existing lanes or active labels.
+        for item in newItems.sorted(by: { lhs, rhs in
+            lhs.appearTime == rhs.appearTime ? lhs.id < rhs.id : lhs.appearTime < rhs.appearTime
+        })
+        where item.appearTime <= currentTime && currentTime < item.appearTime + item.duration {
+            activate(item, at: currentTime)
+            attemptedIDs.insert(item.id)
+        }
+        // updateUIView can run on every player-time observation. Advancing the
+        // cursor here would skip items before CADisplayLink gets to activate them.
+        // Rebase it only when a protobuf window actually changes.
+        if windowChanged {
+            cursor = ordered.partitioningIndex { $0.appearTime > lastTick }
         }
     }
 
-    func seek(to time: Double) {
-        let target = max(0, time)
-        activeItems = []
-        topLaneNextFree = Array(repeating: 0, count: topLaneCount)
-        bottomLaneNextFree = Array(repeating: 0, count: bottomLaneCount)
-        scrollLaneNextFree = Array(repeating: 0, count: scrollLaneCount)
-        cursor = items.partitioningIndex { $0.appearTime >= target }
-        tick(currentTime: target)
+    func rebuild(at time: Double) {
+        activeItems.removeAll(); attemptedIDs.removeAll()
+        topFree = Array(repeating: 0, count: topFree.count)
+        bottomFree = Array(repeating: 0, count: bottomFree.count)
+        scrollFree = Array(repeating: 0, count: scrollFree.count)
+        let start = max(0, time - max(config.scrollDuration, config.staticDuration))
+        for item in ordered where item.appearTime >= start && item.appearTime <= time {
+            attemptedIDs.insert(item.id)
+            // Replay the whole visible-duration horizon so lane occupancy stays
+            // consistent even when an earlier static item has just expired.
+            activate(item, at: time)
+        }
+        activeItems.removeAll { time >= $0.item.appearTime + $0.item.duration }
+        lastTick = time
+        cursor = ordered.partitioningIndex { $0.appearTime > time }
     }
 
-    private func ensureLaneStorage() {
-        if topLaneNextFree.count != topLaneCount {
-            topLaneNextFree = Array(repeating: 0, count: topLaneCount)
+    func tick(at time: Double) {
+        guard width > 0, height > 0 else { return }
+        activeItems.removeAll { time >= $0.item.appearTime + $0.item.duration }
+        while cursor < ordered.count, ordered[cursor].appearTime <= time {
+            let item = ordered[cursor]; cursor += 1
+            guard !attemptedIDs.contains(item.id) else { continue }
+            attemptedIDs.insert(item.id)
+            guard time < item.appearTime + item.duration else { continue }
+            activate(item, at: time)
         }
-        if bottomLaneNextFree.count != bottomLaneCount {
-            bottomLaneNextFree = Array(repeating: 0, count: bottomLaneCount)
-        }
-        if scrollLaneNextFree.count != scrollLaneCount {
-            scrollLaneNextFree = Array(repeating: 0, count: scrollLaneCount)
-        }
+        lastTick = time
     }
 
-    private func tryActivate(item: DanmakuPreparedItem, currentTime: Double) {
-        switch item.kind {
-        case .scroll:
-            guard let lane = pickLane(nextFree: scrollLaneNextFree, at: item.appearTime, allowOverlap: config.allowOverlapWhenMassive) else {
-                return
+    private func laneCount(height: CGFloat, lineHeight: CGFloat, ratio: Double) -> Int {
+        max(1, Int(height * ratio / max(lineHeight, 1)))
+    }
+
+    private func activate(_ item: DanmakuPreparedItem, at _: Double) {
+        let lanes: [Double]
+        switch item.kind { case .scroll: lanes = scrollFree; case .top: lanes = topFree; case .bottom: lanes = bottomFree }
+        guard !lanes.isEmpty else { return }
+        let lane: Int
+        if config.allowOverlapWhenMassive { lane = Int.random(in: 0 ..< lanes.count) }
+        else if let available = lanes.firstIndex(where: { $0 <= item.appearTime }) { lane = available }
+        else { return }
+        if !config.allowOverlapWhenMassive {
+            switch item.kind {
+            case .scroll: scrollFree[lane] = item.appearTime + item.duration * min(max(item.width / max(width + item.width, 1), 0), 1)
+            case .top: topFree[lane] = item.appearTime + item.duration
+            case .bottom: bottomFree[lane] = item.appearTime + item.duration
             }
-            if !config.allowOverlapWhenMassive {
-                scrollLaneNextFree[lane] = item.appearTime + scrollLaneCooldown(item: item)
-            }
-            let y = CGFloat(lane) * lineHeight
-            activeItems.append(
-                DanmakuActiveItem(
-                    id: item.id,
-                    kind: .scroll,
-                    text: item.text,
-                    color: item.color,
-                    appearTime: item.appearTime,
-                    duration: item.duration,
-                    width: item.width,
-                    fontSize: item.fontSize,
-                    line: lane,
-                    topY: y,
-                    lineHeight: lineHeight,
-                    zIndexValue: Double(item.zSeed)
-                )
-            )
-        case .top:
-            guard let lane = pickLane(nextFree: topLaneNextFree, at: item.appearTime, allowOverlap: config.allowOverlapWhenMassive) else {
-                return
-            }
-            if !config.allowOverlapWhenMassive {
-                topLaneNextFree[lane] = item.appearTime + item.duration
-            }
-            let y = CGFloat(lane) * lineHeight
-            activeItems.append(
-                DanmakuActiveItem(
-                    id: item.id,
-                    kind: .top,
-                    text: item.text,
-                    color: item.color,
-                    appearTime: item.appearTime,
-                    duration: item.duration,
-                    width: item.width,
-                    fontSize: item.fontSize,
-                    line: lane,
-                    topY: y,
-                    lineHeight: lineHeight,
-                    zIndexValue: Double(item.zSeed)
-                )
-            )
-        case .bottom:
-            guard let lane = pickLane(nextFree: bottomLaneNextFree, at: item.appearTime, allowOverlap: config.allowOverlapWhenMassive) else {
-                return
-            }
-            if !config.allowOverlapWhenMassive {
-                bottomLaneNextFree[lane] = item.appearTime + item.duration
-            }
-            let y = containerHeight - (CGFloat(lane + 1) * lineHeight)
-            activeItems.append(
-                DanmakuActiveItem(
-                    id: item.id,
-                    kind: .bottom,
-                    text: item.text,
-                    color: item.color,
-                    appearTime: item.appearTime,
-                    duration: item.duration,
-                    width: item.width,
-                    fontSize: item.fontSize,
-                    line: lane,
-                    topY: y,
-                    lineHeight: lineHeight,
-                    zIndexValue: Double(item.zSeed)
-                )
-            )
         }
+        let y: CGFloat = item.kind == .bottom ? height - CGFloat(lane + 1) * lineHeight : CGFloat(lane) * lineHeight
+        activeItems.append(DanmakuActiveItem(item: item, topY: y, lineHeight: lineHeight))
     }
 
-    private func pickLane(nextFree: [Double], at time: Double, allowOverlap: Bool) -> Int? {
-        if allowOverlap { return nextFree.isEmpty ? nil : Int.random(in: 0 ..< nextFree.count) }
-        for (idx, freeAt) in nextFree.enumerated() where freeAt <= time {
-            return idx
-        }
-        return nil
-    }
-
-    private func scrollLaneCooldown(item: DanmakuPreparedItem) -> Double {
-        let totalDistance = max(containerWidth + item.width, 1)
-        let requiredProgress = min(max(item.width / totalDistance, 0), 1)
-        let cooldown = item.duration * requiredProgress
-        return max(0.05, cooldown)
-    }
-
-    private func prepareItems(from elements: [Bilibili_Community_Service_Dm_V1_DanmakuElem]) -> [DanmakuPreparedItem] {
-        var prepared: [DanmakuPreparedItem] = []
-        prepared.reserveCapacity(elements.count)
-
+    private func prepare(_ elements: [Bilibili_Community_Service_Dm_V1_DanmakuElem]) -> [DanmakuPreparedItem] {
         let c = config.clamped()
-        for (idx, elem) in elements.enumerated() {
-            guard !elem.content.isEmpty else { continue }
-            if elem.weight < Int32(c.blockLevel) { continue }
+        var ids = Set<Int64>(); var result: [DanmakuPreparedItem] = []
+        for element in elements where !element.content.isEmpty && ids.insert(element.id).inserted {
+            guard element.weight >= Int32(c.blockLevel) else { continue }
+            let kind = kind(for: Int(element.mode), forceScroll: c.forceAllScroll)
+            guard !(c.blockScroll && kind == .scroll), !(c.blockTop && kind == .top), !(c.blockBottom && kind == .bottom), !(c.blockColorful && element.color != 16_777_215) else { continue }
+            let fontSize = baseFontSize(Int(element.fontsize)) * c.fontScale
+            let font = UIFont.systemFont(ofSize: fontSize, weight: c.uiFontWeight)
+            let item = DanmakuPreparedItem(id: element.id, appearTime: max(0, Double(element.progress) / 1000), kind: kind, text: element.content, color: UIColor(rgb: Int(element.color)), duration: kind == .scroll ? c.scrollDuration : c.staticDuration, width: ceil((element.content as NSString).size(withAttributes: [.font: font]).width), fontSize: fontSize)
+            result.append(item)
+        }
+        return result
+    }
 
-            let kind = renderKind(for: Int(elem.mode), forceAllScroll: c.forceAllScroll)
-            if c.blockScroll && kind == .scroll { continue }
-            if c.blockTop && kind == .top { continue }
-            if c.blockBottom && kind == .bottom { continue }
-            if c.blockColorful && elem.color != 16777215 { continue }
+    private func kind(for mode: Int, forceScroll: Bool) -> DanmakuRenderKind { if forceScroll { return .scroll }; return mode == 4 ? .bottom : (mode == 5 ? .top : .scroll) }
+    private func baseFontSize(_ value: Int) -> CGFloat { value < 25 ? 12 : (value < 36 ? 17 : 24) }
+}
 
-            let appear = max(0, Double(elem.progress) / 1000.0)
-            let duration = (kind == .scroll) ? c.scrollDuration : c.staticDuration
-            let fontSize = baseFontSize(for: Int(elem.fontsize)) * c.fontScale
-            let width = textWidth(elem.content, fontSize: fontSize, weight: c.uiFontWeight)
-            let color = colorFromRGB888(Int(elem.color))
+/// Renders an exterior alpha-mask outline, rather than stroking every glyph path.
+private final class DanmakuOutlinedLabel: UILabel {
+    var outlineWidth: CGFloat = 0
+    var outlineColor: UIColor = .black
+    private static let outlineContext = CIContext(options: nil)
+    private var cachedOutline: UIImage?
 
-            prepared.append(
-                DanmakuPreparedItem(
-                    id: elem.id,
-                    appearTime: appear,
-                    kind: kind,
-                    text: elem.content,
-                    color: color,
-                    duration: duration,
-                    width: width,
-                    fontSize: CGFloat(fontSize),
-                    zSeed: idx
-                )
-            )
+    func invalidateOutlineCache() {
+        cachedOutline = nil
+    }
+
+    override func drawText(in rect: CGRect) {
+        guard outlineWidth > 0, let text = attributedText, rect.width > 0, rect.height > 0 else {
+            super.drawText(in: rect)
+            return
         }
 
-        prepared.sort { $0.appearTime < $1.appearTime }
-        return prepared
-    }
-
-    private func renderKind(for mode: Int, forceAllScroll: Bool) -> DanmakuRenderKind {
-        if forceAllScroll { return .scroll }
-        switch mode {
-        case 4: return .bottom
-        case 5: return .top
-        default: return .scroll
+        let canvas = CGRect(origin: .zero, size: bounds.size)
+        if let cachedOutline {
+            cachedOutline.draw(in: canvas)
+            super.drawText(in: rect)
+            return
         }
-    }
 
-    private func baseFontSize(for protoFontSize: Int) -> Double {
-        switch protoFontSize {
-        case ..<25:
-            return 12
-        case 25 ..< 36:
-            return 17
-        default:
-            return 24
+        let maskText = NSMutableAttributedString(attributedString: text)
+        maskText.addAttribute(.foregroundColor, value: UIColor.white, range: NSRange(location: 0, length: maskText.length))
+        // Use UILabel itself for the mask. NSAttributedString.draw(in:) bypasses
+        // UILabel's alignment and baseline layout, which‘ shifts centered text.
+        let mask = UIGraphicsImageRenderer(size: canvas.size).image { _ in
+            let maskLabel = UILabel(frame: canvas)
+            maskLabel.attributedText = maskText
+            maskLabel.textAlignment = textAlignment
+            maskLabel.numberOfLines = numberOfLines
+            maskLabel.lineBreakMode = lineBreakMode
+            maskLabel.backgroundColor = .clear
+            maskLabel.layer.render(in: UIGraphicsGetCurrentContext()!)
         }
-    }
+        guard let input = CIImage(image: mask),
+              let morphology = CIFilter(name: "CIMorphologyMaximum"),
+              let colorMatrix = CIFilter(name: "CIColorMatrix")
+        else {
+            super.drawText(in: rect)
+            return
+        }
 
-    private func textWidth(_ text: String, fontSize: Double, weight: UIFont.Weight) -> CGFloat {
-        let font = UIFont.systemFont(ofSize: fontSize, weight: weight)
-        let width = (text as NSString).size(withAttributes: [.font: font]).width
-        return ceil(width)
-    }
-
-    private func colorFromRGB888(_ rgb: Int) -> Color {
-        let r = Double((rgb >> 16) & 0xFF) / 255.0
-        let g = Double((rgb >> 8) & 0xFF) / 255.0
-        let b = Double(rgb & 0xFF) / 255.0
-        return Color(red: r, green: g, blue: b)
+        morphology.setValue(input, forKey: kCIInputImageKey)
+        morphology.setValue(outlineWidth * UIScreen.main.scale, forKey: kCIInputRadiusKey)
+        guard let expanded = morphology.outputImage?.cropped(to: input.extent) else {
+            super.drawText(in: rect)
+            return
+        }
+        colorMatrix.setValue(expanded, forKey: kCIInputImageKey)
+        colorMatrix.setValue(CIVector(x: 0, y: 0, z: 0, w: 0), forKey: "inputRVector")
+        colorMatrix.setValue(CIVector(x: 0, y: 0, z: 0, w: 0), forKey: "inputGVector")
+        colorMatrix.setValue(CIVector(x: 0, y: 0, z: 0, w: 0), forKey: "inputBVector")
+        colorMatrix.setValue(CIVector(x: 0, y: 0, z: 0, w: outlineColor.alphaComponent), forKey: "inputAVector")
+        colorMatrix.setValue(CIVector(x: outlineColor.redComponent, y: outlineColor.greenComponent, z: outlineColor.blueComponent, w: 0), forKey: "inputBiasVector")
+        if let image = colorMatrix.outputImage,
+           let cgImage = Self.outlineContext.createCGImage(image, from: image.extent)
+        {
+            let outline = UIImage(cgImage: cgImage, scale: mask.scale, orientation: .up)
+            cachedOutline = outline
+            outline.draw(in: canvas)
+        }
+        super.drawText(in: rect)
     }
 }
 
-struct DanmakuOverlayView: View {
-    let currentTime: Double
-    let isPlaying: Bool
+private extension UIColor {
+    var redComponent: CGFloat { var red: CGFloat = 0; getRed(&red, green: nil, blue: nil, alpha: nil); return red }
+    var greenComponent: CGFloat { var green: CGFloat = 0; getRed(nil, green: &green, blue: nil, alpha: nil); return green }
+    var blueComponent: CGFloat { var blue: CGFloat = 0; getRed(nil, green: nil, blue: &blue, alpha: nil); return blue }
+    var alphaComponent: CGFloat { var alpha: CGFloat = 0; getRed(nil, green: nil, blue: nil, alpha: &alpha); return alpha }
+}
+
+final class DanmakuUIKitOverlay: UIView {
+    private let engine: DanmakuEngine
+    private var displayLink: CADisplayLink?
+    private var timeProvider: (() -> Double)?
+    private var isPlayingProvider: (() -> Bool)?
+    private var rateProvider: (() -> Double)?
+    private var seekRevisionProvider: (() -> Int)?
+    private var isFullscreen = false
+    private var labels: [Int64: DanmakuOutlinedLabel] = [:]
+    private var reusePool: [DanmakuOutlinedLabel] = []
+    private var lastRate = 1.0
+    private var lastSeekRevision = 0
+    private var appliedConfig: DanmakuEngineConfig
+    private var lastLaidOutSize: CGSize = .zero
+    private var installedWindowStamp: DanmakuWindowStamp?
+
+    init(config: DanmakuEngineConfig) { appliedConfig = config.clamped(); engine = DanmakuEngine(config: config); super.init(frame: .zero); isUserInteractionEnabled = false; clipsToBounds = true }
+    required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
+    deinit { displayLink?.invalidate() }
+
+    func configure(player: MPVKitPlayer, elements: [Bilibili_Community_Service_Dm_V1_DanmakuElem], config: DanmakuEngineConfig, isFullscreen: Bool) {
+        timeProvider = { player.currentTime }; isPlayingProvider = { player.isPlaying }; rateProvider = { player.playbackRate }; seekRevisionProvider = { player.playbackSeekRevision }
+        let requiresRebuild = appliedConfig != config.clamped() || self.isFullscreen != isFullscreen
+        self.isFullscreen = isFullscreen
+        appliedConfig = config.clamped()
+        engine.setConfig(config)
+        let windowStamp = DanmakuWindowStamp(elements)
+        if windowStamp != installedWindowStamp || requiresRebuild {
+            engine.installWindow(elements, at: player.currentTime)
+            installedWindowStamp = windowStamp
+        }
+        engine.updateLayout(size: bounds.size, isFullscreen: isFullscreen)
+        if displayLink == nil || requiresRebuild {
+            rebuild(at: player.currentTime)
+            lastSeekRevision = player.playbackSeekRevision
+        } else {
+            syncLabels(at: player.currentTime, rate: player.playbackRate)
+        }
+        startDisplayLink()
+    }
+
+    override func layoutSubviews() {
+        super.layoutSubviews()
+        guard bounds.width > 0, bounds.height > 0, bounds.size != lastLaidOutSize, let time = timeProvider?() else { return }
+        lastLaidOutSize = bounds.size
+        engine.updateLayout(size: bounds.size, isFullscreen: isFullscreen)
+        rebuild(at: time)
+    }
+
+    private func startDisplayLink() { guard displayLink == nil else { return }; let link = CADisplayLink(target: self, selector: #selector(step)); link.add(to: .main, forMode: .common); displayLink = link }
+
+    @objc private func step(_ link: CADisplayLink) {
+        guard let time = timeProvider?(), let playing = isPlayingProvider?(), let rate = rateProvider?(), let seekRevision = seekRevisionProvider?() else { return }
+        // MPV reports time at a different cadence than CADisplayLink. Existing
+        // animations intentionally ignore that ordinary correction; a seek is the
+        // only clock event that reconstructs their screen position.
+        let didSeek = seekRevision != lastSeekRevision
+        if didSeek || abs(rate - lastRate) > 0.001 { rebuild(at: time) }
+        else if playing {
+            resumeAnimations()
+            engine.tick(at: time)
+            syncLabels(at: time, rate: rate)
+        }
+        if !playing { pauseAnimations() }
+        lastSeekRevision = seekRevision
+        lastRate = max(rate, 0.01)
+    }
+
+    private func rebuild(at time: Double) { engine.rebuild(at: time); recycleAllLabels(); syncLabels(at: time, rate: max(rateProvider?() ?? 1, 0.01)) }
+
+    private func syncLabels(at time: Double, rate: Double) {
+        let active = engine.activeItems
+        let ids = Set(active.map { $0.item.id })
+        let expiredLabels = labels.filter { !ids.contains($0.key) }
+        for (id, label) in expiredLabels {
+            label.layer.removeAllAnimations()
+            label.removeFromSuperview()
+            labels.removeValue(forKey: id)
+            reusePool.append(label)
+        }
+        for activeItem in active {
+            let item = activeItem.item
+            guard labels[item.id] == nil else { continue }
+            let label = dequeueLabel()
+            labels[item.id] = label
+            addSubview(label)
+            configure(label, for: item)
+            position(label, for: activeItem, at: time, rate: rate)
+        }
+    }
+
+    private func dequeueLabel() -> DanmakuOutlinedLabel { reusePool.popLast() ?? DanmakuOutlinedLabel() }
+    private func recycleAllLabels() { for label in labels.values { label.layer.removeAllAnimations(); label.removeFromSuperview(); reusePool.append(label) }; labels.removeAll() }
+    private func pauseAnimations() { for label in labels.values where label.layer.speed != 0 { let paused = label.layer.convertTime(CACurrentMediaTime(), from: nil); label.layer.speed = 0; label.layer.timeOffset = paused } }
+    private func resumeAnimations() {
+        for label in labels.values where label.layer.speed == 0 {
+            let paused = label.layer.timeOffset
+            label.layer.speed = 1
+            label.layer.timeOffset = 0
+            label.layer.beginTime = 0
+            label.layer.beginTime = label.layer.convertTime(CACurrentMediaTime(), from: nil) - paused
+        }
+    }
+
+    private func configure(_ label: DanmakuOutlinedLabel, for item: DanmakuPreparedItem) {
+        let config = appliedConfig
+        let font = UIFont.systemFont(ofSize: item.fontSize * (isFullscreen ? config.fullscreenFontScale / max(config.fontScale, 0.01) : 1), weight: config.uiFontWeight)
+        label.outlineWidth = config.strokeWidth
+        label.outlineColor = UIColor.black.withAlphaComponent(config.opacity)
+        label.attributedText = NSAttributedString(string: item.text, attributes: [.font: font, .foregroundColor: item.color.withAlphaComponent(config.opacity)])
+        label.invalidateOutlineCache()
+        label.textAlignment = .center; label.numberOfLines = 1
+        let textSize = label.attributedText?.size() ?? .zero
+        let padding = max(4, ceil(config.strokeWidth * 2))
+        label.bounds = CGRect(x: 0, y: 0, width: ceil(textSize.width) + padding * 2, height: max(ceil(textSize.height) + padding * 2, 1))
+    }
+
+    private func position(_ label: DanmakuOutlinedLabel, for active: DanmakuActiveItem, at time: Double, rate: Double) {
+        label.layer.removeAllAnimations(); label.layer.speed = 1; label.layer.timeOffset = 0
+        let item = active.item; let y = active.topY + active.lineHeight / 2
+        guard item.kind == .scroll else { label.center = CGPoint(x: bounds.midX, y: y); return }
+        let progress = min(max((time - item.appearTime) / item.duration, 0), 1)
+        let start = bounds.width - (bounds.width + label.bounds.width) * progress + label.bounds.width / 2
+        let end = -label.bounds.width / 2
+        label.center = CGPoint(x: end, y: y)
+        let animation = CABasicAnimation(keyPath: "position.x"); animation.fromValue = start; animation.toValue = end; animation.duration = max((1 - progress) * item.duration / rate, 0.001); animation.timingFunction = CAMediaTimingFunction(name: .linear)
+        label.layer.add(animation, forKey: "danmaku.scroll")
+    }
+}
+
+struct DanmakuOverlayView: UIViewRepresentable {
+    let player: MPVKitPlayer
     let elements: [Bilibili_Community_Service_Dm_V1_DanmakuElem]
     let config: DanmakuEngineConfig
+    let isFullscreen: Bool
 
-    @StateObject private var engine = DanmakuEngine()
-    @State private var lastTime: Double = 0
+    func makeUIView(context: Context) -> DanmakuUIKitOverlay { DanmakuUIKitOverlay(config: config) }
+    func updateUIView(_ uiView: DanmakuUIKitOverlay, context: Context) { uiView.isHidden = !config.isEnabled; guard config.isEnabled else { return }; uiView.configure(player: player, elements: elements, config: config, isFullscreen: isFullscreen) }
+}
 
-    var body: some View {
-        Group {
-            if config.isEnabled {
-                GeometryReader { geo in
-                    TimelineView(.periodic(from: .now, by: 1.0 / 60.0)) { _ in
-                        ZStack(alignment: .topLeading) {
-                            ForEach(engine.activeItems) { item in
-                                danmakuText(item)
-                                    .position(x: xPosition(for: item, containerWidth: geo.size.width), y: item.topY + item.lineHeight * 0.5)
-                                    .zIndex(item.zIndexValue)
-                            }
-                        }
-                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-                        .clipped()
-                        .onAppear {
-                            engine.updateConfig(config)
-                            engine.load(elements: elements, config: config)
-                            engine.updateLayout(width: geo.size.width, height: geo.size.height)
-                        }
-                        .onChange(of: elements) { _, newValue in
-                            engine.load(elements: newValue, config: config)
-                            engine.updateLayout(width: geo.size.width, height: geo.size.height)
-                        }
-                        .onChange(of: config) { _, newValue in
-                            engine.updateConfig(newValue)
-                            engine.load(elements: elements, config: newValue)
-                            engine.updateLayout(width: geo.size.width, height: geo.size.height)
-                        }
-                        .onChange(of: geo.size) { _, newSize in
-                            engine.updateLayout(width: newSize.width, height: newSize.height)
-                        }
-                        .onChange(of: currentTime) { _, newValue in
-                            if newValue + 0.2 < lastTime {
-                                engine.seek(to: newValue)
-                            } else {
-                                engine.tick(currentTime: newValue)
-                            }
-                            lastTime = newValue
-                        }
-                    }
-                }
-            } else {
-                Color.clear
-            }
-        }
-        .allowsHitTesting(false)
-    }
-
-    private func xPosition(for item: DanmakuActiveItem, containerWidth: CGFloat) -> CGFloat {
-        switch item.kind {
-        case .scroll:
-            let progress = min(max((currentTime - item.appearTime) / item.duration, 0), 1)
-            let track = containerWidth + item.width
-            let leftX = containerWidth - (track * progress)
-            return leftX + item.width * 0.5
-        case .top, .bottom:
-            return containerWidth * 0.5
-        }
-    }
-
-    private func danmakuText(_ item: DanmakuActiveItem) -> some View {
-        ZStack {
-            if config.strokeWidth > 0 {
-                let s = config.strokeWidth
-                let diagonal = s * 0.70710678
-                let outlineOffsets: [(Double, Double)] = [
-                    (s, 0), (-s, 0), (0, s), (0, -s),
-                    (diagonal, diagonal), (-diagonal, diagonal),
-                    (diagonal, -diagonal), (-diagonal, -diagonal)
-                ]
-
-                ForEach(0 ..< outlineOffsets.count, id: \.self) { idx in
-                    Text(item.text)
-                        .font(
-                            .system(
-                                size: item.fontSize,
-                                weight: Font.Weight(config.uiFontWeight),
-                                design: .default
-                            )
-                        )
-                        .lineLimit(1)
-                        .foregroundStyle(.black.opacity(config.opacity))
-                        .offset(x: outlineOffsets[idx].0, y: outlineOffsets[idx].1)
-                }
-            }
-
-            Text(item.text)
-                .font(
-                    .system(
-                        size: item.fontSize,
-                        weight: Font.Weight(config.uiFontWeight),
-                        design: .default
-                    )
-                )
-                .lineLimit(1)
-                .foregroundStyle(item.color.opacity(config.opacity))
-        }
-    }
+private extension UIColor {
+    convenience init(rgb: Int) { self.init(red: CGFloat((rgb >> 16) & 255) / 255, green: CGFloat((rgb >> 8) & 255) / 255, blue: CGFloat(rgb & 255) / 255, alpha: 1) }
 }
 
 private extension Array {
-    func partitioningIndex(where predicate: (Element) -> Bool) -> Int {
-        var low = 0
-        var high = count
-        while low < high {
-            let mid = (low + high) / 2
-            if predicate(self[mid]) {
-                high = mid
-            } else {
-                low = mid + 1
-            }
-        }
-        return low
-    }
-}
-
-private extension Font.Weight {
-    init(_ uiWeight: UIFont.Weight) {
-        switch uiWeight {
-        case .ultraLight: self = .ultraLight
-        case .thin: self = .thin
-        case .light: self = .light
-        case .regular: self = .regular
-        case .medium: self = .medium
-        case .semibold: self = .semibold
-        case .bold: self = .bold
-        case .heavy: self = .heavy
-        default: self = .black
-        }
-    }
+    func partitioningIndex(where predicate: (Element) -> Bool) -> Int { var low = 0; var high = count; while low < high { let mid = (low + high) / 2; if predicate(self[mid]) { high = mid } else { low = mid + 1 } }; return low }
 }

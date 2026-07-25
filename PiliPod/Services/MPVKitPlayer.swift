@@ -105,6 +105,8 @@ class MPVKitPlayer: NSObject {
     private let playbackSettings: AudioVideoSettings
 
     private(set) var isPlaying = false
+    private(set) var playbackRate: Double = 1.0
+    private(set) var playbackSeekRevision = 0
     private(set) var currentTime: TimeInterval = 0
     private(set) var duration: TimeInterval = 0
     private(set) var bufferedUntil: TimeInterval = 0
@@ -198,7 +200,9 @@ class MPVKitPlayer: NSObject {
     }
 
     func setPlaybackRate(_ rate: Double) {
-        controller?.setPlaybackRate(rate)
+        let normalizedRate = max(rate, 0.1)
+        playbackRate = normalizedRate
+        controller?.setPlaybackRate(normalizedRate)
     }
 
     func stop() {
@@ -213,6 +217,7 @@ class MPVKitPlayer: NSObject {
     }
 
     func seek(to time: TimeInterval) {
+        playbackSeekRevision &+= 1
         if duration > 0 {
             currentTime = min(max(time, 0), duration)
         } else {

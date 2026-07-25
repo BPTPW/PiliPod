@@ -51,6 +51,8 @@ class VideoDetailViewModel {
 
     private var loadedDanmakuSegments: Set<Int> = []
     private var loadingDanmakuSegments: Set<Int> = []
+    private var danmakuSegments: [Int: [Bilibili_Community_Service_Dm_V1_DanmakuElem]] = [:]
+    private var danmakuRenderCenter = 1
     private var danmakuCID: Int = 0
     private var skipSegmentsCID: Int = 0
     private var videoShotCID: Int = 0
@@ -128,6 +130,8 @@ class VideoDetailViewModel {
         skipSegmentsError = nil
         loadedDanmakuSegments = []
         loadingDanmakuSegments = []
+        danmakuSegments = [:]
+        danmakuRenderCenter = 1
         danmakuCID = 0
         skipSegmentsCID = 0
         videoShotCID = 0
@@ -577,6 +581,8 @@ class VideoDetailViewModel {
             danmakuElements = []
             loadedDanmakuSegments = []
             loadingDanmakuSegments = []
+            danmakuSegments = [:]
+            danmakuRenderCenter = 1
             danmakuSegmentIndex = 1
             danmakuCID = 0
             skipSegments = []
@@ -725,6 +731,8 @@ class VideoDetailViewModel {
             danmakuCID = targetCid
             loadedDanmakuSegments = []
             loadingDanmakuSegments = []
+            danmakuSegments = [:]
+            danmakuRenderCenter = 1
             danmakuElements = []
             danmakuSegmentIndex = 1
         }
@@ -748,7 +756,7 @@ class VideoDetailViewModel {
             }
             loadedDanmakuSegments.insert(segmentIndex)
             loadingDanmakuSegments.remove(segmentIndex)
-            mergeDanmakuElements(reply.elems)
+            mergeDanmakuElements(reply.elems, for: segmentIndex)
         } catch {
             loadingDanmakuSegments.remove(segmentIndex)
             danmakuError = error.localizedDescription
@@ -794,8 +802,15 @@ class VideoDetailViewModel {
         guard targetCid > 0 else { return }
 
         let currentSegment = max(1, Int(currentTime / 360.0) + 1)
+        danmakuRenderCenter = currentSegment
         await loadDanmakuSegment(cid: targetCid, segmentIndex: currentSegment)
         await loadDanmakuSegment(cid: targetCid, segmentIndex: currentSegment + 1)
+        // The previous segment is needed for a seek just after a 6-minute boundary:
+        // those scroll items can still be visible for up to the configured duration.
+        if currentSegment > 1 {
+            await loadDanmakuSegment(cid: targetCid, segmentIndex: currentSegment - 1)
+        }
+        updateDanmakuRenderWindow(around: currentSegment)
     }
 
     @MainActor
@@ -851,11 +866,24 @@ class VideoDetailViewModel {
     }
 
     @MainActor
-    private func mergeDanmakuElements(_ newItems: [Bilibili_Community_Service_Dm_V1_DanmakuElem]) {
-        guard !newItems.isEmpty else { return }
+    private func mergeDanmakuElements(
+        _ newItems: [Bilibili_Community_Service_Dm_V1_DanmakuElem],
+        for segmentIndex: Int
+    ) {
+        danmakuSegments[segmentIndex] = newItems
+        updateDanmakuRenderWindow(around: danmakuRenderCenter)
+    }
 
-        var merged = danmakuElements
-        merged.append(contentsOf: newItems)
+    /// Keeps only a small segment cache and exposes a bounded, stable-ID render window.
+    private func updateDanmakuRenderWindow(around currentSegment: Int) {
+        let window = Set(max(1, currentSegment - 1) ... currentSegment + 2)
+        danmakuSegments = danmakuSegments.filter { window.contains($0.key) }
+        loadedDanmakuSegments = loadedDanmakuSegments.filter(window.contains)
+
+        var merged: [Bilibili_Community_Service_Dm_V1_DanmakuElem] = []
+        for index in window.sorted() {
+            merged.append(contentsOf: danmakuSegments[index] ?? [])
+        }
         var seen: Set<Int64> = []
         danmakuElements = merged
             .filter { elem in

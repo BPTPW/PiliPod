@@ -183,10 +183,10 @@ struct VideoDetailPlayerSurfaceView: View {
 
     private var danmakuOverlay: some View {
         DanmakuOverlayView(
-            currentTime: player.currentTime,
-            isPlaying: player.isPlaying,
+            player: player,
             elements: danmakuElements,
-            config: danmakuOverlayConfig
+            config: danmakuOverlayConfig,
+            isFullscreen: isFullscreen
         )
     }
 
