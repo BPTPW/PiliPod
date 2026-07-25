@@ -8,6 +8,8 @@ struct CachedAsyncImage<Content: View>: View {
     private let content: (AsyncImagePhase) -> Content
 
     @State private var phase: AsyncImagePhase = .empty
+    @State private var showsLoadedImage = false
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     init(
         url: URL?,
@@ -18,16 +20,24 @@ struct CachedAsyncImage<Content: View>: View {
     }
 
     var body: some View {
-        content(phase)
-            .task(id: url) {
-                await load()
+        Group {
+            if showsLoadedImage {
+                content(phase)
+                    .transition(.opacity)
+            } else {
+                content(phase)
             }
+        }
+        .task(id: url) {
+            await load()
+        }
     }
 
     @MainActor
     private func load() async {
         guard let url else {
             phase = .empty
+            showsLoadedImage = false
             return
         }
 
@@ -36,10 +46,14 @@ struct CachedAsyncImage<Content: View>: View {
         }
 
         phase = .empty
+        showsLoadedImage = false
 
 #if canImport(UIKit)
         if let image = await SharedRemoteImageStore.shared.image(for: url) {
-            phase = .success(Image(uiImage: image))
+            withAnimation(reduceMotion ? nil : .easeOut(duration: 0.2)) {
+                phase = .success(Image(uiImage: image))
+                showsLoadedImage = true
+            }
         } else {
             phase = .failure(CachedAsyncImageError.loadFailed)
         }
