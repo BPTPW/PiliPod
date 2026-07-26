@@ -33,6 +33,7 @@ final class VideoPlaybackAudioSessionManager: ObservableObject {
     private var currentArtworkImage: UIImage?
     private var lastPlaybackInfo: PlaybackInfo?
     private var didRegisterCommands = false
+    private var isAudioSessionActive = false
     private var silenceNode: AVAudioSourceNode?
     private var notificationObservers: [NSObjectProtocol] = []
 
@@ -65,6 +66,7 @@ final class VideoPlaybackAudioSessionManager: ObservableObject {
 
         do {
             try AVAudioSession.sharedInstance().setActive(false, options: [.notifyOthersOnDeactivation])
+            isAudioSessionActive = false
         } catch {
             print("[AudioSession] Failed to deactivate audio session: \(error.localizedDescription)")
         }
@@ -230,13 +232,15 @@ final class VideoPlaybackAudioSessionManager: ObservableObject {
         }
 
         MPNowPlayingInfoCenter.default().nowPlayingInfo = nowPlayingInfo
-        MPNowPlayingInfoCenter.default().playbackState = info.isPlaying ? .playing : .paused
     }
 
     private func ensurePlaybackSessionReady(reason: String) throws {
         let session = AVAudioSession.sharedInstance()
-        try session.setCategory(.playback, mode: .default)
-        try session.setActive(true)
+        if !isAudioSessionActive {
+            try session.setCategory(.playback, mode: .moviePlayback)
+            try session.setActive(true)
+            isAudioSessionActive = true
+        }
         try startSilentAudioEngineIfNeeded()
         UIApplication.shared.beginReceivingRemoteControlEvents()
     }
@@ -324,6 +328,11 @@ final class VideoPlaybackAudioSessionManager: ObservableObject {
 
         print("[AudioSession][Interruption] type=\(type.rawValue) lastPlaying=\(lastPlaybackInfo?.isPlaying.description ?? "nil")")
 
+        if type == .began {
+            isAudioSessionActive = false
+            return
+        }
+
         guard type == .ended, let playbackInfo = lastPlaybackInfo, playbackInfo.isPlaying else { return }
 
         do {
@@ -337,6 +346,7 @@ final class VideoPlaybackAudioSessionManager: ObservableObject {
     private func handleMediaServicesReset() {
 
         guard let playbackInfo = lastPlaybackInfo else { return }
+        isAudioSessionActive = false
 
         do {
             try ensurePlaybackSessionReady(reason: "mediaServicesReset")

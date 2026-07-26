@@ -34,15 +34,18 @@ final class AVPlayerSession: NSObject {
     private var generation = 0
     private weak var surface: UIView?
     private var layer: AVPlayerLayer?
+    private var playbackSettings: AudioVideoSettings
     private var wantsPlayback = false
+    private var pendingSeekTime: TimeInterval?
     private(set) var playbackRate = 1.0
     private(set) var snapshot = PlayerUIPlaybackSnapshot()
     private(set) var seekRevision = 0
     private(set) var errorMessage: String?
     var onSnapshot: ((PlayerUIPlaybackSnapshot) -> Void)?
 
-    init(headers: [String: String]) {
+    init(headers: [String: String], playbackSettings: AudioVideoSettings) {
         self.headers = headers
+        self.playbackSettings = playbackSettings.clamped()
         super.init()
         player.automaticallyWaitsToMinimizeStalling = true
     }
@@ -51,6 +54,7 @@ final class AVPlayerSession: NSObject {
         surface = view
         let layer = AVPlayerLayer(player: player)
         layer.videoGravity = .resizeAspect
+        applyDynamicRangePreference(to: layer)
         layer.frame = view.bounds
         view.layer.insertSublayer(layer, at: 0)
         self.layer?.removeFromSuperlayer()
@@ -58,6 +62,15 @@ final class AVPlayerSession: NSObject {
     }
 
     func layout(in bounds: CGRect) { layer?.frame = bounds }
+
+    func applyPlaybackSettings(_ settings: AudioVideoSettings) {
+        playbackSettings = settings.clamped()
+        applyDynamicRangePreference(to: layer)
+        if let item = player.currentItem {
+            applyBufferPreference(to: item)
+        }
+        publish()
+    }
 
     func play(stream: DashStream) {
         guard Self.supports(videoCodec: stream.videoCodec) else {
@@ -86,9 +99,7 @@ final class AVPlayerSession: NSObject {
                 self.bridge = bridge
                 let asset = AVURLAsset(url: bridge.masterPlaylistURL)
                 let item = AVPlayerItem(asset: asset)
-                item.preferredForwardBufferDuration = 8
                 self.install(item)
-                if self.wantsPlayback { self.player.playImmediately(atRate: Float(self.playbackRate)) }
             } catch is CancellationError {
             } catch {
                 guard requestGeneration == self.generation else { return }
@@ -104,8 +115,8 @@ final class AVPlayerSession: NSObject {
         wantsPlayback = true
         errorMessage = nil
         let asset = AVURLAsset(url: liveURL, options: ["AVURLAssetHTTPHeaderFieldsKey": headers])
-        install(AVPlayerItem(asset: asset))
-        player.playImmediately(atRate: Float(playbackRate))
+        let item = AVPlayerItem(asset: asset)
+        install(item)
     }
 
     func resume() { wantsPlayback = true; player.playImmediately(atRate: Float(playbackRate)); publish() }
@@ -114,8 +125,12 @@ final class AVPlayerSession: NSObject {
     func setRate(_ rate: Double) { playbackRate = max(rate, 0.1); if wantsPlayback { player.rate = Float(playbackRate) }; publish() }
     func seek(to time: TimeInterval) {
         seekRevision &+= 1
-        let target = CMTime(seconds: max(time, 0), preferredTimescale: 600)
-        player.seek(to: target, toleranceBefore: .zero, toleranceAfter: .zero)
+        let targetTime = max(time, 0)
+        guard player.currentItem?.status == .readyToPlay else {
+            pendingSeekTime = targetTime
+            return
+        }
+        performSeek(to: targetTime)
         publish()
     }
 
@@ -127,6 +142,9 @@ final class AVPlayerSession: NSObject {
                     guard let self, self.player.currentItem === item else { return }
                     if item.status == .failed {
                         self.fail(item.error ?? PlaybackError.preparationFailed)
+                    } else if item.status == .readyToPlay {
+                        self.applyBufferPreference(to: item)
+                        self.applyPendingSeekAndPlayback()
                     } else {
                         self.publish()
                     }
@@ -144,6 +162,27 @@ final class AVPlayerSession: NSObject {
 
     private func handleEnd() { wantsPlayback = false; publish() }
 
+    private func performSeek(to time: TimeInterval, completion: (() -> Void)? = nil) {
+        let target = CMTime(seconds: time, preferredTimescale: 600)
+        player.seek(to: target, toleranceBefore: .zero, toleranceAfter: .zero) { _ in
+            completion?()
+        }
+        publish()
+    }
+
+    private func applyPendingSeekAndPlayback() {
+        let startPlayback = { [weak self] in
+            guard let self, self.wantsPlayback else { return }
+            self.player.playImmediately(atRate: Float(self.playbackRate))
+        }
+        if let pendingSeekTime {
+            self.pendingSeekTime = nil
+            performSeek(to: pendingSeekTime, completion: startPlayback)
+        } else {
+            startPlayback()
+        }
+    }
+
     private func publish() {
         let item = player.currentItem
         let time = player.currentTime().seconds
@@ -152,6 +191,10 @@ final class AVPlayerSession: NSObject {
             let r = range.timeRangeValue
             return CMTimeRangeGetEnd(r).seconds
         }.max() ?? 0
+        var hdrDiagnostics = HDRPlaybackDiagnostics()
+        hdrDiagnostics.isEnabledInSettings = playbackSettings.highDynamicRangeEnabled
+        hdrDiagnostics.prefersEDROutput = playbackSettings.prefersEDROutput
+        hdrDiagnostics.requestsExtendedRange = layer?.wantsExtendedDynamicRangeContent ?? false
         snapshot = PlayerUIPlaybackSnapshot(
             currentTime: time.isFinite ? max(time, 0) : 0,
             duration: duration.isFinite ? max(duration, 0) : 0,
@@ -159,7 +202,7 @@ final class AVPlayerSession: NSObject {
             isPlaying: wantsPlayback && player.timeControlStatus != .paused,
             isBuffering: wantsPlayback && player.timeControlStatus == .waitingToPlayAtSpecifiedRate,
             loadingSpeedBytesPerSecond: 0,
-            hdrDiagnostics: HDRPlaybackDiagnostics()
+            hdrDiagnostics: hdrDiagnostics
         )
         onSnapshot?(snapshot)
     }
@@ -175,6 +218,39 @@ final class AVPlayerSession: NSObject {
     }
 
     private func fail(_ error: Error) { errorMessage = error.localizedDescription; wantsPlayback = false; tearDownItem(); publish() }
+
+    private func applyBufferPreference(to item: AVPlayerItem) {
+        let duration = item.duration.seconds
+        item.preferredForwardBufferDuration = preferredForwardBufferDuration(
+            for: playbackSettings.bufferSize,
+            mediaDuration: duration.isFinite && duration > 0 ? duration : nil
+        )
+    }
+
+    /// This is advisory: AVFoundation may shorten the buffer under memory pressure.
+    private func preferredForwardBufferDuration(
+        for option: VideoBufferSizeOption,
+        mediaDuration: TimeInterval?
+    ) -> TimeInterval {
+        switch option {
+        case .auto:
+            return 0
+        case .huge:
+            return mediaDuration ?? 120
+        case .mb1: return 2
+        case .mb2: return 5
+        case .mb4: return 10
+        case .mb8: return 20
+        case .mb16: return 30
+        case .mb32: return 60
+        case .mb64: return 120
+        }
+    }
+
+    private func applyDynamicRangePreference(to layer: AVPlayerLayer?) {
+        layer?.wantsExtendedDynamicRangeContent = playbackSettings.highDynamicRangeEnabled
+            && playbackSettings.prefersEDROutput
+    }
 
     private static func supports(videoCodec: String) -> Bool {
         let value = videoCodec.lowercased()

@@ -201,12 +201,17 @@ class VideoDetailViewModel {
                     let playerInfoData = playerInfoResponse.data
                     let lastPlayCID = playerInfoData?.lastPlayCid
                     let lastPlayTimeMilliseconds = playerInfoData?.lastPlayTime
-                    let resolvedInitialSeekTime: Double? =
-                        if let lastPlayTimeMilliseconds, lastPlayTimeMilliseconds > 0 {
-                            Double(lastPlayTimeMilliseconds) / 1000.0
-                        } else {
-                            nil
-                        }
+                    let resolvedInitialSeekTime: Double?
+                    if let lastPlayTimeMilliseconds, lastPlayTimeMilliseconds > 0 {
+                        let rawTime = Double(lastPlayTimeMilliseconds)
+                        // Bilibili returns seconds on some player endpoints and
+                        // milliseconds on others. Treat values beyond duration as ms.
+                        resolvedInitialSeekTime = rawTime <= Double(detail.duration + 1)
+                            ? rawTime
+                            : rawTime / 1000.0
+                    } else {
+                        resolvedInitialSeekTime = nil
+                    }
 
                     await MainActor.run {
                         self.playerInfo = playerInfoData

@@ -93,6 +93,20 @@ enum VideoBufferSizeOption: String, CaseIterable, Codable, Hashable {
         case .mb1: "1MiB"
         }
     }
+
+    var avPlayerTitle: String {
+        switch self {
+        case .auto: "自动"
+        case .mb1: "2s"
+        case .mb2: "5s"
+        case .mb4: "10s"
+        case .mb8: "20s"
+        case .mb16: "30s"
+        case .mb32: "60s"
+        case .mb64: "120s"
+        case .huge: "超大"
+        }
+    }
 }
 
 enum PreferredCodecOption: String, CaseIterable, Codable, Hashable {

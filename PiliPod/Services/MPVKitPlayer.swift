@@ -137,7 +137,10 @@ class MPVKitPlayer: NSObject {
         self.playbackSettings = AudioVideoSettingsStore.load()
         self.usesAVPlayer = playbackSettings.playerCore == .avPlayer
         if playbackSettings.playerCore == .avPlayer {
-            self.avPlayerSession = AVPlayerSession(headers: httpHeaders)
+            self.avPlayerSession = AVPlayerSession(
+                headers: httpHeaders,
+                playbackSettings: playbackSettings
+            )
         } else {
             self.avPlayerSession = nil
         }
