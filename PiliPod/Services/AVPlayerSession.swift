@@ -36,6 +36,10 @@ final class AVPlayerSession: NSObject, AVPictureInPictureControllerDelegate {
     private weak var surface: UIView?
     private var layer: AVPlayerLayer?
     private var pictureInPictureController: AVPictureInPictureController?
+    private var pictureInPicturePossibleObservation: NSKeyValueObservation?
+    private var pictureInPictureRetryWorkItem: DispatchWorkItem?
+    private var isPictureInPictureStartRequested = false
+    private var pictureInPictureStartAttempts = 0
     private var playbackSettings: AudioVideoSettings
     private var wantsPlayback = false
     private var pendingSeekTime: TimeInterval?
@@ -62,29 +66,22 @@ final class AVPlayerSession: NSObject, AVPictureInPictureControllerDelegate {
         view.layer.insertSublayer(layer, at: 0)
         self.layer?.removeFromSuperlayer()
         self.layer = layer
+        preparePictureInPictureController()
     }
 
     func layout(in bounds: CGRect) { layer?.frame = bounds }
 
     func startPictureInPicture() {
-        guard AVPictureInPictureController.isPictureInPictureSupported(),
-              let layer,
-              layer.player === player
-        else { return }
-
-        if pictureInPictureController?.playerLayer !== layer {
-            pictureInPictureController = AVPictureInPictureController(playerLayer: layer)
-            pictureInPictureController?.delegate = self
-        }
-
-        guard let pictureInPictureController,
-              !pictureInPictureController.isPictureInPictureActive,
-              pictureInPictureController.isPictureInPicturePossible
-        else { return }
-        pictureInPictureController.startPictureInPicture()
+        isPictureInPictureStartRequested = true
+        pictureInPictureStartAttempts = 0
+        preparePictureInPictureController()
+        attemptPictureInPictureStart()
     }
 
     func stopPictureInPicture() {
+        isPictureInPictureStartRequested = false
+        pictureInPictureRetryWorkItem?.cancel()
+        pictureInPictureRetryWorkItem = nil
         pictureInPictureController?.stopPictureInPicture()
     }
 
@@ -172,6 +169,7 @@ final class AVPlayerSession: NSObject, AVPictureInPictureControllerDelegate {
                         self.fail(item.error ?? PlaybackError.preparationFailed)
                     } else if item.status == .readyToPlay {
                         self.applyBufferPreference(to: item)
+                        self.preparePictureInPictureController()
                         self.applyPendingSeekAndPlayback()
                     } else {
                         self.publish()
@@ -246,6 +244,57 @@ final class AVPlayerSession: NSObject, AVPictureInPictureControllerDelegate {
         bridge?.stop(); bridge = nil
     }
 
+    private func preparePictureInPictureController() {
+        guard AVPictureInPictureController.isPictureInPictureSupported(),
+              let layer,
+              layer.player === player
+        else { return }
+
+        guard pictureInPictureController?.playerLayer !== layer else { return }
+        pictureInPicturePossibleObservation = nil
+        pictureInPictureController = AVPictureInPictureController(playerLayer: layer)
+        pictureInPictureController?.delegate = self
+        pictureInPicturePossibleObservation = pictureInPictureController?.observe(
+            \.isPictureInPicturePossible,
+            options: [.initial, .new]
+        ) { [weak self] _, _ in
+            DispatchQueue.main.async {
+                self?.attemptPictureInPictureStart()
+            }
+        }
+    }
+
+    private func attemptPictureInPictureStart() {
+        guard isPictureInPictureStartRequested,
+              let pictureInPictureController,
+              !pictureInPictureController.isPictureInPictureActive
+        else { return }
+
+        guard pictureInPictureController.isPictureInPicturePossible else {
+            schedulePictureInPictureRetry()
+            return
+        }
+
+        pictureInPictureRetryWorkItem?.cancel()
+        pictureInPictureRetryWorkItem = nil
+        pictureInPictureStartAttempts += 1
+        pictureInPictureController.startPictureInPicture()
+    }
+
+    private func schedulePictureInPictureRetry() {
+        guard pictureInPictureStartAttempts < 3,
+              pictureInPictureRetryWorkItem == nil
+        else { return }
+        let workItem = DispatchWorkItem { [weak self] in
+            guard let self else { return }
+            self.pictureInPictureRetryWorkItem = nil
+            self.pictureInPictureStartAttempts += 1
+            self.attemptPictureInPictureStart()
+        }
+        pictureInPictureRetryWorkItem = workItem
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.12, execute: workItem)
+    }
+
     private func fail(_ error: Error) { errorMessage = error.localizedDescription; wantsPlayback = false; tearDownItem(); publish() }
 
     private func applyBufferPreference(to item: AVPlayerItem) {
@@ -291,6 +340,11 @@ final class AVPlayerSession: NSObject, AVPictureInPictureControllerDelegate {
         _: AVPictureInPictureController,
         failedToStartPictureInPictureWithError error: Error
     ) {
+        if pictureInPictureStartAttempts < 3 {
+            schedulePictureInPictureRetry()
+            return
+        }
+        isPictureInPictureStartRequested = false
         errorMessage = "无法启动系统画中画：\(error.localizedDescription)"
         publish()
     }
@@ -304,7 +358,13 @@ final class AVPlayerSession: NSObject, AVPictureInPictureControllerDelegate {
         return value.contains("mp4a") || value.contains("aac") || value.contains("ec-3") || value.contains("ac-3")
     }
 
-    deinit { prepareTask?.cancel(); tearDownItem(); layer?.removeFromSuperlayer() }
+    deinit {
+        prepareTask?.cancel()
+        pictureInPicturePossibleObservation = nil
+        pictureInPictureRetryWorkItem?.cancel()
+        tearDownItem()
+        layer?.removeFromSuperlayer()
+    }
 }
 
 private struct DASHByteRange { let start: Int64; let end: Int64; var header: String { "bytes=\(start)-\(end)" } }
