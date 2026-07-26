@@ -431,6 +431,8 @@ class BiliAPI {
             rooms: rooms
         )
     }
+    
+    // MARK: - 获取直播分区
 
     func fetchLiveAreaFeed(areaID: Int, parentAreaID: Int) async throws -> [LiveCardModel] {
         let urlString = "https://api.live.bilibili.com/xlive/app-interface/v2/second/getList"
@@ -479,6 +481,8 @@ class BiliAPI {
 
         return (decoded.data?.list ?? []).map(mapLiveAreaRoom)
     }
+    
+    // MARK: - 获取直播数据
 
     func fetchLivePlaybackInfo(roomID: String, qn: Int = 10000) async throws -> LivePlaybackInfo {
         var components = URLComponents(
