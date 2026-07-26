@@ -4,10 +4,11 @@
 //
 
 import AVFoundation
+import AVKit
 import Network
 import UIKit
 
-final class AVPlayerSession: NSObject {
+final class AVPlayerSession: NSObject, AVPictureInPictureControllerDelegate {
     enum PlaybackError: LocalizedError {
         case unsupportedVideoCodec(String)
         case unsupportedAudioCodec(String)
@@ -34,6 +35,7 @@ final class AVPlayerSession: NSObject {
     private var generation = 0
     private weak var surface: UIView?
     private var layer: AVPlayerLayer?
+    private var pictureInPictureController: AVPictureInPictureController?
     private var playbackSettings: AudioVideoSettings
     private var wantsPlayback = false
     private var pendingSeekTime: TimeInterval?
@@ -63,6 +65,28 @@ final class AVPlayerSession: NSObject {
     }
 
     func layout(in bounds: CGRect) { layer?.frame = bounds }
+
+    func startPictureInPicture() {
+        guard AVPictureInPictureController.isPictureInPictureSupported(),
+              let layer,
+              layer.player === player
+        else { return }
+
+        if pictureInPictureController?.playerLayer !== layer {
+            pictureInPictureController = AVPictureInPictureController(playerLayer: layer)
+            pictureInPictureController?.delegate = self
+        }
+
+        guard let pictureInPictureController,
+              !pictureInPictureController.isPictureInPictureActive,
+              pictureInPictureController.isPictureInPicturePossible
+        else { return }
+        pictureInPictureController.startPictureInPicture()
+    }
+
+    func stopPictureInPicture() {
+        pictureInPictureController?.stopPictureInPicture()
+    }
 
     func applyPlaybackSettings(_ settings: AudioVideoSettings) {
         playbackSettings = settings.clamped()
@@ -212,6 +236,7 @@ final class AVPlayerSession: NSObject {
     }
 
     private func tearDownItem() {
+        stopPictureInPicture()
         if let timeObserver { player.removeTimeObserver(timeObserver) }
         timeObserver = nil
         observations.removeAll()
@@ -260,6 +285,14 @@ final class AVPlayerSession: NSObject {
         player.audiovisualBackgroundPlaybackPolicy = allowsPlayback
             ? .continuesIfPossible
             : .automatic
+    }
+
+    func pictureInPictureController(
+        _: AVPictureInPictureController,
+        failedToStartPictureInPictureWithError error: Error
+    ) {
+        errorMessage = "无法启动系统画中画：\(error.localizedDescription)"
+        publish()
     }
 
     private static func supports(videoCodec: String) -> Bool {

@@ -687,6 +687,11 @@ struct VideoDetailPage: View {
                 syncSystemMediaControl(reason: "artist-changed")
             }
             .onReceive(NotificationCenter.default.publisher(
+                for: UIApplication.willResignActiveNotification
+            )) { _ in
+                startPictureInPictureForBackgroundIfNeeded()
+            }
+            .onReceive(NotificationCenter.default.publisher(
                 for: UIApplication.didEnterBackgroundNotification
             )) { _ in
                 handleDidEnterBackground()
@@ -1464,6 +1469,7 @@ struct VideoDetailPage: View {
     private func handleDidEnterBackground() {
         let playbackSettings = AudioVideoSettingsStore.load()
         guard !playbackSettings.allowsBackgroundPlayback,
+              !playbackSettings.allowsVideoPictureInPicture,
               let player = viewModel.player
         else { return }
 
@@ -1476,6 +1482,15 @@ struct VideoDetailPage: View {
         }
 
         pausePlayback(player: player)
+    }
+
+    private func startPictureInPictureForBackgroundIfNeeded() {
+        let playbackSettings = AudioVideoSettingsStore.load()
+        guard playbackSettings.allowsVideoPictureInPicture,
+              let player = viewModel.player,
+              player.isPlaying
+        else { return }
+        player.startPictureInPicture()
     }
 
     private func handleDidBecomeActive() {

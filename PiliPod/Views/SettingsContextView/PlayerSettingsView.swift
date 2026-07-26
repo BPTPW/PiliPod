@@ -19,6 +19,7 @@ struct PlayerSettingsContainerView: View {
 private struct PlayerSettingsView: View {
     @Binding var settings: AudioVideoSettings
     private let defaultSettings = AudioVideoSettings()
+    private var supportsPictureInPicture: Bool { settings.playerCore == .avPlayer }
 
     var body: some View {
         Form {
@@ -37,6 +38,20 @@ private struct PlayerSettingsView: View {
             } header: {
                 Text("后台播放")
             }
+            Section {
+                Toggle("直播小窗播放", isOn: $settings.allowsLivePictureInPicture)
+                    .tint(Color("BiliPink"))
+                    .disabled(!supportsPictureInPicture)
+                Toggle("视频小窗播放", isOn: $settings.allowsVideoPictureInPicture)
+                    .tint(Color("BiliPink"))
+                    .disabled(!supportsPictureInPicture)
+            } header: {
+                Text("画中画")
+            } footer: {
+                if !supportsPictureInPicture {
+                    Text("画中画仅支持 AVPlayer 内核。")
+                }
+            }
         }
         .navigationTitle("播放器")
         .navigationBarTitleDisplayMode(.inline)
@@ -46,6 +61,8 @@ private struct PlayerSettingsView: View {
                     settings.playerCore = defaultSettings.playerCore
                     settings.allowsBackgroundPlayback = defaultSettings.allowsBackgroundPlayback
                     settings.allowsLiveBackgroundPlayback = defaultSettings.allowsLiveBackgroundPlayback
+                    settings.allowsVideoPictureInPicture = defaultSettings.allowsVideoPictureInPicture
+                    settings.allowsLivePictureInPicture = defaultSettings.allowsLivePictureInPicture
                 }
             }
         }

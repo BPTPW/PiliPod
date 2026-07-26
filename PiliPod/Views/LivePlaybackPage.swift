@@ -113,6 +113,11 @@ struct LivePlaybackPage: View {
         }
 #if canImport(UIKit)
         .onReceive(NotificationCenter.default.publisher(
+            for: UIApplication.willResignActiveNotification
+        )) { _ in
+            startPictureInPictureForBackgroundIfNeeded()
+        }
+        .onReceive(NotificationCenter.default.publisher(
             for: UIApplication.didEnterBackgroundNotification
         )) { _ in
             handleDidEnterBackground()
@@ -593,7 +598,9 @@ struct LivePlaybackPage: View {
 
     private func handleDidEnterBackground() {
         let playbackSettings = AudioVideoSettingsStore.load()
-        guard !playbackSettings.allowsLiveBackgroundPlayback else { return }
+        guard !playbackSettings.allowsLiveBackgroundPlayback,
+              !playbackSettings.allowsLivePictureInPicture
+        else { return }
 
         shouldResumeAfterBackgroundPause = player.isPlaying
         guard shouldResumeAfterBackgroundPause else {
@@ -602,6 +609,12 @@ struct LivePlaybackPage: View {
         }
 
         pausePlayback()
+    }
+
+    private func startPictureInPictureForBackgroundIfNeeded() {
+        let playbackSettings = AudioVideoSettingsStore.load()
+        guard playbackSettings.allowsLivePictureInPicture, player.isPlaying else { return }
+        player.startPictureInPicture()
     }
 
     private func handleDidBecomeActive() {

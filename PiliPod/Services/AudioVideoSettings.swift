@@ -180,6 +180,8 @@ struct AudioVideoSettings: Codable, Equatable {
     var hardwareDecodingEnabled = true
     var allowsBackgroundPlayback = false
     var allowsLiveBackgroundPlayback = false
+    var allowsVideoPictureInPicture = false
+    var allowsLivePictureInPicture = false
     var defaultQuality: PreferredVideoQuality = .ultraHD4K
     var cellularDefaultQuality: PreferredVideoQuality = .ultraHD4K
     var liveDefaultQuality: PreferredLiveQuality = .original
@@ -197,6 +199,8 @@ struct AudioVideoSettings: Codable, Equatable {
         case playerCore
         case allowsBackgroundPlayback
         case allowsLiveBackgroundPlayback
+        case allowsVideoPictureInPicture
+        case allowsLivePictureInPicture
         case defaultQuality
         case cellularDefaultQuality
         case liveDefaultQuality
@@ -230,6 +234,8 @@ struct AudioVideoSettings: Codable, Equatable {
         playerCore = try container.decodeIfPresent(PlayerCore.self, forKey: .playerCore) ?? .mpvKit
         allowsBackgroundPlayback = try container.decodeIfPresent(Bool.self, forKey: .allowsBackgroundPlayback) ?? false
         allowsLiveBackgroundPlayback = try container.decodeIfPresent(Bool.self, forKey: .allowsLiveBackgroundPlayback) ?? false
+        allowsVideoPictureInPicture = try container.decodeIfPresent(Bool.self, forKey: .allowsVideoPictureInPicture) ?? false
+        allowsLivePictureInPicture = try container.decodeIfPresent(Bool.self, forKey: .allowsLivePictureInPicture) ?? false
         defaultQuality = try container.decodeIfPresent(PreferredVideoQuality.self, forKey: .defaultQuality) ?? .ultraHD4K
         cellularDefaultQuality = try container.decodeIfPresent(PreferredVideoQuality.self, forKey: .cellularDefaultQuality) ?? .ultraHD4K
         liveDefaultQuality = try container.decodeIfPresent(PreferredLiveQuality.self, forKey: .liveDefaultQuality) ?? .original
