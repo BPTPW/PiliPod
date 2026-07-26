@@ -148,7 +148,7 @@ private struct AudioVideoSettingsView: View {
                 Text("高动态范围")
             } footer: {
                 if usesAVPlayer {
-                    Text("仅在MPVKit内核下支持设置")
+                    Text("仅在MPVKit内核下支持设置。AVPlayer支持HDR与杜比视界。")
                 } else {
                     Text("在支持的设备上，为 HDR、杜比视界等高动态视频启用更明亮的高光和更宽的色域。关闭后会按普通SDR视频方式显示。")
                 }

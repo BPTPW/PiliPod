@@ -322,9 +322,6 @@
     "Aa" : {
       "shouldTranslate" : false
     },
-    "AVPlayer 会将该选项换算为前向缓冲时长；系统会在内存压力或直播低延迟场景下自行缩短缓存。" : {
-
-    },
     "BPTPW/PiliPod" : {
       "shouldTranslate" : false
     },

@@ -48,6 +48,7 @@ final class AVPlayerSession: NSObject {
         self.playbackSettings = playbackSettings.clamped()
         super.init()
         player.automaticallyWaitsToMinimizeStalling = true
+        player.audiovisualBackgroundPlaybackPolicy = .automatic
     }
 
     func attach(to view: UIView) {
@@ -73,6 +74,7 @@ final class AVPlayerSession: NSObject {
     }
 
     func play(stream: DashStream) {
+        configureBackgroundPlayback(allowsPlayback: playbackSettings.allowsBackgroundPlayback)
         guard Self.supports(videoCodec: stream.videoCodec) else {
             fail(PlaybackError.unsupportedVideoCodec(stream.videoCodec)); return
         }
@@ -109,6 +111,7 @@ final class AVPlayerSession: NSObject {
     }
 
     func play(liveURL: URL) {
+        configureBackgroundPlayback(allowsPlayback: playbackSettings.allowsLiveBackgroundPlayback)
         generation &+= 1
         prepareTask?.cancel()
         tearDownItem()
@@ -117,6 +120,7 @@ final class AVPlayerSession: NSObject {
         let asset = AVURLAsset(url: liveURL, options: ["AVURLAssetHTTPHeaderFieldsKey": headers])
         let item = AVPlayerItem(asset: asset)
         install(item)
+        player.playImmediately(atRate: Float(playbackRate))
     }
 
     func resume() { wantsPlayback = true; player.playImmediately(atRate: Float(playbackRate)); publish() }
@@ -250,6 +254,12 @@ final class AVPlayerSession: NSObject {
     private func applyDynamicRangePreference(to layer: AVPlayerLayer?) {
         layer?.wantsExtendedDynamicRangeContent = playbackSettings.highDynamicRangeEnabled
             && playbackSettings.prefersEDROutput
+    }
+
+    private func configureBackgroundPlayback(allowsPlayback: Bool) {
+        player.audiovisualBackgroundPlaybackPolicy = allowsPlayback
+            ? .continuesIfPossible
+            : .automatic
     }
 
     private static func supports(videoCodec: String) -> Bool {

@@ -236,7 +236,8 @@ struct VideoDetailPage: View {
             bvid: video.bvid,
             cid: video.cid ?? 0,
             title: video.title,
-            cover: video.cover
+            cover: video.cover,
+            initialSeekTime: video.progressSeconds.map(TimeInterval.init)
         ))
     }
 

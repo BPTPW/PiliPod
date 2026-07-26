@@ -79,6 +79,7 @@ class VideoDetailViewModel {
     var title: String
     let cover: String
     var initialSeekTime: Double?
+    private let requestedInitialSeekTime: Double?
 
     private var historyReportTimer: Timer?
     private var historyReportStartTask: Task<Void, Never>?
@@ -96,12 +97,14 @@ class VideoDetailViewModel {
         bvid: String,
         cid: Int = 0,
         title: String,
-        cover: String
+        cover: String,
+        initialSeekTime: Double? = nil
     ) {
         self.bvid = bvid
         self.cid = cid
         self.title = title
         self.cover = cover
+        self.requestedInitialSeekTime = initialSeekTime
         self.player = MPVKitPlayer()
     }
 
@@ -111,7 +114,7 @@ class VideoDetailViewModel {
         isLoading = true
         error = nil
         playerInfo = nil
-        initialSeekTime = nil
+        initialSeekTime = requestedInitialSeekTime
         relatedVideos = []
         relatedIsLoading = false
         relatedError = nil
@@ -227,7 +230,7 @@ class VideoDetailViewModel {
             }
 
             let resolvedPlaybackCID = playbackCid
-            let resolvedInitialSeekTime = playerInitialSeekTime
+            let resolvedInitialSeekTime = requestedInitialSeekTime ?? playerInitialSeekTime
 
             await MainActor.run {
                 self.cid = resolvedPlaybackCID
