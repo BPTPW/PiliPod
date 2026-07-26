@@ -182,6 +182,10 @@ class MPVKitPlayer: NSObject {
         avPlayerSession?.layout(in: bounds)
     }
 
+    func startPictureInPicture() {
+        avPlayerSession?.startPictureInPicture()
+    }
+
     func play(stream: DashStream) {
         if let avPlayerSession {
             pendingStream = nil
