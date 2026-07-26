@@ -1009,6 +1009,9 @@
     "仅在MPVKit内核下支持设置" : {
 
     },
+    "仅在MPVKit内核下支持设置。AVPlayer支持HDR与杜比视界。" : {
+
+    },
     "会清理 URL 响应缓存、Library/Caches 和 tmp 临时文件。封面、头像、表情和预览图会在下次使用时重新建立缓存。" : {
       "localizations" : {
         "en" : {

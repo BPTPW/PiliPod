@@ -653,12 +653,13 @@ struct VideoDetailPage: View {
         }
         .onDisappear {
             if let player = bindableViewModel.player {
+                // Capture the final position before AVPlayer releases its item.
+                bindableViewModel.stopHistoryReporting(with: player)
                 if player.usesAVPlayer {
                     player.stop()
                 } else {
                     player.pause()
                 }
-                bindableViewModel.stopHistoryReporting(with: player)
             }
 #if canImport(UIKit)
             audioSessionManager.deactivate()
