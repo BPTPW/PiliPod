@@ -221,44 +221,30 @@ struct LivePlaybackPage: View {
     }
 
     private var detailSection: some View {
-        ZStack(alignment: .leading) {
+        VStack(alignment: .leading, spacing: 16) {
             VStack(alignment: .leading, spacing: 16) {
-                VStack(alignment: .leading, spacing: 16) {
-                    Text(viewModel.displayTitle)
-                        .font(.system(size: 20, weight: .semibold))
-                        .foregroundStyle(.white)
+                Text(viewModel.displayTitle)
+                    .font(.system(size: 20, weight: .semibold))
+                    .foregroundStyle(.white)
 
-                    HStack(spacing: 8) {
-                        if !viewModel.displayOnlineCount.isEmpty {
-                            Label(viewModel.displayOnlineCount, systemImage: "eye.fill")
-                        }
-
-                        Text("房间号 \(room.roomId)")
+                HStack(spacing: 8) {
+                    if !viewModel.displayOnlineCount.isEmpty {
+                        Label(viewModel.displayOnlineCount, systemImage: "eye.fill")
                     }
-                    .font(.system(size: 12))
-                    .foregroundStyle(.white.opacity(0.78))
+
+                    Text("房间号 \(room.roomId)")
                 }
-                .padding(.horizontal, 12)
-                .padding(.top, 16)
-
-                LiveDanmakuListView(messages: viewModel.messages)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .font(.system(size: 12))
+                .foregroundStyle(.white.opacity(0.78))
             }
-            .padding(.bottom, 0)
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+            .padding(.horizontal, 12)
+            .padding(.top, 16)
 
-            Color.clear
-                .frame(width: 24)
-                .contentShape(Rectangle())
-                .gesture(
-                    DragGesture(minimumDistance: 12)
-                        .onEnded { value in
-                            let isHorizontal = abs(value.translation.width) > abs(value.translation.height)
-                            guard isHorizontal, value.translation.width > 80 else { return }
-                            dismiss()
-                        }
-                )
+            LiveDanmakuListView(messages: viewModel.messages)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
+        .padding(.bottom, 0)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
     }
 
     private var liveBackground: some View {
@@ -1046,14 +1032,10 @@ private struct LiveDanmakuListView: View {
                     }
                     .coordinateSpace(name: "liveDanmakuScroll")
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .simultaneousGesture(
-                        DragGesture(minimumDistance: 4)
-                            .onChanged { _ in
-                                if autoScrollEnabled {
-                                    autoScrollEnabled = false
-                                }
-                            }
-                    )
+                    .onScrollPhaseChange { _, newPhase, _ in
+                        guard newPhase == .interacting, autoScrollEnabled else { return }
+                        autoScrollEnabled = false
+                    }
                     .onPreferenceChange(LiveDanmakuBottomPreferenceKey.self) { bottomY in
                         let threshold: CGFloat = 24
                         let newIsAtBottom = bottomY <= threshold
