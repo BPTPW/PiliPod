@@ -103,6 +103,11 @@ class MPVKitPlayer: NSObject {
     private var lastObservedPlaybackTime: TimeInterval = 0
     private var lastPlaybackProgressUptime = ProcessInfo.processInfo.systemUptime
     private let playbackSettings: AudioVideoSettings
+    private let avPlayerSession: AVPlayerSession?
+
+    /// The selected core is captured when this playback session is created.
+    /// Changing Settings therefore affects only subsequently created players.
+    let usesAVPlayer: Bool
 
     private(set) var isPlaying = false
     private(set) var playbackRate: Double = 1.0
@@ -114,6 +119,7 @@ class MPVKitPlayer: NSObject {
     private(set) var loadingSpeedBytesPerSecond: Double = 0
     private(set) var hdrDiagnostics = HDRPlaybackDiagnostics()
     private(set) var uiSnapshot = PlayerUIPlaybackSnapshot()
+    private(set) var playbackError: String?
 
     var videoCodec: String { controller?.videoCodec() ?? "" }
     var audioCodec: String { controller?.audioCodec() ?? "" }
@@ -125,15 +131,34 @@ class MPVKitPlayer: NSObject {
         self.httpHeaders = [
             "Cookie": LoginSession.shared.cookieString,
             "User-Agent": "Mozilla/5.0 BiliIOS/1.0",
-            "Referer": "https://www.bilibili.com/"
+            "Referer": "https://www.bilibili.com/",
+            "Origin": "https://www.bilibili.com"
         ]
         self.playbackSettings = AudioVideoSettingsStore.load()
+        self.usesAVPlayer = playbackSettings.playerCore == .avPlayer
+        if playbackSettings.playerCore == .avPlayer {
+            self.avPlayerSession = AVPlayerSession(headers: httpHeaders)
+        } else {
+            self.avPlayerSession = nil
+        }
         super.init()
+        avPlayerSession?.onSnapshot = { [weak self] snapshot in
+            guard let self else { return }
+            self.currentTime = snapshot.currentTime
+            self.duration = snapshot.duration
+            self.bufferedUntil = snapshot.bufferedUntil
+            self.isPlaying = snapshot.isPlaying
+            self.isBuffering = snapshot.isBuffering
+            self.loadingSpeedBytesPerSecond = snapshot.loadingSpeedBytesPerSecond
+            self.uiSnapshot = snapshot
+            self.playbackError = self.avPlayerSession?.errorMessage
+        }
         hdrDiagnostics.isEnabledInSettings = playbackSettings.highDynamicRangeEnabled
         hdrDiagnostics.prefersEDROutput = playbackSettings.prefersEDROutput
     }
 
     func attach(_ controller: any MPVPlaybackController) {
+        guard !usesAVPlayer else { return }
         self.controller = controller
         controller.applyHTTPHeaders(httpHeaders)
         controller.applyPlaybackSettings(playbackSettings)
@@ -145,7 +170,23 @@ class MPVKitPlayer: NSObject {
         }
     }
 
+    func attachAVPlayer(to view: UIView) {
+        guard usesAVPlayer else { return }
+        avPlayerSession?.attach(to: view)
+    }
+
+    func layoutAVPlayer(in bounds: CGRect) {
+        avPlayerSession?.layout(in: bounds)
+    }
+
     func play(stream: DashStream) {
+        if let avPlayerSession {
+            pendingStream = nil
+            pendingDirectVideoURL = nil
+            playbackError = nil
+            avPlayerSession.play(stream: stream)
+            return
+        }
         pendingStream = stream
         pendingDirectVideoURL = nil
         guard let controller else { return }
@@ -163,6 +204,13 @@ class MPVKitPlayer: NSObject {
     }
 
     func play(videoURL: URL) {
+        if let avPlayerSession {
+            pendingStream = nil
+            pendingDirectVideoURL = nil
+            playbackError = nil
+            avPlayerSession.play(liveURL: videoURL)
+            return
+        }
         pendingDirectVideoURL = videoURL
         pendingStream = nil
         guard let controller else { return }
@@ -179,6 +227,7 @@ class MPVKitPlayer: NSObject {
     }
 
     func resume() {
+        if let avPlayerSession { avPlayerSession.resume(); return }
         controller?.play()
         resetPlaybackProgressTracking()
         playbackIntent = true
@@ -189,6 +238,7 @@ class MPVKitPlayer: NSObject {
     }
 
     func pause() {
+        if let avPlayerSession { avPlayerSession.pause(); return }
         controller?.pause()
         playbackIntent = false
         isPlaying = false
@@ -200,12 +250,18 @@ class MPVKitPlayer: NSObject {
     }
 
     func setPlaybackRate(_ rate: Double) {
+        if let avPlayerSession {
+            playbackRate = max(rate, 0.1)
+            avPlayerSession.setRate(playbackRate)
+            return
+        }
         let normalizedRate = max(rate, 0.1)
         playbackRate = normalizedRate
         controller?.setPlaybackRate(normalizedRate)
     }
 
     func stop() {
+        if let avPlayerSession { avPlayerSession.stop(); return }
         controller?.stop()
         playbackIntent = false
         isPlaying = false
@@ -217,6 +273,11 @@ class MPVKitPlayer: NSObject {
     }
 
     func seek(to time: TimeInterval) {
+        if let avPlayerSession {
+            playbackSeekRevision &+= 1
+            avPlayerSession.seek(to: time)
+            return
+        }
         playbackSeekRevision &+= 1
         if duration > 0 {
             currentTime = min(max(time, 0), duration)

@@ -20,6 +20,8 @@ struct DashStream {
     let fps: Int
     let videoBitrate: Int
     let audioBitrate: Int
+    let videoSegmentBase: DASHSegmentBase?
+    let audioSegmentBase: DASHSegmentBase?
 
     var aspectRatio: CGFloat {
         CGFloat(width) / CGFloat(height)
@@ -188,7 +190,9 @@ class DashStreamSelector {
             height: video.height,
             fps: fps,
             videoBitrate: video.bandwidth,
-            audioBitrate: audio.bandwidth
+            audioBitrate: audio.bandwidth,
+            videoSegmentBase: video.segmentBase,
+            audioSegmentBase: audio.segmentBase
         )
     }
 
@@ -223,7 +227,9 @@ class DashStreamSelector {
             height: video.height,
             fps: fps,
             videoBitrate: video.bandwidth,
-            audioBitrate: audio.bandwidth
+            audioBitrate: audio.bandwidth,
+            videoSegmentBase: video.segmentBase,
+            audioSegmentBase: audio.segmentBase
         )
     }
 }

@@ -22,6 +22,13 @@ private struct PlayerSettingsView: View {
 
     var body: some View {
         Form {
+            Section("播放器内核") {
+                Picker("播放器内核", selection: $settings.playerCore) {
+                    ForEach(PlayerCore.allCases, id: \.self) { core in
+                        Text(core.title).tag(core)
+                    }
+                }
+            }
             Section {
                 Toggle("视频后台播放", isOn: $settings.allowsBackgroundPlayback)
                     .tint(Color("BiliPink"))
@@ -36,6 +43,7 @@ private struct PlayerSettingsView: View {
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Button("恢复默认") {
+                    settings.playerCore = defaultSettings.playerCore
                     settings.allowsBackgroundPlayback = defaultSettings.allowsBackgroundPlayback
                     settings.allowsLiveBackgroundPlayback = defaultSettings.allowsLiveBackgroundPlayback
                 }

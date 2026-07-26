@@ -490,8 +490,8 @@ class BiliAPI {
         )
         components?.queryItems = [
             URLQueryItem(name: "room_id", value: roomID),
-            URLQueryItem(name: "protocol", value: "0"),
-            URLQueryItem(name: "format", value: "0"),
+            URLQueryItem(name: "protocol", value: "1"),
+            URLQueryItem(name: "format", value: "1,2"),
             URLQueryItem(name: "codec", value: "0"),
             URLQueryItem(name: "qn", value: String(qn)),
             URLQueryItem(name: "platform", value: "web"),
@@ -559,8 +559,8 @@ class BiliAPI {
 
     private func liveAVCCodec(from playurl: LiveRoomPlayurl) -> LiveRoomCodec? {
         playurl.stream
-            .first(where: { $0.protocolName == "http_stream" })?
-            .format.first(where: { $0.formatName == "flv" })?
+            .first(where: { $0.protocolName == "http_hls" })?
+            .format.first(where: { $0.formatName == "fmp4" || $0.formatName == "ts" })?
             .codec.first(where: { codec in
                 let normalized = codec.codecName.lowercased()
                 return normalized == "avc" || normalized == "h264"

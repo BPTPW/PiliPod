@@ -55,7 +55,13 @@ struct LivePlayerView: View {
             ZStack {
                 Group {
                     if let streamURL {
-                        MPVKitOpenGLPlayerView(player: player)
+                        Group {
+                            if player.usesAVPlayer {
+                                AVPlayerSurfaceView(player: player)
+                            } else {
+                                MPVKitOpenGLPlayerView(player: player)
+                            }
+                        }
                             .task(id: streamURL.absoluteString) {
                                 player.play(videoURL: streamURL)
                             }
@@ -90,6 +96,17 @@ struct LivePlayerView: View {
                         variableValue: volumePreviewValue
                     )
                     .allowsHitTesting(false)
+                }
+
+                if let message = player.playbackError, !message.isEmpty {
+                    Text(message)
+                        .font(.system(size: 13, weight: .medium))
+                        .multilineTextAlignment(.center)
+                        .foregroundStyle(.white)
+                        .padding(14)
+                        .background(.black.opacity(0.72), in: RoundedRectangle(cornerRadius: 6))
+                        .padding(20)
+                        .allowsHitTesting(false)
                 }
             }
         }

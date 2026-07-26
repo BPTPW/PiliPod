@@ -69,6 +69,7 @@ struct DASHVideo: Decodable {
     let height: Int
     let frameRate: String
     let sar: String?
+    let segmentBase: DASHSegmentBase?
 
     enum CodingKeys: String, CodingKey {
         case id
@@ -81,6 +82,8 @@ struct DASHVideo: Decodable {
         case height
         case frameRate
         case sar
+        case segmentBase = "SegmentBase"
+        case segmentBaseAlt = "segment_base"
         case base_url
         case backup_url
         case mime_type
@@ -104,6 +107,8 @@ struct DASHVideo: Decodable {
             ?? container.decodeIfPresent(String.self, forKey: .frame_rate)
             ?? "30"
         sar = try container.decodeIfPresent(String.self, forKey: .sar)
+        segmentBase = try container.decodeIfPresent(DASHSegmentBase.self, forKey: .segmentBase)
+            ?? container.decodeIfPresent(DASHSegmentBase.self, forKey: .segmentBaseAlt)
     }
 }
 
@@ -116,6 +121,7 @@ struct DASHAudio: Decodable {
     let codecs: String
     let channels: Int?
     let sampleRate: String?
+    let segmentBase: DASHSegmentBase?
 
     enum CodingKeys: String, CodingKey {
         case id
@@ -130,6 +136,8 @@ struct DASHAudio: Decodable {
         case backup_url
         case mime_type
         case sample_rate
+        case segmentBase = "SegmentBase"
+        case segmentBaseAlt = "segment_base"
     }
 
     init(from decoder: Decoder) throws {
@@ -146,6 +154,28 @@ struct DASHAudio: Decodable {
         channels = try container.decodeIfPresent(Int.self, forKey: .channels)
         sampleRate = try container.decodeIfPresent(String.self, forKey: .sampleRate)
             ?? container.decodeIfPresent(String.self, forKey: .sample_rate)
+        segmentBase = try container.decodeIfPresent(DASHSegmentBase.self, forKey: .segmentBase)
+            ?? container.decodeIfPresent(DASHSegmentBase.self, forKey: .segmentBaseAlt)
+    }
+}
+
+struct DASHSegmentBase: Decodable {
+    let initialization: String?
+    let indexRange: String?
+
+    enum CodingKeys: String, CodingKey {
+        case initialization = "Initialization"
+        case initializationAlt = "initialization"
+        case indexRange = "index_range"
+        case indexRangeAlt = "indexRange"
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        initialization = try container.decodeIfPresent(String.self, forKey: .initialization)
+            ?? container.decodeIfPresent(String.self, forKey: .initializationAlt)
+        indexRange = try container.decodeIfPresent(String.self, forKey: .indexRange)
+            ?? container.decodeIfPresent(String.self, forKey: .indexRangeAlt)
     }
 }
 

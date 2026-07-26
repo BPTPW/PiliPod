@@ -109,6 +109,18 @@ enum PreferredCodecOption: String, CaseIterable, Codable, Hashable {
     }
 }
 
+enum PlayerCore: String, CaseIterable, Codable, Hashable {
+    case mpvKit
+    case avPlayer
+
+    var title: String {
+        switch self {
+        case .mpvKit: "MPVKit"
+        case .avPlayer: "AVPlayer (实验性)"
+        }
+    }
+}
+
 enum MPVVideoSyncOption: String, CaseIterable, Codable, Hashable {
     case audio
     case displayResample = "display-resample"
@@ -150,6 +162,7 @@ enum HDRToneMappingOption: String, CaseIterable, Codable, Hashable {
 }
 
 struct AudioVideoSettings: Codable, Equatable {
+    var playerCore: PlayerCore = .mpvKit
     var hardwareDecodingEnabled = true
     var allowsBackgroundPlayback = false
     var allowsLiveBackgroundPlayback = false
@@ -167,6 +180,7 @@ struct AudioVideoSettings: Codable, Equatable {
 
     private enum CodingKeys: String, CodingKey {
         case hardwareDecodingEnabled
+        case playerCore
         case allowsBackgroundPlayback
         case allowsLiveBackgroundPlayback
         case defaultQuality
@@ -199,6 +213,7 @@ struct AudioVideoSettings: Codable, Equatable {
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         hardwareDecodingEnabled = try container.decodeIfPresent(Bool.self, forKey: .hardwareDecodingEnabled) ?? true
+        playerCore = try container.decodeIfPresent(PlayerCore.self, forKey: .playerCore) ?? .mpvKit
         allowsBackgroundPlayback = try container.decodeIfPresent(Bool.self, forKey: .allowsBackgroundPlayback) ?? false
         allowsLiveBackgroundPlayback = try container.decodeIfPresent(Bool.self, forKey: .allowsLiveBackgroundPlayback) ?? false
         defaultQuality = try container.decodeIfPresent(PreferredVideoQuality.self, forKey: .defaultQuality) ?? .ultraHD4K

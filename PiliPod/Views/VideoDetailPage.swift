@@ -652,7 +652,11 @@ struct VideoDetailPage: View {
         }
         .onDisappear {
             if let player = bindableViewModel.player {
-                player.pause()
+                if player.usesAVPlayer {
+                    player.stop()
+                } else {
+                    player.pause()
+                }
                 bindableViewModel.stopHistoryReporting(with: player)
             }
 #if canImport(UIKit)

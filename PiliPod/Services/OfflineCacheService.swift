@@ -155,7 +155,9 @@ enum OfflineCacheStorage {
                 height: manifest.height,
                 fps: manifest.fps,
                 videoBitrate: manifest.videoBitrate,
-                audioBitrate: manifest.audioBitrate
+                audioBitrate: manifest.audioBitrate,
+                videoSegmentBase: nil,
+                audioSegmentBase: nil
             )
             return OfflineCachePlayableAsset(item: item, detail: detail, stream: stream)
         } catch {

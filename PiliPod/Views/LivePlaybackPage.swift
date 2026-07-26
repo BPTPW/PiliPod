@@ -99,7 +99,11 @@ struct LivePlaybackPage: View {
             hideControlsTask?.cancel()
             mediaControlSyncTask?.cancel()
             mediaControlSyncTask = nil
-            player.pause()
+            if player.usesAVPlayer {
+                player.stop()
+            } else {
+                player.pause()
+            }
 #if canImport(UIKit)
             audioSessionManager.deactivate()
             updateDeviceOrientationForFullscreen(isFullscreen: false)
