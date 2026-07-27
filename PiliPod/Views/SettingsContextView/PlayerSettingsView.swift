@@ -39,10 +39,10 @@ private struct PlayerSettingsView: View {
                 Text("后台播放")
             }
             Section {
-                Toggle("直播小窗播放", isOn: $settings.allowsLivePictureInPicture)
+                Toggle("视频小窗播放", isOn: $settings.allowsVideoPictureInPicture)
                     .tint(Color("BiliPink"))
                     .disabled(!supportsPictureInPicture)
-                Toggle("视频小窗播放", isOn: $settings.allowsVideoPictureInPicture)
+                Toggle("直播小窗播放", isOn: $settings.allowsLivePictureInPicture)
                     .tint(Color("BiliPink"))
                     .disabled(!supportsPictureInPicture)
             } header: {
