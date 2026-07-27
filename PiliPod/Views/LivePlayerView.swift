@@ -98,16 +98,6 @@ struct LivePlayerView: View {
                     .allowsHitTesting(false)
                 }
 
-                if let message = player.playbackError, !message.isEmpty {
-                    Text(message)
-                        .font(.system(size: 13, weight: .medium))
-                        .multilineTextAlignment(.center)
-                        .foregroundStyle(.white)
-                        .padding(14)
-                        .background(.black.opacity(0.72), in: RoundedRectangle(cornerRadius: 6))
-                        .padding(20)
-                        .allowsHitTesting(false)
-                }
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)

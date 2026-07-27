@@ -295,7 +295,19 @@ final class AVPlayerSession: NSObject, AVPictureInPictureControllerDelegate {
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.12, execute: workItem)
     }
 
-    private func fail(_ error: Error) { errorMessage = error.localizedDescription; wantsPlayback = false; tearDownItem(); publish() }
+    private func fail(_ error: Error) {
+        logPlaybackFailure(error)
+        errorMessage = nil
+        wantsPlayback = false
+        tearDownItem()
+        publish()
+    }
+
+    /// Playback diagnostics intentionally exclude URLs and request metadata.
+    private func logPlaybackFailure(_ error: Error) {
+        let nsError = error as NSError
+        print("AVPlayer playback failed: domain=\(nsError.domain), code=\(nsError.code)")
+    }
 
     private func applyBufferPreference(to item: AVPlayerItem) {
         let duration = item.duration.seconds
@@ -345,7 +357,8 @@ final class AVPlayerSession: NSObject, AVPictureInPictureControllerDelegate {
             return
         }
         isPictureInPictureStartRequested = false
-        errorMessage = "无法启动系统画中画：\(error.localizedDescription)"
+        logPlaybackFailure(error)
+        errorMessage = nil
         publish()
     }
 

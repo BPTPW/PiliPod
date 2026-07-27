@@ -717,7 +717,6 @@ private final class LivePlaybackViewModel {
     var messages: [LiveDanmakuMessage] = []
     var qualityOptions: [VideoQualityOption] = []
     var isLoading = false
-    var errorMessage: String?
     private var currentQn: Int
     private var hasLoaded = false
     private let danmakuService = LiveDanmakuService()
@@ -733,9 +732,6 @@ private final class LivePlaybackViewModel {
     }
 
     var playerStatusText: String {
-        if let errorMessage, !errorMessage.isEmpty {
-            return errorMessage
-        }
         if isLoading {
             return "正在获取直播流..."
         }
@@ -829,7 +825,6 @@ private final class LivePlaybackViewModel {
             streamURL = nil
         }
         isLoading = true
-        errorMessage = nil
         defer { isLoading = false }
 
         do {
@@ -858,7 +853,8 @@ private final class LivePlaybackViewModel {
                 qualityOptions = resolvedPlayback.qualityOptions
             }
         } catch {
-            errorMessage = error.localizedDescription
+            let nsError = error as NSError
+            print("Live playback stream request failed: domain=\(nsError.domain), code=\(nsError.code)")
         }
     }
 

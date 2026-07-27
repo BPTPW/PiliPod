@@ -139,7 +139,6 @@ struct VideoDetailPlayerSurfaceView: View {
             .overlay { gestureOverlay }
             .overlay { danmakuOverlay }
             .overlay { loadingOverlay }
-            .overlay { playbackErrorOverlay }
             .overlay { fullscreenGradientOverlay }
             .overlay { collapsedProgressOverlay }
             .overlay(alignment: .trailing) { fullscreenDanmakuPanelOverlay }
@@ -203,20 +202,6 @@ struct VideoDetailPlayerSurfaceView: View {
             speedBytesPerSecond: playerUISnapshot.loadingSpeedBytesPerSecond
         )
         .allowsHitTesting(false)
-    }
-
-    @ViewBuilder
-    private var playbackErrorOverlay: some View {
-        if let message = player.playbackError, !message.isEmpty {
-            Text(message)
-                .font(.system(size: 14, weight: .medium))
-                .multilineTextAlignment(.center)
-                .foregroundStyle(.white)
-                .padding(16)
-                .background(.black.opacity(0.72), in: RoundedRectangle(cornerRadius: 6))
-                .padding(24)
-                .allowsHitTesting(false)
-        }
     }
 
     @ViewBuilder
