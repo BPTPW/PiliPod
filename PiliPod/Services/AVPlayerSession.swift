@@ -66,7 +66,6 @@ final class AVPlayerSession: NSObject, AVPictureInPictureControllerDelegate {
         view.layer.insertSublayer(layer, at: 0)
         self.layer?.removeFromSuperlayer()
         self.layer = layer
-        preparePictureInPictureController()
     }
 
     func layout(in bounds: CGRect) { layer?.frame = bounds }
@@ -169,7 +168,6 @@ final class AVPlayerSession: NSObject, AVPictureInPictureControllerDelegate {
                         self.fail(item.error ?? PlaybackError.preparationFailed)
                     } else if item.status == .readyToPlay {
                         self.applyBufferPreference(to: item)
-                        self.preparePictureInPictureController()
                         self.applyPendingSeekAndPlayback()
                     } else {
                         self.publish()
@@ -253,6 +251,10 @@ final class AVPlayerSession: NSObject, AVPictureInPictureControllerDelegate {
         guard pictureInPictureController?.playerLayer !== layer else { return }
         pictureInPicturePossibleObservation = nil
         pictureInPictureController = AVPictureInPictureController(playerLayer: layer)
+        // PiP is started explicitly by the playback views after checking the
+        // corresponding user setting. Prevent iOS from starting it implicitly
+        // when the app resigns active, which would bypass those checks.
+        pictureInPictureController?.canStartPictureInPictureAutomaticallyFromInline = false
         pictureInPictureController?.delegate = self
         pictureInPicturePossibleObservation = pictureInPictureController?.observe(
             \.isPictureInPicturePossible,

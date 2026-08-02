@@ -599,7 +599,12 @@ struct LivePlaybackPage: View {
 
     private func startPictureInPictureForBackgroundIfNeeded() {
         let playbackSettings = AudioVideoSettingsStore.load()
-        guard playbackSettings.allowsLivePictureInPicture, player.isPlaying else { return }
+        guard playbackSettings.allowsLivePictureInPicture, player.isPlaying else {
+            // Cancel any delayed PiP request left by an earlier lifecycle
+            // notification before the setting was switched off.
+            player.stopPictureInPicture()
+            return
+        }
         player.startPictureInPicture()
     }
 

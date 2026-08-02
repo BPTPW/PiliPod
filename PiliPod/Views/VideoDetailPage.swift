@@ -1486,10 +1486,13 @@ struct VideoDetailPage: View {
 
     private func startPictureInPictureForBackgroundIfNeeded() {
         let playbackSettings = AudioVideoSettingsStore.load()
-        guard playbackSettings.allowsVideoPictureInPicture,
-              let player = viewModel.player,
-              player.isPlaying
-        else { return }
+        guard let player = viewModel.player else { return }
+        guard playbackSettings.allowsVideoPictureInPicture, player.isPlaying else {
+            // Cancel any delayed PiP request left by an earlier lifecycle
+            // notification before the setting was switched off.
+            player.stopPictureInPicture()
+            return
+        }
         player.startPictureInPicture()
     }
 
