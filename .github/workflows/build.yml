@@ -23,7 +23,7 @@ jobs:
             - name: Set up Xcode Version
               uses: maxim-lobanov/setup-xcode@v1
               with:
-                  xcode-version: '26.5' # 与本地开发环境保持一致，避免 CI 随 runner 漂移
+                  xcode-version: '26.6' # 与本地开发环境保持一致，避免 CI 随 runner 漂移
 
             - name: Generate Build Number & Build IPA
               id: build_ipa
@@ -33,7 +33,7 @@ jobs:
                   echo "BUILD_NUMBER=$BUILD_NUMBER" >> $GITHUB_ENV
 
                   TAG_NAME="${{ inputs.tag_name }}"
-                  IPA_NAME="PiliPod ${TAG_NAME}-${BUILD_NUMBER}.ipa"
+                  IPA_NAME="PiliPod ${TAG_NAME}+${BUILD_NUMBER}.ipa"
                   echo "IPA_NAME=$IPA_NAME" >> $GITHUB_ENV
 
                   echo "开始打包，版本号: ${TAG_NAME}, 构建号: ${BUILD_NUMBER}"

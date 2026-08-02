@@ -4,6 +4,7 @@
 //
 
 import SwiftUI
+import GLKit
 
 /// Live-only surface backed by libmpv's OpenGL render API.
 struct MPVKitOpenGLPlayerView: UIViewControllerRepresentable {
