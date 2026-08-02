@@ -57,8 +57,8 @@ iOS (测试平台为iOS26)
 
 <a href="https://www.star-history.com/?repos=BPTPW%2FPiliPod&type=date&legend=top-left">
  <picture>
-   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/chart?repos=BPTPW/PiliPod&type=date&theme=dark&legend=top-left" />
-   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/chart?repos=BPTPW/PiliPod&type=date&legend=top-left" />
-   <img alt="Star History Chart" src="https://api.star-history.com/chart?repos=BPTPW/PiliPod&type=date&legend=top-left" />
+   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/chart?repos=BPTPW/PiliPod&type=date&theme=dark&legend=top-left&sealed_token=KTHjyBFwYKRQlWKuUlCHQ2hShaU-RKRBFdhlT3YsaB3B1X3zIwcxrHvvf5NZCeMIYOPhbGd6Ji6ieVNGAE3UUH3SPQw3ETQt7SJWTsK7BD5kam5WWbqpGPz8YxXUY2GK3VJQwXsft_NtaL-NlLOXKIB8xHyydugJSLhvAuHPod5_fuccXxE_HQL4XFMI" />
+   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/chart?repos=BPTPW/PiliPod&type=date&legend=top-left&sealed_token=KTHjyBFwYKRQlWKuUlCHQ2hShaU-RKRBFdhlT3YsaB3B1X3zIwcxrHvvf5NZCeMIYOPhbGd6Ji6ieVNGAE3UUH3SPQw3ETQt7SJWTsK7BD5kam5WWbqpGPz8YxXUY2GK3VJQwXsft_NtaL-NlLOXKIB8xHyydugJSLhvAuHPod5_fuccXxE_HQL4XFMI" />
+   <img alt="Star History Chart" src="https://api.star-history.com/chart?repos=BPTPW/PiliPod&type=date&legend=top-left&sealed_token=KTHjyBFwYKRQlWKuUlCHQ2hShaU-RKRBFdhlT3YsaB3B1X3zIwcxrHvvf5NZCeMIYOPhbGd6Ji6ieVNGAE3UUH3SPQw3ETQt7SJWTsK7BD5kam5WWbqpGPz8YxXUY2GK3VJQwXsft_NtaL-NlLOXKIB8xHyydugJSLhvAuHPod5_fuccXxE_HQL4XFMI" />
  </picture>
 </a>
