@@ -887,6 +887,23 @@ struct VideoDetailPage: View {
                 .buttonStyle(.plain)
             }
             Spacer()
+
+            Button {
+                isDanmakuEnabled.toggle()
+            } label: {
+                Image(isDanmakuEnabled ? "DanmakuOn" : "DanmakuOff")
+                    .renderingMode(.template)
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 16, height: 16)
+                    .foregroundStyle(.white)
+                    .frame(width: 32, height: 32)
+            }
+            .background(Circle().fill(Color.black.opacity(0.2)))
+            .glassEffect(.clear.interactive(), in: .circle)
+            .buttonStyle(.plain)
+            .accessibilityLabel("弹幕")
+            .accessibilityValue(isDanmakuEnabled ? "已开启" : "已关闭")
         }
         .padding(.horizontal, 16)
         .padding(.top, 12)
