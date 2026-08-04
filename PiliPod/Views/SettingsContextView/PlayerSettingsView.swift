@@ -52,6 +52,13 @@ private struct PlayerSettingsView: View {
                     Text("画中画仅支持 AVPlayer 内核。")
                 }
             }
+            Section("播放记录") {
+                Picker("播放记录上报间隔", selection: $settings.historyReportInterval) {
+                    ForEach(AudioVideoSettings.supportedHistoryReportIntervals, id: \.self) { interval in
+                        Text("\(interval)s").tag(interval)
+                    }
+                }
+            }
         }
         .navigationTitle("播放器")
         .navigationBarTitleDisplayMode(.inline)
@@ -59,6 +66,7 @@ private struct PlayerSettingsView: View {
             ToolbarItem(placement: .topBarTrailing) {
                 Button("恢复默认") {
                     settings.playerCore = defaultSettings.playerCore
+                    settings.historyReportInterval = defaultSettings.historyReportInterval
                     settings.allowsBackgroundPlayback = defaultSettings.allowsBackgroundPlayback
                     settings.allowsLiveBackgroundPlayback = defaultSettings.allowsLiveBackgroundPlayback
                     settings.allowsVideoPictureInPicture = defaultSettings.allowsVideoPictureInPicture

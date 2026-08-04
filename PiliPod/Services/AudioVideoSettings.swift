@@ -176,7 +176,10 @@ enum HDRToneMappingOption: String, CaseIterable, Codable, Hashable {
 }
 
 struct AudioVideoSettings: Codable, Equatable {
+    static let supportedHistoryReportIntervals = [5, 10, 20, 30]
+
     var playerCore: PlayerCore = .mpvKit
+    var historyReportInterval = 10
     var hardwareDecodingEnabled = true
     var allowsBackgroundPlayback = false
     var allowsLiveBackgroundPlayback = false
@@ -199,6 +202,7 @@ struct AudioVideoSettings: Codable, Equatable {
     private enum CodingKeys: String, CodingKey {
         case hardwareDecodingEnabled
         case playerCore
+        case historyReportInterval
         case allowsBackgroundPlayback
         case allowsLiveBackgroundPlayback
         case allowsVideoPictureInPicture
@@ -220,6 +224,9 @@ struct AudioVideoSettings: Codable, Equatable {
 
     func clamped() -> AudioVideoSettings {
         var settings = self
+        if !Self.supportedHistoryReportIntervals.contains(settings.historyReportInterval) {
+            settings.historyReportInterval = 10
+        }
         settings.autosync = min(max(settings.autosync, 0), 10000)
         if settings.highDynamicRangeEnabled {
             settings.prefersEDROutput = true
@@ -236,6 +243,7 @@ struct AudioVideoSettings: Codable, Equatable {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         hardwareDecodingEnabled = try container.decodeIfPresent(Bool.self, forKey: .hardwareDecodingEnabled) ?? true
         playerCore = try container.decodeIfPresent(PlayerCore.self, forKey: .playerCore) ?? .mpvKit
+        historyReportInterval = try container.decodeIfPresent(Int.self, forKey: .historyReportInterval) ?? 10
         allowsBackgroundPlayback = try container.decodeIfPresent(Bool.self, forKey: .allowsBackgroundPlayback) ?? false
         allowsLiveBackgroundPlayback = try container.decodeIfPresent(Bool.self, forKey: .allowsLiveBackgroundPlayback) ?? false
         allowsVideoPictureInPicture = try container.decodeIfPresent(Bool.self, forKey: .allowsVideoPictureInPicture) ?? false

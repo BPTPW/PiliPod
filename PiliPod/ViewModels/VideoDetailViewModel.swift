@@ -1112,7 +1112,7 @@ class VideoDetailViewModel {
 	            self.reportHistoryIfNeeded(with: player)
 
 	            self.historyReportTimer = Timer.scheduledTimer(
-	                withTimeInterval: 15,
+	                withTimeInterval: TimeInterval(AudioVideoSettingsStore.load().historyReportInterval),
 	                repeats: true
 	            ) { [weak self] _ in
 	                guard let self, let currentPlayer = self.player else { return }
