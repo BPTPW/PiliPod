@@ -134,7 +134,10 @@ private struct AudioVideoSettingsView: View {
 
             Section("播放") {
                 NavigationLink {
-                    PlaybackCDNRouteSettingsView(selection: $settings.playbackCDNRoute)
+                    PlaybackCDNRouteSettingsView(
+                        selection: $settings.playbackCDNRoute,
+                        testValidity: $settings.cdnConnectivityTestValidity
+                    )
                 } label: {
                     selectionRow(title: "CDN 线路", value: settings.playbackCDNRoute.title)
                 }

@@ -322,6 +322,16 @@ class DashStreamSelector {
         guard let videoURL = videoCandidates.first, let audioURL = audioCandidates.first else { return nil }
 
         PlaybackCDNProbeURLStore.shared.update([videoPrimary] + videoBackups + [audioPrimary] + audioBackups)
+        if route == .automatic {
+            let originalURLs = [videoPrimary] + videoBackups + [audioPrimary] + audioBackups
+            Task { @MainActor in
+                PlaybackCDNAutoTestCoordinator.shared.scheduleAfterFirstVideoIfNeeded(
+                    primaryURL: videoPrimary,
+                    playbackURLs: originalURLs,
+                    validity: AudioVideoSettingsStore.load().cdnConnectivityTestValidity
+                )
+            }
+        }
         return DashStream(
             videoURL: videoURL,
             audioURL: audioURL,

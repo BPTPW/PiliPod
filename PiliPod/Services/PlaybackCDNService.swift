@@ -3,6 +3,7 @@ import Foundation
 /// A static, user-selectable playback route. These values are only used for
 /// final media URLs; they must never be applied to Bilibili API endpoints.
 enum PlaybackCDNRoute: String, CaseIterable, Codable, Hashable, Identifiable, Sendable {
+    case automatic
     case original
     case backup
     case ali
@@ -29,7 +30,8 @@ enum PlaybackCDNRoute: String, CaseIterable, Codable, Hashable, Identifiable, Se
 
     var title: String {
         switch self {
-        case .original: "自动/原始地址"
+        case .automatic: "自动选择"
+        case .original: "主要 URL"
         case .backup: "备用 URL"
         case .ali: "阿里云 ali"
         case .alib: "阿里云 alib"
@@ -55,7 +57,7 @@ enum PlaybackCDNRoute: String, CaseIterable, Codable, Hashable, Identifiable, Se
 
     var host: String? {
         switch self {
-        case .original, .backup: nil
+        case .automatic, .original, .backup: nil
         case .ali: "upos-sz-mirrorali.bilivideo.com"
         case .alib: "upos-sz-mirroralib.bilivideo.com"
         case .alio1: "upos-sz-mirroralio1.bilivideo.com"
@@ -80,6 +82,31 @@ enum PlaybackCDNRoute: String, CaseIterable, Codable, Hashable, Identifiable, Se
 
     static var manualRoutes: [PlaybackCDNRoute] {
         allCases.filter { $0.host != nil }
+    }
+}
+
+enum CDNConnectivityTestValidity: String, CaseIterable, Codable, Hashable {
+    case minutes30
+    case hour1
+    case hours3
+    case hours6
+
+    var title: String {
+        switch self {
+        case .minutes30: "30 分钟"
+        case .hour1: "1 小时"
+        case .hours3: "3 小时"
+        case .hours6: "6 小时"
+        }
+    }
+
+    var duration: TimeInterval {
+        switch self {
+        case .minutes30: 30 * 60
+        case .hour1: 60 * 60
+        case .hours3: 3 * 60 * 60
+        case .hours6: 6 * 60 * 60
+        }
     }
 }
 
@@ -111,6 +138,9 @@ enum PlaybackCDNPlanner {
         guard !originals.isEmpty else { return [] }
 
         switch route {
+        case .automatic:
+            let selected = PlaybackCDNAutoTestStore.load()?.selectedRoute ?? .original
+            return candidates(primary: primary, backups: backups, route: selected == .automatic ? .original : selected)
         case .original:
             return originals
         case .backup:
@@ -155,9 +185,9 @@ final class PlaybackCDNProbeURLStore: @unchecked Sendable {
     }
 }
 
-enum PlaybackCDNProbeMode: Sendable { case realPlaybackURL, hostConnectivityReference }
+enum PlaybackCDNProbeMode: String, Codable, Sendable { case realPlaybackURL, hostConnectivityReference }
 
-struct PlaybackCDNProbeResult: Identifiable, Sendable {
+struct PlaybackCDNProbeResult: Identifiable, Codable, Equatable, Sendable {
     let route: PlaybackCDNRoute
     let elapsedMilliseconds: Int?
     let httpStatusCode: Int?
@@ -179,6 +209,86 @@ struct PlaybackCDNProbeResult: Identifiable, Sendable {
         }
         if let status = httpStatusCode { return "HTTP \(status)" }
         return "错误"
+    }
+}
+
+struct PlaybackCDNAutoTestRecord: Codable, Equatable, Sendable {
+    let testedAt: Date
+    /// The interface-provided primary URL before any CDN host override.
+    let primaryURL: String
+    let results: [PlaybackCDNProbeResult]
+    let selectedRoute: PlaybackCDNRoute
+}
+
+enum PlaybackCDNAutoTestStore {
+    private static let key = "pili.playback.cdn-auto-test.v1"
+
+    static func load() -> PlaybackCDNAutoTestRecord? {
+        guard let data = UserDefaults.standard.data(forKey: key) else { return nil }
+        return try? JSONDecoder().decode(PlaybackCDNAutoTestRecord.self, from: data)
+    }
+
+    static func save(_ record: PlaybackCDNAutoTestRecord) {
+        guard let data = try? JSONEncoder().encode(record) else { return }
+        UserDefaults.standard.set(data, forKey: key)
+    }
+
+    static func clear() {
+        UserDefaults.standard.removeObject(forKey: key)
+    }
+
+    static func isExpired(validity: CDNConnectivityTestValidity, now: Date = Date()) -> Bool {
+        guard let record = load() else { return true }
+        return isExpired(testedAt: record.testedAt, validity: validity, now: now)
+    }
+
+    static func isExpired(
+        testedAt: Date,
+        validity: CDNConnectivityTestValidity,
+        now: Date
+    ) -> Bool {
+        now.timeIntervalSince(testedAt) >= validity.duration
+    }
+}
+
+@MainActor
+final class PlaybackCDNAutoTestCoordinator {
+    static let shared = PlaybackCDNAutoTestCoordinator()
+
+    private var hasObservedFirstVideo = false
+    private var task: Task<Void, Never>?
+
+    func scheduleAfterFirstVideoIfNeeded(
+        primaryURL: URL,
+        playbackURLs: [URL],
+        validity: CDNConnectivityTestValidity
+    ) {
+        guard !hasObservedFirstVideo else { return }
+        hasObservedFirstVideo = true
+        guard PlaybackCDNAutoTestStore.isExpired(validity: validity) else { return }
+
+        task = Task { [weak self] in
+            try? await Task.sleep(nanoseconds: 5_000_000_000)
+            guard !Task.isCancelled else { return }
+            let results = await PlaybackCDNProbeService.probeAll(playbackURLs: playbackURLs)
+            guard !Task.isCancelled else { return }
+            let selected = results.first(where: { $0.didSucceed && !$0.isWeakReference })?.route ?? .original
+            PlaybackCDNAutoTestStore.save(
+                PlaybackCDNAutoTestRecord(
+                    testedAt: Date(),
+                    primaryURL: primaryURL.absoluteString,
+                    results: results,
+                    selectedRoute: selected
+                )
+            )
+            self?.task = nil
+        }
+    }
+
+    func resetFirstVideoGate() {
+        task?.cancel()
+        task = nil
+        hasObservedFirstVideo = false
     }
 }
 

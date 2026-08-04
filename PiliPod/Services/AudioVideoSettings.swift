@@ -188,7 +188,8 @@ struct AudioVideoSettings: Codable, Equatable {
     var cellularLiveDefaultQuality: PreferredLiveQuality = .blueRay
     var bufferSize: VideoBufferSizeOption = .mb8
     var preferredCodec: PreferredCodecOption = .hevc
-    var playbackCDNRoute: PlaybackCDNRoute = .original
+    var playbackCDNRoute: PlaybackCDNRoute = .automatic
+    var cdnConnectivityTestValidity: CDNConnectivityTestValidity = .hour1
     var autosync: Int = 0
     var videoSync: MPVVideoSyncOption = .audio
     var highDynamicRangeEnabled = true
@@ -209,6 +210,7 @@ struct AudioVideoSettings: Codable, Equatable {
         case bufferSize
         case preferredCodec
         case playbackCDNRoute
+        case cdnConnectivityTestValidity
         case autosync
         case videoSync
         case highDynamicRangeEnabled
@@ -244,7 +246,8 @@ struct AudioVideoSettings: Codable, Equatable {
         cellularLiveDefaultQuality = try container.decodeIfPresent(PreferredLiveQuality.self, forKey: .cellularLiveDefaultQuality) ?? .blueRay
         bufferSize = try container.decodeIfPresent(VideoBufferSizeOption.self, forKey: .bufferSize) ?? .mb8
         preferredCodec = try container.decodeIfPresent(PreferredCodecOption.self, forKey: .preferredCodec) ?? .hevc
-        playbackCDNRoute = try container.decodeIfPresent(PlaybackCDNRoute.self, forKey: .playbackCDNRoute) ?? .original
+        playbackCDNRoute = try container.decodeIfPresent(PlaybackCDNRoute.self, forKey: .playbackCDNRoute) ?? .automatic
+        cdnConnectivityTestValidity = try container.decodeIfPresent(CDNConnectivityTestValidity.self, forKey: .cdnConnectivityTestValidity) ?? .hour1
         autosync = try container.decodeIfPresent(Int.self, forKey: .autosync) ?? 0
         videoSync = try container.decodeIfPresent(MPVVideoSyncOption.self, forKey: .videoSync) ?? .audio
         highDynamicRangeEnabled = try container.decodeIfPresent(Bool.self, forKey: .highDynamicRangeEnabled) ?? true

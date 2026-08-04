@@ -2,13 +2,15 @@ import SwiftUI
 
 struct PlaybackCDNRouteSettingsView: View {
     @Binding var selection: PlaybackCDNRoute
+    @Binding var testValidity: CDNConnectivityTestValidity
     @State private var results: [PlaybackCDNRoute: PlaybackCDNProbeResult] = [:]
     @State private var probeTask: Task<Void, Never>?
+    @State private var autoTestRecord: PlaybackCDNAutoTestRecord?
 
     private var isProbing: Bool { probeTask != nil }
 
     private var routes: [PlaybackCDNRoute] {
-        let fixed: [PlaybackCDNRoute] = [.original, .backup]
+        let fixed: [PlaybackCDNRoute] = [.automatic, .original, .backup]
         let manual = PlaybackCDNRoute.manualRoutes.sorted { lhs, rhs in
             guard let left = results[lhs], let right = results[rhs] else {
                 return results[lhs] != nil
@@ -39,6 +41,10 @@ struct PlaybackCDNRouteSettingsView: View {
                                     Text(host)
                                         .font(.caption)
                                         .foregroundStyle(.secondary)
+                                } else if route == .automatic {
+                                    Text(autoRouteDescription)
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
                                 }
                             }
                             Spacer(minLength: 8)
@@ -61,7 +67,33 @@ struct PlaybackCDNRouteSettingsView: View {
             } header: {
                 Text("CDN 线路")
             } footer: {
-                Text("手动线路只会安全改写最终媒体播放 URL 的 Host。")
+                Text("CDN 线路选择只会覆写媒体播放 URL 的 Host。")
+            }
+
+            Section {
+                NavigationLink {
+                    ChoiceListView(
+                        title: "测试间隔",
+                        options: CDNConnectivityTestValidity.allCases,
+                        selection: $testValidity,
+                        titleFor: \.title
+                    )
+                } label: {
+                    HStack {
+                        Text("测试间隔")
+                        Spacer()
+                        Text(testValidity.title)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+
+                NavigationLink {
+                    PlaybackCDNAutoTestRecordView(record: $autoTestRecord)
+                } label: {
+                    Text("自动测试记录")
+                }
+            } header: {
+                Text("自动测试")
             }
 
             Section {
@@ -90,6 +122,9 @@ struct PlaybackCDNRouteSettingsView: View {
             probeTask?.cancel()
             probeTask = nil
         }
+        .onAppear {
+            autoTestRecord = PlaybackCDNAutoTestStore.load()
+        }
     }
 
     private func startProbe() {
@@ -100,6 +135,74 @@ struct PlaybackCDNRouteSettingsView: View {
             guard !Task.isCancelled else { return }
             results = Dictionary(uniqueKeysWithValues: probeResults.map { ($0.route, $0) })
             probeTask = nil
+        }
+    }
+
+    private func resultColor(for result: PlaybackCDNProbeResult) -> Color {
+        if result.didSucceed { return result.isWeakReference ? .yellow : .green }
+        if result.isWeakReference, result.httpStatusCode == 403 || result.httpStatusCode == 959 { return .yellow }
+        if result.httpStatusCode != nil { return .yellow }
+        return .red
+    }
+
+    private var autoRouteDescription: String {
+        guard let record = autoTestRecord else { return "暂无测速结果，将使用主要 URL" }
+        if record.selectedRoute == .original { return "上次测试无可用 CDN，使用主要 URL" }
+        return "上次测试选择：\(record.selectedRoute.title)"
+    }
+}
+
+private struct PlaybackCDNAutoTestRecordView: View {
+    @Binding var record: PlaybackCDNAutoTestRecord?
+
+    var body: some View {
+        List {
+            if let record {
+                Section {
+                    LabeledContent("测试时间") {
+                        Text(record.testedAt, format: .dateTime.year().month().day().hour().minute().second())
+                    }
+                    LabeledContent("最终选择") {
+                        Text(record.selectedRoute.title)
+                    }
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text("测试视频 URL")
+                        Text(record.primaryURL)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .textSelection(.enabled)
+                    }
+                } footer: {
+                    Text("在清除记录后，下次播放视频会重新测试最优线路。")
+                }
+
+                Section("各线路响应") {
+                    ForEach(record.results) { result in
+                        HStack {
+                            Text(result.route.title)
+                            Spacer()
+                            Text(result.statusText)
+                                .font(.caption)
+                                .multilineTextAlignment(.trailing)
+                                .foregroundStyle(resultColor(for: result))
+                        }
+                    }
+                }
+            } else {
+                ContentUnavailableView("暂无自动测试记录", systemImage: "clock")
+            }
+        }
+        .navigationTitle("自动测试记录")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button("清除记录", role: .destructive) {
+                    PlaybackCDNAutoTestStore.clear()
+                    PlaybackCDNAutoTestCoordinator.shared.resetFirstVideoGate()
+                    record = nil
+                }
+                .disabled(record == nil)
+            }
         }
     }
 

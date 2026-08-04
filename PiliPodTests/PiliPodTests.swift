@@ -5,6 +5,8 @@
 //  Created by co on 2026/5/21.
 //
 
+import Foundation
+@testable import PiliPod
 import Testing
 
 struct PiliPodTests {
@@ -43,6 +45,15 @@ struct PiliPodTests {
         #expect(candidates[0].host == "upos-sz-mirrorali.bilivideo.com")
         #expect(candidates[1] == primary)
         #expect(candidates[2] == backup)
+    }
+
+    @Test func automaticCDNTestValidityUsesConfiguredDuration() {
+        let testedAt = Date(timeIntervalSince1970: 1_000)
+        let withinOneHour = testedAt.addingTimeInterval(59 * 60 + 59)
+        let atOneHour = testedAt.addingTimeInterval(60 * 60)
+
+        #expect(!PlaybackCDNAutoTestStore.isExpired(testedAt: testedAt, validity: .hour1, now: withinOneHour))
+        #expect(PlaybackCDNAutoTestStore.isExpired(testedAt: testedAt, validity: .hour1, now: atOneHour))
     }
 
     @Test func wbiMixinKeyMatchesDocumentExample() {
