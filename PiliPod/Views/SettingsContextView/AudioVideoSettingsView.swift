@@ -192,7 +192,7 @@ private struct AudioVideoSettingsView: View {
                 Text("同步")
             } footer: {
                 if usesAVPlayer {
-                    Text("仅在MPVKit内核下支持设置")
+                    Text("仅在MPVKit内核下支持设置。")
                 } else {
                     VStack(alignment: .leading) {
                         Text("• 自动同步: mpv的--autosync")
