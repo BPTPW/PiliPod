@@ -945,12 +945,6 @@
         }
       }
     },
-    "不改写 Host，优先接口返回的 backup URL" : {
-
-    },
-    "不改写 Host，优先接口返回的主 URL" : {
-
-    },
     "不透明度" : {
       "localizations" : {
         "en" : {

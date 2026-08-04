@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import UIKit
 
 struct SearchView: View {
     private let searchResultsTopID = "searchResultsTop"
@@ -20,7 +21,7 @@ struct SearchView: View {
     }
 
     @Environment(\.dismiss) private var dismiss
-    @FocusState private var isSearchFieldFocused: Bool
+    @State private var isSearchFieldFocused = false
     @State private var searchText = ""
     @State private var searchSuggestions: [SearchSuggestItem] = []
     @State private var isLoadingSuggestions = false
@@ -71,14 +72,12 @@ struct SearchView: View {
                     Image(systemName: "magnifyingglass")
                         .foregroundStyle(.secondary)
 
-                    TextField("搜索视频", text: $searchText)
-                        .focused($isSearchFieldFocused)
-                        .textInputAutocapitalization(.never)
-                        .autocorrectionDisabled()
-                        .submitLabel(.search)
-                        .onSubmit {
-                            submitSearch()
-                        }
+                    SearchTextField(
+                        text: $searchText,
+                        isFocused: $isSearchFieldFocused,
+                        onSubmit: { _ in submitSearch() }
+                    )
+                    .frame(maxWidth: .infinity)
 
                     if !searchText.isEmpty {
                         Button {
@@ -948,6 +947,85 @@ private enum SearchHistoryStore {
 
     static func save(_ history: [String]) {
         UserDefaults.standard.set(Array(history.prefix(maximumCount)), forKey: storageKey)
+    }
+}
+
+private struct SearchTextField: UIViewRepresentable {
+    @Binding var text: String
+    @Binding var isFocused: Bool
+    let onSubmit: (String) -> Void
+
+    func makeUIView(context: Context) -> UITextField {
+        let textField = UITextField()
+        textField.delegate = context.coordinator
+        textField.borderStyle = .none
+        textField.backgroundColor = .clear
+        textField.placeholder = "搜索视频"
+        textField.font = .preferredFont(forTextStyle: .body)
+        textField.textColor = .label
+        textField.autocapitalizationType = .none
+        textField.autocorrectionType = .no
+        textField.returnKeyType = .search
+        textField.setContentHuggingPriority(.defaultLow, for: .horizontal)
+        textField.addTarget(
+            context.coordinator,
+            action: #selector(Coordinator.textDidChange),
+            for: .editingChanged
+        )
+        return textField
+    }
+
+    func updateUIView(_ textField: UITextField, context: Context) {
+        if textField.text != text, textField.markedTextRange == nil {
+            textField.text = text
+        }
+
+        if isFocused, !textField.isFirstResponder {
+            textField.becomeFirstResponder()
+        } else if !isFocused, textField.isFirstResponder {
+            textField.resignFirstResponder()
+        }
+    }
+
+    func makeCoordinator() -> Coordinator {
+        Coordinator(parent: self)
+    }
+
+    final class Coordinator: NSObject, UITextFieldDelegate {
+        private var parent: SearchTextField
+
+        init(parent: SearchTextField) {
+            self.parent = parent
+        }
+
+        @objc func textDidChange(_ textField: UITextField) {
+            parent.text = textField.text ?? ""
+        }
+
+        func textFieldShouldReturn(_ textField: UITextField) -> Bool {
+            if textField.markedTextRange != nil {
+                textField.unmarkText()
+            }
+
+            let submittedText = textField.text ?? ""
+            parent.text = submittedText
+            parent.onSubmit(submittedText)
+            parent.isFocused = false
+            textField.resignFirstResponder()
+            return false
+        }
+
+        func textFieldDidBeginEditing(_ textField: UITextField) {
+            parent.isFocused = true
+        }
+
+        func textFieldDidEndEditing(_ textField: UITextField) {
+            if textField.markedTextRange != nil {
+                textField.unmarkText()
+            }
+            parent.text = textField.text ?? ""
+            parent.isFocused = false
+        }
     }
 }
 
