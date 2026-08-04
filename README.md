@@ -13,6 +13,9 @@ iOS (测试平台为iOS26)
     - [x] 网页版推荐视频
     - [x] 直播推荐
     - [x] 热门
+    - [ ] 分区
+- [ ] 用户动态
+    - [ ] 关注动态
 - [x] 视频播放
     - [x] 点赞/投币/收藏
     - [x] 添加稍后再看
@@ -21,6 +24,7 @@ iOS (测试平台为iOS26)
     - [x] 推荐视频
     - [x] 画质切换
     - [x] HDR/杜比视界视频播放
+    - [ ] 线路切换
 - [x] 直播播放
     - [x] 接收消息
     - [x] 画质切换
@@ -31,14 +35,14 @@ iOS (测试平台为iOS26)
 - [x] 弹幕
     - [x] 弹幕显示
     - [x] 等级屏蔽
-    - [ ] 刷新率调整
     - [ ] 发送弹幕
 - [x] 搜索
     - [x] 综合搜索
     - [x] 分类搜索
+    - [x] 搜索历史
 - [x] 设置
-    - [ ] 推荐流
-    - [ ] 播放器
+    - [x] 推荐流
+    - [x] 播放器
     - [x] 音视频
     - [x] 弹幕
     - [x] 缓存管理
@@ -50,6 +54,7 @@ iOS (测试平台为iOS26)
 ## 致谢
 
 - [PiliPlus](https://github.com/bggRGjQaUbCoE/PiliPlus/)
+- [cilicili](https://github.com/Rone89/cilicili)
 - [bilibili-API-collect](https://github.com/SocialSisterYi/bilibili-API-collect)
 - [MPVKit](https://github.com/mpvkit/MPVKit)
 
