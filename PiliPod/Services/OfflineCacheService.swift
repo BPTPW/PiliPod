@@ -148,6 +148,10 @@ enum OfflineCacheStorage {
             let stream = DashStream(
                 videoURL: directoryURL.appendingPathComponent(manifest.videoFileName),
                 audioURL: directoryURL.appendingPathComponent(manifest.audioFileName),
+                videoURLCandidates: [directoryURL.appendingPathComponent(manifest.videoFileName)],
+                audioURLCandidates: [directoryURL.appendingPathComponent(manifest.audioFileName)],
+                originalVideoURLs: [directoryURL.appendingPathComponent(manifest.videoFileName)],
+                originalAudioURLs: [directoryURL.appendingPathComponent(manifest.audioFileName)],
                 qualityCode: item.qualityCode,
                 videoCodec: item.videoCodec,
                 audioCodec: item.audioCodec,

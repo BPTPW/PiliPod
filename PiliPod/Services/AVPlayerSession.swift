@@ -115,18 +115,25 @@ final class AVPlayerSession: NSObject, AVPictureInPictureControllerDelegate {
         errorMessage = nil
         prepareTask = Task { [weak self] in
             guard let self else { return }
-            do {
-                let bridge = try await LocalDASHHLSBridge.make(stream: stream, headers: self.headers)
-                guard !Task.isCancelled, requestGeneration == self.generation else { bridge.stop(); return }
-                self.bridge = bridge
-                let asset = AVURLAsset(url: bridge.masterPlaylistURL)
-                let item = AVPlayerItem(asset: asset)
-                self.install(item)
-            } catch is CancellationError {
-            } catch {
-                guard requestGeneration == self.generation else { return }
-                self.fail(error)
+            var lastError: Error?
+            for index in 0 ..< max(stream.videoURLCandidates.count, stream.audioURLCandidates.count) {
+                guard let candidate = stream.fallbackStream(at: index) else { continue }
+                do {
+                    let bridge = try await LocalDASHHLSBridge.make(stream: candidate, headers: self.headers)
+                    guard !Task.isCancelled, requestGeneration == self.generation else { bridge.stop(); return }
+                    self.bridge = bridge
+                    let asset = AVURLAsset(url: bridge.masterPlaylistURL)
+                    let item = AVPlayerItem(asset: asset)
+                    self.install(item)
+                    return
+                } catch is CancellationError {
+                    return
+                } catch {
+                    lastError = error
+                }
             }
+            guard requestGeneration == self.generation else { return }
+            self.fail(lastError ?? PlaybackError.preparationFailed)
         }
     }
 

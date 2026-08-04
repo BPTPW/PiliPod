@@ -132,6 +132,14 @@ private struct AudioVideoSettingsView: View {
                 Text("所选编码不可用时会自动回退到其他可用编码。")
             }
 
+            Section("播放") {
+                NavigationLink {
+                    PlaybackCDNRouteSettingsView(selection: $settings.playbackCDNRoute)
+                } label: {
+                    selectionRow(title: "CDN 线路", value: settings.playbackCDNRoute.title)
+                }
+            }
+
             Section {
                 Toggle("增强 HDR 视频显示", isOn: $settings.highDynamicRangeEnabled)
                     .tint(Color("BiliPink"))

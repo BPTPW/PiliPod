@@ -656,7 +656,7 @@ class VideoDetailViewModel {
         player = newPlayer
         playerRebuildToken = UUID()
 
-        newPlayer.play(stream: stream)
+        newPlayer.play(stream: stream.applying(route: AudioVideoSettingsStore.load().playbackCDNRoute))
         newPlayer.setPlaybackRate(resumeRate)
 
         // Restore after readiness with retries; fixed delay is too flaky on rotation.

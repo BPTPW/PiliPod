@@ -98,6 +98,9 @@ class MPVKitPlayer: NSObject {
     private var displayLink: CADisplayLink?
     private var uiRefreshTimer: Timer?
     private var pendingStream: DashStream?
+    private var activeStream: DashStream?
+    private var activeStreamCandidateIndex = 0
+    private var playbackStartUptime: TimeInterval?
     private var pendingDirectVideoURL: URL?
     private var playbackIntent = false
     private var lastObservedPlaybackTime: TimeInterval = 0
@@ -199,6 +202,9 @@ class MPVKitPlayer: NSObject {
             return
         }
         pendingStream = stream
+        activeStream = stream
+        activeStreamCandidateIndex = 0
+        playbackStartUptime = ProcessInfo.processInfo.systemUptime
         pendingDirectVideoURL = nil
         guard let controller else { return }
 
@@ -224,6 +230,9 @@ class MPVKitPlayer: NSObject {
         }
         pendingDirectVideoURL = videoURL
         pendingStream = nil
+        activeStream = nil
+        activeStreamCandidateIndex = 0
+        playbackStartUptime = nil
         guard let controller else { return }
 
         controller.setAllowsViewportVideoRebind(false)
@@ -274,6 +283,9 @@ class MPVKitPlayer: NSObject {
     func stop() {
         if let avPlayerSession { avPlayerSession.stop(); return }
         controller?.stop()
+        activeStream = nil
+        activeStreamCandidateIndex = 0
+        playbackStartUptime = nil
         playbackIntent = false
         isPlaying = false
         isBuffering = false
@@ -429,6 +441,29 @@ class MPVKitPlayer: NSObject {
             stalledFor >= Self.bufferingStallThreshold &&
             cacheAheadIsLow
         isBuffering = pausedForCache || stalledWhileTryingToPlay
+
+        // MPVKit exposes no structured network error callback here. If a new
+        // route never starts at all, retry the original playurl candidates once
+        // the startup has genuinely stalled; this avoids losing the API's
+        // primary/backup URLs after a manual CDN rewrite fails.
+        if playbackIntent,
+           currentTime <= 0.05,
+           let playbackStartUptime,
+           now - playbackStartUptime >= 8,
+           let activeStream,
+           let fallback = activeStream.fallbackStream(at: activeStreamCandidateIndex + 1)
+        {
+            activeStreamCandidateIndex += 1
+            self.playbackStartUptime = now
+            controller.loadFile(fallback.videoURL)
+            controller.addAudio(fallback.audioURL)
+            controller.play()
+            return
+        }
+
+        if currentTime > 0.05 {
+            playbackStartUptime = nil
+        }
 
         if playbackIntent {
             if reachedPlaybackEnd && isControllerPaused {

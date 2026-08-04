@@ -12,6 +12,13 @@ import Foundation
 struct DashStream {
     let videoURL: URL
     let audioURL: URL
+    /// Ordered routes used for startup/failure recovery. The first is the
+    /// selected route; original playurl URLs remain behind it as fallbacks.
+    let videoURLCandidates: [URL]
+    let audioURLCandidates: [URL]
+    /// API-provided candidates before any user-selected CDN host override.
+    let originalVideoURLs: [URL]
+    let originalAudioURLs: [URL]
     let qualityCode: Int
     let videoCodec: String
     let audioCodec: String
@@ -25,6 +32,63 @@ struct DashStream {
 
     var aspectRatio: CGFloat {
         CGFloat(width) / CGFloat(height)
+    }
+
+    func fallbackStream(at index: Int) -> DashStream? {
+        guard index >= 0,
+              index < max(videoURLCandidates.count, audioURLCandidates.count)
+        else { return nil }
+        let video = videoURLCandidates[min(index, videoURLCandidates.count - 1)]
+        let audio = audioURLCandidates[min(index, audioURLCandidates.count - 1)]
+        return DashStream(
+            videoURL: video,
+            audioURL: audio,
+            videoURLCandidates: [video],
+            audioURLCandidates: [audio],
+            originalVideoURLs: [video],
+            originalAudioURLs: [audio],
+            qualityCode: qualityCode,
+            videoCodec: videoCodec,
+            audioCodec: audioCodec,
+            width: width,
+            height: height,
+            fps: fps,
+            videoBitrate: videoBitrate,
+            audioBitrate: audioBitrate,
+            videoSegmentBase: videoSegmentBase,
+            audioSegmentBase: audioSegmentBase
+        )
+    }
+
+    func applying(route: PlaybackCDNRoute) -> DashStream {
+        let videoCandidates = PlaybackCDNPlanner.candidates(
+            primary: originalVideoURLs[0],
+            backups: Array(originalVideoURLs.dropFirst()),
+            route: route
+        )
+        let audioCandidates = PlaybackCDNPlanner.candidates(
+            primary: originalAudioURLs[0],
+            backups: Array(originalAudioURLs.dropFirst()),
+            route: route
+        )
+        return DashStream(
+            videoURL: videoCandidates[0],
+            audioURL: audioCandidates[0],
+            videoURLCandidates: videoCandidates,
+            audioURLCandidates: audioCandidates,
+            originalVideoURLs: originalVideoURLs,
+            originalAudioURLs: originalAudioURLs,
+            qualityCode: qualityCode,
+            videoCodec: videoCodec,
+            audioCodec: audioCodec,
+            width: width,
+            height: height,
+            fps: fps,
+            videoBitrate: videoBitrate,
+            audioBitrate: audioBitrate,
+            videoSegmentBase: videoSegmentBase,
+            audioSegmentBase: audioSegmentBase
+        )
     }
 }
 
@@ -173,9 +237,7 @@ class DashStreamSelector {
 
     static func selectOptimalStream(from data: PlayUrlResponse) -> DashStream? {
         guard let video = selectBestVideoStream(from: data.data.dash.video),
-              let audio = selectBestAudioStream(from: data.data.dash.audio),
-              let videoURL = URL(string: video.baseUrl),
-              let audioURL = URL(string: audio.baseUrl)
+              let audio = selectBestAudioStream(from: data.data.dash.audio)
         else {
             return nil
         }
@@ -184,9 +246,9 @@ class DashStreamSelector {
         let fps = frameRateParts.count == 2 ?
             Int(frameRateParts[0]) ?? 30 : Int(video.frameRate) ?? 30
 
-        return DashStream(
-            videoURL: videoURL,
-            audioURL: audioURL,
+        return makeStream(
+            video: video,
+            audio: audio,
             qualityCode: video.id,
             videoCodec: video.codecs,
             audioCodec: audio.codecs,
@@ -210,9 +272,7 @@ class DashStreamSelector {
             qualityCode: qualityCode,
             preferredCodec: preferredCodec
         ),
-            let audio = selectBestAudioStream(from: data.data.dash.audio),
-            let videoURL = URL(string: video.baseUrl),
-            let audioURL = URL(string: audio.baseUrl)
+            let audio = selectBestAudioStream(from: data.data.dash.audio)
         else {
             return nil
         }
@@ -221,9 +281,9 @@ class DashStreamSelector {
         let fps = frameRateParts.count == 2 ?
             Int(frameRateParts[0]) ?? 30 : Int(video.frameRate) ?? 30
 
-        return DashStream(
-            videoURL: videoURL,
-            audioURL: audioURL,
+        return makeStream(
+            video: video,
+            audio: audio,
             qualityCode: video.id,
             videoCodec: video.codecs,
             audioCodec: audio.codecs,
@@ -234,6 +294,51 @@ class DashStreamSelector {
             audioBitrate: audio.bandwidth,
             videoSegmentBase: video.segmentBase,
             audioSegmentBase: audio.segmentBase
+        )
+    }
+
+    private static func makeStream(
+        video: DASHVideo,
+        audio: DASHAudio,
+        qualityCode: Int,
+        videoCodec: String,
+        audioCodec: String,
+        width: Int,
+        height: Int,
+        fps: Int,
+        videoBitrate: Int,
+        audioBitrate: Int,
+        videoSegmentBase: DASHSegmentBase?,
+        audioSegmentBase: DASHSegmentBase?
+    ) -> DashStream? {
+        guard let videoPrimary = URL(string: video.baseUrl), let audioPrimary = URL(string: audio.baseUrl) else {
+            return nil
+        }
+        let videoBackups = (video.backupUrl ?? []).compactMap(URL.init(string:))
+        let audioBackups = (audio.backupUrl ?? []).compactMap(URL.init(string:))
+        let route = AudioVideoSettingsStore.load().playbackCDNRoute
+        let videoCandidates = PlaybackCDNPlanner.candidates(primary: videoPrimary, backups: videoBackups, route: route)
+        let audioCandidates = PlaybackCDNPlanner.candidates(primary: audioPrimary, backups: audioBackups, route: route)
+        guard let videoURL = videoCandidates.first, let audioURL = audioCandidates.first else { return nil }
+
+        PlaybackCDNProbeURLStore.shared.update([videoPrimary] + videoBackups + [audioPrimary] + audioBackups)
+        return DashStream(
+            videoURL: videoURL,
+            audioURL: audioURL,
+            videoURLCandidates: videoCandidates,
+            audioURLCandidates: audioCandidates,
+            originalVideoURLs: [videoPrimary] + videoBackups,
+            originalAudioURLs: [audioPrimary] + audioBackups,
+            qualityCode: qualityCode,
+            videoCodec: videoCodec,
+            audioCodec: audioCodec,
+            width: width,
+            height: height,
+            fps: fps,
+            videoBitrate: videoBitrate,
+            audioBitrate: audioBitrate,
+            videoSegmentBase: videoSegmentBase,
+            audioSegmentBase: audioSegmentBase
         )
     }
 }
