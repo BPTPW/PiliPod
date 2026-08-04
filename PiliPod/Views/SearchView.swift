@@ -42,6 +42,9 @@ struct SearchView: View {
     @State private var videoHasMorePages = false
     @State private var userHasMorePages = false
     @State private var isLoadingMore = false
+    @State private var searchHistory = SearchHistoryStore.load()
+    @State private var isSearchHistoryExpanded = false
+    @State private var isClearSearchHistoryConfirmationPresented = false
     @State private var selectedVideo: VideoItem?
     @State private var selectedUserSpaceRoute: SearchUserSpaceRoute?
     @Namespace private var videoHeroNamespace
@@ -124,22 +127,14 @@ struct SearchView: View {
         .navigationBarHidden(true)
         .toolbar(.hidden, for: .tabBar)
         .navigationDestination(item: $selectedVideo) { video in
-            if #available(iOS 18.0, *) {
-                VideoDetailPage(
-                    video: video,
-                    namespace: videoHeroNamespace,
-                    onBack: { selectedVideo = nil }
-                )
-                .navigationTransition(
-                    .zoom(sourceID: "videoHero.\(video.bvid)", in: videoHeroNamespace)
-                )
-            } else {
-                VideoDetailPage(
-                    video: video,
-                    namespace: videoHeroNamespace,
-                    onBack: { selectedVideo = nil }
-                )
-            }
+            VideoDetailPage(
+                video: video,
+                namespace: videoHeroNamespace,
+                onBack: { selectedVideo = nil }
+            )
+            .navigationTransition(
+                .zoom(sourceID: "videoHero.\(video.bvid)", in: videoHeroNamespace)
+            )
         }
         .navigationDestination(item: $selectedUserSpaceRoute) { route in
             UserSpaceView(
@@ -159,6 +154,14 @@ struct SearchView: View {
         }
         .onChange(of: searchText) { newValue in
             handleSearchTextChange(newValue)
+        }
+        .alert("清空搜索历史", isPresented: $isClearSearchHistoryConfirmationPresented) {
+            Button("取消", role: .cancel) {}
+            Button("清空", role: .destructive) {
+                clearSearchHistory()
+            }
+        } message: {
+            Text("确定要清空全部搜索历史吗")
         }
         .animation(.bouncy(duration: 0.42, extraBounce: 0.12), value: shouldShowSuggestions)
     }
@@ -219,7 +222,7 @@ struct SearchView: View {
     private var discoveryContent: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 24) {
-                if isLoadingDiscovery && trendingItems.isEmpty && recommendItems.isEmpty {
+                if isLoadingDiscovery && trendingItems.isEmpty && recommendItems.isEmpty && searchHistory.isEmpty {
                     ProgressView("加载中…")
                         .frame(maxWidth: .infinity, minHeight: 180)
                 } else {
@@ -256,6 +259,10 @@ struct SearchView: View {
                                 }
                             }
                         }
+                    }
+
+                    if !searchHistory.isEmpty {
+                        searchHistorySection
                     }
 
                     if !recommendItems.isEmpty {
@@ -541,6 +548,69 @@ struct SearchView: View {
         }
     }
 
+    private var searchHistorySection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Text("搜索历史")
+                    .font(.headline)
+                    .foregroundStyle(.primary)
+
+                Spacer()
+
+                Button {
+                    isClearSearchHistoryConfirmationPresented = true
+                } label: {
+                    Image(systemName: "trash")
+                        .font(.system(size: 14, weight: .medium))
+                        .foregroundStyle(.secondary)
+                        .frame(width: 32, height: 28)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("清空搜索历史")
+
+                Button {
+                    withAnimation(.easeInOut(duration: 0.2)) {
+                        isSearchHistoryExpanded.toggle()
+                    }
+                } label: {
+                    Image(systemName: "chevron.down")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundStyle(.secondary)
+                        .rotationEffect(.degrees(isSearchHistoryExpanded ? 180 : 0))
+                        .frame(width: 32, height: 28)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(isSearchHistoryExpanded ? "收起搜索历史" : "展开搜索历史")
+            }
+
+            SearchHistoryFlowLayout(maximumRows: isSearchHistoryExpanded ? nil : 2) {
+                ForEach(searchHistory, id: \.self) { keyword in
+                    Button {
+                        submitKeyword(keyword)
+                    } label: {
+                        Text(keyword)
+                            .font(.subheadline)
+                            .foregroundStyle(.primary)
+                            .lineLimit(1)
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 5)
+                    }
+                    .buttonStyle(.plain)
+                    .glassEffect(.regular.interactive(), in: .capsule)
+                    .contextMenu {
+                        Button(role: .destructive) {
+                            deleteSearchHistoryItem(keyword)
+                        } label: {
+                            Label("删除", systemImage: "trash")
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     private func submitKeyword(_ keyword: String) {
         searchText = keyword
         submitSearch()
@@ -560,6 +630,7 @@ struct SearchView: View {
             return
         }
 
+        recordSearchKeyword(keyword)
         activeSearchKeyword = keyword
         selectedTab = .comprehensive
         isSearchFieldFocused = false
@@ -773,6 +844,24 @@ struct SearchView: View {
         isLoadingMore = false
     }
 
+    private func recordSearchKeyword(_ keyword: String) {
+        var updatedHistory = searchHistory.filter { $0 != keyword }
+        updatedHistory.insert(keyword, at: 0)
+        searchHistory = Array(updatedHistory.prefix(SearchHistoryStore.maximumCount))
+        SearchHistoryStore.save(searchHistory)
+    }
+
+    private func deleteSearchHistoryItem(_ keyword: String) {
+        searchHistory.removeAll { $0 == keyword }
+        SearchHistoryStore.save(searchHistory)
+    }
+
+    private func clearSearchHistory() {
+        searchHistory = []
+        isSearchHistoryExpanded = false
+        SearchHistoryStore.save(searchHistory)
+    }
+
     @MainActor
     private func focusSearchField() async {
         try? await Task.sleep(for: .milliseconds(150))
@@ -834,6 +923,113 @@ private struct SearchUserSpaceRoute: Identifiable, Hashable {
     let mid: Int
 
     var id: Int { mid }
+}
+
+private enum SearchHistoryStore {
+    static let maximumCount = 30
+    private static let storageKey = "PiliPod.searchHistory"
+
+    static func load() -> [String] {
+        let savedHistory = UserDefaults.standard.stringArray(forKey: storageKey) ?? []
+        var uniqueHistory: [String] = []
+
+        for keyword in savedHistory {
+            let trimmedKeyword = keyword.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !trimmedKeyword.isEmpty, !uniqueHistory.contains(trimmedKeyword) else { continue }
+            uniqueHistory.append(trimmedKeyword)
+        }
+
+        let history = Array(uniqueHistory.prefix(maximumCount))
+        if history != savedHistory {
+            save(history)
+        }
+        return history
+    }
+
+    static func save(_ history: [String]) {
+        UserDefaults.standard.set(Array(history.prefix(maximumCount)), forKey: storageKey)
+    }
+}
+
+private struct SearchHistoryFlowLayout: Layout {
+    var horizontalSpacing: CGFloat = 8
+    var verticalSpacing: CGFloat = 10
+    var maximumRows: Int?
+
+    func sizeThatFits(
+        proposal: ProposedViewSize,
+        subviews: Subviews,
+        cache: inout Void
+    ) -> CGSize {
+        let layout = makeLayout(for: proposal, subviews: subviews)
+        return CGSize(width: layout.width, height: layout.height)
+    }
+
+    func placeSubviews(
+        in bounds: CGRect,
+        proposal: ProposedViewSize,
+        subviews: Subviews,
+        cache: inout Void
+    ) {
+        let layout = makeLayout(
+            for: ProposedViewSize(width: bounds.width, height: proposal.height),
+            subviews: subviews
+        )
+
+        for item in layout.items {
+            subviews[item.index].place(
+                at: CGPoint(x: bounds.minX + item.origin.x, y: bounds.minY + item.origin.y),
+                proposal: ProposedViewSize(item.size)
+            )
+        }
+    }
+
+    private func makeLayout(for proposal: ProposedViewSize, subviews: Subviews) -> FlowLayoutResult {
+        let availableWidth = proposal.width ?? .greatestFiniteMagnitude
+        let itemSizes = subviews.map { subview in
+            let size = subview.sizeThatFits(ProposedViewSize(width: availableWidth, height: nil))
+            return CGSize(width: min(size.width, availableWidth), height: size.height)
+        }
+        var items: [FlowLayoutItem] = []
+        var currentX: CGFloat = 0
+        var currentY: CGFloat = 0
+        var rowHeight: CGFloat = 0
+        var row = 1
+        var usedWidth: CGFloat = 0
+
+        for (index, size) in itemSizes.enumerated() {
+            let spacing = currentX == 0 ? 0 : horizontalSpacing
+            if currentX > 0, currentX + spacing + size.width > availableWidth {
+                guard maximumRows == nil || row < maximumRows! else { break }
+                currentY += rowHeight + verticalSpacing
+                currentX = 0
+                rowHeight = 0
+                row += 1
+            }
+
+            let x = currentX == 0 ? 0 : currentX + horizontalSpacing
+            items.append(FlowLayoutItem(index: index, origin: CGPoint(x: x, y: currentY), size: size))
+            currentX = x + size.width
+            rowHeight = max(rowHeight, size.height)
+            usedWidth = max(usedWidth, currentX)
+        }
+
+        let width = proposal.width ?? usedWidth
+        let height = items.isEmpty ? 0 : currentY + rowHeight
+        return FlowLayoutResult(items: items, width: width, height: height)
+    }
+}
+
+private struct FlowLayoutResult {
+    let items: [FlowLayoutItem]
+    let width: CGFloat
+    let height: CGFloat
+}
+
+private struct FlowLayoutItem {
+    let index: Int
+    let origin: CGPoint
+    let size: CGSize
 }
 
 #Preview {
