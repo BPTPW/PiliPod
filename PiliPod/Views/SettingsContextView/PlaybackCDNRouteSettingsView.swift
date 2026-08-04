@@ -176,7 +176,7 @@ private struct PlaybackCDNAutoTestRecordView: View {
                     Text("在清除记录后，下次播放视频会重新测试最优线路。")
                 }
 
-                Section("各线路响应") {
+                Section("响应情况") {
                     ForEach(record.results) { result in
                         HStack {
                             Text(result.route.title)

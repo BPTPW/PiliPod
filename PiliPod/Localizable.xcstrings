@@ -219,7 +219,14 @@
       "shouldTranslate" : false
     },
     "%llds" : {
-
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%llds"
+          }
+        }
+      }
     },
     "%lld个内容 %@" : {
       "localizations" : {
@@ -345,10 +352,24 @@
       }
     },
     "CDN 线路" : {
-
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "CDN"
+          }
+        }
+      }
     },
     "CDN 线路选择只会覆写媒体播放 URL 的 Host。" : {
-
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "CDN の選択により、メディア再生 URL の Host のみが上書きされます。"
+          }
+        }
+      }
     },
     "CID (可选)" : {
       "localizations" : {
@@ -1016,10 +1037,24 @@
       }
     },
     "仅在MPVKit内核下支持设置。" : {
-
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "MPVKit コアでのみ設定が可能です。"
+          }
+        }
+      }
     },
     "仅在MPVKit内核下支持设置。AVPlayer支持HDR与杜比视界。" : {
-
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "MPVKit コアでのみ設定が可能です。AVPlayerはHDRおよびDolby Visionに対応しています。"
+          }
+        }
+      }
     },
     "会清理 URL 响应缓存、Library/Caches 和 tmp 临时文件。封面、头像、表情和预览图会在下次使用时重新建立缓存。" : {
       "localizations" : {
@@ -1270,7 +1305,14 @@
       }
     },
     "最终选择" : {
-
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "最終の選択"
+          }
+        }
+      }
     },
     "分享图片" : {
       "localizations" : {
@@ -1577,10 +1619,14 @@
       }
     },
     "取消测速" : {
-
-    },
-    "各线路响应" : {
-
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "キャンセル"
+          }
+        }
+      }
     },
     "同步" : {
       "localizations" : {
@@ -1610,6 +1656,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "バックグラウンド再生"
+          }
+        }
+      }
+    },
+    "响应情况" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "応答状況"
           }
         }
       }
@@ -1647,7 +1703,14 @@
       }
     },
     "在清除记录后，下次播放视频会重新测试最优线路。" : {
-
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "履歴を削除すると、次回動画を再生する際に最適な経路が再テストされます。"
+          }
+        }
+      }
     },
     "在视频封面显示视频标记" : {
       "localizations" : {
@@ -1906,7 +1969,14 @@
       }
     },
     "将使用当前已拿到的真实播放 URL（保留原路径和签名）进行并行测速。" : {
-
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "実際の再生URLを使用して、速度測定を行います。"
+          }
+        }
+      }
     },
     "屏蔽" : {
       "localizations" : {
@@ -2069,7 +2139,14 @@
       }
     },
     "展开搜索历史" : {
-
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "履歴を表示"
+          }
+        }
+      }
     },
     "已关注" : {
       "localizations" : {
@@ -2088,10 +2165,24 @@
       }
     },
     "已关闭" : {
-
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "オフ"
+          }
+        }
+      }
     },
     "已开启" : {
-
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "オン"
+          }
+        }
+      }
     },
     "弹幕" : {
       "localizations" : {
@@ -2158,7 +2249,14 @@
       }
     },
     "当前没有可用的真实播放 URL，将使用 Host 连通性参考请求，403/959 仅代表 CDN 拒绝裸探测，不代表播放失败。" : {
-
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "今、利用可能な実際の再生 URL がないので、Host 接続性参照リクエストが使用されます。403/959 は、CDNがベアプローブを拒否したことを示すだけであり、再生に失敗したことを意味するものではありません。"
+          }
+        }
+      }
     },
     "当前版本" : {
       "localizations" : {
@@ -2401,7 +2499,14 @@
       }
     },
     "搜索历史" : {
-
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "履歴"
+          }
+        }
+      }
     },
     "搜索视频" : {
       "localizations" : {
@@ -2420,7 +2525,14 @@
       }
     },
     "播放" : {
-
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "再生"
+          }
+        }
+      }
     },
     "播放器" : {
       "localizations" : {
@@ -2439,7 +2551,14 @@
       }
     },
     "播放器内核" : {
-
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "プレーヤーのコア"
+          }
+        }
+      }
     },
     "播放器状态" : {
       "localizations" : {
@@ -2457,14 +2576,15 @@
         }
       }
     },
-    "播放记录" : {
-
-    },
-    "播放记录上报间隔" : {
-
-    },
     "收起搜索历史" : {
-
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "履歴を非表示にする"
+          }
+        }
+      }
     },
     "敬请期待" : {
       "localizations" : {
@@ -2659,7 +2779,14 @@
       }
     },
     "暂无自动测试记录" : {
-
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "テストの記録はありません"
+          }
+        }
+      }
     },
     "暂无评论" : {
       "localizations" : {
@@ -2886,16 +3013,44 @@
       }
     },
     "测试时间" : {
-
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "試験の時間"
+          }
+        }
+      }
     },
     "测试视频 URL" : {
-
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ビデオのURL"
+          }
+        }
+      }
     },
     "测试间隔" : {
-
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "試験の間隔"
+          }
+        }
+      }
     },
     "测速" : {
-
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "速度測定"
+          }
+        }
+      }
     },
     "海量弹幕允许重叠" : {
       "localizations" : {
@@ -2994,13 +3149,34 @@
       }
     },
     "清空" : {
-
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "クリア"
+          }
+        }
+      }
     },
     "清空搜索历史" : {
-
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "全ての履歴を消去する"
+          }
+        }
+      }
     },
     "清除记录" : {
-
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "履歴を削除する"
+          }
+        }
+      }
     },
     "源代码仓库" : {
       "localizations" : {
@@ -3083,10 +3259,24 @@
       }
     },
     "画中画" : {
-
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "小窓"
+          }
+        }
+      }
     },
     "画中画仅支持 AVPlayer 内核。" : {
-
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "小窓の機能は、AVPlayer コアのみに対応しています。"
+          }
+        }
+      }
     },
     "画质" : {
       "localizations" : {
@@ -3185,7 +3375,14 @@
       }
     },
     "直播小窗播放" : {
-
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ライブの小窓再生"
+          }
+        }
+      }
     },
     "直播画质" : {
       "localizations" : {
@@ -3300,7 +3497,14 @@
       }
     },
     "确定要清空全部搜索历史吗" : {
-
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "検索履歴をすべて削除しますか"
+          }
+        }
+      }
     },
     "确认使用超大缓冲" : {
       "localizations" : {
@@ -3367,7 +3571,14 @@
       }
     },
     "视频小窗播放" : {
-
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ビデオの小窓再生"
+          }
+        }
+      }
     },
     "视频流信息" : {
       "localizations" : {
@@ -3744,10 +3955,24 @@
       }
     },
     "自动测试" : {
-
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "自動テスト"
+          }
+        }
+      }
     },
     "自动测试记录" : {
-
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "自動テストの記録"
+          }
+        }
+      }
     },
     "获赞" : {
       "localizations" : {
@@ -3793,6 +4018,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "履歴"
+          }
+        }
+      }
+    },
+    "观看记录上报间隔" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "履歴の送信間隔"
           }
         }
       }

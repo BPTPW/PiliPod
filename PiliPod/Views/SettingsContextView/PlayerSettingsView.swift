@@ -23,7 +23,7 @@ private struct PlayerSettingsView: View {
 
     var body: some View {
         Form {
-            Section("播放器内核") {
+            Section {
                 Picker("播放器内核", selection: $settings.playerCore) {
                     ForEach(PlayerCore.allCases, id: \.self) { core in
                         Text(core.title).tag(core)
@@ -52,8 +52,8 @@ private struct PlayerSettingsView: View {
                     Text("画中画仅支持 AVPlayer 内核。")
                 }
             }
-            Section("播放记录") {
-                Picker("播放记录上报间隔", selection: $settings.historyReportInterval) {
+            Section {
+                Picker("观看记录上报间隔", selection: $settings.historyReportInterval) {
                     ForEach(AudioVideoSettings.supportedHistoryReportIntervals, id: \.self) { interval in
                         Text("\(interval)s").tag(interval)
                     }
