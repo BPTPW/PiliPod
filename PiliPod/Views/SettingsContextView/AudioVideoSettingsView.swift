@@ -39,8 +39,6 @@ private struct AudioVideoSettingsView: View {
             Section {
                 Toggle("硬件解码", isOn: $settings.hardwareDecodingEnabled)
                     .tint(Color("BiliPink"))
-            } header: {
-                Text("解码")
             } footer: {
                 Text("如果遇到播放异常请关闭。")
             }
@@ -106,8 +104,6 @@ private struct AudioVideoSettingsView: View {
                         value: usesAVPlayer ? settings.bufferSize.avPlayerTitle : settings.bufferSize.title
                     )
                 }
-            } header: {
-                Text("缓存")
             } footer: {
                 if settings.bufferSize == .huge {
                     Text(bufferWarningText)
@@ -126,13 +122,11 @@ private struct AudioVideoSettingsView: View {
                 } label: {
                     selectionRow(title: "首选编码格式", value: settings.preferredCodec.title)
                 }
-            } header: {
-                Text("编码")
             } footer: {
                 Text("所选编码不可用时会自动回退到其他可用编码。")
             }
 
-            Section("播放") {
+            Section {
                 NavigationLink {
                     PlaybackCDNRouteSettingsView(
                         selection: $settings.playbackCDNRoute,
@@ -155,8 +149,6 @@ private struct AudioVideoSettingsView: View {
                             }
                         }
                     }
-            } header: {
-                Text("高动态范围")
             } footer: {
                 if usesAVPlayer {
                     Text("仅在MPVKit内核下支持设置。AVPlayer支持HDR与杜比视界。")

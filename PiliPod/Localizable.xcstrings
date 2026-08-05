@@ -2524,16 +2524,6 @@
         }
       }
     },
-    "播放" : {
-      "localizations" : {
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "再生"
-          }
-        }
-      }
-    },
     "播放器" : {
       "localizations" : {
         "en" : {
@@ -3794,22 +3784,6 @@
         }
       }
     },
-    "缓存" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Cache"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "キャッシュ"
-          }
-        }
-      }
-    },
     "缓存总大小" : {
       "localizations" : {
         "en" : {
@@ -3886,22 +3860,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "キャッシュ管理"
-          }
-        }
-      }
-    },
-    "编码" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Encoder"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "コーデック"
           }
         }
       }
@@ -4028,22 +3986,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "履歴の送信間隔"
-          }
-        }
-      }
-    },
-    "解码" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Decode"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "デコード"
           }
         }
       }
@@ -4572,22 +4514,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "HDR動画"
-          }
-        }
-      }
-    },
-    "高动态范围" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "HDR"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "ハイダイナミックレンジ"
           }
         }
       }
