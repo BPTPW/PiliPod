@@ -11,6 +11,7 @@ import SwiftUI
 struct PiliPodApp: App {
     init() {
         CacheStorageService.configureSharedURLCacheIfNeeded()
+        ErrorLogService.installUncaughtExceptionHandler()
         LoginImportService.restore()
     }
 

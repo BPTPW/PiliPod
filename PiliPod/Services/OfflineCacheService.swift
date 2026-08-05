@@ -100,6 +100,7 @@ enum OfflineCacheStorage {
             decoder.dateDecodingStrategy = .iso8601
             return try decoder.decode([OfflineCacheItem].self, from: data)
         } catch {
+            ErrorLogService.record(error, context: "读取离线缓存索引")
             print("读取离线缓存索引失败: \(error)")
             return []
         }
@@ -165,6 +166,7 @@ enum OfflineCacheStorage {
             )
             return OfflineCachePlayableAsset(item: item, detail: detail, stream: stream)
         } catch {
+            ErrorLogService.record(error, context: "读取离线缓存视频")
             print("读取离线缓存视频失败: \(error)")
             return nil
         }
@@ -207,6 +209,7 @@ enum OfflineCacheStorage {
                     return lhs.progress < rhs.progress
                 }
         } catch {
+            ErrorLogService.record(error, context: "读取离线弹幕")
             print("读取离线弹幕失败: \(error)")
             return []
         }
@@ -850,6 +853,7 @@ final class OfflineCacheManager: ObservableObject {
                     stream: stream
                 )
             } catch {
+                ErrorLogService.record(error, context: "创建离线缓存")
                 await self.markFailed(itemID: id, message: error.localizedDescription)
             }
         }
@@ -880,6 +884,7 @@ final class OfflineCacheManager: ObservableObject {
                     try FileManager.default.removeItem(at: directoryURL)
                 }
             } catch {
+                ErrorLogService.record(error, context: "删除离线缓存")
                 print("删除离线缓存目录失败: \(error)")
             }
         }
@@ -947,6 +952,7 @@ final class OfflineCacheManager: ObservableObject {
                     await self.markFailed(itemID: itemID, message: error.localizedDescription)
                 }
             } catch {
+                ErrorLogService.record(error, context: "下载离线缓存")
                 await self.markFailed(itemID: itemID, message: error.localizedDescription)
             }
             await self.clearRunningTask(itemID: itemID)
@@ -1194,6 +1200,7 @@ final class OfflineCacheManager: ObservableObject {
         do {
             try OfflineCacheStorage.saveItems(items)
         } catch {
+            ErrorLogService.record(error, context: "保存离线缓存索引")
             print("保存离线缓存索引失败: \(error)")
         }
     }

@@ -59,6 +59,7 @@ final class FollowingListViewModel: ObservableObject {
             totalCount = page.total
             hasMore = shouldLoadMore(loadedCount: items.count, receivedCount: items.count)
         } catch {
+            ErrorLogService.record(error, context: "加载关注列表")
             users = []
             errorMessage = error.localizedDescription
             hasMore = false
@@ -89,6 +90,7 @@ final class FollowingListViewModel: ObservableObject {
             users.append(contentsOf: deduped)
             hasMore = shouldLoadMore(loadedCount: users.count, receivedCount: items.count)
         } catch {
+            ErrorLogService.record(error, context: "加载更多关注")
             errorMessage = error.localizedDescription
             hasMore = false
         }
@@ -117,6 +119,7 @@ final class FollowingListViewModel: ObservableObject {
             searchUsers = page.list ?? []
         } catch {
             guard searchRequestID == requestID else { return }
+            ErrorLogService.record(error, context: "搜索关注列表")
             searchErrorMessage = error.localizedDescription
         }
 

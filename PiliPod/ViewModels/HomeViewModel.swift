@@ -69,6 +69,7 @@ class HomeViewModel {
             let user = try await BiliAPI.shared.fetchMyInfo()
             userFace = user.face
         } catch {
+            ErrorLogService.record(error, context: "加载账号头像")
             print(error)
         }
     }
@@ -120,7 +121,10 @@ class HomeViewModel {
                 // 下拉刷新：将新视频作为独立 section 插入顶部，旧内容放在下方
                 let newSection = VideoSection(title: "上次看到这", videos: newVideos)
                 sections.insert(newSection, at: 0)
-            } catch { print(error) }
+            } catch {
+                ErrorLogService.record(error, context: "刷新推荐视频")
+                print(error)
+            }
 
         case .app:
             do {
@@ -131,7 +135,10 @@ class HomeViewModel {
                 feedCards.insert(contentsOf: cards, at: 0)
                 refreshMarkerIndex = cards.count
                 appNextIdx = nextIdx
-            } catch { print(error) }
+            } catch {
+                ErrorLogService.record(error, context: "刷新推荐视频")
+                print(error)
+            }
         }
     }
 
@@ -154,7 +161,10 @@ class HomeViewModel {
                 if let lastIndex = sections.indices.last {
                     sections[lastIndex].videos.append(contentsOf: moreVideos)
                 }
-            } catch { print(error) }
+            } catch {
+                ErrorLogService.record(error, context: "加载更多推荐视频")
+                print(error)
+            }
 
         case .app:
             do {
@@ -163,7 +173,10 @@ class HomeViewModel {
                 )
                 feedCards.append(contentsOf: cards)
                 appNextIdx = nextIdx
-            } catch { print(error) }
+            } catch {
+                ErrorLogService.record(error, context: "加载更多推荐视频")
+                print(error)
+            }
         }
     }
 
@@ -186,7 +199,10 @@ class HomeViewModel {
                 )
                 sections = [VideoSection(title: nil, videos: videos)]
                 feedCards = []
-            } catch { print(error) }
+            } catch {
+                ErrorLogService.record(error, context: "加载推荐视频")
+                print(error)
+            }
 
         case .app:
             do {
@@ -196,7 +212,10 @@ class HomeViewModel {
                 feedCards = cards
                 sections = []
                 appNextIdx = nextIdx
-            } catch { print(error) }
+            } catch {
+                ErrorLogService.record(error, context: "加载推荐视频")
+                print(error)
+            }
         }
     }
 }

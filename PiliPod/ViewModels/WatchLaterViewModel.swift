@@ -16,6 +16,7 @@ final class WatchLaterViewModel: ObservableObject {
             let data = try await BiliAPI.shared.fetchWatchLaterList()
             videos = (data.list ?? []).map { VideoItem(from: $0) }
         } catch {
+            ErrorLogService.record(error, context: "加载稍后再看")
             videos = []
             errorMessage = error.localizedDescription
         }
@@ -28,6 +29,7 @@ final class WatchLaterViewModel: ObservableObject {
         do {
             try await BiliAPI.shared.removeFromWatchLater(bvid: video.bvid)
         } catch {
+            ErrorLogService.record(error, context: "移除稍后再看")
             videos = previousVideos
             throw error
         }

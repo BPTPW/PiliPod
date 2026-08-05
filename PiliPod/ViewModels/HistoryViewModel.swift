@@ -26,6 +26,7 @@ final class HistoryViewModel: ObservableObject {
             nextCursor = page.cursor
             hasMore = shouldLoadMore(items: items, cursor: page.cursor)
         } catch {
+            ErrorLogService.record(error, context: "加载观看历史")
             videos = []
             errorMessage = error.localizedDescription
             hasMore = false
@@ -64,6 +65,7 @@ final class HistoryViewModel: ObservableObject {
             nextCursor = page.cursor
             hasMore = shouldLoadMore(items: items, cursor: page.cursor)
         } catch {
+            ErrorLogService.record(error, context: "加载更多观看历史")
             errorMessage = error.localizedDescription
             hasMore = false
         }

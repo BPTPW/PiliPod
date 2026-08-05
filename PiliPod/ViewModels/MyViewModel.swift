@@ -27,6 +27,7 @@ final class MyViewModel: ObservableObject {
             user = try await userInfo
             stat = try await userStat
         } catch {
+            ErrorLogService.record(error, context: "加载我的资料")
             print(error)
         }
     }

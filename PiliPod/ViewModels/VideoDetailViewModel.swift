@@ -621,6 +621,7 @@ class VideoDetailViewModel {
                 }
             }
         } catch {
+            ErrorLogService.record(error, context: "加载视频播放信息")
             self.error = error.localizedDescription
         }
     }
@@ -718,6 +719,7 @@ class VideoDetailViewModel {
             let videos = try await BiliAPI.shared.fetchRelatedVideos(bvid: bvid, limit: 40)
             relatedVideos = videos
         } catch {
+            ErrorLogService.record(error, context: "加载相关推荐")
             relatedError = error.localizedDescription
             relatedVideos = []
         }
@@ -766,6 +768,7 @@ class VideoDetailViewModel {
             loadingDanmakuSegments.remove(segmentIndex)
             mergeDanmakuElements(reply.elems, for: segmentIndex)
         } catch {
+            ErrorLogService.record(error, context: "加载视频弹幕")
             loadingDanmakuSegments.remove(segmentIndex)
             danmakuError = error.localizedDescription
         }

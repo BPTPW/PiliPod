@@ -369,6 +369,7 @@ final class AVPlayerSession: NSObject, AVPictureInPictureControllerDelegate {
     /// Playback diagnostics intentionally exclude URLs and request metadata.
     private func logPlaybackFailure(_ error: Error) {
         let nsError = error as NSError
+        ErrorLogService.record(error, context: "AVPlayer 播放失败")
         print("AVPlayer playback failed: domain=\(nsError.domain), code=\(nsError.code)")
     }
 

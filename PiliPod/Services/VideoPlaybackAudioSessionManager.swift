@@ -57,6 +57,7 @@ final class VideoPlaybackAudioSessionManager: ObservableObject {
             installAudioSessionObserversIfNeeded()
             registerRemoteCommandsIfNeeded()
         } catch {
+            ErrorLogService.record(error, context: "激活音频会话")
             print("[AudioSession] Failed to activate audio session: \(error.localizedDescription)")
         }
     }
@@ -68,6 +69,7 @@ final class VideoPlaybackAudioSessionManager: ObservableObject {
             try AVAudioSession.sharedInstance().setActive(false, options: [.notifyOthersOnDeactivation])
             isAudioSessionActive = false
         } catch {
+            ErrorLogService.record(error, context: "停用音频会话")
             print("[AudioSession] Failed to deactivate audio session: \(error.localizedDescription)")
         }
     }
@@ -99,6 +101,7 @@ final class VideoPlaybackAudioSessionManager: ObservableObject {
             do {
                 try ensurePlaybackSessionReady(reason: "updateNowPlaying.playing")
             } catch {
+                ErrorLogService.record(error, context: "刷新播放音频会话")
                 print("[AudioSession] Failed to refresh playback session while playing: \(error.localizedDescription)")
             }
         } else {
@@ -339,6 +342,7 @@ final class VideoPlaybackAudioSessionManager: ObservableObject {
             try ensurePlaybackSessionReady(reason: "interruptionEnded")
             publishNowPlaying(info: playbackInfo, artwork: currentArtworkImage)
         } catch {
+            ErrorLogService.record(error, context: "音频会话中断恢复")
             print("[AudioSession] Failed to recover after interruption: \(error.localizedDescription)")
         }
     }
@@ -353,6 +357,7 @@ final class VideoPlaybackAudioSessionManager: ObservableObject {
             registerRemoteCommandsIfNeeded()
             publishNowPlaying(info: playbackInfo, artwork: currentArtworkImage)
         } catch {
+            ErrorLogService.record(error, context: "媒体服务重置恢复")
             print("[AudioSession] Failed to recover after media services reset: \(error.localizedDescription)")
         }
     }
@@ -364,6 +369,7 @@ final class VideoPlaybackAudioSessionManager: ObservableObject {
             try ensurePlaybackSessionReady(reason: "audioEngineConfigurationChange")
             publishNowPlaying(info: playbackInfo, artwork: currentArtworkImage)
         } catch {
+            ErrorLogService.record(error, context: "音频引擎配置恢复")
             print("[AudioSession] Failed to recover after audio engine configuration change: \(error.localizedDescription)")
         }
     }

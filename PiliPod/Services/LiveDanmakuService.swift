@@ -145,6 +145,7 @@ final class LiveDanmakuService: NSObject {
             startHeartbeat()
             receiveLoop()
         } catch {
+            ErrorLogService.record(error, context: "连接直播弹幕")
             onError?(error.localizedDescription)
         }
     }

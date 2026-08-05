@@ -13,6 +13,7 @@ struct AboutView: View {
     }
 
     @ObservedObject private var loginSession = LoginSession.shared
+    @ObservedObject private var errorLog = ErrorLogService.shared
     @State private var activeImporter: ImportTarget?
     @State private var showImportSheet = false
     @State private var showExportSheet = false
@@ -48,6 +49,22 @@ struct AboutView: View {
                         Image(systemName: "arrow.up.right.square")
                             .font(.system(size: 13, weight: .semibold))
                             .foregroundStyle(.primary)
+                    }
+                }
+            }
+
+            Section {
+                NavigationLink {
+                    ErrorLogView()
+                } label: {
+                    HStack {
+                        Text("错误日志")
+                            .foregroundStyle(.primary)
+                        Spacer()
+                        if !errorLog.entries.isEmpty {
+                            Text("\(errorLog.entries.count)")
+                                .foregroundStyle(.secondary)
+                        }
                     }
                 }
             }
@@ -151,6 +168,7 @@ struct AboutView: View {
             exportFilename = "PiliPod-settings.json"
             showExportSheet = true
         } catch {
+            ErrorLogService.record(error, context: "导出设置数据")
             settingsTransferMessage = error.localizedDescription
         }
     }
@@ -190,6 +208,7 @@ struct AboutView: View {
             exportFilename = "bili_login_\(uid).json"
             showExportSheet = true
         } catch {
+            ErrorLogService.record(error, context: "导出登录信息")
             exportErrorMessage = error.localizedDescription
         }
     }
@@ -203,18 +222,22 @@ struct AboutView: View {
                 try LoginImportService.importFrom(url: url)
                 loginTransferMessage = "登录信息已导入。"
             } catch {
+                ErrorLogService.record(error, context: "导入登录信息")
                 loginTransferMessage = error.localizedDescription
             }
         case let (.login, .failure(error)):
+            ErrorLogService.record(error, context: "导入登录信息")
             loginTransferMessage = error.localizedDescription
         case let (.settings, .success(url)):
             do {
                 try AppSettingsBackupService.importFrom(url: url)
                 settingsTransferMessage = "设置已导入。当前打开的设置页可能需要重新进入后显示。"
             } catch {
+                ErrorLogService.record(error, context: "导入设置数据")
                 settingsTransferMessage = error.localizedDescription
             }
         case let (.settings, .failure(error)):
+            ErrorLogService.record(error, context: "导入设置数据")
             settingsTransferMessage = error.localizedDescription
         }
     }

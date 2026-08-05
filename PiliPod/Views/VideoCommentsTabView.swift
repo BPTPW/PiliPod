@@ -309,6 +309,7 @@ struct VideoCommentsTabView: View {
             hasMore = !reply.cursor.isEnd && !reply.replies.isEmpty
             hasLoaded = true
         } catch {
+            ErrorLogService.record(error, context: "加载评论")
             errorText = error.localizedDescription
             print("[Comments] load failed: \(error.localizedDescription)")
         }
@@ -330,6 +331,7 @@ struct VideoCommentsTabView: View {
             nextCursor = reply.cursor.next
             hasMore = !reply.cursor.isEnd && !reply.replies.isEmpty
         } catch {
+            ErrorLogService.record(error, context: "加载更多评论")
             print("[Comments] load more failed: \(error.localizedDescription)")
         }
     }
@@ -356,6 +358,7 @@ struct VideoCommentsTabView: View {
             detailNextCursor = response.cursor.next
             detailHasMore = !response.cursor.isEnd && !response.root.replies.isEmpty
         } catch {
+            ErrorLogService.record(error, context: "加载评论详情")
             detailErrorText = error.localizedDescription
         }
     }
@@ -494,6 +497,7 @@ struct VideoCommentsTabView: View {
                 }
             )
         } catch {
+            ErrorLogService.record(error, context: "点赞评论")
             print("[Comments] like failed: \(error.localizedDescription)")
         }
     }
@@ -525,6 +529,7 @@ struct VideoCommentsTabView: View {
                 }
             )
         } catch {
+            ErrorLogService.record(error, context: "点踩评论")
             print("[Comments] dislike failed: \(error.localizedDescription)")
         }
     }

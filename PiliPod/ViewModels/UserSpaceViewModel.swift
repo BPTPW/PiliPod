@@ -25,6 +25,7 @@ final class UserSpaceViewModel: ObservableObject {
             data = try await BiliAPI.shared.fetchUserSpace(mid: mid, fromViewAid: fromViewAid)
             await refreshArchive()
         } catch {
+            ErrorLogService.record(error, context: "加载用户空间")
             data = nil
             errorMessage = error.localizedDescription
         }
@@ -52,6 +53,7 @@ final class UserSpaceViewModel: ObservableObject {
             archiveNextAid = items.last?.resolvedAid
             archiveHasMore = (page.hasNext ?? false) && archiveNextAid != nil && !items.isEmpty
         } catch {
+            ErrorLogService.record(error, context: "加载用户投稿")
             archiveVideos = []
             archiveErrorMessage = error.localizedDescription
             archiveHasMore = false
@@ -85,6 +87,7 @@ final class UserSpaceViewModel: ObservableObject {
             archiveNextAid = items.last?.resolvedAid
             archiveHasMore = (page.hasNext ?? false) && archiveNextAid != nil && !items.isEmpty
         } catch {
+            ErrorLogService.record(error, context: "加载更多用户投稿")
             archiveErrorMessage = error.localizedDescription
             archiveHasMore = false
         }
@@ -160,6 +163,7 @@ final class UserSpaceViewModel: ObservableObject {
             let act = wasFollowed ? 2 : 1
             try await BiliAPI.shared.modifyUserRelation(fid: fid, act: act)
         } catch {
+            ErrorLogService.record(error, context: "关注用户")
             data?.card?.relation?.isFollow = wasFollowed ? 1 : 0
             data?.card?.fans = previousFans
             isFollowRequesting = false
