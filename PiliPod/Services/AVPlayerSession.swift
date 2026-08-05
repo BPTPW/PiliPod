@@ -43,6 +43,9 @@ final class AVPlayerSession: NSObject, AVPictureInPictureControllerDelegate {
     private var playbackSettings: AudioVideoSettings
     private var wantsPlayback = false
     private var pendingSeekTime: TimeInterval?
+    private var lastAccessLogBytes: Int64 = 0
+    private var lastAccessLogSampleUptime: TimeInterval?
+    private var accessLogSpeedBytesPerSecond: Double = 0
     private(set) var playbackRate = 1.0
     private(set) var snapshot = PlayerUIPlaybackSnapshot()
     private(set) var seekRevision = 0
@@ -166,6 +169,7 @@ final class AVPlayerSession: NSObject, AVPictureInPictureControllerDelegate {
     }
 
     private func install(_ item: AVPlayerItem) {
+        resetAccessLogSpeedTracking()
         player.replaceCurrentItem(with: item)
         observations = [
             item.observe(\.status, options: [.initial, .new]) { [weak self] item, _ in
@@ -226,16 +230,65 @@ final class AVPlayerSession: NSObject, AVPictureInPictureControllerDelegate {
         hdrDiagnostics.isEnabledInSettings = playbackSettings.highDynamicRangeEnabled
         hdrDiagnostics.prefersEDROutput = playbackSettings.prefersEDROutput
         hdrDiagnostics.requestsExtendedRange = layer?.wantsExtendedDynamicRangeContent ?? false
+        let loadingSpeed = item.map(updateAccessLogSpeed) ?? 0
         snapshot = PlayerUIPlaybackSnapshot(
             currentTime: time.isFinite ? max(time, 0) : 0,
             duration: duration.isFinite ? max(duration, 0) : 0,
             bufferedUntil: buffered.isFinite ? max(buffered, 0) : 0,
             isPlaying: wantsPlayback && player.timeControlStatus != .paused,
             isBuffering: wantsPlayback && player.timeControlStatus == .waitingToPlayAtSpecifiedRate,
-            loadingSpeedBytesPerSecond: 0,
+            loadingSpeedBytesPerSecond: loadingSpeed,
             hdrDiagnostics: hdrDiagnostics
         )
         onSnapshot?(snapshot)
+    }
+
+    private func resetAccessLogSpeedTracking() {
+        lastAccessLogBytes = 0
+        lastAccessLogSampleUptime = nil
+        accessLogSpeedBytesPerSecond = 0
+    }
+
+    /// AVPlayer does not expose a direct download-speed property. Its access
+    /// log contains cumulative transferred bytes and per-request bitrate data,
+    /// which we sample whenever the loading UI snapshot is published.
+    private func updateAccessLogSpeed(for item: AVPlayerItem) -> Double {
+        guard let events = item.accessLog()?.events, !events.isEmpty else {
+            return accessLogSpeedBytesPerSecond
+        }
+
+        let now = ProcessInfo.processInfo.systemUptime
+        let totalBytes = events.reduce(Int64(0)) { total, event in
+            total + max(event.numberOfBytesTransferred, 0)
+        }
+        let isFirstSample = lastAccessLogSampleUptime == nil
+
+        if isFirstSample {
+            lastAccessLogSampleUptime = now
+            lastAccessLogBytes = totalBytes
+        } else {
+            let elapsed = now - (lastAccessLogSampleUptime ?? now)
+            let deltaBytes = totalBytes - lastAccessLogBytes
+            if elapsed > 0.05, deltaBytes > 0 {
+                accessLogSpeedBytesPerSecond = Double(deltaBytes) / elapsed
+                lastAccessLogSampleUptime = now
+                lastAccessLogBytes = totalBytes
+            } else if elapsed > 1.5 {
+                accessLogSpeedBytesPerSecond = 0
+                lastAccessLogSampleUptime = now
+                lastAccessLogBytes = totalBytes
+            }
+        }
+
+        if isFirstSample, let event = events.last {
+            if event.observedBitrate > 0 {
+                accessLogSpeedBytesPerSecond = event.observedBitrate / 8.0
+            } else if event.transferDuration > 0, event.numberOfBytesTransferred > 0 {
+                accessLogSpeedBytesPerSecond = Double(event.numberOfBytesTransferred) / event.transferDuration
+            }
+        }
+
+        return max(accessLogSpeedBytesPerSecond, 0)
     }
 
     private func tearDownItem() {
@@ -246,6 +299,7 @@ final class AVPlayerSession: NSObject, AVPictureInPictureControllerDelegate {
         if let endObserver { NotificationCenter.default.removeObserver(endObserver) }
         endObserver = nil
         player.replaceCurrentItem(with: nil)
+        resetAccessLogSpeedTracking()
         bridge?.stop(); bridge = nil
     }
 
