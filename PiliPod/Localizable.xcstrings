@@ -2,6 +2,32 @@
   "sourceLanguage" : "zh-Hans",
   "strings" : {
     "" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : ""
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : ""
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : ""
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : ""
+          }
+        }
+      },
       "shouldTranslate" : false
     },
     "—粉丝  —视频" : {
@@ -16,6 +42,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "—フォロワー  —動画"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "—粉丝  —视频"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "—粉丝  —视频"
           }
         }
       }
@@ -33,6 +71,18 @@
             "state" : "translated",
             "value" : "(%@の命)"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "(%@ 的生命)"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "(%@ 的生命)"
+          }
         }
       }
     },
@@ -40,17 +90,23 @@
       "localizations" : {
         "en" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "new",
             "value" : "%1$@ · %2$@"
           }
         },
         "ja" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "new",
             "value" : "%1$@ · %2$@"
           }
         },
-        "zh-Hans" : {
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ · %2$@"
+          }
+        },
+        "zh-Hant-HK" : {
           "stringUnit" : {
             "state" : "new",
             "value" : "%1$@ · %2$@"
@@ -62,13 +118,25 @@
       "localizations" : {
         "en" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "new",
             "value" : "%@:"
           }
         },
         "ja" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "new",
+            "value" : "%@:"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%@:"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
             "value" : "%@:"
           }
         }
@@ -84,7 +152,19 @@
         },
         "ja" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "new",
+            "value" : "%@: "
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%@: "
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
             "value" : "%@: "
           }
         }
@@ -94,17 +174,23 @@
       "localizations" : {
         "en" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "new",
             "value" : "%1$@: %2$@"
           }
         },
         "ja" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "new",
             "value" : "%1$@: %2$@"
           }
         },
-        "zh-Hans" : {
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@: %2$@"
+          }
+        },
+        "zh-Hant-HK" : {
           "stringUnit" : {
             "state" : "new",
             "value" : "%1$@: %2$@"
@@ -116,17 +202,23 @@
       "localizations" : {
         "en" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "new",
             "value" : "%1$@/%2$@"
           }
         },
         "ja" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "new",
             "value" : "%1$@/%2$@"
           }
         },
-        "zh-Hans" : {
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@/%2$@"
+          }
+        },
+        "zh-Hant-HK" : {
           "stringUnit" : {
             "state" : "new",
             "value" : "%1$@/%2$@"
@@ -148,9 +240,15 @@
             "value" : "%@人が視聴中"
           }
         },
-        "zh-Hans" : {
+        "zh-Hant" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "new",
+            "value" : "%@人在看"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
             "value" : "%@人在看"
           }
         }
@@ -170,7 +268,13 @@
             "value" : "%1$@フォロワー  %2$@動画"
           }
         },
-        "zh-Hans" : {
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@粉丝  %2$@视频"
+          }
+        },
+        "zh-Hant-HK" : {
           "stringUnit" : {
             "state" : "new",
             "value" : "%1$@粉丝  %2$@视频"
@@ -181,21 +285,9 @@
     "%@粉丝  %lld视频" : {
       "localizations" : {
         "en" : {
-          "variations" : {
-            "plural" : {
-              "one" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "%1$@ follower  %2$lld video"
-                }
-              },
-              "other" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "%1$@ followers  %2$lld videos"
-                }
-              }
-            }
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@粉丝  %2$lld视频"
           }
         },
         "ja" : {
@@ -204,7 +296,13 @@
             "value" : "%1$@フォロワー  %2$lld動画"
           }
         },
-        "zh-Hans" : {
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@粉丝  %2$lld视频"
+          }
+        },
+        "zh-Hant-HK" : {
           "stringUnit" : {
             "state" : "new",
             "value" : "%1$@粉丝  %2$lld视频"
@@ -213,16 +311,86 @@
       }
     },
     "%lld" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%lld"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%lld"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%lld"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%lld"
+          }
+        }
+      },
       "shouldTranslate" : false
     },
     "%lld/1000" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%lld/1000"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%lld/1000"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%lld/1000"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%lld/1000"
+          }
+        }
+      },
       "shouldTranslate" : false
     },
     "%llds" : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%llds"
+          }
+        },
         "ja" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "new",
+            "value" : "%llds"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%llds"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
             "value" : "%llds"
           }
         }
@@ -231,21 +399,9 @@
     "%lld个内容 %@" : {
       "localizations" : {
         "en" : {
-          "variations" : {
-            "plural" : {
-              "one" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "%1$lld item %2$@"
-                }
-              },
-              "other" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "%1$lld items %2$@"
-                }
-              }
-            }
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$lld个内容 %2$@"
           }
         },
         "ja" : {
@@ -254,7 +410,13 @@
             "value" : "%1$lld件のコンテンツ %2$@"
           }
         },
-        "zh-Hans" : {
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$lld个内容 %2$@"
+          }
+        },
+        "zh-Hant-HK" : {
           "stringUnit" : {
             "state" : "new",
             "value" : "%1$lld个内容 %2$@"
@@ -275,6 +437,18 @@
             "state" : "translated",
             "value" : "• 映像同期: mpvの--video-sync"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "• 视频同步: mpv的--video-sync"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "• 视频同步: mpv的--video-sync"
+          }
         }
       }
     },
@@ -290,6 +464,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "• プライベートIDは自分で設定できます。30文字以上の純粋な文字列である必要があり、初回起動時にはランダムな文字列が生成されます。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "• 私人ID可以自行设置，要求至少为30个字符长度的纯字符串，首次启动时会生成随机字符串。"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "• 私人ID可以自行设置，要求至少为30个字符长度的纯字符串，首次启动时会生成随机字符串。"
           }
         }
       }
@@ -307,6 +493,18 @@
             "state" : "translated",
             "value" : "• プライベートIDは秘密にしておく必要があります。他人があなたのプライベートIDを入手すると、あなたになりすますことができます。サーバーはプライベートIDを一切保存しないため、万が一プライベートIDを失くした場合、二度と取り戻すことはできません。"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "• 私人ID应该被保密。如果他人获得了你的私人ID，他就可以冒充你。服务器不会保存任何私人ID，如果你不幸弄丢了私人ID，那就再也没办法找回了。"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "• 私人ID应该被保密。如果他人获得了你的私人ID，他就可以冒充你。服务器不会保存任何私人ID，如果你不幸弄丢了私人ID，那就再也没办法找回了。"
+          }
         }
       }
     },
@@ -323,16 +521,106 @@
             "state" : "translated",
             "value" : "• 自動同期: mpvの--autosync"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "• 自动同步: mpv的--autosync"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "• 自动同步: mpv的--autosync"
+          }
         }
       }
     },
     "0" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "0"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "0"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "0"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "0"
+          }
+        }
+      },
       "shouldTranslate" : false
     },
     "Aa" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Aa"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Aa"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Aa"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Aa"
+          }
+        }
+      },
       "shouldTranslate" : false
     },
     "BPTPW/PiliPod" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "BPTPW/PiliPod"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "BPTPW/PiliPod"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "BPTPW/PiliPod"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "BPTPW/PiliPod"
+          }
+        }
+      },
       "shouldTranslate" : false
     },
     "BV号 / AV号" : {
@@ -348,25 +636,73 @@
             "state" : "translated",
             "value" : "BV番号 / AV番号"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "BV号 / AV号"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "BV号 / AV号"
+          }
         }
       }
     },
     "CDN 线路" : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "CDN 线路"
+          }
+        },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "CDN"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "CDN 线路"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "CDN 线路"
           }
         }
       }
     },
     "CDN 线路选择只会覆写媒体播放 URL 的 Host。" : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "CDN 线路选择只会覆写媒体播放 URL 的 Host。"
+          }
+        },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "CDN の選択により、メディア再生 URL の Host のみが上書きされます。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "CDN 线路选择只会覆写媒体播放 URL 的 Host。"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "CDN 线路选择只会覆写媒体播放 URL 的 Host。"
           }
         }
       }
@@ -384,6 +720,18 @@
             "state" : "translated",
             "value" : "CID（任意）"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "CID (可选)"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "CID (可选)"
+          }
         }
       }
     },
@@ -399,6 +747,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "DASH ストリーム詳細"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "DASH 流详情"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "DASH 流详情"
           }
         }
       }
@@ -418,28 +778,72 @@
             "value" : "検索"
           }
         },
-        "zh-Hans" : {
+        "zh-Hant" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "new",
+            "value" : "搜索关注"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
             "value" : "搜索关注"
           }
         }
       }
     },
     "https://www.bsbsb.top" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "https://www.bsbsb.top"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "https://www.bsbsb.top"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "https://www.bsbsb.top"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "https://www.bsbsb.top"
+          }
+        }
+      },
       "shouldTranslate" : false
     },
     "Library/Caches" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "new",
             "value" : "Library/Caches"
           }
         },
         "ja" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "new",
+            "value" : "Library/Caches"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Library/Caches"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
             "value" : "Library/Caches"
           }
         }
@@ -449,13 +853,25 @@
       "localizations" : {
         "en" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "new",
             "value" : "LIVE"
           }
         },
         "ja" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "new",
+            "value" : "LIVE"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "LIVE"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
             "value" : "LIVE"
           }
         }
@@ -476,9 +892,15 @@
             "value" : "フォロワー"
           }
         },
-        "zh-Hans" : {
+        "zh-Hant" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "new",
+            "value" : "粉丝"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
             "value" : "粉丝"
           }
         }
@@ -499,9 +921,15 @@
             "value" : "フォロー中"
           }
         },
-        "zh-Hans" : {
+        "zh-Hant" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "new",
+            "value" : "关注"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
             "value" : "关注"
           }
         }
@@ -522,9 +950,15 @@
             "value" : "ポスト"
           }
         },
-        "zh-Hans" : {
+        "zh-Hant" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "new",
+            "value" : "动态"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
             "value" : "动态"
           }
         }
@@ -534,13 +968,25 @@
       "localizations" : {
         "en" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "new",
             "value" : "P%lld"
           }
         },
         "ja" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "new",
+            "value" : "P%lld"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "P%lld"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
             "value" : "P%lld"
           }
         }
@@ -561,9 +1007,15 @@
             "value" : "非公開"
           }
         },
-        "zh-Hans" : {
+        "zh-Hant" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "new",
+            "value" : "私密"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
             "value" : "私密"
           }
         }
@@ -584,9 +1036,15 @@
             "value" : "公開"
           }
         },
-        "zh-Hans" : {
+        "zh-Hant" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "new",
+            "value" : "公开"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
             "value" : "公开"
           }
         }
@@ -596,13 +1054,25 @@
       "localizations" : {
         "en" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "new",
             "value" : "PiliPod"
           }
         },
         "ja" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "new",
+            "value" : "PiliPod"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "PiliPod"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
             "value" : "PiliPod"
           }
         }
@@ -623,9 +1093,15 @@
             "value" : "ライブ"
           }
         },
-        "zh-Hans" : {
+        "zh-Hant" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "new",
+            "value" : "直播"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
             "value" : "直播"
           }
         }
@@ -646,9 +1122,15 @@
             "value" : "急上昇"
           }
         },
-        "zh-Hans" : {
+        "zh-Hant" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "new",
+            "value" : "热门"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
             "value" : "热门"
           }
         }
@@ -669,9 +1151,15 @@
             "value" : "おすすめ"
           }
         },
-        "zh-Hans" : {
+        "zh-Hant" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "new",
+            "value" : "推荐"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
             "value" : "推荐"
           }
         }
@@ -692,9 +1180,15 @@
             "value" : "カテゴリ"
           }
         },
-        "zh-Hans" : {
+        "zh-Hant" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "new",
+            "value" : "分区"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
             "value" : "分区"
           }
         }
@@ -713,6 +1207,18 @@
             "state" : "translated",
             "value" : "tmp 一時ディレクトリ"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "tmp 临时目录"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "tmp 临时目录"
+          }
         }
       }
     },
@@ -730,7 +1236,13 @@
             "value" : "UID: %1$@  IP所在地: %2$@"
           }
         },
-        "zh-Hans" : {
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "UID: %1$@  IP属地: %2$@"
+          }
+        },
+        "zh-Hant-HK" : {
           "stringUnit" : {
             "state" : "new",
             "value" : "UID: %1$@  IP属地: %2$@"
@@ -751,6 +1263,18 @@
             "state" : "translated",
             "value" : "投稿者がとても気に入っています"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "UP主觉得很赞"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "UP主觉得很赞"
+          }
         }
       }
     },
@@ -766,6 +1290,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "URL レスポンスキャッシュ"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "URL 响应缓存"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "URL 响应缓存"
           }
         }
       }
@@ -785,9 +1321,15 @@
             "value" : "ホーム"
           }
         },
-        "zh-Hans" : {
+        "zh-Hant" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "new",
+            "value" : "主页"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
             "value" : "主页"
           }
         }
@@ -808,9 +1350,15 @@
             "value" : "ポスト"
           }
         },
-        "zh-Hans" : {
+        "zh-Hant" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "new",
+            "value" : "动态"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
             "value" : "动态"
           }
         }
@@ -827,13 +1375,19 @@
         },
         "ja" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "new",
             "value" : "投稿"
           }
         },
-        "zh-Hans" : {
+        "zh-Hant" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "new",
+            "value" : "投稿"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
             "value" : "投稿"
           }
         }
@@ -854,9 +1408,15 @@
             "value" : "嫌い"
           }
         },
-        "zh-Hans" : {
+        "zh-Hant" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "new",
+            "value" : "点踩"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
             "value" : "点踩"
           }
         }
@@ -877,9 +1437,15 @@
             "value" : "コメント"
           }
         },
-        "zh-Hans" : {
+        "zh-Hant" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "new",
+            "value" : "评论"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
             "value" : "评论"
           }
         }
@@ -900,9 +1466,15 @@
             "value" : "紹介"
           }
         },
-        "zh-Hans" : {
+        "zh-Hant" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "new",
+            "value" : "简介"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
             "value" : "简介"
           }
         }
@@ -921,6 +1493,18 @@
             "state" : "translated",
             "value" : "上にスワイプしてさらに読み込む"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "上拉加载更多"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "上拉加载更多"
+          }
         }
       }
     },
@@ -937,6 +1521,18 @@
             "state" : "translated",
             "value" : "上にスワイプして返信をさらに読み込む"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "上拉加载更多回复"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "上拉加载更多回复"
+          }
         }
       }
     },
@@ -950,7 +1546,19 @@
         },
         "ja" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "new",
+            "value" : "上限 %@"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "上限 %@"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
             "value" : "上限 %@"
           }
         }
@@ -969,6 +1577,18 @@
             "state" : "translated",
             "value" : "独自のサーバーを持っている場合を除き、変更はおすすめしません。"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "不建议更改，除非你有自己的服务器。"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "不建议更改，除非你有自己的服务器。"
+          }
         }
       }
     },
@@ -982,7 +1602,19 @@
         },
         "ja" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "new",
+            "value" : "不透明度"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "不透明度"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
             "value" : "不透明度"
           }
         }
@@ -1001,6 +1633,18 @@
             "state" : "translated",
             "value" : "みんなのために %@ 件の断片を節約しました"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "为大家节省了 %@ 片段"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "为大家节省了 %@ 片段"
+          }
         }
       }
     },
@@ -1016,6 +1660,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "通報"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "举报"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "举报"
           }
         }
       }
@@ -1033,25 +1689,73 @@
             "state" : "translated",
             "value" : "CAPTCHA認証"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "人机验证"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "人机验证"
+          }
         }
       }
     },
     "仅在MPVKit内核下支持设置。" : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "仅在MPVKit内核下支持设置。"
+          }
+        },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "MPVKit コアでのみ設定が可能です。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "仅在MPVKit内核下支持设置。"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "仅在MPVKit内核下支持设置。"
           }
         }
       }
     },
     "仅在MPVKit内核下支持设置。AVPlayer支持HDR与杜比视界。" : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "仅在MPVKit内核下支持设置。AVPlayer支持HDR与杜比视界。"
+          }
+        },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "MPVKit コアでのみ設定が可能です。AVPlayerはHDRおよびDolby Visionに対応しています。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "仅在MPVKit内核下支持设置。AVPlayer支持HDR与杜比视界。"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "仅在MPVKit内核下支持设置。AVPlayer支持HDR与杜比视界。"
           }
         }
       }
@@ -1069,33 +1773,45 @@
             "state" : "translated",
             "value" : "URLレスポンスキャッシュ、Library/Caches、tmp の一時ファイルが削除されます。カバー、アバター、絵文字、プレビュー画像のキャッシュは次回使用時に再作成されます。"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "会清理 URL 响应缓存、Library/Caches 和 tmp 临时文件。封面、头像、表情和预览图会在下次使用时重新建立缓存。"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "会清理 URL 响应缓存、Library/Caches 和 tmp 临时文件。封面、头像、表情和预览图会在下次使用时重新建立缓存。"
+          }
         }
       }
     },
     "你提交了 %lld 片段" : {
       "localizations" : {
         "en" : {
-          "variations" : {
-            "plural" : {
-              "one" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "You submitted %lld clip"
-                }
-              },
-              "other" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "You submitted %lld clips"
-                }
-              }
-            }
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "你提交了 %lld 片段"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "あなたは %lld 件の断片を投稿しました"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "你提交了 %lld 片段"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "你提交了 %lld 片段"
           }
         }
       }
@@ -1113,6 +1829,18 @@
             "state" : "translated",
             "value" : "あなたのデータ"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "你的数据"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "你的数据"
+          }
         }
       }
     },
@@ -1126,7 +1854,19 @@
         },
         "ja" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "new",
+            "value" : "保存"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "保存"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
             "value" : "保存"
           }
         }
@@ -1145,6 +1885,18 @@
             "state" : "translated",
             "value" : "変更は次回ホームのおすすめ内容が更新される際に反映されます。"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "修改会在下次首页推荐内容刷新时生效。"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "修改会在下次首页推荐内容刷新时生效。"
+          }
         }
       }
     },
@@ -1160,6 +1912,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "全画面"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "全屏"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "全屏"
           }
         }
       }
@@ -1177,6 +1941,18 @@
             "state" : "translated",
             "value" : "全画面の文字サイズ"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "全屏字体大小"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "全屏字体大小"
+          }
         }
       }
     },
@@ -1193,33 +1969,45 @@
             "state" : "translated",
             "value" : "すべてをスクロール弾幕で表示"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "全部按滚动弹幕显示"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "全部按滚动弹幕显示"
+          }
         }
       }
     },
     "共%lld集" : {
       "localizations" : {
         "en" : {
-          "variations" : {
-            "plural" : {
-              "one" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "%lld Episode"
-                }
-              },
-              "other" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "%lld Episodes"
-                }
-              }
-            }
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "共%lld集"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "全%lld話"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "共%lld集"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "共%lld集"
           }
         }
       }
@@ -1237,6 +2025,18 @@
             "state" : "translated",
             "value" : "について"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "关于"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "关于"
+          }
         }
       }
     },
@@ -1252,6 +2052,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "空降助手について"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "关于空降助手"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "关于空降助手"
           }
         }
       }
@@ -1269,6 +2081,18 @@
             "state" : "translated",
             "value" : "フォロー"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "关注"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "关注"
+          }
         }
       }
     },
@@ -1284,6 +2108,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "閉じる"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "关闭"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "关闭"
           }
         }
       }
@@ -1301,15 +2137,45 @@
             "state" : "translated",
             "value" : "その他の設定"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "其他设置"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "其他设置"
+          }
         }
       }
     },
     "最终选择" : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "最终选择"
+          }
+        },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "最終の選択"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "最终选择"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "最终选择"
           }
         }
       }
@@ -1327,6 +2193,18 @@
             "state" : "translated",
             "value" : "画像を共有"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "分享图片"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "分享图片"
+          }
         }
       }
     },
@@ -1342,6 +2220,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "リンクを共有"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "分享链接"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "分享链接"
           }
         }
       }
@@ -1359,6 +2249,18 @@
             "state" : "translated",
             "value" : "リンクを共有（時間付き）"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "分享链接（带时间）"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "分享链接（带时间）"
+          }
         }
       }
     },
@@ -1374,6 +2276,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "カテゴリ"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "分区"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "分区"
           }
         }
       }
@@ -1391,6 +2305,18 @@
             "state" : "translated",
             "value" : "削除"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "删除"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "删除"
+          }
         }
       }
     },
@@ -1406,6 +2332,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%lld本の動画を削除"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "删除%lld个视频"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "删除%lld个视频"
           }
         }
       }
@@ -1423,6 +2361,18 @@
             "state" : "translated",
             "value" : "キャッシュを削除"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "删除缓存"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "删除缓存"
+          }
         }
       }
     },
@@ -1438,6 +2388,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "キャッシュ統計を更新"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "刷新缓存统计"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "刷新缓存统计"
           }
         }
       }
@@ -1455,6 +2417,18 @@
             "state" : "translated",
             "value" : "読み込み中…"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "加载中…"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "加载中…"
+          }
         }
       }
     },
@@ -1470,6 +2444,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "フォロー一覧を読み込み中…"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "加载关注列表中…"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "加载关注列表中…"
           }
         }
       }
@@ -1487,6 +2473,18 @@
             "state" : "translated",
             "value" : "履歴を読み込み中…"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "加载历史记录中…"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "加载历史记录中…"
+          }
         }
       }
     },
@@ -1502,6 +2500,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "投稿を読み込み中…"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "加载投稿中…"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "加载投稿中…"
           }
         }
       }
@@ -1519,6 +2529,18 @@
             "state" : "translated",
             "value" : "お気に入りを読み込み中…"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "加载收藏夹中…"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "加载收藏夹中…"
+          }
         }
       }
     },
@@ -1534,6 +2556,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "返信をさらに読み込み中…"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "加载更多回复中…"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "加载更多回复中…"
           }
         }
       }
@@ -1551,6 +2585,18 @@
             "state" : "translated",
             "value" : "コメントをさらに読み込み中…"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "加载更多评论中…"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "加载更多评论中…"
+          }
         }
       }
     },
@@ -1566,6 +2612,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "人気動画を読み込み中…"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "加载热门视频中…"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "加载热门视频中…"
           }
         }
       }
@@ -1583,6 +2641,18 @@
             "state" : "translated",
             "value" : "絵文字を読み込み中…"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "加载表情中…"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "加载表情中…"
+          }
         }
       }
     },
@@ -1598,6 +2668,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "認証コードを送信"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "发送验证码"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "发送验证码"
           }
         }
       }
@@ -1615,15 +2697,45 @@
             "state" : "translated",
             "value" : "キャンセル"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "取消"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "取消"
+          }
         }
       }
     },
     "取消测速" : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "取消测速"
+          }
+        },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "キャンセル"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "取消测速"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "取消测速"
           }
         }
       }
@@ -1641,6 +2753,18 @@
             "state" : "translated",
             "value" : "同期"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "同步"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "同步"
+          }
         }
       }
     },
@@ -1657,15 +2781,45 @@
             "state" : "translated",
             "value" : "バックグラウンド再生"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "后台播放"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "后台播放"
+          }
         }
       }
     },
     "响应情况" : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "响应情况"
+          }
+        },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "応答状況"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "响应情况"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "响应情况"
           }
         }
       }
@@ -1683,6 +2837,18 @@
             "state" : "translated",
             "value" : "返信の読み込みに失敗しました"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "回复加载失败"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "回复加载失败"
+          }
         }
       }
     },
@@ -1699,15 +2865,45 @@
             "state" : "translated",
             "value" : "対応デバイスでは、HDRやDolby Visionなどのハイダイナミックレンジ動画で、より明るいハイライトとより広い色域を有効にします。オフにすると、通常のSDR動画として表示されます。"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "在支持的设备上，为 HDR、杜比视界等高动态视频启用更明亮的高光和更宽的色域。关闭后会按普通SDR视频方式显示。"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "在支持的设备上，为 HDR、杜比视界等高动态视频启用更明亮的高光和更宽的色域。关闭后会按普通SDR视频方式显示。"
+          }
         }
       }
     },
     "在清除记录后，下次播放视频会重新测试最优线路。" : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "在清除记录后，下次播放视频会重新测试最优线路。"
+          }
+        },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "履歴を削除すると、次回動画を再生する際に最適な経路が再テストされます。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "在清除记录后，下次播放视频会重新测试最优线路。"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "在清除记录后，下次播放视频会重新测试最优线路。"
           }
         }
       }
@@ -1725,6 +2921,18 @@
             "state" : "translated",
             "value" : "動画のサムネイルに動画マークを表示"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "在视频封面显示视频标记"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "在视频封面显示视频标记"
+          }
         }
       }
     },
@@ -1740,6 +2948,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "HDR動画の表示を強化"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "增强 HDR 视频显示"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "增强 HDR 视频显示"
           }
         }
       }
@@ -1757,6 +2977,18 @@
             "state" : "translated",
             "value" : "再生に異常が発生した場合はオフにしてください。"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "如果遇到播放异常请关闭。"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "如果遇到播放异常请关闭。"
+          }
         }
       }
     },
@@ -1772,6 +3004,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "フォントサイズ"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "字体大小"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "字体大小"
           }
         }
       }
@@ -1789,6 +3033,18 @@
             "state" : "translated",
             "value" : "フォントの太さ"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "字体粗细"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "字体粗细"
+          }
         }
       }
     },
@@ -1804,6 +3060,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "パスワード"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "密码"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "密码"
           }
         }
       }
@@ -1821,6 +3089,18 @@
             "state" : "translated",
             "value" : "ログインJSONをインポートすると、アカウントの状態を同期できます。"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "导入登录 JSON 后即可同步账号状态。"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "导入登录 JSON 后即可同步账号状态。"
+          }
         }
       }
     },
@@ -1836,6 +3116,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "ログイン情報をインポート"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "导入登录信息"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "导入登录信息"
           }
         }
       }
@@ -1853,6 +3145,18 @@
             "state" : "translated",
             "value" : "キャッシュファイルのインポート"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "导入缓存文件"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "导入缓存文件"
+          }
         }
       }
     },
@@ -1868,6 +3172,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "設定データをインポート"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "导入设置数据"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "导入设置数据"
           }
         }
       }
@@ -1885,6 +3201,18 @@
             "state" : "translated",
             "value" : "エクスポート"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "导出"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "导出"
+          }
         }
       }
     },
@@ -1900,6 +3228,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%@ をエクスポートする"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "导出 %@"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "导出 %@"
           }
         }
       }
@@ -1917,6 +3257,18 @@
             "state" : "translated",
             "value" : "エクスポートに失敗しました"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "导出失败"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "导出失败"
+          }
         }
       }
     },
@@ -1932,6 +3284,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "ログイン情報をエクスポート"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "导出登录信息"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "导出登录信息"
           }
         }
       }
@@ -1949,6 +3313,18 @@
             "state" : "translated",
             "value" : "キャッシュのエクスポート"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "导出缓存"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "导出缓存"
+          }
         }
       }
     },
@@ -1965,15 +3341,45 @@
             "state" : "translated",
             "value" : "設定データをエクスポート"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "导出设置数据"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "导出设置数据"
+          }
         }
       }
     },
     "将使用当前已拿到的真实播放 URL（保留原路径和签名）进行并行测速。" : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "将使用当前已拿到的真实播放 URL（保留原路径和签名）进行并行测速。"
+          }
+        },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "実際の再生URLを使用して、速度測定を行います。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "将使用当前已拿到的真实播放 URL（保留原路径和签名）进行并行测速。"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "将使用当前已拿到的真实播放 URL（保留原路径和签名）进行并行测速。"
           }
         }
       }
@@ -1991,6 +3397,18 @@
             "state" : "translated",
             "value" : "非表示"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "屏蔽"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "屏蔽"
+          }
         }
       }
     },
@@ -2006,6 +3424,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "下部を非表示"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "屏蔽底部"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "屏蔽底部"
           }
         }
       }
@@ -2023,6 +3453,18 @@
             "state" : "translated",
             "value" : "下部の弾幕を非表示"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "屏蔽底部弹幕"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "屏蔽底部弹幕"
+          }
         }
       }
     },
@@ -2038,6 +3480,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "カラーを非表示"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "屏蔽彩色"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "屏蔽彩色"
           }
         }
       }
@@ -2055,6 +3509,18 @@
             "state" : "translated",
             "value" : "カラー弾幕を非表示"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "屏蔽彩色弹幕"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "屏蔽彩色弹幕"
+          }
         }
       }
     },
@@ -2070,6 +3536,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "スクロールを非表示"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "屏蔽滚动"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "屏蔽滚动"
           }
         }
       }
@@ -2087,6 +3565,18 @@
             "state" : "translated",
             "value" : "スクロール弾幕を非表示"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "屏蔽滚动弹幕"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "屏蔽滚动弹幕"
+          }
         }
       }
     },
@@ -2102,6 +3592,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "非表示レベル"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "屏蔽等级"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "屏蔽等级"
           }
         }
       }
@@ -2119,6 +3621,18 @@
             "state" : "translated",
             "value" : "上部を非表示"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "屏蔽顶部"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "屏蔽顶部"
+          }
         }
       }
     },
@@ -2135,15 +3649,45 @@
             "state" : "translated",
             "value" : "上部の弾幕を非表示"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "屏蔽顶部弹幕"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "屏蔽顶部弹幕"
+          }
         }
       }
     },
     "展开搜索历史" : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "展开搜索历史"
+          }
+        },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "履歴を表示"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "展开搜索历史"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "展开搜索历史"
           }
         }
       }
@@ -2161,25 +3705,73 @@
             "state" : "translated",
             "value" : "フォロー中"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "已关注"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "已关注"
+          }
         }
       }
     },
     "已关闭" : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "已关闭"
+          }
+        },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "オフ"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "已关闭"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "已关闭"
           }
         }
       }
     },
     "已开启" : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "已开启"
+          }
+        },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "オン"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "已开启"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "已开启"
           }
         }
       }
@@ -2197,6 +3789,18 @@
             "state" : "translated",
             "value" : "弾幕"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "弹幕"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "弹幕"
+          }
         }
       }
     },
@@ -2212,6 +3816,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "弾幕の行高"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "弹幕行高"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "弹幕行高"
           }
         }
       }
@@ -2229,6 +3845,18 @@
             "state" : "translated",
             "value" : "弾幕設定"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "弹幕设置"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "弹幕设置"
+          }
         }
       }
     },
@@ -2245,15 +3873,45 @@
             "state" : "translated",
             "value" : "現在ログインしていません"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "当前未登录"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "当前未登录"
+          }
         }
       }
     },
     "当前没有可用的真实播放 URL，将使用 Host 连通性参考请求，403/959 仅代表 CDN 拒绝裸探测，不代表播放失败。" : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "当前没有可用的真实播放 URL，将使用 Host 连通性参考请求，403/959 仅代表 CDN 拒绝裸探测，不代表播放失败。"
+          }
+        },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "今、利用可能な実際の再生 URL がないので、Host 接続性参照リクエストが使用されます。403/959 は、CDNがベアプローブを拒否したことを示すだけであり、再生に失敗したことを意味するものではありません。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "当前没有可用的真实播放 URL，将使用 Host 连通性参考请求，403/959 仅代表 CDN 拒绝裸探测，不代表播放失败。"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "当前没有可用的真实播放 URL，将使用 Host 连通性参考请求，403/959 仅代表 CDN 拒绝裸探测，不代表播放失败。"
           }
         }
       }
@@ -2271,6 +3929,18 @@
             "state" : "translated",
             "value" : "現在のバージョン"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "当前版本"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "当前版本"
+          }
         }
       }
     },
@@ -2286,6 +3956,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "デフォルトに戻す"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "恢复默认"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "恢复默认"
           }
         }
       }
@@ -2303,6 +3985,18 @@
             "state" : "translated",
             "value" : "マイページ"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "我的"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "我的"
+          }
         }
       }
     },
@@ -2318,6 +4012,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "フォロー中"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "我的关注"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "我的关注"
           }
         }
       }
@@ -2335,6 +4041,18 @@
             "state" : "translated",
             "value" : "ルーム番号 %@"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "房间号 %@"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "房间号 %@"
+          }
         }
       }
     },
@@ -2350,6 +4068,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "選択したコーデックが利用できない場合、自動的にほかの利用可能なコーデックにフォールバックします。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "所选编码不可用时会自动回退到其他可用编码。"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "所选编码不可用时会自动回退到其他可用编码。"
           }
         }
       }
@@ -2367,6 +4097,18 @@
             "state" : "translated",
             "value" : "携帯電話番号認証"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "手机号验证"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "手机号验证"
+          }
         }
       }
     },
@@ -2382,6 +4124,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "1個送る"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "投1个"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "投1个"
           }
         }
       }
@@ -2399,6 +4153,18 @@
             "state" : "translated",
             "value" : "2個送る"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "投2个"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "投2个"
+          }
         }
       }
     },
@@ -2414,6 +4180,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "ブロック"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "拉黑"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "拉黑"
           }
         }
       }
@@ -2431,6 +4209,18 @@
             "state" : "translated",
             "value" : "おすすめのソース"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "推荐来源"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "推荐来源"
+          }
         }
       }
     },
@@ -2446,6 +4236,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "おすすめフィード"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "推荐流"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "推荐流"
           }
         }
       }
@@ -2463,6 +4265,18 @@
             "state" : "translated",
             "value" : "おすすめ動画"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "推荐视频"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "推荐视频"
+          }
         }
       }
     },
@@ -2478,6 +4292,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "輪郭線の太さ"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "描边粗细"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "描边粗细"
           }
         }
       }
@@ -2495,15 +4321,45 @@
             "state" : "translated",
             "value" : "検索中…"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "搜索中…"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "搜索中…"
+          }
         }
       }
     },
     "搜索历史" : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "搜索历史"
+          }
+        },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "履歴"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "搜索历史"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "搜索历史"
           }
         }
       }
@@ -2521,15 +4377,45 @@
             "state" : "translated",
             "value" : "動画を検索"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "搜索视频"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "搜索视频"
+          }
         }
       }
     },
     "播放" : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "播放"
+          }
+        },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "再生"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "播放"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "播放"
           }
         }
       }
@@ -2547,15 +4433,45 @@
             "state" : "translated",
             "value" : "プレーヤー"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "播放器"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "播放器"
+          }
         }
       }
     },
     "播放器内核" : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "播放器内核"
+          }
+        },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "プレーヤーのコア"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "播放器内核"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "播放器内核"
           }
         }
       }
@@ -2573,15 +4489,45 @@
             "state" : "translated",
             "value" : "プレーヤーの状態"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "播放器状态"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "播放器状态"
+          }
         }
       }
     },
     "收起搜索历史" : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "收起搜索历史"
+          }
+        },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "履歴を非表示にする"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "收起搜索历史"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "收起搜索历史"
           }
         }
       }
@@ -2599,6 +4545,18 @@
             "state" : "translated",
             "value" : "ご期待ください"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "敬请期待"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "敬请期待"
+          }
         }
       }
     },
@@ -2614,6 +4572,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "クリップを追加"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "新增片段"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "新增片段"
           }
         }
       }
@@ -2631,6 +4601,18 @@
             "state" : "translated",
             "value" : "キャッシュタスクを追加"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "新增缓存任务"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "新增缓存任务"
+          }
         }
       }
     },
@@ -2646,6 +4628,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "表示"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "显示"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "显示"
           }
         }
       }
@@ -2663,6 +4657,18 @@
             "state" : "translated",
             "value" : "表示領域"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "显示区域"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "显示区域"
+          }
         }
       }
     },
@@ -2678,6 +4684,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "弾幕を表示"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "显示弹幕"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "显示弹幕"
           }
         }
       }
@@ -2695,6 +4713,18 @@
             "state" : "translated",
             "value" : "利用可能なスタンプはありません"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "暂无可用表情包"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "暂无可用表情包"
+          }
         }
       }
     },
@@ -2710,6 +4740,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "お気に入りはありません"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "暂无收藏夹"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "暂无收藏夹"
           }
         }
       }
@@ -2727,6 +4769,18 @@
             "state" : "translated",
             "value" : "データがありません"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "暂无数据"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "暂无数据"
+          }
         }
       }
     },
@@ -2742,6 +4796,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "クリップはありません"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "暂无片段"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "暂无片段"
           }
         }
       }
@@ -2759,6 +4825,18 @@
             "state" : "translated",
             "value" : "後で見る内容はありません"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "暂无稍后再看的内容"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "暂无稍后再看的内容"
+          }
         }
       }
     },
@@ -2775,15 +4853,45 @@
             "state" : "translated",
             "value" : "キャッシュ済みの動画はありません"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "暂无缓存视频"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "暂无缓存视频"
+          }
         }
       }
     },
     "暂无自动测试记录" : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "暂无自动测试记录"
+          }
+        },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "テストの記録はありません"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "暂无自动测试记录"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "暂无自动测试记录"
           }
         }
       }
@@ -2801,6 +4909,18 @@
             "state" : "translated",
             "value" : "コメントはありません"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "暂无评论"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "暂无评论"
+          }
         }
       }
     },
@@ -2816,6 +4936,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "現在、表示できる検索ディスカバーの内容はありません"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "暂时没有可显示的搜索发现内容"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "暂时没有可显示的搜索发现内容"
           }
         }
       }
@@ -2833,6 +4965,18 @@
             "state" : "translated",
             "value" : "現在、人気動画はありません"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "暂时没有热门视频"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "暂时没有热门视频"
+          }
         }
       }
     },
@@ -2848,6 +4992,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "サーバー"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "服务器"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "服务器"
           }
         }
       }
@@ -2865,6 +5021,18 @@
             "state" : "translated",
             "value" : "サーバーアドレス"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "服务器地址"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "服务器地址"
+          }
         }
       }
     },
@@ -2880,6 +5048,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "サーバーの状態"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "服务器状态"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "服务器状态"
           }
         }
       }
@@ -2897,6 +5077,18 @@
             "state" : "translated",
             "value" : "読み込み中"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "正在加载"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "正在加载"
+          }
         }
       }
     },
@@ -2912,6 +5104,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "個人情報を読み込み中…"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "正在加载个人信息…"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "正在加载个人信息…"
           }
         }
       }
@@ -2929,6 +5133,18 @@
             "state" : "translated",
             "value" : "すべての返信を読み込み中…"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "正在加载全部回复…"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "正在加载全部回复…"
+          }
         }
       }
     },
@@ -2944,6 +5160,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "キャッシュをクリーンアップ中"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "正在清理缓存"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "正在清理缓存"
           }
         }
       }
@@ -2961,6 +5189,18 @@
             "state" : "translated",
             "value" : "キャッシュを集計中"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "正在统计缓存"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "正在统计缓存"
+          }
         }
       }
     },
@@ -2976,6 +5216,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "ユーザーが見つかりません"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "没有找到匹配的用户"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "没有找到匹配的用户"
           }
         }
       }
@@ -2993,6 +5245,18 @@
             "state" : "translated",
             "value" : "関連する結果が見つかりませんでした"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "没有找到相关结果"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "没有找到相关结果"
+          }
         }
       }
     },
@@ -3009,45 +5273,129 @@
             "state" : "translated",
             "value" : "ストリームアドレス"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "流地址"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "流地址"
+          }
         }
       }
     },
     "测试时间" : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "测试时间"
+          }
+        },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "試験の時間"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "测试时间"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "测试时间"
           }
         }
       }
     },
     "测试视频 URL" : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "测试视频 URL"
+          }
+        },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "ビデオのURL"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "测试视频 URL"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "测试视频 URL"
           }
         }
       }
     },
     "测试间隔" : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "测试间隔"
+          }
+        },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "試験の間隔"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "测试间隔"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "测试间隔"
           }
         }
       }
     },
     "测速" : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "测速"
+          }
+        },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "速度測定"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "测速"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "测速"
           }
         }
       }
@@ -3065,6 +5413,18 @@
             "state" : "translated",
             "value" : "大量の弾幕の重なりを許可"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "海量弹幕允许重叠"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "海量弹幕允许重叠"
+          }
         }
       }
     },
@@ -3080,6 +5440,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "タスクを追加"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "添加任务"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "添加任务"
           }
         }
       }
@@ -3097,6 +5469,18 @@
             "state" : "translated",
             "value" : "キャッシュタスクを追加する"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "添加缓存任务"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "添加缓存任务"
+          }
         }
       }
     },
@@ -3112,6 +5496,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "キャッシュタスクを追加するか、動画再生ページでキャッシュしてください"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "添加缓存任务或在视频播放页进行缓存"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "添加缓存任务或在视频播放页进行缓存"
           }
         }
       }
@@ -3129,6 +5525,18 @@
             "state" : "translated",
             "value" : "URLキャッシュと一時ファイルを削除"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "清理 URL 缓存与临时文件"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "清理 URL 缓存与临时文件"
+          }
         }
       }
     },
@@ -3145,35 +5553,101 @@
             "state" : "translated",
             "value" : "キャッシュを削除"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "清理缓存"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "清理缓存"
+          }
         }
       }
     },
     "清空" : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "清空"
+          }
+        },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "クリア"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "清空"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "清空"
           }
         }
       }
     },
     "清空搜索历史" : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "清空搜索历史"
+          }
+        },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "全ての履歴を消去する"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "清空搜索历史"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "清空搜索历史"
           }
         }
       }
     },
     "清除记录" : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "清除记录"
+          }
+        },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "履歴を削除する"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "清除记录"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "清除记录"
           }
         }
       }
@@ -3191,6 +5665,18 @@
             "state" : "translated",
             "value" : "ソースコードリポジトリ"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "源代码仓库"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "源代码仓库"
+          }
         }
       }
     },
@@ -3206,6 +5692,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "スクロール弾幕の表示時間"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "滚动弹幕时长"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "滚动弹幕时长"
           }
         }
       }
@@ -3223,6 +5721,18 @@
             "state" : "translated",
             "value" : "セグメントの処理方法"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "片段处理方式"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "片段处理方式"
+          }
         }
       }
     },
@@ -3238,6 +5748,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "ユーザー"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "用户"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "用户"
           }
         }
       }
@@ -3255,25 +5777,73 @@
             "state" : "translated",
             "value" : "ユーザーID"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "用户ID"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "用户ID"
+          }
         }
       }
     },
     "画中画" : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "画中画"
+          }
+        },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "小窓"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "画中画"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "画中画"
           }
         }
       }
     },
     "画中画仅支持 AVPlayer 内核。" : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "画中画仅支持 AVPlayer 内核。"
+          }
+        },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "小窓の機能は、AVPlayer コアのみに対応しています。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "画中画仅支持 AVPlayer 内核。"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "画中画仅支持 AVPlayer 内核。"
           }
         }
       }
@@ -3291,6 +5861,18 @@
             "state" : "translated",
             "value" : "画質"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "画质"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "画质"
+          }
         }
       }
     },
@@ -3306,6 +5888,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "ログイン"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "登录"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "登录"
           }
         }
       }
@@ -3323,6 +5917,18 @@
             "state" : "translated",
             "value" : "ログインデータ"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "登录数据"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "登录数据"
+          }
         }
       }
     },
@@ -3338,6 +5944,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "配信中"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "直播中"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "直播中"
           }
         }
       }
@@ -3355,6 +5973,18 @@
             "state" : "translated",
             "value" : "ライブの読み込みに失敗しました"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "直播加载失败"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "直播加载失败"
+          }
         }
       }
     },
@@ -3371,15 +6001,45 @@
             "state" : "translated",
             "value" : "ライブのバックグラウンド再生"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "直播后台播放"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "直播后台播放"
+          }
         }
       }
     },
     "直播小窗播放" : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "直播小窗播放"
+          }
+        },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "ライブの小窓再生"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "直播小窗播放"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "直播小窗播放"
           }
         }
       }
@@ -3397,6 +6057,18 @@
             "state" : "translated",
             "value" : "ライブ画質"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "直播画质"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "直播画质"
+          }
         }
       }
     },
@@ -3412,6 +6084,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "ライブのデフォルト画質"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "直播默认画质"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "直播默认画质"
           }
         }
       }
@@ -3429,6 +6113,18 @@
             "state" : "translated",
             "value" : "関連コメント"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "相关评论"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "相关评论"
+          }
         }
       }
     },
@@ -3444,6 +6140,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "ビットレート"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "码率"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "码率"
           }
         }
       }
@@ -3461,6 +6169,18 @@
             "state" : "translated",
             "value" : "ハードウェアデコード"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "硬件解码"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "硬件解码"
+          }
         }
       }
     },
@@ -3476,6 +6196,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Bコイン %@"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "硬币 %@"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "硬币 %@"
           }
         }
       }
@@ -3493,15 +6225,45 @@
             "state" : "translated",
             "value" : "確認"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "确定"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "确定"
+          }
         }
       }
     },
     "确定要清空全部搜索历史吗" : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "确定要清空全部搜索历史吗"
+          }
+        },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "検索履歴をすべて削除しますか"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "确定要清空全部搜索历史吗"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "确定要清空全部搜索历史吗"
           }
         }
       }
@@ -3519,6 +6281,18 @@
             "state" : "translated",
             "value" : "超大バッファを使用することを確認"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "确认使用超大缓冲"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "确认使用超大缓冲"
+          }
         }
       }
     },
@@ -3534,6 +6308,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "動画パラメータ"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "视频参数"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "视频参数"
           }
         }
       }
@@ -3551,6 +6337,18 @@
             "state" : "translated",
             "value" : "動画同期"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "视频同步"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "视频同步"
+          }
         }
       }
     },
@@ -3567,15 +6365,45 @@
             "state" : "translated",
             "value" : "動画のバックグラウンド再生"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "视频后台播放"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "视频后台播放"
+          }
         }
       }
     },
     "视频小窗播放" : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "视频小窗播放"
+          }
+        },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "ビデオの小窓再生"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "视频小窗播放"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "视频小窗播放"
           }
         }
       }
@@ -3593,6 +6421,18 @@
             "state" : "translated",
             "value" : "動画ストリーム情報"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "视频流信息"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "视频流信息"
+          }
         }
       }
     },
@@ -3608,6 +6448,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "動画画質"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "视频画质"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "视频画质"
           }
         }
       }
@@ -3625,6 +6477,18 @@
             "state" : "translated",
             "value" : "動画のエピソード選択"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "视频选集"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "视频选集"
+          }
         }
       }
     },
@@ -3640,6 +6504,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "オフライン保存"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "离线缓存"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "离线缓存"
           }
         }
       }
@@ -3657,6 +6533,18 @@
             "state" : "translated",
             "value" : "モバイルネットワークのデフォルト画質"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "移动网络默认画质"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "移动网络默认画质"
+          }
         }
       }
     },
@@ -3672,6 +6560,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "後で見る"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "稍后再看"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "稍后再看"
           }
         }
       }
@@ -3689,6 +6589,18 @@
             "state" : "translated",
             "value" : "ジャンプアシスタント"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "空降助手"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "空降助手"
+          }
         }
       }
     },
@@ -3704,6 +6616,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "ジャンプアシスタントのクリップ"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "空降助手片段"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "空降助手片段"
           }
         }
       }
@@ -3721,6 +6645,18 @@
             "state" : "translated",
             "value" : "ジャンプアシスタント設定"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "空降助手设置"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "空降助手设置"
+          }
         }
       }
     },
@@ -3736,6 +6672,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "フォロワー"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "粉丝"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "粉丝"
           }
         }
       }
@@ -3754,7 +6702,13 @@
             "value" : "経験値 %1$lld/%2$@"
           }
         },
-        "zh-Hans" : {
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "经验 %1$lld/%2$@"
+          }
+        },
+        "zh-Hant-HK" : {
           "stringUnit" : {
             "state" : "new",
             "value" : "经验 %1$lld/%2$@"
@@ -3775,6 +6729,18 @@
             "state" : "translated",
             "value" : "引き続き利用する"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "继续使用"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "继续使用"
+          }
         }
       }
     },
@@ -3790,6 +6756,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "バッファサイズ"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "缓冲大小"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "缓冲大小"
           }
         }
       }
@@ -3807,6 +6785,18 @@
             "state" : "translated",
             "value" : "キャッシュ"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "缓存"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "缓存"
+          }
         }
       }
     },
@@ -3822,6 +6812,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "キャッシュ総サイズ"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "缓存总大小"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "缓存总大小"
           }
         }
       }
@@ -3839,6 +6841,18 @@
             "state" : "translated",
             "value" : "キャッシュ概要"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "缓存概览"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "缓存概览"
+          }
         }
       }
     },
@@ -3854,6 +6868,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "キャッシュ画質: "
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "缓存画质: "
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "缓存画质: "
           }
         }
       }
@@ -3871,6 +6897,18 @@
             "state" : "translated",
             "value" : "キャッシュ動画"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "缓存视频"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "缓存视频"
+          }
         }
       }
     },
@@ -3886,6 +6924,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "キャッシュ管理"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "缓存管理"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "缓存管理"
           }
         }
       }
@@ -3903,6 +6953,18 @@
             "state" : "translated",
             "value" : "コーデック"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "编码"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "编码"
+          }
         }
       }
     },
@@ -3918,6 +6980,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "コーデック情報"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "编码信息"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "编码信息"
           }
         }
       }
@@ -3935,6 +7009,18 @@
             "state" : "translated",
             "value" : "ユーザーIDを編集"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "编辑用户ID"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "编辑用户ID"
+          }
         }
       }
     },
@@ -3951,25 +7037,73 @@
             "state" : "translated",
             "value" : "自動同期"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "自动同步"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "自动同步"
+          }
         }
       }
     },
     "自动测试" : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "自动测试"
+          }
+        },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "自動テスト"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "自动测试"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "自动测试"
           }
         }
       }
     },
     "自动测试记录" : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "自动测试记录"
+          }
+        },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "自動テストの記録"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "自动测试记录"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "自动测试记录"
           }
         }
       }
@@ -3987,6 +7121,18 @@
             "state" : "translated",
             "value" : "いいね獲得"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "获赞"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "获赞"
+          }
         }
       }
     },
@@ -4002,6 +7148,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "動作"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "行为"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "行为"
           }
         }
       }
@@ -4019,15 +7177,45 @@
             "state" : "translated",
             "value" : "履歴"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "观看记录"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "观看记录"
+          }
         }
       }
     },
     "观看记录上报间隔" : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "观看记录上报间隔"
+          }
+        },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "履歴の送信間隔"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "观看记录上报间隔"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "观看记录上报间隔"
           }
         }
       }
@@ -4045,6 +7233,18 @@
             "state" : "translated",
             "value" : "デコード"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "解码"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "解码"
+          }
         }
       }
     },
@@ -4060,6 +7260,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "デコーダ"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "解码器"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "解码器"
           }
         }
       }
@@ -4077,6 +7289,18 @@
             "state" : "translated",
             "value" : "設定"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "设置"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "设置"
+          }
         }
       }
     },
@@ -4092,6 +7316,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "データを設定"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "设置数据"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "设置数据"
           }
         }
       }
@@ -4109,6 +7345,18 @@
             "state" : "translated",
             "value" : "コメントを読み込み中…"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "评论加载中…"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "评论加载中…"
+          }
         }
       }
     },
@@ -4124,6 +7372,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "コメントの読み込みに失敗しました"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "评论加载失败"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "评论加载失败"
           }
         }
       }
@@ -4141,6 +7401,18 @@
             "state" : "translated",
             "value" : "SMS認証コードを入力してください"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "请输入短信验证码"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "请输入短信验证码"
+          }
         }
       }
     },
@@ -4156,6 +7428,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "30文字以上のプレーンテキスト文字列を入力してください。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "请输入至少为30个字符长度的纯字符串。"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "请输入至少为30个字符长度的纯字符串。"
           }
         }
       }
@@ -4173,6 +7457,18 @@
             "state" : "translated",
             "value" : "アカウント"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "账号"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "账号"
+          }
         }
       }
     },
@@ -4188,6 +7484,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "スキップ：%@"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "跳过：%@"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "跳过：%@"
           }
         }
       }
@@ -4205,6 +7513,18 @@
             "state" : "translated",
             "value" : "スキップの案内"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "跳过提示"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "跳过提示"
+          }
         }
       }
     },
@@ -4220,6 +7540,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "スキップ回数の統計追跡"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "跳过次数统计跟踪"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "跳过次数统计跟踪"
           }
         }
       }
@@ -4237,6 +7569,18 @@
             "state" : "translated",
             "value" : "戻る"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "返回"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "返回"
+          }
         }
       }
     },
@@ -4252,6 +7596,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "まだフォローしているユーザーはいません"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "还没有关注的用户"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "还没有关注的用户"
           }
         }
       }
@@ -4269,6 +7625,18 @@
             "state" : "translated",
             "value" : "まだ投稿内容はありません"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "还没有投稿内容"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "还没有投稿内容"
+          }
         }
       }
     },
@@ -4284,6 +7652,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "まだ履歴はありません"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "还没有观看记录"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "还没有观看记录"
           }
         }
       }
@@ -4301,6 +7681,18 @@
             "state" : "translated",
             "value" : "これはログイン状態や設定には影響しませんが、ページ内のカバー画像、アバター、プレビュー画像は次回再読み込みされます。"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "这不会影响登录状态和设置，但页面里的封面、头像、预览图下次会重新加载。"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "这不会影响登录状态和设置，但页面里的封面、头像、预览图下次会重新加载。"
+          }
         }
       }
     },
@@ -4316,6 +7708,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "この項目はデバイスから削除されます"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "这个项目将从你的设备上移除"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "这个项目将从你的设备上移除"
           }
         }
       }
@@ -4333,6 +7737,18 @@
             "state" : "translated",
             "value" : "これらの項目はデバイスから削除されます"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "这些项目将从你的设备上移除"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "这些项目将从你的设备上移除"
+          }
         }
       }
     },
@@ -4348,6 +7764,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "ここに表示されるのは直接削除できるキャッシュ容量です。システム上に表示される「書類とデータ」には、Cookie、データベース、環境設定など、ほかの永続化された内容が含まれている場合もあります。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "这里显示的是可直接清理的缓存空间。系统里看到的“文稿与数据”还可能包含 Cookie、数据库、偏好设置等其他持久化内容。"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "这里显示的是可直接清理的缓存空间。系统里看到的“文稿与数据”还可能包含 Cookie、数据库、偏好设置等其他持久化内容。"
           }
         }
       }
@@ -4365,6 +7793,18 @@
             "state" : "translated",
             "value" : "ログアウト"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "退出登录"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "退出登录"
+          }
         }
       }
     },
@@ -4380,6 +7820,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "選択"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "选择"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "选择"
           }
         }
       }
@@ -4397,6 +7849,18 @@
             "state" : "translated",
             "value" : "お気に入りを選択"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "选择收藏夹"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "选择收藏夹"
+          }
         }
       }
     },
@@ -4412,6 +7876,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "エクスポートする内容を選択する"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "选择要导出的缓存内容"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "选择要导出的缓存内容"
           }
         }
       }
@@ -4429,6 +7905,18 @@
             "state" : "translated",
             "value" : "リセット"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "重置"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "重置"
+          }
         }
       }
     },
@@ -4444,6 +7932,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "動画を再読み込み"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "重载视频"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "重载视频"
           }
         }
       }
@@ -4461,6 +7961,18 @@
             "state" : "translated",
             "value" : "ランダム"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "随机"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "随机"
+          }
         }
       }
     },
@@ -4476,6 +7988,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "電話番号の認証が必要です"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "需要验证手机号"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "需要验证手机号"
           }
         }
       }
@@ -4493,6 +8017,18 @@
             "state" : "translated",
             "value" : "静止弾幕の表示時間"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "静态弹幕时长"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "静态弹幕时长"
+          }
         }
       }
     },
@@ -4508,6 +8044,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "音声・映像"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "音视频"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "音视频"
           }
         }
       }
@@ -4525,6 +8073,18 @@
             "state" : "translated",
             "value" : "優先するエンコード形式"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "首选编码格式"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "首选编码格式"
+          }
         }
       }
     },
@@ -4540,6 +8100,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "ホーム"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "首页"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "首页"
           }
         }
       }
@@ -4557,6 +8129,18 @@
             "state" : "translated",
             "value" : "認証してログイン"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "验证并登录"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "验证并登录"
+          }
         }
       }
     },
@@ -4572,6 +8156,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "HDR動画"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "高动态视频"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "高动态视频"
           }
         }
       }
@@ -4589,6 +8185,18 @@
             "state" : "translated",
             "value" : "ハイダイナミックレンジ"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "高动态范围"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "高动态范围"
+          }
         }
       }
     },
@@ -4604,6 +8212,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "デフォルト画質"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "默认画质"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "默认画质"
           }
         }
       }
