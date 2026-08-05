@@ -896,11 +896,10 @@ struct VideoDetailPage: View {
                     .resizable()
                     .scaledToFit()
                     .frame(width: 16, height: 16)
-                    .foregroundStyle(.white)
+                    .foregroundStyle(.primary)
                     .frame(width: 32, height: 32)
             }
-            .background(Circle().fill(Color.black.opacity(0.2)))
-            .glassEffect(.clear.interactive(), in: .circle)
+            .glassEffect(.regular.interactive(), in: .circle)
             .buttonStyle(.plain)
             .accessibilityLabel("弹幕")
             .accessibilityValue(isDanmakuEnabled ? "已开启" : "已关闭")
