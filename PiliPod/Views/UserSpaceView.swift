@@ -141,8 +141,22 @@ struct UserSpaceView: View {
                     .glassEffectUnion(id: "UserSpaceTopTools", namespace: topToolsGlass)
 
                     Menu {
-                        Button("拉黑") {}
                         Button("举报") {}
+                        Section {
+                            Picker(
+                                "排序方式",
+                                selection: Binding(
+                                    get: { viewModel.archiveOrder },
+                                    set: { order in
+                                        Task { await viewModel.setArchiveOrder(order) }
+                                    }
+                                )
+                            ) {
+                                Text("最新发布").tag(BiliAPI.SpaceArchiveOrder.pubdate)
+                                Text("最多播放").tag(BiliAPI.SpaceArchiveOrder.click)
+                            }
+                            .pickerStyle(.inline)
+                        }
                     } label: {
                         Image(systemName: "ellipsis.circle")
                             .foregroundStyle(.primary)

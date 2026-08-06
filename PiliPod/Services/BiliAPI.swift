@@ -13,6 +13,11 @@ import SwiftProtobuf
 class BiliAPI {
     static let shared = BiliAPI()
 
+    enum SpaceArchiveOrder: String {
+        case pubdate
+        case click
+    }
+
     // PiliPlus 中通用的 Bilibili 移动端 AppKey 和 Secret
     private static let appKey = "dfca71928277209b"
     private static let appSecret = "b5475a8825547a4fc26c7d518eaaa02e"
@@ -849,18 +854,18 @@ class BiliAPI {
         return spaceData
     }
 
-    // MARK: - 获取个人空间投稿（App，游标分页）
+    // MARK: - 获取个人空间投稿
 
     func fetchSpaceArchiveCursor(
         mid: Int,
         aid: Int?,
-        order: String = "pubdate",
+        order: SpaceArchiveOrder = .pubdate,
         ps: Int = 20,
         qn: Int = 80
     ) async throws -> SpaceArchiveData {
         let urlString = "https://app.biliapi.com/x/v2/space/archive/cursor"
         var params = makeSpaceCommonParameters(mid: mid)
-        params["order"] = order
+        params["order"] = order.rawValue
         params["ps"] = String(ps)
         params["qn"] = String(qn)
         if let aid {

@@ -1319,6 +1319,12 @@
     "最多保留" : {
 
     },
+    "最多播放" : {
+
+    },
+    "最新发布" : {
+
+    },
     "最终选择" : {
       "localizations" : {
         "ja" : {
@@ -2424,6 +2430,7 @@
       }
     },
     "拉黑" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -2438,6 +2445,9 @@
           }
         }
       }
+    },
+    "排序方式" : {
+
     },
     "推荐来源" : {
       "localizations" : {

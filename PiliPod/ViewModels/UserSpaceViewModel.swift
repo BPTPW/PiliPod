@@ -11,6 +11,7 @@ final class UserSpaceViewModel: ObservableObject {
     @Published var archiveIsLoading = false
     @Published var archiveErrorMessage: String?
     @Published var archiveHasMore = true
+    @Published private(set) var archiveOrder: BiliAPI.SpaceArchiveOrder = .pubdate
 
     private var archiveNextAid: Int?
     private var archiveMid: Int?
@@ -44,7 +45,7 @@ final class UserSpaceViewModel: ObservableObject {
             let page = try await BiliAPI.shared.fetchSpaceArchiveCursor(
                 mid: mid,
                 aid: nil,
-                order: "pubdate",
+                order: archiveOrder,
                 ps: 20,
                 qn: 80
             )
@@ -58,6 +59,13 @@ final class UserSpaceViewModel: ObservableObject {
             archiveErrorMessage = error.localizedDescription
             archiveHasMore = false
         }
+    }
+
+    func setArchiveOrder(_ order: BiliAPI.SpaceArchiveOrder) async {
+        guard archiveOrder != order else { return }
+        archiveOrder = order
+        archiveVideos = []
+        await refreshArchive()
     }
 
     func loadMoreArchiveIfNeeded(current item: VideoItem) async {
@@ -77,7 +85,7 @@ final class UserSpaceViewModel: ObservableObject {
             let page = try await BiliAPI.shared.fetchSpaceArchiveCursor(
                 mid: mid,
                 aid: aid,
-                order: "pubdate",
+                order: archiveOrder,
                 ps: 20,
                 qn: 80
             )
