@@ -768,7 +768,7 @@ class VideoDetailViewModel {
             loadingDanmakuSegments.remove(segmentIndex)
             mergeDanmakuElements(reply.elems, for: segmentIndex)
         } catch {
-            ErrorLogService.record(error, context: "加载视频弹幕")
+            // ErrorLogService.record(error, context: "加载视频弹幕")
             loadingDanmakuSegments.remove(segmentIndex)
             danmakuError = error.localizedDescription
         }

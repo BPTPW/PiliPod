@@ -61,7 +61,7 @@ private struct PlayerSettingsView: View {
                 Text("显示效果")
             } footer: {
                 Text(supportsAmbientMode
-                    ? "全屏播放时，根据视频画面颜色动态填充视频周围空白区域。"
+                    ? "全屏播放时，根据视频画面颜色动态填充视频周围空白区域，带来沉浸式体验。"
                     : "氛围模式仅支持 AVPlayer 内核。")
             }
             Section {

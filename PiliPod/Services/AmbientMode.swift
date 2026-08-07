@@ -43,10 +43,9 @@ struct AmbientBackdropView: View {
                     .offset(x: -geometry.size.width * 0.28, y: geometry.size.height * 0.28)
                 ambientBlob(palette.bottomTrailing.swiftUIColor, diameter: diameter)
                     .offset(x: geometry.size.width * 0.28, y: geometry.size.height * 0.28)
-                Color.black.opacity(0.42)
+                Color.black.opacity(0.20)
             }
             .compositingGroup()
-            .blur(radius: 28)
             .clipped()
         }
         .animation(.easeInOut(duration: 0.65), value: palette)
@@ -92,9 +91,19 @@ enum AmbientPaletteAnalyzer {
                 let green = Double(pixel[1]) / 255
                 let red = Double(pixel[2]) / 255
                 let luma = red * 0.2126 + green * 0.7152 + blue * 0.0722
-                guard luma > 0.035, luma < 0.96 else { continue }
+                // The side areas are what the user sees beside the fitted
+                // video. Give their source pixels substantially more weight
+                // than the middle, while retaining pure white and black.
+                let horizontalPosition = (Double(x) + 0.5) / Double(width)
+                let edgeDistance = abs(horizontalPosition - 0.5) * 2
+                let sideWeight = 0.20 + pow(edgeDistance, 2.2) * 3.8
                 let quadrant = (y >= height / 2 ? 2 : 0) + (x >= width / 2 ? 1 : 0)
-                samples[quadrant].add(red: red, green: green, blue: blue, luma: luma)
+                samples[quadrant].add(
+                    red: red,
+                    green: green,
+                    blue: blue,
+                    weight: (0.30 + luma) * sideWeight
+                )
             }
         }
 
@@ -114,20 +123,30 @@ enum AmbientPaletteAnalyzer {
         private var blue = 0.0
         private var weight = 0.0
 
-        mutating func add(red: Double, green: Double, blue: Double, luma: Double) {
-            let sampleWeight = 0.35 + luma
-            self.red += red * sampleWeight
-            self.green += green * sampleWeight
-            self.blue += blue * sampleWeight
-            weight += sampleWeight
+        mutating func add(red: Double, green: Double, blue: Double, weight: Double) {
+            self.red += red * weight
+            self.green += green * weight
+            self.blue += blue * weight
+            self.weight += weight
         }
 
         var color: AmbientColor {
             guard weight > 0 else { return .black }
+            let averageRed = red / weight
+            let averageGreen = green / weight
+            let averageBlue = blue / weight
+            let luma = averageRed * 0.2126 + averageGreen * 0.7152 + averageBlue * 0.0722
+
+            // A little extra saturation prevents averaging from turning vivid
+            // scenes gray; contrast preserves pure white and black endpoints.
+            func enhanced(_ component: Double) -> Double {
+                let saturated = luma + (component - luma) * 1.55
+                return min(1, max(0, (saturated - 0.5) * 1.18 + 0.5))
+            }
             return AmbientColor(
-                red: min(1, max(0, red / weight * 1.12)),
-                green: min(1, max(0, green / weight * 1.12)),
-                blue: min(1, max(0, blue / weight * 1.12))
+                red: enhanced(averageRed),
+                green: enhanced(averageGreen),
+                blue: enhanced(averageBlue)
             )
         }
     }
