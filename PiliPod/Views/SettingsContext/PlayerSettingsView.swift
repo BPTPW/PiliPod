@@ -57,12 +57,26 @@ private struct PlayerSettingsView: View {
                 Toggle("氛围模式", isOn: $settings.ambientModeEnabled)
                     .tint(Color("BiliPink"))
                     .disabled(!supportsAmbientMode)
+                Picker("每秒采样频率", selection: $settings.ambientSamplingRate) {
+                    ForEach(AmbientSamplingRate.allCases, id: \.self) { rate in
+                        Text(rate.title).tag(rate)
+                    }
+                }
+                .disabled(!supportsAmbientMode || !settings.ambientModeEnabled)
+                Picker("渐变速度", selection: $settings.ambientGradientSpeed) {
+                    ForEach(AmbientGradientSpeed.allCases, id: \.self) { speed in
+                        Text(speed.title).tag(speed)
+                    }
+                }
+                .disabled(!supportsAmbientMode || !settings.ambientModeEnabled)
             } header: {
                 Text("显示效果")
             } footer: {
-                Text(supportsAmbientMode
-                    ? "全屏播放时，根据视频画面颜色动态填充视频周围空白区域，带来沉浸式体验。"
-                    : "氛围模式仅支持 AVPlayer 内核。")
+                if supportsAmbientMode {
+                    Text("全屏播放时，根据视频画面颜色动态填充视频周围空白区域，带来沉浸式体验。较高的采样率可能会导致更多的性能开销。")
+                } else {
+                    Text("氛围模式仅支持 AVPlayer 内核。")
+                }
             }
             Section {
                 Picker("观看记录上报间隔", selection: $settings.historyReportInterval) {
@@ -84,6 +98,8 @@ private struct PlayerSettingsView: View {
                     settings.allowsVideoPictureInPicture = defaultSettings.allowsVideoPictureInPicture
                     settings.allowsLivePictureInPicture = defaultSettings.allowsLivePictureInPicture
                     settings.ambientModeEnabled = defaultSettings.ambientModeEnabled
+                    settings.ambientSamplingRate = defaultSettings.ambientSamplingRate
+                    settings.ambientGradientSpeed = defaultSettings.ambientGradientSpeed
                 }
             }
         }

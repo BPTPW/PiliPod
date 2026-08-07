@@ -56,7 +56,10 @@ struct LivePlayerView: View {
 
             ZStack {
                 if isFullscreen && player.isAmbientModeEnabled {
-                    AmbientBackdropView(palette: player.ambientPalette)
+                    AmbientBackdropView(
+                        palette: player.ambientPalette,
+                        animationDuration: player.ambientGradientDuration
+                    )
                 } else {
                     Color.black
                 }
@@ -111,6 +114,15 @@ struct LivePlayerView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Color.black)
+        .onAppear {
+            player.setAmbientModeVisible(isFullscreen)
+        }
+        .onDisappear {
+            player.setAmbientModeVisible(false)
+        }
+        .onChange(of: isFullscreen) { _, fullscreen in
+            player.setAmbientModeVisible(fullscreen)
+        }
     }
 
     private func verticalAdjustmentGesture(containerSize: CGSize) -> some Gesture {

@@ -48,6 +48,7 @@ final class AVPlayerSession: NSObject, AVPictureInPictureControllerDelegate {
     private var accessLogSpeedBytesPerSecond: Double = 0
     private var ambientVideoOutput: AVPlayerItemVideoOutput?
     private var lastAmbientSampleUptime: TimeInterval = 0
+    private var isAmbientModeActive = false
     private(set) var playbackRate = 1.0
     private(set) var snapshot = PlayerUIPlaybackSnapshot()
     private(set) var seekRevision = 0
@@ -97,6 +98,17 @@ final class AVPlayerSession: NSObject, AVPictureInPictureControllerDelegate {
             applyBufferPreference(to: item)
         }
         publish()
+    }
+
+    func setAmbientModeActive(_ active: Bool) {
+        guard isAmbientModeActive != active else { return }
+        isAmbientModeActive = active
+        if active, let item = player.currentItem {
+            attachAmbientVideoOutput(to: item)
+        } else {
+            detachAmbientVideoOutput()
+            lastAmbientSampleUptime = 0
+        }
     }
 
     func play(stream: DashStream) {
@@ -173,13 +185,10 @@ final class AVPlayerSession: NSObject, AVPictureInPictureControllerDelegate {
 
     private func install(_ item: AVPlayerItem) {
         resetAccessLogSpeedTracking()
-        let output = AVPlayerItemVideoOutput(pixelBufferAttributes: [
-            kCVPixelBufferPixelFormatTypeKey as String: kCVPixelFormatType_32BGRA
-        ])
-        item.add(output)
-        ambientVideoOutput = output
-        lastAmbientSampleUptime = 0
         player.replaceCurrentItem(with: item)
+        if isAmbientModeActive {
+            attachAmbientVideoOutput(to: item)
+        }
         observations = [
             item.observe(\.status, options: [.initial, .new]) { [weak self] item, _ in
                 Task { @MainActor in
@@ -310,20 +319,36 @@ final class AVPlayerSession: NSObject, AVPictureInPictureControllerDelegate {
         observations.removeAll()
         if let endObserver { NotificationCenter.default.removeObserver(endObserver) }
         endObserver = nil
-        if let ambientVideoOutput, let currentItem = player.currentItem {
-            currentItem.remove(ambientVideoOutput)
-        }
-        ambientVideoOutput = nil
-        lastAmbientSampleUptime = 0
+        detachAmbientVideoOutput()
         player.replaceCurrentItem(with: nil)
         resetAccessLogSpeedTracking()
         bridge?.stop(); bridge = nil
     }
 
+    private func attachAmbientVideoOutput(to item: AVPlayerItem) {
+        guard ambientVideoOutput == nil else { return }
+        let output = AVPlayerItemVideoOutput(pixelBufferAttributes: [
+            kCVPixelBufferPixelFormatTypeKey as String: kCVPixelFormatType_32BGRA
+        ])
+        item.add(output)
+        ambientVideoOutput = output
+        lastAmbientSampleUptime = 0
+    }
+
+    private func detachAmbientVideoOutput() {
+        if let ambientVideoOutput, let currentItem = player.currentItem {
+            currentItem.remove(ambientVideoOutput)
+        }
+        ambientVideoOutput = nil
+        lastAmbientSampleUptime = 0
+    }
+
     private func sampleAmbientPalette(at time: CMTime) {
-        guard playbackSettings.ambientModeEnabled,
+        guard isAmbientModeActive,
+              playbackSettings.ambientModeEnabled,
               player.timeControlStatus != .paused,
-              ProcessInfo.processInfo.systemUptime - lastAmbientSampleUptime >= 1.0 / 3.0,
+              ProcessInfo.processInfo.systemUptime - lastAmbientSampleUptime
+                >= 1.0 / Double(playbackSettings.ambientSamplingRate.rawValue),
               let ambientVideoOutput,
               ambientVideoOutput.hasNewPixelBuffer(forItemTime: time)
         else { return }

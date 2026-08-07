@@ -135,6 +135,37 @@ enum PlayerCore: String, CaseIterable, Codable, Hashable {
     }
 }
 
+enum AmbientSamplingRate: Int, CaseIterable, Codable, Hashable {
+    case twice = 2
+    case fiveTimes = 5
+    case tenTimes = 10
+    case twentyTimes = 20
+
+    var title: String { "\(rawValue)次/秒" }
+}
+
+enum AmbientGradientSpeed: String, CaseIterable, Codable, Hashable {
+    case fast
+    case normal
+    case slow
+
+    var title: String {
+        switch self {
+        case .fast: "快"
+        case .normal: "默认"
+        case .slow: "慢"
+        }
+    }
+
+    var duration: TimeInterval {
+        switch self {
+        case .fast: 0.21
+        case .normal: 0.36
+        case .slow: 0.72
+        }
+    }
+}
+
 enum MPVVideoSyncOption: String, CaseIterable, Codable, Hashable {
     case audio
     case displayResample = "display-resample"
@@ -186,6 +217,8 @@ struct AudioVideoSettings: Codable, Equatable {
     var allowsVideoPictureInPicture = false
     var allowsLivePictureInPicture = false
     var ambientModeEnabled = false
+    var ambientSamplingRate: AmbientSamplingRate = .fiveTimes
+    var ambientGradientSpeed: AmbientGradientSpeed = .normal
     var defaultQuality: PreferredVideoQuality = .ultraHD4K
     var cellularDefaultQuality: PreferredVideoQuality = .ultraHD4K
     var liveDefaultQuality: PreferredLiveQuality = .original
@@ -209,6 +242,8 @@ struct AudioVideoSettings: Codable, Equatable {
         case allowsVideoPictureInPicture
         case allowsLivePictureInPicture
         case ambientModeEnabled
+        case ambientSamplingRate
+        case ambientGradientSpeed
         case defaultQuality
         case cellularDefaultQuality
         case liveDefaultQuality
@@ -251,6 +286,8 @@ struct AudioVideoSettings: Codable, Equatable {
         allowsVideoPictureInPicture = try container.decodeIfPresent(Bool.self, forKey: .allowsVideoPictureInPicture) ?? false
         allowsLivePictureInPicture = try container.decodeIfPresent(Bool.self, forKey: .allowsLivePictureInPicture) ?? false
         ambientModeEnabled = try container.decodeIfPresent(Bool.self, forKey: .ambientModeEnabled) ?? false
+        ambientSamplingRate = (try? container.decode(AmbientSamplingRate.self, forKey: .ambientSamplingRate)) ?? .fiveTimes
+        ambientGradientSpeed = (try? container.decode(AmbientGradientSpeed.self, forKey: .ambientGradientSpeed)) ?? .normal
         defaultQuality = try container.decodeIfPresent(PreferredVideoQuality.self, forKey: .defaultQuality) ?? .ultraHD4K
         cellularDefaultQuality = try container.decodeIfPresent(PreferredVideoQuality.self, forKey: .cellularDefaultQuality) ?? .ultraHD4K
         liveDefaultQuality = try container.decodeIfPresent(PreferredLiveQuality.self, forKey: .liveDefaultQuality) ?? .original

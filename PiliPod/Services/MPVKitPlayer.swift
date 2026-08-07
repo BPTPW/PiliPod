@@ -108,11 +108,13 @@ class MPVKitPlayer: NSObject {
     private let playbackSettings: AudioVideoSettings
     private let avPlayerSession: AVPlayerSession?
     private var settingsObserver: NSObjectProtocol?
+    private var isAmbientModeVisible = false
 
     /// The selected core is captured when this playback session is created.
     /// Changing Settings therefore affects only subsequently created players.
     let usesAVPlayer: Bool
     private(set) var isAmbientModeEnabled: Bool
+    private(set) var ambientGradientDuration: TimeInterval
 
     private(set) var isPlaying = false
     private(set) var playbackRate: Double = 1.0
@@ -144,6 +146,7 @@ class MPVKitPlayer: NSObject {
         self.usesAVPlayer = playbackSettings.playerCore == .avPlayer
         self.isAmbientModeEnabled = playbackSettings.playerCore == .avPlayer
             && playbackSettings.ambientModeEnabled
+        self.ambientGradientDuration = playbackSettings.ambientGradientSpeed.duration
         if playbackSettings.playerCore == .avPlayer {
             self.avPlayerSession = AVPlayerSession(
                 headers: httpHeaders,
@@ -166,7 +169,9 @@ class MPVKitPlayer: NSObject {
         }
         avPlayerSession?.onAmbientPalette = { [weak self] palette in
             guard let self, self.isAmbientModeEnabled else { return }
-            self.ambientPalette = palette
+            if palette.differsVisibly(from: self.ambientPalette) {
+                self.ambientPalette = palette
+            }
         }
         settingsObserver = NotificationCenter.default.addObserver(
             forName: .audioVideoSettingsDidChange,
@@ -177,10 +182,14 @@ class MPVKitPlayer: NSObject {
                   let settings = notification.object as? AudioVideoSettings
             else { return }
             self.isAmbientModeEnabled = self.usesAVPlayer && settings.ambientModeEnabled
+            self.ambientGradientDuration = settings.ambientGradientSpeed.duration
             if !self.isAmbientModeEnabled {
                 self.ambientPalette = .fallback
             }
             self.avPlayerSession?.applyPlaybackSettings(settings)
+            self.avPlayerSession?.setAmbientModeActive(
+                self.isAmbientModeEnabled && self.isAmbientModeVisible
+            )
         }
         hdrDiagnostics.isEnabledInSettings = playbackSettings.highDynamicRangeEnabled
         hdrDiagnostics.prefersEDROutput = playbackSettings.prefersEDROutput
@@ -206,6 +215,14 @@ class MPVKitPlayer: NSObject {
 
     func layoutAVPlayer(in bounds: CGRect) {
         avPlayerSession?.layout(in: bounds)
+    }
+
+    func setAmbientModeVisible(_ visible: Bool) {
+        isAmbientModeVisible = visible
+        avPlayerSession?.setAmbientModeActive(isAmbientModeEnabled && visible)
+        if !visible {
+            ambientPalette = .fallback
+        }
     }
 
     func startPictureInPicture() {

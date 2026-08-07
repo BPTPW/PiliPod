@@ -25,44 +25,39 @@ struct AmbientPalette: Equatable, Sendable {
         bottomLeading: .black,
         bottomTrailing: .black
     )
+
+    func differsVisibly(from other: AmbientPalette, threshold: Double = 0.035) -> Bool {
+        let colors = [topLeading, topTrailing, bottomLeading, bottomTrailing]
+        let otherColors = [other.topLeading, other.topTrailing, other.bottomLeading, other.bottomTrailing]
+        return zip(colors, otherColors).contains { color, otherColor in
+            abs(color.red - otherColor.red) > threshold
+                || abs(color.green - otherColor.green) > threshold
+                || abs(color.blue - otherColor.blue) > threshold
+        }
+    }
 }
 
 struct AmbientBackdropView: View {
     let palette: AmbientPalette
+    let animationDuration: TimeInterval
 
     var body: some View {
-        GeometryReader { geometry in
-            let diameter = max(geometry.size.width, geometry.size.height) * 1.25
-            ZStack {
-                Color.black
-                ambientBlob(palette.topLeading.swiftUIColor, diameter: diameter)
-                    .offset(x: -geometry.size.width * 0.28, y: -geometry.size.height * 0.28)
-                ambientBlob(palette.topTrailing.swiftUIColor, diameter: diameter)
-                    .offset(x: geometry.size.width * 0.28, y: -geometry.size.height * 0.28)
-                ambientBlob(palette.bottomLeading.swiftUIColor, diameter: diameter)
-                    .offset(x: -geometry.size.width * 0.28, y: geometry.size.height * 0.28)
-                ambientBlob(palette.bottomTrailing.swiftUIColor, diameter: diameter)
-                    .offset(x: geometry.size.width * 0.28, y: geometry.size.height * 0.28)
-                Color.black.opacity(0.20)
-            }
-            .compositingGroup()
-            .clipped()
-        }
-        .animation(.easeInOut(duration: 0.65), value: palette)
+        MeshGradient(
+            width: 2,
+            height: 2,
+            points: [
+                SIMD2<Float>(0, 0), SIMD2<Float>(1, 0),
+                SIMD2<Float>(0, 1), SIMD2<Float>(1, 1)
+            ],
+            colors: [
+                palette.topLeading.swiftUIColor,
+                palette.topTrailing.swiftUIColor,
+                palette.bottomLeading.swiftUIColor,
+                palette.bottomTrailing.swiftUIColor
+            ]
+        )
+        .animation(.easeInOut(duration: animationDuration), value: palette)
         .allowsHitTesting(false)
-    }
-
-    private func ambientBlob(_ color: Color, diameter: CGFloat) -> some View {
-        Circle()
-            .fill(
-                RadialGradient(
-                    colors: [color.opacity(0.95), color.opacity(0)],
-                    center: .center,
-                    startRadius: 0,
-                    endRadius: diameter * 0.5
-                )
-            )
-            .frame(width: diameter, height: diameter)
     }
 }
 
@@ -80,7 +75,7 @@ enum AmbientPaletteAnalyzer {
         let bytesPerRow = CVPixelBufferGetBytesPerRow(pixelBuffer)
         guard width > 0, height > 0 else { return nil }
 
-        let step = max(1, min(width, height) / 32)
+        let step = max(1, min(width, height) / 24)
         var samples = Array(repeating: ColorAccumulator(), count: 4)
         let bytes = baseAddress.assumingMemoryBound(to: UInt8.self)
 
@@ -108,7 +103,6 @@ enum AmbientPaletteAnalyzer {
         }
 
         let colors = samples.map { $0.color }
-        guard colors.contains(where: { $0 != .black }) else { return nil }
         return AmbientPalette(
             topLeading: colors[0],
             topTrailing: colors[1],

@@ -135,7 +135,10 @@ struct VideoDetailPlayerSurfaceView: View {
     private var playerLayer: some View {
         ZStack {
             if isFullscreen && player.isAmbientModeEnabled {
-                AmbientBackdropView(palette: player.ambientPalette)
+                AmbientBackdropView(
+                    palette: player.ambientPalette,
+                    animationDuration: player.ambientGradientDuration
+                )
             } else {
                 Color.black
             }
@@ -172,9 +175,11 @@ struct VideoDetailPlayerSurfaceView: View {
         .ignoresSafeArea(isFullscreen ? .all : [])
         .onAppear {
             playerUISnapshot = player.uiSnapshot
+            player.setAmbientModeVisible(isFullscreen)
             showControlsAndAutoHideIfNeeded(forceShow: true)
         }
         .onDisappear {
+            player.setAmbientModeVisible(false)
             hideControlsTask?.cancel()
             speedBoostTriggerTask?.cancel()
             stopDebugPanelRefresh()
@@ -182,6 +187,9 @@ struct VideoDetailPlayerSurfaceView: View {
         .onChange(of: player.uiSnapshot) { oldSnapshot, snapshot in
             playerUISnapshot = snapshot
             handleSnapshotChange(oldSnapshot: oldSnapshot, snapshot: snapshot)
+        }
+        .onChange(of: isFullscreen) { _, fullscreen in
+            player.setAmbientModeVisible(fullscreen)
         }
         .layoutPriority(1)
     }
