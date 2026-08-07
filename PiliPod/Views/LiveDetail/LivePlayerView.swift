@@ -24,6 +24,7 @@ struct LivePlayerView: View {
     let statusText: String
     let player: MPVKitPlayer
     let isFullscreen: Bool
+    let aspectRatio: CGFloat
     let safeAreaInsets: EdgeInsets
 
     @State private var dragInteractionMode: DragInteractionMode = .none
@@ -51,8 +52,15 @@ struct LivePlayerView: View {
                 0,
                 geo.size.height - topGestureExclusionHeight - bottomGestureExclusionHeight
             )
+            let videoSize = fittedVideoSize(in: geo.size)
 
             ZStack {
+                if isFullscreen && player.isAmbientModeEnabled {
+                    AmbientBackdropView(palette: player.ambientPalette)
+                } else {
+                    Color.black
+                }
+
                 Group {
                     if let streamURL {
                         Group {
@@ -76,6 +84,7 @@ struct LivePlayerView: View {
                         }
                     }
                 }
+                .frame(width: videoSize.width, height: videoSize.height)
 
                 Color.clear
                     .contentShape(Rectangle())
@@ -156,6 +165,15 @@ struct LivePlayerView: View {
         min(max(0, value), 1)
     }
 
+    private func fittedVideoSize(in containerSize: CGSize) -> CGSize {
+        guard isFullscreen else { return containerSize }
+        let canvasAspectRatio = containerSize.width / max(containerSize.height, 1)
+        guard aspectRatio > canvasAspectRatio else {
+            return CGSize(width: containerSize.height * aspectRatio, height: containerSize.height)
+        }
+        return CGSize(width: containerSize.width, height: containerSize.width / max(aspectRatio, 0.01))
+    }
+
 #if canImport(UIKit)
     private func currentScreenBrightness() -> Double {
         Double(UIScreen.main.brightness)
@@ -216,6 +234,7 @@ struct LivePlayerView: View {
         statusText: "room id: 226000",
         player: MPVKitPlayer(),
         isFullscreen: false,
+        aspectRatio: 16.0 / 9.0,
         safeAreaInsets: EdgeInsets()
     )
 }

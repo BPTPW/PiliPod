@@ -177,6 +177,7 @@ struct LivePlaybackPage: View {
                 statusText: viewModel.playerStatusText,
                 player: player,
                 isFullscreen: isFullscreen,
+                aspectRatio: viewModel.aspectRatio,
                 safeAreaInsets: geo.safeAreaInsets
             )
             .frame(width: playerWidth, height: playerHeight, alignment: .center)

@@ -124,13 +124,13 @@ enum PreferredCodecOption: String, CaseIterable, Codable, Hashable {
 }
 
 enum PlayerCore: String, CaseIterable, Codable, Hashable {
-    case mpvKit
     case avPlayer
+    case mpvKit
 
     var title: String {
         switch self {
-        case .mpvKit: "MPVKit (已弃用)"
-        case .avPlayer: "AVPlayer"
+            case .avPlayer: "AVPlayer"
+            case .mpvKit: "MPVKit (已弃用)"
         }
     }
 }
@@ -185,6 +185,7 @@ struct AudioVideoSettings: Codable, Equatable {
     var allowsLiveBackgroundPlayback = false
     var allowsVideoPictureInPicture = false
     var allowsLivePictureInPicture = false
+    var ambientModeEnabled = false
     var defaultQuality: PreferredVideoQuality = .ultraHD4K
     var cellularDefaultQuality: PreferredVideoQuality = .ultraHD4K
     var liveDefaultQuality: PreferredLiveQuality = .original
@@ -207,6 +208,7 @@ struct AudioVideoSettings: Codable, Equatable {
         case allowsLiveBackgroundPlayback
         case allowsVideoPictureInPicture
         case allowsLivePictureInPicture
+        case ambientModeEnabled
         case defaultQuality
         case cellularDefaultQuality
         case liveDefaultQuality
@@ -248,6 +250,7 @@ struct AudioVideoSettings: Codable, Equatable {
         allowsLiveBackgroundPlayback = try container.decodeIfPresent(Bool.self, forKey: .allowsLiveBackgroundPlayback) ?? false
         allowsVideoPictureInPicture = try container.decodeIfPresent(Bool.self, forKey: .allowsVideoPictureInPicture) ?? false
         allowsLivePictureInPicture = try container.decodeIfPresent(Bool.self, forKey: .allowsLivePictureInPicture) ?? false
+        ambientModeEnabled = try container.decodeIfPresent(Bool.self, forKey: .ambientModeEnabled) ?? false
         defaultQuality = try container.decodeIfPresent(PreferredVideoQuality.self, forKey: .defaultQuality) ?? .ultraHD4K
         cellularDefaultQuality = try container.decodeIfPresent(PreferredVideoQuality.self, forKey: .cellularDefaultQuality) ?? .ultraHD4K
         liveDefaultQuality = try container.decodeIfPresent(PreferredLiveQuality.self, forKey: .liveDefaultQuality) ?? .original
@@ -281,7 +284,12 @@ enum AudioVideoSettingsStore {
         let clamped = settings.clamped()
         guard let data = try? JSONEncoder().encode(clamped) else { return }
         UserDefaults.standard.set(data, forKey: key)
+        NotificationCenter.default.post(name: .audioVideoSettingsDidChange, object: clamped)
     }
+}
+
+extension Notification.Name {
+    static let audioVideoSettingsDidChange = Notification.Name("pili.audio-video-settings.did-change")
 }
 
 final class NetworkTypeMonitor {

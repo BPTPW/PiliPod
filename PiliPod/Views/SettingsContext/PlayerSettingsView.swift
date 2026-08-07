@@ -20,6 +20,7 @@ private struct PlayerSettingsView: View {
     @Binding var settings: AudioVideoSettings
     private let defaultSettings = AudioVideoSettings()
     private var supportsPictureInPicture: Bool { settings.playerCore == .avPlayer }
+    private var supportsAmbientMode: Bool { settings.playerCore == .avPlayer }
 
     var body: some View {
         Form {
@@ -53,6 +54,17 @@ private struct PlayerSettingsView: View {
                 }
             }
             Section {
+                Toggle("氛围模式", isOn: $settings.ambientModeEnabled)
+                    .tint(Color("BiliPink"))
+                    .disabled(!supportsAmbientMode)
+            } header: {
+                Text("显示效果")
+            } footer: {
+                Text(supportsAmbientMode
+                    ? "全屏播放时，根据视频画面颜色动态填充视频周围空白区域。"
+                    : "氛围模式仅支持 AVPlayer 内核。")
+            }
+            Section {
                 Picker("观看记录上报间隔", selection: $settings.historyReportInterval) {
                     ForEach(AudioVideoSettings.supportedHistoryReportIntervals, id: \.self) { interval in
                         Text("\(interval)s").tag(interval)
@@ -71,6 +83,7 @@ private struct PlayerSettingsView: View {
                     settings.allowsLiveBackgroundPlayback = defaultSettings.allowsLiveBackgroundPlayback
                     settings.allowsVideoPictureInPicture = defaultSettings.allowsVideoPictureInPicture
                     settings.allowsLivePictureInPicture = defaultSettings.allowsLivePictureInPicture
+                    settings.ambientModeEnabled = defaultSettings.ambientModeEnabled
                 }
             }
         }

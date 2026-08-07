@@ -46,11 +46,14 @@ final class AVPlayerSession: NSObject, AVPictureInPictureControllerDelegate {
     private var lastAccessLogBytes: Int64 = 0
     private var lastAccessLogSampleUptime: TimeInterval?
     private var accessLogSpeedBytesPerSecond: Double = 0
+    private var ambientVideoOutput: AVPlayerItemVideoOutput?
+    private var lastAmbientSampleUptime: TimeInterval = 0
     private(set) var playbackRate = 1.0
     private(set) var snapshot = PlayerUIPlaybackSnapshot()
     private(set) var seekRevision = 0
     private(set) var errorMessage: String?
     var onSnapshot: ((PlayerUIPlaybackSnapshot) -> Void)?
+    var onAmbientPalette: ((AmbientPalette) -> Void)?
 
     init(headers: [String: String], playbackSettings: AudioVideoSettings) {
         self.headers = headers
@@ -170,6 +173,12 @@ final class AVPlayerSession: NSObject, AVPictureInPictureControllerDelegate {
 
     private func install(_ item: AVPlayerItem) {
         resetAccessLogSpeedTracking()
+        let output = AVPlayerItemVideoOutput(pixelBufferAttributes: [
+            kCVPixelBufferPixelFormatTypeKey as String: kCVPixelFormatType_32BGRA
+        ])
+        item.add(output)
+        ambientVideoOutput = output
+        lastAmbientSampleUptime = 0
         player.replaceCurrentItem(with: item)
         observations = [
             item.observe(\.status, options: [.initial, .new]) { [weak self] item, _ in
@@ -188,7 +197,10 @@ final class AVPlayerSession: NSObject, AVPictureInPictureControllerDelegate {
             item.observe(\.loadedTimeRanges, options: [.new]) { [weak self] _, _ in Task { @MainActor in self?.publish() } },
             player.observe(\.timeControlStatus, options: [.initial, .new]) { [weak self] _, _ in Task { @MainActor in self?.publish() } }
         ]
-        timeObserver = player.addPeriodicTimeObserver(forInterval: CMTime(seconds: 0.1, preferredTimescale: 600), queue: .main) { [weak self] _ in self?.publish() }
+        timeObserver = player.addPeriodicTimeObserver(forInterval: CMTime(seconds: 0.1, preferredTimescale: 600), queue: .main) { [weak self] time in
+            self?.publish()
+            self?.sampleAmbientPalette(at: time)
+        }
         endObserver = NotificationCenter.default.addObserver(forName: .AVPlayerItemDidPlayToEndTime, object: item, queue: .main) { [weak self] _ in
             Task { @MainActor in self?.handleEnd() }
         }
@@ -298,9 +310,34 @@ final class AVPlayerSession: NSObject, AVPictureInPictureControllerDelegate {
         observations.removeAll()
         if let endObserver { NotificationCenter.default.removeObserver(endObserver) }
         endObserver = nil
+        if let ambientVideoOutput, let currentItem = player.currentItem {
+            currentItem.remove(ambientVideoOutput)
+        }
+        ambientVideoOutput = nil
+        lastAmbientSampleUptime = 0
         player.replaceCurrentItem(with: nil)
         resetAccessLogSpeedTracking()
         bridge?.stop(); bridge = nil
+    }
+
+    private func sampleAmbientPalette(at time: CMTime) {
+        guard playbackSettings.ambientModeEnabled,
+              player.timeControlStatus != .paused,
+              ProcessInfo.processInfo.systemUptime - lastAmbientSampleUptime >= 1.0 / 3.0,
+              let ambientVideoOutput,
+              ambientVideoOutput.hasNewPixelBuffer(forItemTime: time)
+        else { return }
+
+        var displayTime = CMTime.invalid
+        guard let pixelBuffer = ambientVideoOutput.copyPixelBuffer(
+            forItemTime: time,
+            itemTimeForDisplay: &displayTime
+        ) else { return }
+        lastAmbientSampleUptime = ProcessInfo.processInfo.systemUptime
+        guard let palette = AmbientPaletteAnalyzer.palette(from: pixelBuffer),
+              playbackSettings.ambientModeEnabled
+        else { return }
+        onAmbientPalette?(palette)
     }
 
     private func preparePictureInPictureController() {

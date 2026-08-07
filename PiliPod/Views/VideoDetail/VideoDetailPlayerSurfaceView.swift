@@ -98,6 +98,17 @@ struct VideoDetailPlayerSurfaceView: View {
             : containerSize.width
     }
 
+    private var videoRenderSize: CGSize {
+        guard isFullscreen else {
+            return CGSize(width: playerWidth, height: playerHeight)
+        }
+        let canvasAspectRatio = playerWidth / max(playerHeight, 1)
+        guard stream.aspectRatio > canvasAspectRatio else {
+            return CGSize(width: playerHeight * stream.aspectRatio, height: playerHeight)
+        }
+        return CGSize(width: playerWidth, height: playerWidth / stream.aspectRatio)
+    }
+
     private var topGestureExclusionHeight: CGFloat {
         isFullscreen ? max(18, safeAreaInsets.top + 8) : 14
     }
@@ -122,46 +133,57 @@ struct VideoDetailPlayerSurfaceView: View {
     }
 
     private var playerLayer: some View {
-        Group {
-            if player.usesAVPlayer {
-                AVPlayerSurfaceView(player: player)
+        ZStack {
+            if isFullscreen && player.isAmbientModeEnabled {
+                AmbientBackdropView(palette: player.ambientPalette)
             } else {
-                MPVKitPlayerView(player: player)
+                Color.black
             }
-        }
+
+            Group {
+                if player.usesAVPlayer {
+                    AVPlayerSurfaceView(player: player)
+                } else {
+                    MPVKitPlayerView(player: player)
+                }
+            }
             .id(playerViewID)
-            // Establish the UIKit render surface before adding overlays. Putting
-            // this frame after overlays leaves mpv and controls in the smaller
-            // aspect-ratio layout while only their outer container expands.
-            .frame(width: playerWidth, height: playerHeight, alignment: .center)
-            .ignoresSafeArea(isFullscreen ? .all : [])
-            .background(Color.black)
-            .overlay { gestureOverlay }
-            .overlay { danmakuOverlay }
-            .overlay { loadingOverlay }
-            .overlay { fullscreenGradientOverlay }
-            .overlay { collapsedProgressOverlay }
-            .overlay(alignment: .trailing) { fullscreenDanmakuPanelOverlay }
-            .overlay(alignment: .top) { topStatusOverlay }
-            .overlay { videoShotPreviewOverlay }
-            .overlay(alignment: .bottomLeading) { manualSkipOverlay }
-            .overlay { brightnessHudOverlay }
-            .overlay { volumeHudOverlay }
-            .overlay { debugPanelOverlay }
-            .onAppear {
-                playerUISnapshot = player.uiSnapshot
-                showControlsAndAutoHideIfNeeded(forceShow: true)
-            }
-            .onDisappear {
-                hideControlsTask?.cancel()
-                speedBoostTriggerTask?.cancel()
-                stopDebugPanelRefresh()
-            }
-            .onChange(of: player.uiSnapshot) { oldSnapshot, snapshot in
-                playerUISnapshot = snapshot
-                handleSnapshotChange(oldSnapshot: oldSnapshot, snapshot: snapshot)
-            }
-            .layoutPriority(1)
+            // Keep the renderer at the video's fitted size so the fullscreen
+            // canvas can expose the ambient background around it.
+            .frame(width: videoRenderSize.width, height: videoRenderSize.height, alignment: .center)
+
+            gestureOverlay
+            danmakuOverlay
+            loadingOverlay
+            fullscreenGradientOverlay
+            collapsedProgressOverlay
+            fullscreenDanmakuPanelOverlay
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .trailing)
+            topStatusOverlay
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+            videoShotPreviewOverlay
+            manualSkipOverlay
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomLeading)
+            brightnessHudOverlay
+            volumeHudOverlay
+            debugPanelOverlay
+        }
+        .frame(width: playerWidth, height: playerHeight, alignment: .center)
+        .ignoresSafeArea(isFullscreen ? .all : [])
+        .onAppear {
+            playerUISnapshot = player.uiSnapshot
+            showControlsAndAutoHideIfNeeded(forceShow: true)
+        }
+        .onDisappear {
+            hideControlsTask?.cancel()
+            speedBoostTriggerTask?.cancel()
+            stopDebugPanelRefresh()
+        }
+        .onChange(of: player.uiSnapshot) { oldSnapshot, snapshot in
+            playerUISnapshot = snapshot
+            handleSnapshotChange(oldSnapshot: oldSnapshot, snapshot: snapshot)
+        }
+        .layoutPriority(1)
     }
 
     private var currentOverlayTime: TimeInterval {
