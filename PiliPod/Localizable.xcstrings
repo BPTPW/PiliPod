@@ -1192,7 +1192,7 @@
         }
       }
     },
-    "全屏播放时，根据视频画面颜色动态填充视频周围空白区域。" : {
+    "全屏播放时，根据视频画面颜色动态填充视频周围空白区域，带来沉浸式体验。" : {
 
     },
     "全部按滚动弹幕显示" : {
@@ -2432,23 +2432,6 @@
         }
       }
     },
-    "拉黑" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Block"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "ブロック"
-          }
-        }
-      }
-    },
     "排序方式" : {
 
     },
@@ -2480,22 +2463,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "おすすめフィード"
-          }
-        }
-      }
-    },
-    "推荐视频" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Recommended Videos"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "おすすめ動画"
           }
         }
       }

@@ -255,9 +255,6 @@ struct IntroTabContentView: View, Equatable {
                     Divider()
 
                     HStack(spacing: 10) {
-                        Text("推荐视频")
-                            .font(.headline)
-                            .foregroundStyle(.primary)
 
                         if model.relatedIsLoading {
                             ProgressView()
@@ -266,7 +263,6 @@ struct IntroTabContentView: View, Equatable {
 
                         Spacer()
                     }
-                    .padding(.top, 6)
 
                     if let error = model.relatedError,
                        !model.relatedIsLoading,
