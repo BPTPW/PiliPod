@@ -129,8 +129,8 @@ enum PlayerCore: String, CaseIterable, Codable, Hashable {
 
     var title: String {
         switch self {
-        case .mpvKit: "MPVKit"
-        case .avPlayer: "AVPlayer (实验性)"
+        case .mpvKit: "MPVKit (已弃用)"
+        case .avPlayer: "AVPlayer"
         }
     }
 }
@@ -178,7 +178,7 @@ enum HDRToneMappingOption: String, CaseIterable, Codable, Hashable {
 struct AudioVideoSettings: Codable, Equatable {
     static let supportedHistoryReportIntervals = [5, 10, 20, 30]
 
-    var playerCore: PlayerCore = .mpvKit
+    var playerCore: PlayerCore = .avPlayer
     var historyReportInterval = 10
     var hardwareDecodingEnabled = true
     var allowsBackgroundPlayback = false
@@ -242,7 +242,7 @@ struct AudioVideoSettings: Codable, Equatable {
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         hardwareDecodingEnabled = try container.decodeIfPresent(Bool.self, forKey: .hardwareDecodingEnabled) ?? true
-        playerCore = try container.decodeIfPresent(PlayerCore.self, forKey: .playerCore) ?? .mpvKit
+        playerCore = try container.decodeIfPresent(PlayerCore.self, forKey: .playerCore) ?? .avPlayer
         historyReportInterval = try container.decodeIfPresent(Int.self, forKey: .historyReportInterval) ?? 10
         allowsBackgroundPlayback = try container.decodeIfPresent(Bool.self, forKey: .allowsBackgroundPlayback) ?? false
         allowsLiveBackgroundPlayback = try container.decodeIfPresent(Bool.self, forKey: .allowsLiveBackgroundPlayback) ?? false
