@@ -68,6 +68,9 @@ struct VideoDetailPage: View {
     @State private var danmakuConfig = DanmakuConfigStore.load()
     @State private var isDanmakuEnabled = DanmakuConfigStore.load().isEnabled
     @State private var isDanmakuSettingsPresented = false
+    @State private var isDanmakuListPresented = false
+    @State private var danmakuListBlockLevel = DanmakuConfigStore.load().blockLevel
+    @Namespace private var danmakuActionGlass
     @State private var isFullscreen = false
     @State private var fullscreenTrigger: FullscreenTrigger = .none
     @State private var selectedTab: VideoDetailTab = .intro
@@ -550,6 +553,16 @@ struct VideoDetailPage: View {
                     )
                     .presentationDetents([.medium, .large])
                 }
+                .sheet(isPresented: $isDanmakuListPresented) {
+                    DanmakuListSheet(
+                        viewModel: bindableViewModel,
+                        videoDuration: resolvedVideoDuration,
+                        blockLevel: $danmakuListBlockLevel,
+                        onClose: { isDanmakuListPresented = false }
+                    )
+                    .presentationDetents([.medium, .large])
+                    .presentationDragIndicator(.visible)
+                }
                 .sheet(isPresented: $showsSponsorList) {
                     NavigationStack {
                         SponsorBlockSegmentsSheet(
@@ -626,6 +639,11 @@ struct VideoDetailPage: View {
             var persistedConfig = clampedConfig
             persistedConfig.isEnabled = DanmakuConfigStore.load().isEnabled
             DanmakuConfigStore.save(persistedConfig)
+        }
+        .onChange(of: isDanmakuEnabled) { _, isEnabled in
+            if !isEnabled {
+                isDanmakuListPresented = false
+            }
         }
         .task {
             sponsorBlockSettings = SponsorBlockSettingsStore.load()
@@ -888,21 +906,44 @@ struct VideoDetailPage: View {
             }
             Spacer()
 
-            Button {
-                isDanmakuEnabled.toggle()
-            } label: {
-                Image(isDanmakuEnabled ? "DanmakuOn" : "DanmakuOff")
-                    .renderingMode(.template)
-                    .resizable()
-                    .scaledToFit()
-                    .frame(width: 16, height: 16)
-                    .foregroundStyle(.primary)
-                    .frame(width: 32, height: 32)
+            GlassEffectContainer {
+                HStack(spacing: 6) {
+                    if isDanmakuEnabled {
+                        Button {
+                            danmakuListBlockLevel = danmakuConfig.blockLevel
+                            isDanmakuListPresented = true
+                        } label: {
+                            Image(systemName: "list.bullet.indent")
+                                .font(.system(size: 16, weight: .medium))
+                                .frame(width: 32, height: 32)
+                        }
+                        .glassEffect(.regular.interactive(), in: .circle)
+                        .glassEffectID("VideoDetailDanmakuList", in: danmakuActionGlass)
+                        .glassEffectTransition(.matchedGeometry)
+                        .buttonStyle(.plain)
+                        .accessibilityLabel("弹幕列表")
+                        .transition(.move(edge: .trailing).combined(with: .opacity))
+                    }
+
+                    Button {
+                        isDanmakuEnabled.toggle()
+                    } label: {
+                        Image(isDanmakuEnabled ? "DanmakuOn" : "DanmakuOff")
+                            .renderingMode(.template)
+                            .resizable()
+                            .scaledToFit()
+                            .frame(width: 16, height: 16)
+                            .foregroundStyle(.primary)
+                            .frame(width: 32, height: 32)
+                    }
+                    .glassEffect(.regular.interactive(), in: .circle)
+                    .glassEffectID("VideoDetailDanmakuToggle", in: danmakuActionGlass)
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("弹幕")
+                    .accessibilityValue(isDanmakuEnabled ? "已开启" : "已关闭")
+                }
             }
-            .glassEffect(.regular.interactive(), in: .circle)
-            .buttonStyle(.plain)
-            .accessibilityLabel("弹幕")
-            .accessibilityValue(isDanmakuEnabled ? "已开启" : "已关闭")
+            .animation(.spring(response: 0.42, dampingFraction: 0.8), value: isDanmakuEnabled)
         }
         .padding(.horizontal, 16)
         .padding(.top, 12)
@@ -2146,6 +2187,107 @@ private struct FavoriteFolderSheet: View {
                 onLoad()
             }
         }
+    }
+}
+
+// MARK: - 弹幕列表抽屉
+
+private struct DanmakuListSheet: View {
+    @Bindable var viewModel: VideoDetailViewModel
+    let videoDuration: TimeInterval
+    @Binding var blockLevel: Int
+    let onClose: () -> Void
+
+    private var visibleElements: [Bilibili_Community_Service_Dm_V1_DanmakuElem] {
+        viewModel.danmakuListElements.filter { $0.weight >= Int32(blockLevel) }
+    }
+
+    var body: some View {
+        NavigationStack {
+            List {
+                ForEach(visibleElements, id: \.id) { element in
+                    DanmakuListRow(element: element)
+                }
+
+                if let error = viewModel.danmakuListError {
+                    ContentUnavailableView(
+                        "弹幕加载失败",
+                        systemImage: "exclamationmark.triangle",
+                        description: Text(error)
+                    )
+                    .listRowBackground(Color.clear)
+                }
+
+                if viewModel.danmakuListIsLoading {
+                    HStack {
+                        Spacer()
+                        ProgressView()
+                        Spacer()
+                    }
+                    .listRowSeparator(.hidden)
+                } else if viewModel.hasMoreDanmakuListSegments {
+                    Color.clear
+                        .frame(height: 1)
+                        .listRowSeparator(.hidden)
+                        .onAppear {
+                            Task {
+                                await viewModel.loadNextDanmakuListSegment()
+                            }
+                        }
+                } else if visibleElements.isEmpty, viewModel.danmakuListError == nil {
+                    ContentUnavailableView("暂无弹幕", systemImage: "text.bubble")
+                        .listRowBackground(Color.clear)
+                }
+            }
+            .listStyle(.plain)
+            .navigationTitle("弹幕列表")
+            .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button(action: onClose) {
+                        Image(systemName: "xmark")
+                    }
+                    .accessibilityLabel("关闭")
+                }
+                ToolbarItem(placement: .topBarTrailing) {
+                    Menu {
+                        ForEach(0 ... 10, id: \.self) { level in
+                            Button("\(level)级") {
+                                blockLevel = level
+                            }
+                        }
+                    } label: {
+                        Text("\(blockLevel)级")
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            .task {
+                await viewModel.openDanmakuList(duration: videoDuration)
+            }
+        }
+    }
+}
+
+private struct DanmakuListRow: View {
+    let element: Bilibili_Community_Service_Dm_V1_DanmakuElem
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 12) {
+            Text(element.content)
+                .foregroundStyle(.primary)
+                .fixedSize(horizontal: false, vertical: true)
+
+            Spacer(minLength: 8)
+
+            Text(formatSegmentTime(Double(element.progress) / 1_000))
+                .foregroundStyle(.primary)
+                .monospacedDigit()
+            Text("\(element.weight)级")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+
+        }
+        .padding(.vertical, 3)
     }
 }
 

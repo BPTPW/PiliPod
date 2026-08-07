@@ -38,6 +38,13 @@ class VideoDetailViewModel {
     var danmakuElements: [Bilibili_Community_Service_Dm_V1_DanmakuElem] = []
     var danmakuIsLoading = false
     var danmakuError: String?
+    /// Full, append-only data source for the danmaku list drawer. This is kept
+    /// separate from `danmakuElements`, whose bounded cache is optimized for
+    /// rendering the playback overlay.
+    var danmakuListElements: [Bilibili_Community_Service_Dm_V1_DanmakuElem] = []
+    var danmakuListIsLoading = false
+    var danmakuListError: String?
+    var hasMoreDanmakuListSegments = false
     var skipSegments: [SkipSegment] = []
     var skipSegmentsIsLoading = false
     var skipSegmentsError: String?
@@ -54,6 +61,9 @@ class VideoDetailViewModel {
     private var danmakuSegments: [Int: [Bilibili_Community_Service_Dm_V1_DanmakuElem]] = [:]
     private var danmakuRenderCenter = 1
     private var danmakuCID: Int = 0
+    private var danmakuListCID: Int = 0
+    private var nextDanmakuListSegmentIndex = 1
+    private var danmakuListSegmentCount = 0
     private var skipSegmentsCID: Int = 0
     private var videoShotCID: Int = 0
 
@@ -128,6 +138,10 @@ class VideoDetailViewModel {
         danmakuElements = []
         danmakuIsLoading = false
         danmakuError = nil
+        danmakuListElements = []
+        danmakuListIsLoading = false
+        danmakuListError = nil
+        hasMoreDanmakuListSegments = false
         skipSegments = []
         skipSegmentsIsLoading = false
         skipSegmentsError = nil
@@ -136,6 +150,9 @@ class VideoDetailViewModel {
         danmakuSegments = [:]
         danmakuRenderCenter = 1
         danmakuCID = 0
+        danmakuListCID = 0
+        nextDanmakuListSegmentIndex = 1
+        danmakuListSegmentCount = 0
         skipSegmentsCID = 0
         videoShotCID = 0
         isLiked = false
@@ -526,6 +543,7 @@ class VideoDetailViewModel {
                 loadingDanmakuSegments = []
                 danmakuSegmentIndex = 1
                 danmakuCID = page.cid
+                resetDanmakuListState()
                 skipSegments = []
                 skipSegmentsCID = 0
                 videoShotCID = 0
@@ -593,6 +611,7 @@ class VideoDetailViewModel {
             danmakuRenderCenter = 1
             danmakuSegmentIndex = 1
             danmakuCID = 0
+            resetDanmakuListState()
             skipSegments = []
             skipSegmentsCID = 0
             videoShotCID = 0
@@ -774,6 +793,98 @@ class VideoDetailViewModel {
         }
 
         danmakuIsLoading = !loadingDanmakuSegments.isEmpty
+    }
+
+    /// Starts the drawer's independent, append-only danmaku list. Segment data
+    /// is intentionally fetched on demand so opening the drawer only requests
+    /// the first six-minute package.
+    @MainActor
+    func openDanmakuList(duration: TimeInterval) async {
+        let targetCID = cid
+        guard targetCID > 0 else {
+            danmakuListError = "无效的 cid"
+            return
+        }
+
+        if isPlayingOfflineCache {
+            danmakuListCID = targetCID
+            danmakuListElements = OfflineCacheStorage.loadDanmakuElements(bvid: bvid, cid: targetCID)
+                .sorted { lhs, rhs in
+                    lhs.progress == rhs.progress ? lhs.id < rhs.id : lhs.progress < rhs.progress
+                }
+            danmakuListIsLoading = false
+            danmakuListError = nil
+            hasMoreDanmakuListSegments = false
+            return
+        }
+
+        let segmentCount = max(1, Int(ceil(max(duration, 1) / 360.0)))
+        if danmakuListCID != targetCID {
+            danmakuListCID = targetCID
+            danmakuListElements = []
+            danmakuListIsLoading = false
+            danmakuListError = nil
+            nextDanmakuListSegmentIndex = 1
+            danmakuListSegmentCount = segmentCount
+            hasMoreDanmakuListSegments = true
+        } else {
+            danmakuListSegmentCount = max(danmakuListSegmentCount, segmentCount)
+        }
+
+        guard danmakuListElements.isEmpty else { return }
+        await loadNextDanmakuListSegment()
+    }
+
+    @MainActor
+    func loadNextDanmakuListSegment() async {
+        let targetCID = danmakuListCID
+        guard targetCID > 0,
+              !isPlayingOfflineCache,
+              !danmakuListIsLoading,
+              nextDanmakuListSegmentIndex <= danmakuListSegmentCount
+        else { return }
+
+        let segmentIndex = nextDanmakuListSegmentIndex
+        danmakuListIsLoading = true
+        danmakuListError = nil
+
+        do {
+            let reply = try await BiliAPI.shared.fetchDanmakuSegment(
+                cid: targetCID,
+                segmentIndex: segmentIndex
+            )
+            guard danmakuListCID == targetCID else { return }
+
+            var itemByID: [Int64: Bilibili_Community_Service_Dm_V1_DanmakuElem] = [:]
+            for element in danmakuListElements {
+                itemByID[element.id] = element
+            }
+            for element in reply.elems {
+                itemByID[element.id] = element
+            }
+            danmakuListElements = itemByID.values.sorted { lhs, rhs in
+                lhs.progress == rhs.progress ? lhs.id < rhs.id : lhs.progress < rhs.progress
+            }
+            nextDanmakuListSegmentIndex = segmentIndex + 1
+            hasMoreDanmakuListSegments = nextDanmakuListSegmentIndex <= danmakuListSegmentCount
+        } catch {
+            guard danmakuListCID == targetCID else { return }
+            danmakuListError = error.localizedDescription
+        }
+
+        if danmakuListCID == targetCID {
+            danmakuListIsLoading = false
+        }
+    }
+
+    private func resetDanmakuListState() {
+        danmakuListElements = []
+        danmakuListIsLoading = false
+        danmakuListError = nil
+        hasMoreDanmakuListSegments = false
+        danmakuListCID = 0
+        nextDanmakuListSegmentIndex = 1
+        danmakuListSegmentCount = 0
     }
 
     @MainActor
