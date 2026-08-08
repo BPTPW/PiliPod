@@ -907,7 +907,7 @@ struct VideoDetailPage: View {
             Spacer()
 
             GlassEffectContainer {
-                HStack(spacing: 6) {
+                HStack(spacing: 8) {
                     if isDanmakuEnabled {
                         Button {
                             danmakuListBlockLevel = danmakuConfig.blockLevel
@@ -2271,6 +2271,19 @@ private struct DanmakuListSheet: View {
 private struct DanmakuListRow: View {
     let element: Bilibili_Community_Service_Dm_V1_DanmakuElem
 
+    private var colorHex: String {
+        String(format: "#%06X", element.color & 0x00FF_FFFF)
+    }
+
+    private var danmakuColor: Color {
+        let value = element.color & 0x00FF_FFFF
+        return Color(
+            red: Double((value >> 16) & 0xFF) / 255,
+            green: Double((value >> 8) & 0xFF) / 255,
+            blue: Double(value & 0xFF) / 255
+        )
+    }
+
     var body: some View {
         HStack(alignment: .top, spacing: 12) {
             Text(element.content)
@@ -2279,13 +2292,17 @@ private struct DanmakuListRow: View {
 
             Spacer(minLength: 8)
 
-            Text(formatSegmentTime(Double(element.progress) / 1_000))
-                .foregroundStyle(.primary)
-                .monospacedDigit()
-            Text("\(element.weight)级")
-                .font(.caption)
-                .foregroundStyle(.secondary)
+            Text(colorHex)
+                .font(.system(.caption, design: .monospaced, weight: .bold))
+                .foregroundStyle(danmakuColor)
 
+            Text(formatSegmentTime(Double(element.progress) / 1_000))
+                .font(.system(.body, design: .monospaced))
+                .foregroundStyle(.primary)
+
+            Text("\(String(format: "%02d", element.weight))级")
+                .font(.system(.caption, design: .monospaced))
+                .foregroundStyle(.secondary)
         }
         .padding(.vertical, 3)
     }
