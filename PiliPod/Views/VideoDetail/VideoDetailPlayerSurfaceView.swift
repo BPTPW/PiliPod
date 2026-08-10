@@ -34,6 +34,7 @@ struct VideoDetailPlayerSurfaceView: View {
     let qualityOptions: [VideoQualityOption]
     let selectedQualityCode: Int?
     let selectedPlaybackRate: Double
+    let videoTitle: String
     let showsSponsorButton: Bool
     let showsSponsorInfoButton: Bool
     let videoShotMetadata: VideoShotPreviewMetadata?
@@ -279,6 +280,7 @@ struct VideoDetailPlayerSurfaceView: View {
     private var controlsOverlay: some View {
         PlayerControlsOverlay(
             danmakuEnabled: danmakuEnabledBinding,
+            videoTitle: videoTitle,
             onShowDanmakuSettings: {
                 if isFullscreen {
                     isFullscreenDanmakuPanelVisible.toggle()

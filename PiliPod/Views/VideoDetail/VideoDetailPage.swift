@@ -270,6 +270,7 @@ struct VideoDetailPage: View {
                             qualityOptions: bindableViewModel.qualityOptions,
                             selectedQualityCode: bindableViewModel.selectedQualityCode,
                             selectedPlaybackRate: bindableViewModel.selectedPlaybackRate,
+                            videoTitle: bindableViewModel.title,
                             showsSponsorButton: showsSponsorButton,
                             showsSponsorInfoButton: showsSponsorInfoButton,
                             videoShotMetadata: bindableViewModel.videoShotMetadata,
@@ -2869,6 +2870,7 @@ struct PlayerLoadingOverlay: View {
 struct PlayerControlsOverlay: View {
     @Binding var danmakuEnabled: Bool
 
+    let videoTitle: String
     let onShowDanmakuSettings: () -> Void
     let onShowSponsorSegments: () -> Void
     let onShowSponsorSubmit: () -> Void
@@ -2931,6 +2933,16 @@ struct PlayerControlsOverlay: View {
                     .clear.interactive(),
                     in: .circle
                 )
+
+                // 视频标题
+                if(isFullscreen){
+                    Text(videoTitle)
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundStyle(.white)
+                        .lineLimit(1)
+                        .truncationMode(.tail)
+                        .frame(width: 350, height: 32, alignment: .leading)
+                }
 
                 Spacer()
 
