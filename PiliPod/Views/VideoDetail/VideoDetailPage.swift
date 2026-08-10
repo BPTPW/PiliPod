@@ -3079,6 +3079,13 @@ struct PlayerControlsOverlay: View {
                 Text("\(formatMMSS(currentTime))/\(formatMMSS(duration))")
                     .font(.system(size: 12, weight: .semibold, design: .monospaced))
                     .foregroundStyle(.white)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 5)
+                    .background(Capsule().fill(Color(.black.opacity(0.2))))
+                    .glassEffect(
+                        .clear,
+                        in: .capsule
+                    )
                 Spacer()
             }
             .padding(.horizontal, 12)
