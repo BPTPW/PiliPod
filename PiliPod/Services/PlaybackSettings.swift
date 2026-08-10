@@ -232,6 +232,7 @@ struct AudioVideoSettings: Codable, Equatable {
     var highDynamicRangeEnabled = true
     var prefersEDROutput = true
     var hdrToneMapping: HDRToneMappingOption = .auto
+    var videoProgressBarStyle: VideoProgressBarStyle = .system
 
     private enum CodingKeys: String, CodingKey {
         case hardwareDecodingEnabled
@@ -257,6 +258,7 @@ struct AudioVideoSettings: Codable, Equatable {
         case highDynamicRangeEnabled
         case prefersEDROutput
         case hdrToneMapping
+        case videoProgressBarStyle
     }
 
     func clamped() -> AudioVideoSettings {
@@ -301,6 +303,19 @@ struct AudioVideoSettings: Codable, Equatable {
         highDynamicRangeEnabled = try container.decodeIfPresent(Bool.self, forKey: .highDynamicRangeEnabled) ?? true
         prefersEDROutput = try container.decodeIfPresent(Bool.self, forKey: .prefersEDROutput) ?? true
         hdrToneMapping = try container.decodeIfPresent(HDRToneMappingOption.self, forKey: .hdrToneMapping) ?? .auto
+        videoProgressBarStyle = try container.decodeIfPresent(VideoProgressBarStyle.self, forKey: .videoProgressBarStyle) ?? .system
+    }
+}
+
+enum VideoProgressBarStyle: String, Codable, CaseIterable, Hashable {
+    case system
+    case classic
+
+    var title: String {
+        switch self {
+        case .system: "现代"
+        case .classic: "经典"
+        }
     }
 }
 

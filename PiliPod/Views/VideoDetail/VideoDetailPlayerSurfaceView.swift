@@ -28,6 +28,7 @@ struct VideoDetailPlayerSurfaceView: View {
     let maxHorizontalSeekOffset: TimeInterval
     let verticalBrightnessDragSensitivity: Double
     let progressSegments: [ProgressSegment]
+    let progressBarStyle: VideoProgressBarStyle
     let danmakuElements: [Bilibili_Community_Service_Dm_V1_DanmakuElem]
     let danmakuOverlayConfig: DanmakuEngineConfig
     let qualityOptions: [VideoQualityOption]
@@ -300,6 +301,7 @@ struct VideoDetailPlayerSurfaceView: View {
             bufferedUntil: playerUISnapshot.bufferedUntil,
             isPlaying: playerUISnapshot.isPlaying,
             segments: progressSegments,
+            progressBarStyle: progressBarStyle,
             onBack: onBack,
             onUserInteracted: {
                 showControlsAndAutoHideIfNeeded(forceShow: true)

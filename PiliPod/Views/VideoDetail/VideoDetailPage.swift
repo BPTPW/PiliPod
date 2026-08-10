@@ -79,6 +79,7 @@ struct VideoDetailPage: View {
     @State private var activeSharePayload: SharePayload?
     @State private var isGeneratingShareImage = false
     @State private var sponsorBlockSettings = SponsorBlockSettingsStore.load()
+    @State private var progressBarStyle = AudioVideoSettingsStore.load().videoProgressBarStyle
     @State private var skippedSponsorSegmentIDs: Set<String> = []
     @State private var hiddenManualSponsorSegmentIDs: Set<String> = []
     @State private var manualSkipSegment: PlaybackSponsorSegment?
@@ -263,6 +264,7 @@ struct VideoDetailPage: View {
                             maxHorizontalSeekOffset: maxHorizontalSeekOffset,
                             verticalBrightnessDragSensitivity: verticalBrightnessDragSensitivity,
                             progressSegments: progressSegments,
+                            progressBarStyle: progressBarStyle,
                             danmakuElements: bindableViewModel.danmakuElements,
                             danmakuOverlayConfig: fullscreenAwareDanmakuConfig,
                             qualityOptions: bindableViewModel.qualityOptions,
@@ -628,6 +630,11 @@ struct VideoDetailPage: View {
             shouldResumeAfterBackgroundPause = false
             backgroundPauseRestoreTime = nil
             ensureSponsorSegmentsLoadedIfNeeded()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .audioVideoSettingsDidChange)) { notification in
+            if let settings = notification.object as? AudioVideoSettings {
+                progressBarStyle = settings.videoProgressBarStyle
+            }
         }
         .onChange(of: sponsorBlockSettings) { _, newValue in
             sponsorBlockSettings = newValue.clamped()
@@ -2878,6 +2885,7 @@ struct PlayerControlsOverlay: View {
     let bufferedUntil: TimeInterval
     let isPlaying: Bool
     let segments: [ProgressSegment]
+    let progressBarStyle: VideoProgressBarStyle
     let onBack: () -> Void
     let onUserInteracted: () -> Void
     let onTogglePlayPause: () -> Void
@@ -3037,6 +3045,7 @@ struct PlayerControlsOverlay: View {
                 duration: duration,
                 bufferedUntil: bufferedUntil,
                 segments: segments,
+                style: progressBarStyle,
                 onSeek: { t in onSeek(t) },
                 onUserInteracted: onUserInteracted,
                 onSeekPreviewChanged: onSeekPreviewChanged
@@ -3095,6 +3104,7 @@ struct PlayerControlsOverlay: View {
                 duration: duration,
                 bufferedUntil: bufferedUntil,
                 segments: segments,
+                style: progressBarStyle,
                 onSeek: { t in onSeek(t) },
                 onUserInteracted: onUserInteracted,
                 onSeekPreviewChanged: onSeekPreviewChanged
@@ -3278,36 +3288,46 @@ private struct VideoProgressBar: View {
     let duration: TimeInterval
     let bufferedUntil: TimeInterval
     let segments: [ProgressSegment]
+    let style: VideoProgressBarStyle
     let onSeek: (TimeInterval) -> Void
     let onUserInteracted: () -> Void
     let onSeekPreviewChanged: (TimeInterval?) -> Void
 
-    @GestureState private var isDragging = false
+    @State private var isDragging = false
     @State private var dragProgress: Double? = nil
+    @State private var dragStartProgress: Double?
 
     var body: some View {
         GeometryReader { geo in
             let w = max(1, geo.size.width)
             VideoProgressTrack(
                 width: w,
-                height: 4,
+                height: style == .system ? (isDragging ? 12 : 7) : 4,
                 playedProgress: dragProgress ?? normalizedProgress(currentTime, duration: duration),
                 bufferedProgress: normalizedProgress(bufferedUntil, duration: duration),
                 segments: segments,
-                playedColor: Color.white.opacity(0.95),
-                showsKnob: true,
+                playedColor: Color.white.opacity(isDragging ? 0.95 : 0.68),
+                showsKnob: style == .classic,
+                bufferedOpacity: style == .system ? (isDragging ? 0.5 : 0.34) : 0.5,
+                style: style,
                 knobOpacity: isDragging ? 1 : 0.9
             )
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
             .contentShape(Rectangle())
             .gesture(
                 DragGesture(minimumDistance: 0)
-                    .updating($isDragging) { _, state, _ in
-                        state = true
-                    }
                     .onChanged { value in
                         onUserInteracted()
-                        let p = min(max(value.location.x / w, 0), 1)
+                        if !isDragging {
+                            withAnimation(.spring(response: 0.28, dampingFraction: 0.72)) {
+                                isDragging = true
+                            }
+                        }
+                        let baseProgress = dragStartProgress
+                            ?? dragProgress
+                            ?? normalizedProgress(currentTime, duration: duration)
+                        if dragStartProgress == nil { dragStartProgress = baseProgress }
+                        let p = min(max(baseProgress + value.translation.width / w, 0), 1)
                         dragProgress = p
                         if duration > 0 {
                             onSeekPreviewChanged(duration * p)
@@ -3317,16 +3337,23 @@ private struct VideoProgressBar: View {
                     }
                     .onEnded { value in
                         onUserInteracted()
-                        let p = min(max(value.location.x / w, 0), 1)
+                        let baseProgress = dragStartProgress
+                            ?? dragProgress
+                            ?? normalizedProgress(currentTime, duration: duration)
+                        let p = min(max(baseProgress + value.translation.width / w, 0), 1)
                         dragProgress = nil
+                        dragStartProgress = nil
                         onSeekPreviewChanged(nil)
+                        withAnimation(.spring(response: 0.28, dampingFraction: 0.78)) {
+                            isDragging = false
+                        }
                         guard duration > 0 else { return }
                         onSeek(duration * p)
                     }
             )
         }
         .frame(height: 22)
-        .padding(.vertical, 6)
+        .padding(.vertical, style == .system ? 4 : 6)
         .frame(maxWidth: .infinity)
     }
 }
@@ -3510,20 +3537,23 @@ private struct VideoProgressTrack: View {
     let segments: [ProgressSegment]
     let playedColor: Color
     let showsKnob: Bool
+    var bufferedOpacity: Double = 0.5
+    var style: VideoProgressBarStyle = .classic
     var knobOpacity: Double = 1
 
     var body: some View {
         let clampedPlayedProgress = min(max(playedProgress, 0), 1)
         let clampedBufferedProgress = min(max(bufferedProgress, 0), 1)
-        let knobSize: CGFloat = 10
+        let knobSize: CGFloat = style == .system ? (height >= 7 ? 14 : 12) : 10
+        let trackOpacity = style == .system ? 0.28 : 0.2
 
         ZStack(alignment: .leading) {
             Capsule(style: .continuous)
-                .fill(Color.white.opacity(0.2))
+                .fill(Color.white.opacity(trackOpacity))
                 .frame(height: height)
 
-            Capsule(style: .continuous)
-                .fill(Color.white.opacity(0.5))
+            Rectangle()
+                .fill(Color.white.opacity(bufferedOpacity))
                 .frame(width: width * clampedBufferedProgress, height: height)
             
             ForEach(segments) { seg in
@@ -3532,7 +3562,7 @@ private struct VideoProgressTrack: View {
                     let e = min(max(seg.end, 0), 1)
                     let segWidth = max(width * (e - s), height)
                     if e >= s {
-                        Capsule(style: .continuous)
+                        Rectangle()
                             .fill(seg.color.opacity(seg.opacity))
                             .frame(width: segWidth, height: height)
                             .offset(x: width * s)
@@ -3540,7 +3570,7 @@ private struct VideoProgressTrack: View {
                 }
             }
 
-            Capsule(style: .continuous)
+            Rectangle()
                 .fill(playedColor)
                 .frame(width: width * clampedPlayedProgress, height: height)
 
@@ -3550,7 +3580,7 @@ private struct VideoProgressTrack: View {
                     let e = min(max(seg.end, 0), 1)
                     let segWidth = max(width * (e - s), height)
                     if e >= s {
-                        Capsule(style: .continuous)
+                        Rectangle()
                             .fill(seg.color.opacity(seg.opacity))
                             .frame(width: segWidth, height: height)
                             .offset(x: width * s)
@@ -3559,6 +3589,12 @@ private struct VideoProgressTrack: View {
             }
 
             if showsKnob {
+                if style == .system && knobOpacity > 0.95 {
+                    Circle()
+                        .fill(Color.white.opacity(0.16))
+                        .frame(width: knobSize + 12, height: knobSize + 12)
+                        .offset(x: width * clampedPlayedProgress - (knobSize + 12) / 2)
+                }
                 Circle()
                     .fill(Color.white)
                     .frame(width: knobSize, height: knobSize)
@@ -3567,6 +3603,7 @@ private struct VideoProgressTrack: View {
                     .opacity(knobOpacity)
             }
         }
+        .clipShape(Capsule(style: .continuous))
     }
 }
 

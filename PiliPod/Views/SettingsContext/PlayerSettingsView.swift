@@ -79,6 +79,13 @@ private struct PlayerSettingsView: View {
                 }
             }
             Section {
+                Picker("进度条样式", selection: $settings.videoProgressBarStyle) {
+                    ForEach(VideoProgressBarStyle.allCases, id: \.self) { style in
+                        Text(style.title).tag(style)
+                    }
+                }
+            }
+            Section {
                 Picker("观看记录上报间隔", selection: $settings.historyReportInterval) {
                     ForEach(AudioVideoSettings.supportedHistoryReportIntervals, id: \.self) { interval in
                         Text("\(interval)s").tag(interval)
@@ -100,6 +107,7 @@ private struct PlayerSettingsView: View {
                     settings.ambientModeEnabled = defaultSettings.ambientModeEnabled
                     settings.ambientSamplingRate = defaultSettings.ambientSamplingRate
                     settings.ambientGradientSpeed = defaultSettings.ambientGradientSpeed
+                    settings.videoProgressBarStyle = defaultSettings.videoProgressBarStyle
                 }
             }
         }
