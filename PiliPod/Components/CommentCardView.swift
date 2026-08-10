@@ -39,7 +39,7 @@ struct CommentCardView: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: 8) {
             HStack(alignment: .top, spacing: horizontalGap) {
                 avatar
 
@@ -57,7 +57,6 @@ struct CommentCardView: View {
             }
 
             contentColumn
-                .padding(.leading, avatarSize + horizontalGap)
         }
         .padding(.vertical, 12)
         .contentShape(Rectangle())
@@ -75,9 +74,11 @@ struct CommentCardView: View {
     private var contentColumn: some View {
         VStack(alignment: .leading, spacing: 12) {
             commentBodyView
+                .padding(.leading, avatarSize + horizontalGap)
 
             if !comment.pictures.isEmpty {
                 picturesView
+                    .padding(.leading, avatarSize + horizontalGap)
             }
 
             HStack(spacing: 18) {
@@ -114,9 +115,11 @@ struct CommentCardView: View {
                 .buttonStyle(.plain)
             }
             .labelStyle(.titleAndIcon)
+            .padding(.leading, avatarSize + horizontalGap)
 
-            if !comment.replies.isEmpty {
+            if !comment.replies.isEmpty || comment.hasMoreReplies {
                 repliesSection
+                    .padding(.leading, avatarSize + horizontalGap)
             }
         }
     }
@@ -179,7 +182,7 @@ struct CommentCardView: View {
     }
 
     private var repliesSection: some View {
-        VStack(alignment: .leading, spacing: 6) {
+        VStack(alignment: .leading, spacing: 4) {
             ForEach(comment.replies) { reply in
                 ZStack(alignment: .topLeading) {
                     EmoteRichTextView(
@@ -201,10 +204,25 @@ struct CommentCardView: View {
                         }
                 }
             }
+
+            if comment.hasMoreReplies {
+                Button {
+                    onTapComment?(comment)
+                } label: {
+                    HStack(spacing: 4) {
+                        Text("共 \(comment.replyCount) 条回复")
+                        Image(systemName: "chevron.right")
+                    }
+                    .font(.subheadline)
+                    .foregroundStyle(Color("BiliPink"))
+                }
+                .buttonStyle(.plain)
+                .padding(.top, 2)
+            }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.horizontal, 10)
-        .padding(.vertical, 8)
+        .padding(.vertical, 6)
         .glassEffect(
             .regular,
             in: RoundedRectangle(cornerRadius: 12)
@@ -266,6 +284,11 @@ struct CommentItem: Identifiable {
     var isDisliked: Bool
     var isUpLikedByAuthor: Bool
     let replies: [CommentReplyItem]
+    let replyCount: Int
+
+    var hasMoreReplies: Bool {
+        replyCount > replies.count
+    }
 }
 
 struct CommentReplyItem: Identifiable {
@@ -304,6 +327,7 @@ private struct EmoteRichTextView: View {
             usernamePrefix: usernamePrefix
         )
         .frame(minHeight: 20)
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 }
 
@@ -327,8 +351,9 @@ private struct EmoteTextViewRepresentable: UIViewRepresentable {
         view.backgroundColor = .clear
         view.textContainerInset = .zero
         view.textContainer.lineFragmentPadding = 0
+        view.textContainer.lineBreakMode = .byWordWrapping
         view.adjustsFontForContentSizeCategory = true
-        view.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
+        view.setContentCompressionResistancePriority(.required, for: .vertical)
         return view
     }
 
@@ -341,6 +366,16 @@ private struct EmoteTextViewRepresentable: UIViewRepresentable {
             usernamePrefix: usernamePrefix
         )
         context.coordinator.render(request: request, on: uiView)
+    }
+
+    func sizeThatFits(
+        _ proposal: ProposedViewSize,
+        uiView: UITextView,
+        context: Context
+    ) -> CGSize? {
+        guard let width = proposal.width, width > 0 else { return nil }
+        let size = uiView.sizeThatFits(CGSize(width: width, height: 10_000))
+        return CGSize(width: width, height: ceil(size.height))
     }
 
     struct RenderRequest: Equatable {
@@ -517,7 +552,8 @@ private extension NSString {
                 replies: [
                     CommentReplyItem(mid: 11, username: "听友A", content: "同感，这段讲得很通透。", emotes: [:]),
                     CommentReplyItem(mid: 12, username: "听友B", content: "我更喜欢后半段关于工具的讨论。", emotes: [:])
-                ]
+                ],
+                replyCount: 4
             )
         )
 
@@ -537,7 +573,8 @@ private extension NSString {
                 isLiked: true,
                 isDisliked: false,
                 isUpLikedByAuthor: false,
-                replies: []
+                replies: [],
+                replyCount: 0
             )
         )
     }

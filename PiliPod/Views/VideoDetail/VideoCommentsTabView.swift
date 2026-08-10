@@ -222,7 +222,8 @@ struct VideoCommentsTabView: View {
                     isLiked: root.isLiked,
                     isDisliked: root.isDisliked,
                     isUpLikedByAuthor: root.isUpLikedByAuthor,
-                    replies: []
+                    replies: [],
+                    replyCount: 0
                 )
 
                 List {
@@ -466,7 +467,8 @@ struct VideoCommentsTabView: View {
             isLiked: reply.replyControl.action == 1,
             isDisliked: reply.replyControl.action == 2,
             isUpLikedByAuthor: reply.replyControl.upLike,
-            replies: Array(childReplies)
+            replies: Array(childReplies),
+            replyCount: Int(reply.count)
         )
     }
 
