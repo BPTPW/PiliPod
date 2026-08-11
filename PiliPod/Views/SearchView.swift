@@ -607,6 +607,7 @@ struct SearchView: View {
                     }
                 }
             }
+            .clipped()
         }
     }
 
@@ -1058,6 +1059,14 @@ private struct SearchHistoryFlowLayout: Layout {
             subviews[item.index].place(
                 at: CGPoint(x: bounds.minX + item.origin.x, y: bounds.minY + item.origin.y),
                 proposal: ProposedViewSize(item.size)
+            )
+        }
+
+        let visibleIndexes = Set(layout.items.map(\.index))
+        for index in subviews.indices where !visibleIndexes.contains(index) {
+            subviews[index].place(
+                at: CGPoint(x: bounds.minX, y: bounds.maxY + 1),
+                proposal: .zero
             )
         }
     }
