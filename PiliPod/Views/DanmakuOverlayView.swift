@@ -90,7 +90,19 @@ enum DanmakuConfigStore {
     }
 }
 
-private enum DanmakuRenderKind { case scroll, top, bottom }
+private enum DanmakuRenderKind { case scroll, top, bottom, advanced }
+
+private struct DanmakuAdvancedMotion {
+    /// Coordinates in mode-7 payloads are absolute positions. In particular, an
+    /// `L` command is not a delta from the preceding point.
+    let positions: [CGPoint]
+    let motionDuration: Double
+    let motionDelay: Double
+    let startOpacity: CGFloat
+    let endOpacity: CGFloat
+    let rotateAroundZ: Bool
+    let rotateAroundY: Bool
+}
 
 private struct DanmakuPreparedItem {
     let id: Int64
@@ -101,6 +113,7 @@ private struct DanmakuPreparedItem {
     let duration: Double
     let width: CGFloat
     let fontSize: CGFloat
+    let advancedMotion: DanmakuAdvancedMotion?
 }
 
 private struct DanmakuActiveItem {
@@ -192,7 +205,8 @@ private final class DanmakuEngine {
         topFree = Array(repeating: 0, count: topFree.count)
         bottomFree = Array(repeating: 0, count: bottomFree.count)
         scrollFree = Array(repeating: 0, count: scrollFree.count)
-        let start = max(0, time - max(config.scrollDuration, config.staticDuration))
+        let longestLifetime = ordered.map(\.duration).max() ?? 0
+        let start = max(0, time - max(max(config.scrollDuration, config.staticDuration), longestLifetime))
         for item in ordered where item.appearTime >= start && item.appearTime <= time {
             attemptedIDs.insert(item.id)
             // Replay the whole visible-duration horizon so lane occupancy stays
@@ -222,8 +236,17 @@ private final class DanmakuEngine {
     }
 
     private func activate(_ item: DanmakuPreparedItem, at _: Double) {
+        if item.kind == .advanced {
+            activeItems.append(DanmakuActiveItem(item: item, topY: 0, lineHeight: 0))
+            return
+        }
         let lanes: [Double]
-        switch item.kind { case .scroll: lanes = scrollFree; case .top: lanes = topFree; case .bottom: lanes = bottomFree }
+        switch item.kind {
+        case .scroll: lanes = scrollFree
+        case .top: lanes = topFree
+        case .bottom: lanes = bottomFree
+        case .advanced: return
+        }
         guard !lanes.isEmpty else { return }
         let lane: Int
         if config.allowOverlapWhenMassive { lane = Int.random(in: 0 ..< lanes.count) }
@@ -234,6 +257,7 @@ private final class DanmakuEngine {
             case .scroll: scrollFree[lane] = item.appearTime + item.duration * min(max(item.width / max(width + item.width, 1), 0), 1)
             case .top: topFree[lane] = item.appearTime + item.duration
             case .bottom: bottomFree[lane] = item.appearTime + item.duration
+            case .advanced: break
             }
         }
         let y: CGFloat = item.kind == .bottom ? height - CGFloat(lane + 1) * lineHeight : CGFloat(lane) * lineHeight
@@ -249,14 +273,100 @@ private final class DanmakuEngine {
             guard !(c.blockScroll && kind == .scroll), !(c.blockTop && kind == .top), !(c.blockBottom && kind == .bottom), !(c.blockColorful && element.color != 16_777_215) else { continue }
             let fontSize = baseFontSize(Int(element.fontsize)) * c.fontScale
             let font = UIFont.systemFont(ofSize: fontSize, weight: c.uiFontWeight)
-            let item = DanmakuPreparedItem(id: element.id, appearTime: max(0, Double(element.progress) / 1000), kind: kind, text: element.content, color: UIColor(rgb: Int(element.color)), duration: kind == .scroll ? c.scrollDuration : c.staticDuration, width: ceil((element.content as NSString).size(withAttributes: [.font: font]).width), fontSize: fontSize)
+            let advancedMotion = kind == .advanced ? parseAdvancedMotion(element.content) : nil
+            // Invalid mode-7 payloads are ignored instead of displaying their raw
+            // JSON in the player.
+            guard kind != .advanced || advancedMotion != nil else { continue }
+            let text = advancedText(in: element.content) ?? element.content
+            let duration: Double
+            if let advancedMotion {
+                // The lifetime normally includes the motion, but keep the item on
+                // screen long enough for malformed/short lifetime payloads too.
+                duration = max(advancedLifetime(in: element.content) ?? 0, advancedMotion.motionDelay + advancedMotion.motionDuration)
+            } else {
+                duration = kind == .scroll ? c.scrollDuration : c.staticDuration
+            }
+            let item = DanmakuPreparedItem(id: element.id, appearTime: max(0, Double(element.progress) / 1000), kind: kind, text: text, color: UIColor(rgb: Int(element.color)), duration: duration, width: ceil((text as NSString).size(withAttributes: [.font: font]).width), fontSize: fontSize, advancedMotion: advancedMotion)
             result.append(item)
         }
         return result
     }
 
-    private func kind(for mode: Int, forceScroll: Bool) -> DanmakuRenderKind { if forceScroll { return .scroll }; return mode == 4 ? .bottom : (mode == 5 ? .top : .scroll) }
+    private func kind(for mode: Int, forceScroll: Bool) -> DanmakuRenderKind {
+        if mode == 7 { return .advanced }
+        if forceScroll { return .scroll }
+        return mode == 4 ? .bottom : (mode == 5 ? .top : .scroll)
+    }
     private func baseFontSize(_ value: Int) -> CGFloat { value < 25 ? 12 : (value < 36 ? 17 : 24) }
+
+    private func advancedPayload(_ content: String) -> [Any]? {
+        guard let data = content.data(using: .utf8),
+              let payload = try? JSONSerialization.jsonObject(with: data) as? [Any],
+              payload.count >= 14
+        else { return nil }
+        return payload
+    }
+
+    private func advancedText(in content: String) -> String? {
+        advancedPayload(content)?[4] as? String
+    }
+
+    private func advancedLifetime(in content: String) -> Double? {
+        advancedPayload(content).flatMap { number($0[3]) }
+    }
+
+    private func parseAdvancedMotion(_ content: String) -> DanmakuAdvancedMotion? {
+        guard let payload = advancedPayload(content),
+              let startX = number(payload[0]), let startY = number(payload[1]),
+              let opacity = payload[2] as? String,
+              let movementMilliseconds = number(payload[9]), let delayMilliseconds = number(payload[10])
+        else { return nil }
+
+        let opacityValues = opacity.split(separator: "-", maxSplits: 1).compactMap { Double($0) }
+        let startOpacity = CGFloat(min(max(opacityValues.first ?? 1, 0), 1))
+        let endOpacity = CGFloat(min(max(opacityValues.dropFirst().first ?? Double(startOpacity), 0), 1))
+        let trajectory = payload.count > 14 ? (payload[14] as? String).flatMap(parseTrajectory) : nil
+        let positions: [CGPoint]
+        if let trajectory, !trajectory.isEmpty {
+            positions = trajectory
+        } else if let endX = number(payload[7]), let endY = number(payload[8]) {
+            positions = [CGPoint(x: CGFloat(startX), y: CGFloat(startY)), CGPoint(x: CGFloat(endX), y: CGFloat(endY))]
+        } else {
+            positions = [CGPoint(x: CGFloat(startX), y: CGFloat(startY))]
+        }
+        return DanmakuAdvancedMotion(
+            positions: positions,
+            motionDuration: max(movementMilliseconds / 1_000, 0.001),
+            motionDelay: max(delayMilliseconds / 1_000, 0),
+            startOpacity: startOpacity,
+            endOpacity: endOpacity,
+            rotateAroundZ: boolean(payload[5]),
+            rotateAroundY: boolean(payload[6])
+        )
+    }
+
+    private func number(_ value: Any) -> Double? {
+        if let number = value as? NSNumber { return number.doubleValue }
+        if let string = value as? String, let number = Double(string) { return number }
+        return nil
+    }
+
+    private func boolean(_ value: Any) -> Bool {
+        if let value = value as? Bool { return value }
+        return (value as? NSNumber)?.boolValue ?? false
+    }
+
+    private func parseTrajectory(_ path: String) -> [CGPoint] {
+        let expression = #"[MmLl]\\s*(-?(?:\\d+(?:\\.\\d*)?|\\.\\d+))\\s*,\\s*(-?(?:\\d+(?:\\.\\d*)?|\\.\\d+))"#
+        guard let regex = try? NSRegularExpression(pattern: expression) else { return [] }
+        let range = NSRange(path.startIndex..., in: path)
+        return regex.matches(in: path, range: range).compactMap { match in
+            guard let xRange = Range(match.range(at: 1), in: path), let yRange = Range(match.range(at: 2), in: path),
+                  let x = Double(path[xRange]), let y = Double(path[yRange])
+            else { return nil }
+            return CGPoint(x: CGFloat(x), y: CGFloat(y))
+        }
+    }
 }
 
 /// Renders an exterior alpha-mask outline, rather than stroking every glyph path.
@@ -446,6 +556,19 @@ final class DanmakuUIKitOverlay: UIView {
         label.attributedText = NSAttributedString(string: item.text, attributes: [.font: font, .foregroundColor: item.color.withAlphaComponent(config.opacity)])
         label.invalidateOutlineCache()
         label.textAlignment = .center; label.numberOfLines = 1
+        if let motion = item.advancedMotion {
+            // The payload's two flip flags are rotations around the z and y axes.
+            // A 180° z rotation in UIKit is equivalent to flipping both axes;
+            // a y rotation flips the horizontal axis.
+            var transform = CGAffineTransform.identity
+            if motion.rotateAroundZ { transform = transform.rotated(by: .pi) }
+            if motion.rotateAroundY { transform = transform.scaledBy(x: -1, y: 1) }
+            label.transform = transform
+            label.layer.anchorPoint = CGPoint(x: 0, y: 0)
+        } else {
+            label.transform = .identity
+            label.layer.anchorPoint = CGPoint(x: 0.5, y: 0.5)
+        }
         let textSize = label.attributedText?.size() ?? .zero
         let padding = max(4, ceil(config.strokeWidth * 2))
         label.bounds = CGRect(x: 0, y: 0, width: ceil(textSize.width) + padding * 2, height: max(ceil(textSize.height) + padding * 2, 1))
@@ -454,6 +577,10 @@ final class DanmakuUIKitOverlay: UIView {
     private func position(_ label: DanmakuOutlinedLabel, for active: DanmakuActiveItem, at time: Double, rate: Double) {
         label.layer.removeAllAnimations(); label.layer.speed = 1; label.layer.timeOffset = 0
         let item = active.item; let y = active.topY + active.lineHeight / 2
+        if let motion = item.advancedMotion {
+            positionAdvanced(label, motion: motion, item: item, at: time, rate: rate)
+            return
+        }
         guard item.kind == .scroll else { label.center = CGPoint(x: bounds.midX, y: y); return }
         let progress = min(max((time - item.appearTime) / item.duration, 0), 1)
         let start = bounds.width - (bounds.width + label.bounds.width) * progress + label.bounds.width / 2
@@ -461,6 +588,88 @@ final class DanmakuUIKitOverlay: UIView {
         label.center = CGPoint(x: end, y: y)
         let animation = CABasicAnimation(keyPath: "position.x"); animation.fromValue = start; animation.toValue = end; animation.duration = max((1 - progress) * item.duration / rate, 0.001); animation.timingFunction = CAMediaTimingFunction(name: .linear)
         label.layer.add(animation, forKey: "danmaku.scroll")
+    }
+
+    private func positionAdvanced(_ label: DanmakuOutlinedLabel, motion: DanmakuAdvancedMotion, item: DanmakuPreparedItem, at time: Double, rate: Double) {
+        let elapsed = min(max(time - item.appearTime, 0), item.duration)
+        let positions = motion.positions
+        guard let last = positions.last else { return }
+        let duration = max(item.duration, 0.001)
+        let effectiveOpacity = CGFloat(appliedConfig.opacity)
+        let opacityAtElapsed = advancedOpacity(motion, elapsed: elapsed, lifetime: duration) * effectiveOpacity
+        label.alpha = opacityAtElapsed
+        label.layer.position = advancedPosition(motion, elapsed: elapsed)
+
+        let remaining = max(duration - elapsed, 0.001)
+        let positionAnimation = CAKeyframeAnimation(keyPath: "position")
+        positionAnimation.values = advancedAnimationPositions(motion, from: elapsed).map(NSValue.init(cgPoint:))
+        positionAnimation.keyTimes = advancedAnimationKeyTimes(motion, from: elapsed, lifetime: duration).map(NSNumber.init(value:))
+        positionAnimation.duration = remaining / rate
+        positionAnimation.timingFunctions = [CAMediaTimingFunction(name: .linear)]
+        positionAnimation.fillMode = .forwards
+        positionAnimation.isRemovedOnCompletion = false
+        label.layer.add(positionAnimation, forKey: "danmaku.advanced.position")
+
+        let opacityAnimation = CABasicAnimation(keyPath: "opacity")
+        opacityAnimation.fromValue = opacityAtElapsed
+        opacityAnimation.toValue = motion.endOpacity * effectiveOpacity
+        opacityAnimation.duration = remaining / rate
+        opacityAnimation.timingFunction = CAMediaTimingFunction(name: .linear)
+        opacityAnimation.fillMode = .forwards
+        opacityAnimation.isRemovedOnCompletion = false
+        label.layer.add(opacityAnimation, forKey: "danmaku.advanced.opacity")
+        // Keep the model layer at its final state while the presentation layer
+        // follows the replayed animation after seeks and configuration updates.
+        label.layer.position = last
+        label.layer.opacity = Float(motion.endOpacity * effectiveOpacity)
+    }
+
+    private func advancedPosition(_ motion: DanmakuAdvancedMotion, elapsed: Double) -> CGPoint {
+        let points = motion.positions
+        guard points.count > 1 else { return points[0] }
+        let progress = min(max((elapsed - motion.motionDelay) / motion.motionDuration, 0), 1)
+        let scaled = progress * Double(points.count - 1)
+        let index = min(Int(scaled), points.count - 2)
+        let fraction = CGFloat(scaled - Double(index))
+        let start = points[index]; let end = points[index + 1]
+        return CGPoint(x: start.x + (end.x - start.x) * fraction, y: start.y + (end.y - start.y) * fraction)
+    }
+
+    private func advancedOpacity(_ motion: DanmakuAdvancedMotion, elapsed: Double, lifetime: Double) -> CGFloat {
+        let progress = min(max(elapsed / max(lifetime, 0.001), 0), 1)
+        return motion.startOpacity + (motion.endOpacity - motion.startOpacity) * CGFloat(progress)
+    }
+
+    private func advancedAnimationPositions(_ motion: DanmakuAdvancedMotion, from elapsed: Double) -> [CGPoint] {
+        let current = advancedPosition(motion, elapsed: elapsed)
+        let startOfMotion = motion.motionDelay
+        let endOfMotion = motion.motionDelay + motion.motionDuration
+        if elapsed < startOfMotion { return [current, motion.positions.first!, motion.positions.last!, motion.positions.last!] }
+        if elapsed < endOfMotion {
+            let remainingPoints = max(2, motion.positions.count)
+            let samples = (0 ..< remainingPoints).map { index -> CGPoint in
+                advancedPosition(motion, elapsed: elapsed + (endOfMotion - elapsed) * Double(index) / Double(remainingPoints - 1))
+            }
+            return (samples.isEmpty ? [current, motion.positions.last!] : samples) + [motion.positions.last!]
+        }
+        return [current, motion.positions.last!]
+    }
+
+    private func advancedAnimationKeyTimes(_ motion: DanmakuAdvancedMotion, from elapsed: Double, lifetime: Double) -> [Double] {
+        let remaining = max(lifetime - elapsed, 0.001)
+        let startOfMotion = motion.motionDelay
+        let endOfMotion = motion.motionDelay + motion.motionDuration
+        if elapsed < startOfMotion {
+            let delayFraction = min(max((startOfMotion - elapsed) / remaining, 0), 1)
+            let endFraction = min(max((endOfMotion - elapsed) / remaining, delayFraction), 1)
+            return [0, delayFraction, endFraction, 1]
+        }
+        if elapsed < endOfMotion {
+            let count = max(2, motion.positions.count)
+            let endFraction = min(max((endOfMotion - elapsed) / remaining, 0), 1)
+            return (0 ..< count).map { Double($0) / Double(count - 1) * endFraction } + [1]
+        }
+        return [0, 1]
     }
 }
 
