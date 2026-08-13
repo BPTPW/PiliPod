@@ -15,8 +15,13 @@ final class UserSpaceViewModel: ObservableObject {
 
     private var archiveNextAid: Int?
     private var archiveMid: Int?
+    private var loadedMid: Int?
 
     func load(mid: Int, fromViewAid: Int?) async {
+        guard !isLoading else { return }
+        if loadedMid == mid, data != nil {
+            return
+        }
         archiveMid = mid
         isLoading = true
         errorMessage = nil
@@ -25,6 +30,7 @@ final class UserSpaceViewModel: ObservableObject {
         do {
             data = try await BiliAPI.shared.fetchUserSpace(mid: mid, fromViewAid: fromViewAid)
             await refreshArchive()
+            loadedMid = mid
         } catch {
             ErrorLogService.record(error, context: "加载用户空间")
             data = nil

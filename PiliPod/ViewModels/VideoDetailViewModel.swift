@@ -121,6 +121,7 @@ class VideoDetailViewModel {
     // MARK: - Load Video Data
 
     func loadVideoData() async {
+        guard videoDetail == nil, !isLoading else { return }
         isLoading = true
         error = nil
         playerInfo = nil

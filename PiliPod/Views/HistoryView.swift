@@ -44,6 +44,9 @@ struct HistoryView: View {
             }
             .padding(16)
         }
+        .refreshable {
+            await viewModel.refreshFromUser()
+        }
         .background(Color(.systemBackground))
         .navigationTitle("观看记录")
         .navigationBarTitleDisplayMode(.inline)

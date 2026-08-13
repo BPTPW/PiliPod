@@ -45,6 +45,9 @@ struct WatchLaterView: View {
             }
         }
         .listStyle(.plain)
+        .refreshable {
+            await viewModel.refreshFromUser()
+        }
         .scrollContentBackground(.hidden)
         .background(Color(.systemBackground))
         .navigationTitle("稍后再看")

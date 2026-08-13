@@ -9,14 +9,29 @@ final class HistoryViewModel: ObservableObject {
     @Published var hasMore = true
 
     private var nextCursor: HistoryCursor?
+    private var hasLoadedOnce = false
     private let pageSize = 20
     private let type = "archive"
 
-    func refresh() async {
+    func refreshFromUser() async {
+        let task = Task { @MainActor in
+            await refresh(force: true)
+        }
+        await task.value
+    }
+
+    func refresh(force: Bool = false) async {
+        guard force || !hasLoadedOnce else { return }
+
+        // 首次加载或分页请求尚未结束时，等待它完成后再执行用户主动刷新，
+        // 避免 refreshable 因 isLoading 直接返回而看起来没有反应。
+        while isLoading {
+            guard !Task.isCancelled else { return }
+            await Task.yield()
+        }
+
         isLoading = true
         errorMessage = nil
-        hasMore = true
-        nextCursor = nil
         defer { isLoading = false }
 
         do {
@@ -25,11 +40,18 @@ final class HistoryViewModel: ObservableObject {
             videos = items.map { VideoItem(from: $0) }
             nextCursor = page.cursor
             hasMore = shouldLoadMore(items: items, cursor: page.cursor)
+            hasLoadedOnce = true
         } catch {
+            if Task.isCancelled || error is CancellationError || (error as? URLError)?.code == .cancelled {
+                // 下拉刷新任务可能因手势结束或页面离开而被取消，不应清空现有列表。
+                return
+            }
             ErrorLogService.record(error, context: "加载观看历史")
-            videos = []
-            errorMessage = error.localizedDescription
-            hasMore = false
+            // 已有内容时刷新失败仍保留旧列表，仅提示错误；首次加载失败才显示空状态。
+            if videos.isEmpty {
+                errorMessage = error.localizedDescription
+                hasMore = false
+            }
         }
     }
 
@@ -65,6 +87,9 @@ final class HistoryViewModel: ObservableObject {
             nextCursor = page.cursor
             hasMore = shouldLoadMore(items: items, cursor: page.cursor)
         } catch {
+            if Task.isCancelled || error is CancellationError || (error as? URLError)?.code == .cancelled {
+                return
+            }
             ErrorLogService.record(error, context: "加载更多观看历史")
             errorMessage = error.localizedDescription
             hasMore = false

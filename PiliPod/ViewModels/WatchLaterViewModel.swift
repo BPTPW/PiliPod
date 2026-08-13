@@ -6,8 +6,17 @@ final class WatchLaterViewModel: ObservableObject {
     @Published var videos: [VideoItem] = []
     @Published var isLoading = false
     @Published var errorMessage: String?
+    private var hasLoadedOnce = false
 
-    func refresh() async {
+    func refreshFromUser() async {
+        let task = Task { @MainActor in
+            await refresh(force: true)
+        }
+        await task.value
+    }
+
+    func refresh(force: Bool = false) async {
+        guard (force || !hasLoadedOnce), !isLoading else { return }
         isLoading = true
         errorMessage = nil
         defer { isLoading = false }
@@ -15,6 +24,7 @@ final class WatchLaterViewModel: ObservableObject {
         do {
             let data = try await BiliAPI.shared.fetchWatchLaterList()
             videos = (data.list ?? []).map { VideoItem(from: $0) }
+            hasLoadedOnce = true
         } catch {
             ErrorLogService.record(error, context: "加载稍后再看")
             videos = []
