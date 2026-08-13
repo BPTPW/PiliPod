@@ -70,6 +70,8 @@ class VideoDetailViewModel {
     var isLiked = false
     var isDisliked = false
     var isCoined = false
+    /// 当前用户对该视频已投的币数（区别于视频总投币数 coinCount）。
+    var userCoinCount = 0
     var isFavorited = false
     var isWatchLater = false
 
@@ -159,6 +161,7 @@ class VideoDetailViewModel {
         isLiked = false
         isDisliked = false
         isCoined = false
+        userCoinCount = 0
         isFavorited = false
         isWatchLater = false
         likeCount = 0
@@ -290,6 +293,7 @@ class VideoDetailViewModel {
                     await MainActor.run {
                         self.isLiked = relation.like
                         self.isDisliked = relation.dislike
+                        self.userCoinCount = relation.coin
                         self.isCoined = relation.coin > 0
                         self.isFavorited = relation.favorite
                     }
@@ -1136,7 +1140,7 @@ class VideoDetailViewModel {
         guard !isCoinRequesting else { return }
         guard aid != 0 else { return }
         guard multiply == 1 || multiply == 2 else { return }
-        guard !isCoined else { return }
+        guard userCoinCount + multiply <= 2 else { return }
 
         isCoinRequesting = true
         do {
@@ -1145,6 +1149,7 @@ class VideoDetailViewModel {
                 multiply: multiply
             )
             isCoined = true
+            userCoinCount += multiply
             coinCount += multiply
         } catch {
             self.error = error.localizedDescription

@@ -1021,6 +1021,7 @@ struct VideoDetailPage: View {
             isLiked: viewModel.isLiked,
             isDisliked: viewModel.isDisliked,
             isCoined: viewModel.isCoined,
+            userCoinCount: viewModel.userCoinCount,
             isFavorited: viewModel.isFavorited,
             isWatchLater: viewModel.isWatchLater,
             likeCount: viewModel.likeCount,
@@ -1850,6 +1851,7 @@ struct VideoActionBar: View {
     let isLiked: Bool
     let isDisliked: Bool
     let isCoined: Bool
+    let userCoinCount: Int
     let isFavorited: Bool
     let isWatchLater: Bool
 
@@ -1898,8 +1900,8 @@ struct VideoActionBar: View {
                 title: formatCount(coinCount),
                 assetImage: "BiliCoin",
                 isActive: isCoined,
-                // isDisabled: isCoinRequesting || isCoined,
-                isDisabled: isCoined,
+                isDisabled: isCoinRequesting || userCoinCount >= 2,
+                userCoinCount: userCoinCount,
                 onCoin1: onCoin1,
                 onCoin2: onCoin2
             )
@@ -1951,13 +1953,16 @@ private struct VideoCoinMenuButton: View {
     let assetImage: String
     let isActive: Bool
     let isDisabled: Bool
+    let userCoinCount: Int
     let onCoin1: () -> Void
     let onCoin2: () -> Void
 
     var body: some View {
         Menu {
             Button("投1个") { onCoin1() }
+                .disabled(userCoinCount >= 2)
             Button("投2个") { onCoin2() }
+                .disabled(userCoinCount >= 1)
         } label: {
             VStack(spacing: 6) {
                 ZStack {

@@ -25,6 +25,7 @@ struct IntroTabDisplayModel: Equatable {
     let isLiked: Bool
     let isDisliked: Bool
     let isCoined: Bool
+    let userCoinCount: Int
     let isFavorited: Bool
     let isWatchLater: Bool
     let likeCount: Int
@@ -221,6 +222,7 @@ struct IntroTabContentView: View, Equatable {
                     isLiked: model.isLiked,
                     isDisliked: model.isDisliked,
                     isCoined: model.isCoined,
+                    userCoinCount: model.userCoinCount,
                     isFavorited: model.isFavorited,
                     isWatchLater: model.isWatchLater,
                     likeCount: model.likeCount,
