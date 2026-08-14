@@ -680,7 +680,10 @@ struct VideoDetailPage: View {
         .onDisappear {
             if let player = bindableViewModel.player {
                 // Capture the final position before AVPlayer releases its item.
-                bindableViewModel.stopHistoryReporting(with: player)
+                // Related-video navigation reports before pushing the new page.
+                if selectedRelatedVideo == nil {
+                    bindableViewModel.stopHistoryReporting(with: player)
+                }
                 if player.usesAVPlayer {
                     player.stop()
                 } else {
@@ -691,6 +694,19 @@ struct VideoDetailPage: View {
             audioSessionManager.deactivate()
             setIdleTimerDisabled(false)
 #endif
+        }
+        .onChange(of: selectedRelatedVideo?.bvid) { oldValue, newValue in
+            guard oldValue != nil, newValue == nil else { return }
+
+            Task { @MainActor in
+                do {
+                    try await viewModel.reloadCurrentVideoPreservingPlaybackState()
+                    syncSystemMediaControl(reason: "returned-from-related-video")
+                    viewModel.startHistoryReporting()
+                } catch {
+                    toastMessage = error.localizedDescription
+                }
+            }
         }
         .navigationBarBackButtonHidden(true)
         .toolbar(.hidden, for: .navigationBar)
@@ -1116,6 +1132,7 @@ struct VideoDetailPage: View {
                         isDraggingVideoPageStrip = isDragging
                     },
                     onOpenRelatedVideo: { item in
+                        viewModel.prepareForRelatedVideoNavigation()
                         selectedRelatedVideo = item
                     }
                 )
