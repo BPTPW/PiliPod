@@ -743,8 +743,8 @@ struct VideoDetailPage: View {
         .onDisappear {
             if let player = bindableViewModel.player {
                 // Capture the final position before AVPlayer releases its item.
-                // Related-video navigation reports before pushing the new page.
-                if selectedRelatedVideo == nil {
+                // Child-destination navigation reports before pushing the new page.
+                if selectedRelatedVideo == nil, selectedUserSpaceRoute == nil {
                     bindableViewModel.stopHistoryReporting(with: player)
                 }
                 if player.usesAVPlayer {
@@ -765,6 +765,19 @@ struct VideoDetailPage: View {
                 do {
                     try await viewModel.reloadCurrentVideoPreservingPlaybackState()
                     syncSystemMediaControl(reason: "returned-from-related-video")
+                    viewModel.startHistoryReporting()
+                } catch {
+                    toastMessage = error.localizedDescription
+                }
+            }
+        }
+        .onChange(of: selectedUserSpaceRoute?.mid) { oldValue, newValue in
+            guard oldValue != nil, newValue == nil else { return }
+
+            Task { @MainActor in
+                do {
+                    try await viewModel.reloadCurrentVideoPreservingPlaybackState()
+                    syncSystemMediaControl(reason: "returned-from-user-space")
                     viewModel.startHistoryReporting()
                 } catch {
                     toastMessage = error.localizedDescription
@@ -947,6 +960,7 @@ struct VideoDetailPage: View {
                 return .handled
             }
 
+            viewModel.prepareForNestedNavigation()
             selectedUserSpaceRoute = UserSpaceRoute(
                 mid: mid,
                 fromViewAid: viewModel.videoDetail?.aid
@@ -958,6 +972,7 @@ struct VideoDetailPage: View {
                 return .handled
             }
 
+            viewModel.prepareForNestedNavigation()
             selectedRelatedVideo = VideoItem(
                 bvid: bvid,
                 cid: nil,
@@ -1064,6 +1079,7 @@ struct VideoDetailPage: View {
                     aid: viewModel.aid,
                     onOpenUserSpace: { mid in
                         guard mid > 0 else { return }
+                        viewModel.prepareForNestedNavigation()
                         selectedUserSpaceRoute = UserSpaceRoute(
                             mid: mid,
                             fromViewAid: viewModel.aid > 0 ? viewModel.aid : nil
@@ -1128,6 +1144,7 @@ struct VideoDetailPage: View {
                     model: model,
                     namespace: namespace,
                     onOpenOwner: { mid, aid in
+                        viewModel.prepareForNestedNavigation()
                         selectedUserSpaceRoute = UserSpaceRoute(
                             mid: mid,
                             fromViewAid: aid
@@ -1198,7 +1215,7 @@ struct VideoDetailPage: View {
                         isDraggingVideoPageStrip = isDragging
                     },
                     onOpenRelatedVideo: { item in
-                        viewModel.prepareForRelatedVideoNavigation()
+                        viewModel.prepareForNestedNavigation()
                         selectedRelatedVideo = item
                     }
                 )

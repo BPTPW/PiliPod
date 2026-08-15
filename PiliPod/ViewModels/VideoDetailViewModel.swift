@@ -101,8 +101,8 @@ class VideoDetailViewModel {
     private var playerRebuildToken = UUID()
     private var isRebuildingPlayer = false
     private var isReloadingCurrentVideo = false
-    private var pendingRelatedResumeTime: Double?
-    private var pendingRelatedShouldResume = true
+    private var pendingNavigationResumeTime: Double?
+    private var pendingNavigationShouldResume = true
 
     var currentPlayerViewID: String {
         playerRebuildToken.uuidString
@@ -453,11 +453,11 @@ class VideoDetailViewModel {
         }
 
         let currentPlayer = player
-        let resumeTime = pendingRelatedResumeTime ?? currentPlayer?.currentTime ?? 0
+        let resumeTime = pendingNavigationResumeTime ?? currentPlayer?.currentTime ?? 0
         let resumeRate = selectedPlaybackRate
-        let shouldResume = pendingRelatedResumeTime == nil
+        let shouldResume = pendingNavigationResumeTime == nil
             ? (currentPlayer?.isPlaying ?? true)
-            : pendingRelatedShouldResume
+            : pendingNavigationShouldResume
         let preferredQualityCode = selectedQualityCode
         let playbackSettings = AudioVideoSettingsStore.load()
         let preferredCodec = playbackSettings.preferredCodec
@@ -507,15 +507,15 @@ class VideoDetailViewModel {
             rate: resumeRate,
             shouldResume: shouldResume
         )
-        pendingRelatedResumeTime = nil
+        pendingNavigationResumeTime = nil
     }
 
     @MainActor
-    func prepareForRelatedVideoNavigation() {
+    func prepareForNestedNavigation() {
         guard let currentPlayer = player else { return }
 
-        pendingRelatedResumeTime = max(0, currentPlayer.currentTime)
-        pendingRelatedShouldResume = currentPlayer.isPlaying
+        pendingNavigationResumeTime = max(0, currentPlayer.currentTime)
+        pendingNavigationShouldResume = currentPlayer.isPlaying
         stopHistoryReporting(with: currentPlayer)
         currentPlayer.pause()
     }
