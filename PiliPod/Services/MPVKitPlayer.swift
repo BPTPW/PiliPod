@@ -229,6 +229,18 @@ class MPVKitPlayer: NSObject {
         avPlayerSession?.startPictureInPicture()
     }
 
+    func startPictureInPicture(
+        onStarted: @escaping () -> Void,
+        onRestore: @escaping () -> Void,
+        onStopped: @escaping () -> Void
+    ) {
+        avPlayerSession?.startPictureInPicture(
+            onStarted: onStarted,
+            onRestore: onRestore,
+            onStopped: onStopped
+        )
+    }
+
     func stopPictureInPicture() {
         avPlayerSession?.stopPictureInPicture()
     }

@@ -47,6 +47,7 @@ struct VideoDetailPlayerSurfaceView: View {
     let onShowSponsorSubmit: () -> Void
     let onCacheVideo: () -> Void
     let onReloadVideo: () -> Void
+    let onStartPictureInPicture: () -> Void
     let onSelectQuality: (Int) -> Void
     let onSelectPlaybackRate: (Double) -> Void
     let onManualSkip: () -> Void
@@ -318,6 +319,7 @@ struct VideoDetailPlayerSurfaceView: View {
             onFullscreen: onToggleFullscreen,
             onCacheVideo: onCacheVideo,
             onReloadVideo: onReloadVideo,
+            onStartPictureInPicture: onStartPictureInPicture,
             onShowVideoStreamInfo: toggleDebugPanel,
             onSelectQuality: onSelectQuality,
             onSelectPlaybackRate: onSelectPlaybackRate,

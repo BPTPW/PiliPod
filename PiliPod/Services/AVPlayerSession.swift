@@ -40,6 +40,9 @@ final class AVPlayerSession: NSObject, AVPictureInPictureControllerDelegate {
     private var pictureInPictureRetryWorkItem: DispatchWorkItem?
     private var isPictureInPictureStartRequested = false
     private var pictureInPictureStartAttempts = 0
+    private var onPictureInPictureStarted: (() -> Void)?
+    private var onPictureInPictureRestore: (() -> Void)?
+    private var onPictureInPictureStopped: (() -> Void)?
     private var playbackSettings: AudioVideoSettings
     private var wantsPlayback = false
     private var pendingSeekTime: TimeInterval?
@@ -82,6 +85,17 @@ final class AVPlayerSession: NSObject, AVPictureInPictureControllerDelegate {
         pictureInPictureStartAttempts = 0
         preparePictureInPictureController()
         attemptPictureInPictureStart()
+    }
+
+    func startPictureInPicture(
+        onStarted: @escaping () -> Void,
+        onRestore: @escaping () -> Void,
+        onStopped: @escaping () -> Void
+    ) {
+        onPictureInPictureStarted = onStarted
+        onPictureInPictureRestore = onRestore
+        onPictureInPictureStopped = onStopped
+        startPictureInPicture()
     }
 
     func stopPictureInPicture() {
@@ -395,6 +409,18 @@ final class AVPlayerSession: NSObject, AVPictureInPictureControllerDelegate {
               !pictureInPictureController.isPictureInPictureActive
         else { return }
 
+        // AVKit rejects a player layer whose scene is not foreground-active.
+        // This can happen briefly while SwiftUI is presenting or dismissing
+        // the detail page, so wait for the layer to be attached to the active
+        // application window before asking AVKit to start PiP.
+        guard let layer,
+              let windowScene = surface?.window?.windowScene,
+              windowScene.activationState == .foregroundActive
+        else {
+            schedulePictureInPictureRetry()
+            return
+        }
+
         guard pictureInPictureController.isPictureInPicturePossible else {
             schedulePictureInPictureRetry()
             return
@@ -407,7 +433,7 @@ final class AVPlayerSession: NSObject, AVPictureInPictureControllerDelegate {
     }
 
     private func schedulePictureInPictureRetry() {
-        guard pictureInPictureStartAttempts < 3,
+        guard pictureInPictureStartAttempts < 10,
               pictureInPictureRetryWorkItem == nil
         else { return }
         let workItem = DispatchWorkItem { [weak self] in
@@ -478,7 +504,7 @@ final class AVPlayerSession: NSObject, AVPictureInPictureControllerDelegate {
         _: AVPictureInPictureController,
         failedToStartPictureInPictureWithError error: Error
     ) {
-        if pictureInPictureStartAttempts < 3 {
+        if pictureInPictureStartAttempts < 10 {
             schedulePictureInPictureRetry()
             return
         }
@@ -486,6 +512,27 @@ final class AVPlayerSession: NSObject, AVPictureInPictureControllerDelegate {
         logPlaybackFailure(error)
         errorMessage = nil
         publish()
+    }
+
+    func pictureInPictureControllerDidStartPictureInPicture(_: AVPictureInPictureController) {
+        onPictureInPictureStarted?()
+    }
+
+    func pictureInPictureController(
+        _: AVPictureInPictureController,
+        restoreUserInterfaceForPictureInPictureStopWithCompletionHandler completionHandler: @escaping (Bool) -> Void
+    ) {
+        onPictureInPictureRestore?()
+        completionHandler(true)
+    }
+
+    func pictureInPictureControllerDidStopPictureInPicture(_: AVPictureInPictureController) {
+        isPictureInPictureStartRequested = false
+        let onStopped = onPictureInPictureStopped
+        onPictureInPictureStarted = nil
+        onPictureInPictureRestore = nil
+        onPictureInPictureStopped = nil
+        onStopped?()
     }
 
     private static func supports(videoCodec: String) -> Bool {

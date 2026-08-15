@@ -201,6 +201,20 @@ struct HomeView: View {
                 viewModel.userFace = nil
             }
         }
+        .onReceive(NotificationCenter.default.publisher(for: .manualPictureInPictureRestoreOnHome)) { notification in
+            guard let route = notification.object as? ManualPictureInPictureRoute else { return }
+            switch route {
+            case let .video(video):
+                selectedTab = .recommended
+                selectedVideo = nil
+                isSearchViewPresented = false
+                DispatchQueue.main.async {
+                    selectedVideo = video
+                }
+            case .live:
+                selectedTab = .live
+            }
+        }
         .toast(message: $toastMessage)
     }
 

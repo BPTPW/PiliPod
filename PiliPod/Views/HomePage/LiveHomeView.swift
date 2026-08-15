@@ -155,6 +155,10 @@ struct LiveHomeView: View {
         .navigationDestination(item: $selectedRoom) { room in
             LivePlaybackPage(room: room)
         }
+        .onReceive(NotificationCenter.default.publisher(for: .manualPictureInPictureRestoreOnHome)) { notification in
+            guard case let .live(room) = notification.object as? ManualPictureInPictureRoute else { return }
+            selectedRoom = room
+        }
     }
 
     private func sectionTitle(_ title: LocalizedStringKey) -> some View {

@@ -374,6 +374,12 @@ struct VideoDetailPage: View {
                                     }
                                 }
                             },
+                            onStartPictureInPicture: {
+                                ManualPictureInPictureCoordinator.shared.start(
+                                    player: player,
+                                    route: .video(video)
+                                )
+                            },
                             onSelectQuality: { code in
                                 Task { @MainActor in
                                     await bindableViewModel.switchQuality(to: code)
@@ -675,6 +681,7 @@ struct VideoDetailPage: View {
             }
         }
         .onAppear {
+            ManualPictureInPictureCoordinator.shared.stopIfNeeded()
             danmakuConfig = DanmakuConfigStore.load()
             isDanmakuEnabled = danmakuConfig.isEnabled
             sponsorBlockSettings = SponsorBlockSettingsStore.load()
@@ -742,19 +749,30 @@ struct VideoDetailPage: View {
         }
         .onDisappear {
             if let player = bindableViewModel.player {
+                let isRetainedForPictureInPicture =
+                    ManualPictureInPictureCoordinator.shared.isRetaining(player)
                 // Capture the final position before AVPlayer releases its item.
                 // Child-destination navigation reports before pushing the new page.
-                if selectedRelatedVideo == nil, selectedUserSpaceRoute == nil {
+                if !isRetainedForPictureInPicture,
+                   selectedRelatedVideo == nil,
+                   selectedUserSpaceRoute == nil
+                {
                     bindableViewModel.stopHistoryReporting(with: player)
                 }
-                if player.usesAVPlayer {
-                    player.stop()
-                } else {
-                    player.pause()
+                if !isRetainedForPictureInPicture {
+                    if player.usesAVPlayer {
+                        player.stop()
+                    } else {
+                        player.pause()
+                    }
                 }
             }
 #if canImport(UIKit)
-            audioSessionManager.deactivate()
+            if let player = bindableViewModel.player,
+               !ManualPictureInPictureCoordinator.shared.isRetaining(player)
+            {
+                audioSessionManager.deactivate()
+            }
             setIdleTimerDisabled(false)
 #endif
         }
@@ -770,6 +788,11 @@ struct VideoDetailPage: View {
                     toastMessage = error.localizedDescription
                 }
             }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .manualPictureInPictureDidStart)) { _ in
+            // Every nested detail page receives this, so a video opened from
+            // recommendations unwinds all the way back to the actual home page.
+            onBack()
         }
         .onChange(of: selectedUserSpaceRoute?.mid) { oldValue, newValue in
             guard oldValue != nil, newValue == nil else { return }
@@ -3126,6 +3149,7 @@ private struct MoreActionsMenuView: View, Equatable {
     let onUserInteracted: () -> Void
     let onCacheVideo: () -> Void
     let onReloadVideo: () -> Void
+    let onStartPictureInPicture: () -> Void
     let onShowVideoStreamInfo: () -> Void
 
     static func == (lhs: MoreActionsMenuView, rhs: MoreActionsMenuView) -> Bool {
@@ -3135,6 +3159,14 @@ private struct MoreActionsMenuView: View, Equatable {
     var body: some View {
         // 保持菜单结构静态，避免父视图因 currentTime 高频更新时重建系统 Menu。
         Menu {
+            Button {
+                onUserInteracted()
+                onStartPictureInPicture()
+            } label: {
+                Image(systemName: "pip.enter")
+                Text("小窗播放")
+            }
+
             Button {
                 onUserInteracted()
                 onCacheVideo()
@@ -3246,6 +3278,7 @@ struct PlayerControlsOverlay: View {
     let onFullscreen: () -> Void
     let onCacheVideo: () -> Void
     let onReloadVideo: () -> Void
+    let onStartPictureInPicture: () -> Void
     let onShowVideoStreamInfo: () -> Void
     let onSelectQuality: (Int) -> Void
     let onSelectPlaybackRate: (Double) -> Void
@@ -3363,6 +3396,7 @@ struct PlayerControlsOverlay: View {
                     onUserInteracted: onUserInteracted,
                     onCacheVideo: onCacheVideo,
                     onReloadVideo: onReloadVideo,
+                    onStartPictureInPicture: onStartPictureInPicture,
                     onShowVideoStreamInfo: onShowVideoStreamInfo
                 )
                 .equatable()

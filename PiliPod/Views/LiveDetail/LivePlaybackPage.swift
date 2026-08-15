@@ -77,6 +77,7 @@ struct LivePlaybackPage: View {
             UserSpaceView(mid: route.mid)
         }
         .onAppear {
+            ManualPictureInPictureCoordinator.shared.stopIfNeeded()
 #if canImport(UIKit)
             setIdleTimerDisabled(playerUISnapshot.isPlaying)
 #endif
@@ -99,17 +100,24 @@ struct LivePlaybackPage: View {
             hideControlsTask?.cancel()
             mediaControlSyncTask?.cancel()
             mediaControlSyncTask = nil
-            if player.usesAVPlayer {
-                player.stop()
-            } else {
-                player.pause()
+            let isRetainedForPictureInPicture = ManualPictureInPictureCoordinator.shared.isRetaining(player)
+            if !isRetainedForPictureInPicture {
+                if player.usesAVPlayer {
+                    player.stop()
+                } else {
+                    player.pause()
+                }
             }
 #if canImport(UIKit)
-            audioSessionManager.deactivate()
+            if !isRetainedForPictureInPicture {
+                audioSessionManager.deactivate()
+            }
             updateDeviceOrientationForFullscreen(isFullscreen: false)
             setIdleTimerDisabled(false)
 #endif
-            viewModel.teardown()
+            if !isRetainedForPictureInPicture {
+                viewModel.teardown()
+            }
         }
 #if canImport(UIKit)
         .onReceive(NotificationCenter.default.publisher(
@@ -143,6 +151,9 @@ struct LivePlaybackPage: View {
             guard newValue != nil else { return }
             Task { await syncSystemMediaControlWhenPlaybackStarts() }
 #endif
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .manualPictureInPictureDidStart)) { _ in
+            dismiss()
         }
         .onChange(of: viewModel.displayTitle) { _, _ in
 #if canImport(UIKit)
@@ -347,10 +358,9 @@ struct LivePlaybackPage: View {
         let horizontalTrailingPadding = isFullscreen ? geo.safeAreaInsets.trailing + 12 : 12
 
         VStack(spacing: 0) {
-            if isFullscreen {
-                // 返回按钮
-                ZStack(alignment: .top) {
-                    HStack(spacing: 12) {
+            ZStack(alignment: .top) {
+                HStack(spacing: 12) {
+                    if isFullscreen {
                         Button {
                             showControlsAndAutoHideIfNeeded(forceShow: true)
                             handleBackAction()
@@ -362,17 +372,26 @@ struct LivePlaybackPage: View {
                         }
                         .background(Circle().fill(Color(.black.opacity(0.2))))
                         .glassEffect(.clear.interactive(), in: .circle)
-
-                        Spacer(minLength: 0)
                     }
-                    .padding(.top, max(geo.safeAreaInsets.top, 12))
 
+                    Spacer(minLength: 0)
+
+                    LiveMoreActionsMenu {
+                        ManualPictureInPictureCoordinator.shared.start(
+                            player: player,
+                            route: .live(room)
+                        )
+                    }
+                }
+                .padding(.top, isFullscreen ? max(geo.safeAreaInsets.top, 12) : 12)
+                .padding(.leading, horizontalLeadingPadding)
+                .padding(.trailing, horizontalTrailingPadding)
+
+                if isFullscreen {
                     LandscapeSystemStatusView()
                         .frame(maxWidth: .infinity)
                         .padding(2)
                 }
-                .padding(.leading, horizontalLeadingPadding)
-                .padding(.trailing, horizontalTrailingPadding)
             }
 
             Spacer(minLength: 0)
@@ -1245,6 +1264,25 @@ private struct LiveDanmakuFlowLayout: Layout {
 
         let totalHeight = items.isEmpty ? 0 : currentY + lineHeight
         return (CGSize(width: usedWidth, height: totalHeight), items)
+    }
+}
+
+private struct LiveMoreActionsMenu: View {
+    let onStartPictureInPicture: () -> Void
+
+    var body: some View {
+        Menu {
+            Button(action: onStartPictureInPicture) {
+                Label("小窗播放", systemImage: "pip.enter")
+            }
+        } label: {
+            Image(systemName: "ellipsis")
+                .font(.system(size: 16, weight: .semibold))
+                .foregroundStyle(.white)
+                .frame(width: 40, height: 40)
+        }
+        .background(Circle().fill(Color(.black.opacity(0.2))))
+        .glassEffect(.clear.interactive(), in: .circle)
     }
 }
 
