@@ -26,6 +26,19 @@ struct FavoriteDealData: Codable {
     let prompt: Bool?
 }
 
+struct TripleLikeData: Codable {
+    let like: Bool
+    let coin: Bool
+    let fav: Bool
+    let multiply: Int?
+}
+
+struct TripleLikeVisualState: Sendable {
+    let isLiked: Bool
+    let isCoined: Bool
+    let isFavorited: Bool
+}
+
 struct SkipSegment: Codable, Identifiable {
     let segment: [Double]
     let cid: String

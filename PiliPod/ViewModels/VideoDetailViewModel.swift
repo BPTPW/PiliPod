@@ -84,6 +84,7 @@ class VideoDetailViewModel {
     var isCoinRequesting = false
     var isFavoriteRequesting = false
     var isWatchLaterRequesting = false
+    var isTripleLikeRequesting = false
 
     let bvid: String
     var aid: Int = 0
@@ -1170,6 +1171,50 @@ class VideoDetailViewModel {
             self.error = error.localizedDescription
         }
         isCoinRequesting = false
+    }
+
+    @MainActor
+    func tripleLike() async -> TripleLikeVisualState {
+        let previousState = TripleLikeVisualState(
+            isLiked: isLiked,
+            isCoined: isCoined,
+            isFavorited: isFavorited
+        )
+
+        guard !isTripleLikeRequesting, aid != 0 else { return previousState }
+
+        isTripleLikeRequesting = true
+        defer { isTripleLikeRequesting = false }
+
+        do {
+            let result = try await BiliAPI.shared.tripleLikeVideo(aid: aid)
+
+            if result.like, !isLiked {
+                isLiked = true
+                isDisliked = false
+                likeCount += 1
+            }
+
+            if result.coin {
+                let addedCoinCount = min(max(0, 2 - userCoinCount), result.multiply ?? 2)
+                isCoined = true
+                userCoinCount += addedCoinCount
+                coinCount += addedCoinCount
+            }
+
+            if result.fav, !isFavorited {
+                isFavorited = true
+                favoriteCount += 1
+            }
+        } catch {
+            self.error = error.localizedDescription
+        }
+
+        return TripleLikeVisualState(
+            isLiked: isLiked,
+            isCoined: isCoined,
+            isFavorited: isFavorited
+        )
     }
 
     @MainActor

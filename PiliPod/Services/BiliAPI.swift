@@ -1825,6 +1825,39 @@ class BiliAPI {
         }
     }
 
+    // MARK: - 一键三连
+
+    func tripleLikeVideo(aid: Int) async throws -> TripleLikeData {
+        guard let accessKey = LoginSession.shared.accessKey, !accessKey.isEmpty else {
+            throw APIError.responseError(-101)
+        }
+
+        let parameters: [String: String] = [
+            "access_key": accessKey,
+            "aid": String(aid)
+        ]
+
+        guard let request = makePostFormRequest(
+            urlString: "https://app.bilibili.com/x/v2/view/like/triple",
+            parameters: parameters
+        ) else {
+            throw APIError.invalidURL
+        }
+
+        let (data, _) = try await URLSession.shared.data(for: request)
+        let response = try JSONDecoder().decode(
+            SimpleAPIResponse<TripleLikeData>.self,
+            from: data
+        )
+        guard response.code == 0 else {
+            throw APIError.businessError(code: response.code, message: response.message)
+        }
+        guard let result = response.data else {
+            throw APIError.requestFailed
+        }
+        return result
+    }
+
     // MARK: - 投币
 
     func coinVideo(aid: Int, multiply: Int) async throws {

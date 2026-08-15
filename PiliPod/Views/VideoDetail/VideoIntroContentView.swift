@@ -53,6 +53,7 @@ struct IntroTabContentView: View, Equatable {
     let onToggleExpand: () -> Void
     let onOpenIntroLink: (URL) -> OpenURLAction.Result
     let onToggleLike: () -> Void
+    let onTripleLike: () async -> TripleLikeVisualState
     let onToggleDislike: () -> Void
     let onCoin1: () -> Void
     let onCoin2: () -> Void
@@ -235,6 +236,7 @@ struct IntroTabContentView: View, Equatable {
                     isFavoriteRequesting: model.isFavoriteRequesting,
                     isWatchLaterRequesting: model.isWatchLaterRequesting,
                     onToggleLike: onToggleLike,
+                    onTripleLike: onTripleLike,
                     onToggleDislike: onToggleDislike,
                     onCoin1: onCoin1,
                     onCoin2: onCoin2,

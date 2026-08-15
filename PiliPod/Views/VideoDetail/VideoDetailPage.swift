@@ -5,12 +5,75 @@
 //  Created by co on 2026/5/21.
 //
 
+import CoreHaptics
 import Observation
 import SwiftUI
 #if canImport(UIKit)
 import MediaPlayer
 import UIKit
 #endif
+
+private final class TripleChargeHaptics {
+    private var engine: CHHapticEngine?
+    private var player: CHHapticAdvancedPatternPlayer?
+
+    func start() {
+        guard CHHapticEngine.capabilitiesForHardware().supportsHaptics else { return }
+
+        do {
+            stop()
+            if engine == nil {
+                engine = try CHHapticEngine()
+            }
+            guard let engine else { return }
+            try engine.start()
+
+            let sharpness = CHHapticEventParameter(parameterID: .hapticSharpness, value: 0.12)
+            let baseIntensities: [Float] = [0.30, 0.38, 0.46, 0.55, 0.64, 0.73, 0.82]
+            let intensities = baseIntensities
+            let events = intensities.enumerated().map { index, value in
+                CHHapticEvent(
+                    eventType: .hapticContinuous,
+                    parameters: [
+                        CHHapticEventParameter(parameterID: .hapticIntensity, value: value),
+                        sharpness
+                    ],
+                    relativeTime: TimeInterval(index) * 0.2,
+                    duration: 0.2
+                )
+            }
+            let pattern = try CHHapticPattern(events: events, parameters: [])
+            let player = try engine.makeAdvancedPlayer(with: pattern)
+            self.player = player
+            try player.start(atTime: CHHapticTimeImmediate)
+        } catch {
+            stop()
+        }
+    }
+
+    func stop() {
+        try? player?.stop(atTime: CHHapticTimeImmediate)
+        player = nil
+    }
+}
+
+private struct TripleChargeButtonEffect: ViewModifier {
+    let chargeProgress: CGFloat
+    let isCharging: Bool
+    let isHighlighted: Bool
+    let completionScale: CGFloat
+
+    func body(content: Content) -> some View {
+        TimelineView(.animation(minimumInterval: 1.0 / 120.0, paused: !isCharging)) { context in
+            let phase = context.date.timeIntervalSinceReferenceDate * .pi * 2 * 12
+            let horizontalOffset = isCharging ? sin(phase) * 1.4 : 0
+
+            content
+                .scaleEffect(isHighlighted ? completionScale : 1 - (chargeProgress * 0.14))
+                .offset(x: horizontalOffset)
+        }
+    }
+}
 
 struct VideoDetailPage: View {
     private static let introBVPattern = try? NSRegularExpression(
@@ -1095,6 +1158,9 @@ struct VideoDetailPage: View {
                             viewModel.toggleLike()
                         }
                     },
+                    onTripleLike: {
+                        await viewModel.tripleLike()
+                    },
                     onToggleDislike: {
                         withAnimation(.easeInOut(duration: 0.15)) {
                             viewModel.toggleDislike()
@@ -1884,6 +1950,7 @@ struct VideoActionBar: View {
     let isWatchLaterRequesting: Bool
 
     let onToggleLike: () -> Void
+    let onTripleLike: () async -> TripleLikeVisualState
     let onToggleDislike: () -> Void
     let onCoin1: () -> Void
     let onCoin2: () -> Void
@@ -1893,15 +1960,34 @@ struct VideoActionBar: View {
     let onShareImage: () -> Void
     let onLaterWatch: () -> Void
 
+    @State private var tripleChargeHaptics = TripleChargeHaptics()
+    @State private var triplePressTask: Task<Void, Never>?
+    @State private var isTripleTouching = false
+    @State private var hasTripleChargeStarted = false
+    @State private var isTripleCharging = false
+    @State private var activeTriplePressID: UUID?
+    @State private var tripleChargeProgress: CGFloat = 0
+    @State private var hasTripleCompleted = false
+    @State private var isTripleCompletionAnimating = false
+    @State private var tripleCompletionScale: CGFloat = 1
+    @State private var tripleLikeOverride: Bool?
+    @State private var tripleCoinOverride: Bool?
+    @State private var tripleFavoriteOverride: Bool?
+
     var body: some View {
         HStack(spacing: 12) {
-            VideoActionButton(
+            VideoTripleLikeButton(
                 title: formatCount(likeCount),
                 systemImage: "hand.thumbsup.fill",
-                isActive: isLiked,
-                // isDisabled: isLikeRequesting,
+                isActive: isLiked || tripleLikeOverride == true,
                 isDisabled: false,
-                onTap: onToggleLike
+                chargeProgress: tripleChargeProgress,
+                isCharging: isTripleCharging,
+                completionScale: tripleCompletionScale,
+                isTripleHighlighted: tripleLikeOverride == true,
+                onTap: onToggleLike,
+                onPressStarted: beginTriplePress,
+                onPressEnded: endTriplePress
             )
 
             VideoActionButton(
@@ -1916,9 +2002,13 @@ struct VideoActionBar: View {
             VideoCoinMenuButton(
                 title: formatCount(coinCount),
                 assetImage: "BiliCoin",
-                isActive: isCoined,
+                isActive: isCoined || tripleCoinOverride == true,
                 isDisabled: isCoinRequesting || userCoinCount >= 2,
                 userCoinCount: userCoinCount,
+                chargeProgress: tripleChargeProgress,
+                isCharging: isTripleCharging,
+                completionScale: tripleCompletionScale,
+                isTripleHighlighted: tripleCoinOverride == true,
                 onCoin1: onCoin1,
                 onCoin2: onCoin2
             )
@@ -1926,9 +2016,13 @@ struct VideoActionBar: View {
             VideoActionButton(
                 title: formatCount(favoriteCount),
                 systemImage: "star.fill",
-                isActive: isFavorited,
+                isActive: isFavorited || tripleFavoriteOverride == true,
                 // isDisabled: isFavoriteRequesting,
                 isDisabled: false,
+                chargeProgress: tripleChargeProgress,
+                isCharging: isTripleCharging,
+                completionScale: tripleCompletionScale,
+                isTripleHighlighted: tripleFavoriteOverride == true,
                 onTap: onToggleFavorite
             )
 
@@ -1950,6 +2044,121 @@ struct VideoActionBar: View {
             )
         }
         .frame(maxWidth: .infinity)
+        .onDisappear(perform: cancelTriplePress)
+    }
+
+    private func beginTriplePress() {
+        guard triplePressTask == nil else { return }
+
+        let pressID = UUID()
+        activeTriplePressID = pressID
+        isTripleTouching = true
+        hasTripleChargeStarted = false
+        triplePressTask = Task { @MainActor in
+            guard await waitForTriplePress(milliseconds: 500) else { return }
+            guard isTripleTouching, activeTriplePressID == pressID else { return }
+
+            hasTripleChargeStarted = true
+            isTripleCharging = true
+            withAnimation(.easeIn(duration: 1.4)) {
+                tripleChargeProgress = 1
+            }
+            tripleChargeHaptics.start()
+
+            guard await waitForTriplePress(milliseconds: 1_400) else { return }
+            guard isTripleTouching, activeTriplePressID == pressID else { return }
+
+            tripleChargeHaptics.stop()
+            UINotificationFeedbackGenerator().notificationOccurred(.success)
+            isTripleCompletionAnimating = true
+            withAnimation(.spring(response: 0.24, dampingFraction: 0.90)) {
+                isTripleCharging = false
+                hasTripleCompleted = true
+                tripleLikeOverride = true
+                tripleCoinOverride = true
+                tripleFavoriteOverride = true
+                tripleCompletionScale = 1.24
+            }
+            requestTripleLike()
+
+            // 在弹起的最高点稍作停留，再以更柔和的弹簧回落。
+            guard await waitForTriplePress(milliseconds: 420) else { return }
+            guard activeTriplePressID == pressID else { return }
+            withAnimation(.spring(response: 0.30, dampingFraction: 0.40)) {
+                tripleCompletionScale = 1
+            }
+            // 让低阻尼弹簧的回弹完整播完，再允许下一次按压。
+            guard await waitForTriplePress(milliseconds: 900) else { return }
+            guard activeTriplePressID == pressID else { return }
+            isTripleCompletionAnimating = false
+            triplePressTask = nil
+            activeTriplePressID = nil
+        }
+    }
+
+    private func endTriplePress() {
+        // 已完成后，松手不应打断顶部停留和后续的回弹动画。
+        if isTripleCompletionAnimating {
+            isTripleTouching = false
+            return
+        }
+
+        let shouldHandleAsTap = !hasTripleChargeStarted
+        let shouldRestore = hasTripleChargeStarted && !hasTripleCompleted
+
+        isTripleTouching = false
+        activeTriplePressID = nil
+        triplePressTask?.cancel()
+        triplePressTask = nil
+        tripleChargeHaptics.stop()
+
+        if shouldRestore {
+            withAnimation(.spring(response: 0.30, dampingFraction: 0.78)) {
+                isTripleCharging = false
+                tripleChargeProgress = 0
+                tripleCompletionScale = 1
+            }
+        }
+
+        if hasTripleCompleted {
+            withAnimation(.spring(response: 0.38, dampingFraction: 0.84)) {
+                tripleCompletionScale = 1
+            }
+        }
+
+        if shouldHandleAsTap {
+            onToggleLike()
+        }
+    }
+
+    private func cancelTriplePress() {
+        isTripleTouching = false
+        activeTriplePressID = nil
+        triplePressTask?.cancel()
+        triplePressTask = nil
+        tripleChargeHaptics.stop()
+    }
+
+    private func requestTripleLike() {
+        Task { @MainActor in
+            let result = await onTripleLike()
+            while isTripleCompletionAnimating {
+                guard await waitForTriplePress(milliseconds: 50) else { return }
+            }
+            tripleLikeOverride = result.isLiked
+            tripleCoinOverride = result.isCoined
+            tripleFavoriteOverride = result.isFavorited
+        }
+    }
+
+    @MainActor
+    private func waitForTriplePress(milliseconds: Int) async -> Bool {
+        do {
+            try await Task.sleep(for: .milliseconds(milliseconds))
+            return !Task.isCancelled
+        } catch {
+            return false
+        }
     }
 
     // MARK: - 格式化计数（VideoActionBar中的辅助函数）
@@ -1963,6 +2172,63 @@ struct VideoActionBar: View {
     }
 }
 
+private struct VideoTripleLikeButton: View {
+    let title: String
+    let systemImage: String
+    let isActive: Bool
+    let isDisabled: Bool
+    let chargeProgress: CGFloat
+    let isCharging: Bool
+    let completionScale: CGFloat
+    let isTripleHighlighted: Bool
+    let onTap: () -> Void
+    let onPressStarted: () -> Void
+    let onPressEnded: () -> Void
+
+    var body: some View {
+        VStack(spacing: 6) {
+            ZStack {
+                RoundedRectangle(cornerRadius: 22, style: .continuous)
+                    .fill(isActive ? Color("BiliPink") : Color("BiliPink").opacity(chargeProgress))
+
+                Image(systemName: systemImage)
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundStyle(isActive || chargeProgress > 0.45 ? .white : .primary)
+            }
+            .frame(width: 44, height: 44)
+            .glassEffect(.regular.interactive(), in: .circle)
+
+            Text(title)
+                .font(.system(size: 11, weight: .regular))
+                .foregroundStyle(isActive ? Color("BiliPink") : .secondary)
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
+        }
+        .frame(maxWidth: .infinity)
+        .contentShape(Rectangle())
+        .modifier(
+            TripleChargeButtonEffect(
+                chargeProgress: chargeProgress,
+                isCharging: isCharging,
+                isHighlighted: isTripleHighlighted,
+                completionScale: completionScale
+            )
+        )
+        .gesture(
+            DragGesture(minimumDistance: 0)
+                .onChanged { _ in
+                    guard !isDisabled else { return }
+                    onPressStarted()
+                }
+                .onEnded { _ in
+                    guard !isDisabled else { return }
+                    onPressEnded()
+                }
+        )
+        .opacity(isDisabled ? 0.6 : 1)
+    }
+}
+
 // 投币按钮
 
 private struct VideoCoinMenuButton: View {
@@ -1971,6 +2237,10 @@ private struct VideoCoinMenuButton: View {
     let isActive: Bool
     let isDisabled: Bool
     let userCoinCount: Int
+    let chargeProgress: CGFloat
+    let isCharging: Bool
+    let completionScale: CGFloat
+    let isTripleHighlighted: Bool
     let onCoin1: () -> Void
     let onCoin2: () -> Void
 
@@ -1984,15 +2254,18 @@ private struct VideoCoinMenuButton: View {
             VStack(spacing: 6) {
                 ZStack {
                     RoundedRectangle(cornerRadius: 22, style: .continuous)
-                        .fill(isActive ? Color("BiliPink") : Color.white.opacity(0))
-                        .animation(.smooth(duration: 0.1), value: isActive)
+                        .fill(
+                            isActive || isTripleHighlighted
+                                ? Color("BiliPink")
+                                : Color("BiliPink").opacity(chargeProgress)
+                        )
 
                     Image(assetImage)
                         .renderingMode(.template)
                         .resizable()
                         .scaledToFit()
                         .frame(width: 18, height: 18)
-                        .foregroundStyle(isActive ? .white : .primary)
+                        .foregroundStyle(isActive || isTripleHighlighted || chargeProgress > 0.45 ? .white : .primary)
                 }
                 .frame(width: 44, height: 44)
                 .glassEffect(
@@ -2002,11 +2275,19 @@ private struct VideoCoinMenuButton: View {
 
                 Text(title)
                     .font(.system(size: 11, weight: .regular))
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(isActive || isTripleHighlighted ? Color("BiliPink") : .secondary)
                     .lineLimit(1)
                     .minimumScaleFactor(0.8)
             }
             .frame(maxWidth: .infinity)
+            .modifier(
+                TripleChargeButtonEffect(
+                    chargeProgress: chargeProgress,
+                    isCharging: isCharging,
+                    isHighlighted: isTripleHighlighted,
+                    completionScale: completionScale
+                )
+            )
         }
         .menuStyle(.borderlessButton)
         .tint(.primary)
@@ -2067,6 +2348,10 @@ private struct VideoActionButton: View {
     let assetImage: String?
     let isActive: Bool
     let isDisabled: Bool
+    let chargeProgress: CGFloat
+    let isCharging: Bool
+    let completionScale: CGFloat
+    let isTripleHighlighted: Bool
     let onTap: () -> Void
 
     init(
@@ -2074,6 +2359,10 @@ private struct VideoActionButton: View {
         systemImage: String,
         isActive: Bool,
         isDisabled: Bool,
+        chargeProgress: CGFloat = 0,
+        isCharging: Bool = false,
+        completionScale: CGFloat = 1,
+        isTripleHighlighted: Bool = false,
         onTap: @escaping () -> Void
     ) {
         self.title = title
@@ -2081,6 +2370,10 @@ private struct VideoActionButton: View {
         assetImage = nil
         self.isActive = isActive
         self.isDisabled = isDisabled
+        self.chargeProgress = chargeProgress
+        self.isCharging = isCharging
+        self.completionScale = completionScale
+        self.isTripleHighlighted = isTripleHighlighted
         self.onTap = onTap
     }
 
@@ -2089,6 +2382,10 @@ private struct VideoActionButton: View {
         assetImage: String,
         isActive: Bool,
         isDisabled: Bool,
+        chargeProgress: CGFloat = 0,
+        isCharging: Bool = false,
+        completionScale: CGFloat = 1,
+        isTripleHighlighted: Bool = false,
         onTap: @escaping () -> Void
     ) {
         self.title = title
@@ -2096,6 +2393,10 @@ private struct VideoActionButton: View {
         self.assetImage = assetImage
         self.isActive = isActive
         self.isDisabled = isDisabled
+        self.chargeProgress = chargeProgress
+        self.isCharging = isCharging
+        self.completionScale = completionScale
+        self.isTripleHighlighted = isTripleHighlighted
         self.onTap = onTap
     }
 
@@ -2105,8 +2406,11 @@ private struct VideoActionButton: View {
             VStack(spacing: 6) {
                 ZStack {
                     RoundedRectangle(cornerRadius: 22, style: .continuous)
-                        .fill(isActive ? Color("BiliPink") : Color.white.opacity(0))
-                        .animation(.smooth(duration: 0.1), value: isActive)
+                        .fill(
+                            isActive || isTripleHighlighted
+                                ? Color("BiliPink")
+                                : Color("BiliPink").opacity(chargeProgress)
+                        )
                     Group {
                         if let systemImage {
                             Image(systemName: systemImage)
@@ -2119,7 +2423,7 @@ private struct VideoActionButton: View {
                                 .frame(width: 18, height: 18)
                         }
                     }
-                    .foregroundStyle(isActive ? .white : .primary)
+                    .foregroundStyle(isActive || isTripleHighlighted || chargeProgress > 0.45 ? .white : .primary)
                 }
                 .frame(width: 44, height: 44)
                 .glassEffect(
@@ -2129,11 +2433,19 @@ private struct VideoActionButton: View {
 
                 Text(title)
                     .font(.system(size: 11, weight: .regular))
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(isActive || isTripleHighlighted ? Color("BiliPink") : .secondary)
                     .lineLimit(1)
                     .minimumScaleFactor(0.8)
             }
             .frame(maxWidth: .infinity)
+            .modifier(
+                TripleChargeButtonEffect(
+                    chargeProgress: chargeProgress,
+                    isCharging: isCharging,
+                    isHighlighted: isTripleHighlighted,
+                    completionScale: completionScale
+                )
+            )
         }
         .buttonStyle(.plain)
         .disabled(isDisabled)
