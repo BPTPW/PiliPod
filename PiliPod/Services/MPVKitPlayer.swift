@@ -55,7 +55,18 @@ struct PlayerUIPlaybackSnapshot: Equatable {
     var isPlaying = false
     var isBuffering = false
     var loadingSpeedBytesPerSecond: Double = 0
+    var hlsBridgeDiagnostics = HLSBridgeDiagnostics()
     var hdrDiagnostics = HDRPlaybackDiagnostics()
+}
+
+struct HLSBridgeDiagnostics: Equatable {
+    var isActive = false
+    var endpoint = ""
+    var port: Int?
+    var activeRequestCount = 0
+    var completedRequestCount = 0
+    var totalBytesTransferred: Int64 = 0
+    var loadingSpeedBytesPerSecond: Double = 0
 }
 
 struct HDRPlaybackDiagnostics: Equatable {
@@ -413,6 +424,7 @@ class MPVKitPlayer: NSObject {
             isPlaying: isPlaying,
             isBuffering: isBuffering,
             loadingSpeedBytesPerSecond: loadingSpeedBytesPerSecond,
+            hlsBridgeDiagnostics: uiSnapshot.hlsBridgeDiagnostics,
             hdrDiagnostics: uiSnapshot.hdrDiagnostics
         )
 

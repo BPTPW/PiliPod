@@ -265,7 +265,10 @@ final class AVPlayerSession: NSObject, AVPictureInPictureControllerDelegate {
         hdrDiagnostics.isEnabledInSettings = playbackSettings.highDynamicRangeEnabled
         hdrDiagnostics.prefersEDROutput = playbackSettings.prefersEDROutput
         hdrDiagnostics.requestsExtendedRange = layer?.wantsExtendedDynamicRangeContent ?? false
-        let loadingSpeed = item.map(updateAccessLogSpeed) ?? 0
+        let bridgeDiagnostics = bridge?.diagnostics ?? HLSBridgeDiagnostics()
+        let loadingSpeed = bridgeDiagnostics.isActive
+            ? bridgeDiagnostics.loadingSpeedBytesPerSecond
+            : (item.map(updateAccessLogSpeed) ?? 0)
         snapshot = PlayerUIPlaybackSnapshot(
             currentTime: time.isFinite ? max(time, 0) : 0,
             duration: duration.isFinite ? max(duration, 0) : 0,
@@ -273,6 +276,7 @@ final class AVPlayerSession: NSObject, AVPictureInPictureControllerDelegate {
             isPlaying: wantsPlayback && player.timeControlStatus != .paused,
             isBuffering: wantsPlayback && player.timeControlStatus == .waitingToPlayAtSpecifiedRate,
             loadingSpeedBytesPerSecond: loadingSpeed,
+            hlsBridgeDiagnostics: bridgeDiagnostics,
             hdrDiagnostics: hdrDiagnostics
         )
         onSnapshot?(snapshot)
@@ -563,6 +567,7 @@ private final class LocalDASHHLSBridge: @unchecked Sendable {
     private let server: LoopbackHTTPServer
     private init(server: LoopbackHTTPServer, masterPlaylistURL: URL) { self.server = server; self.masterPlaylistURL = masterPlaylistURL }
     func stop() { server.stop() }
+    var diagnostics: HLSBridgeDiagnostics { server.diagnostics }
 
     static func make(stream: DashStream, headers: [String: String]) async throws -> LocalDASHHLSBridge {
         guard let videoBase = stream.videoSegmentBase, let audioBase = stream.audioSegmentBase else { throw DASHBridgeError.unsupported }
@@ -643,8 +648,17 @@ private final class LoopbackHTTPServer: @unchecked Sendable {
     enum Route { case data(Data); case remote(URL, DASHByteRange, UInt64) }
     let baseURL: URL
     private let listener: NWListener; private let queue = DispatchQueue(label: "pilipod.avplayer.hls"); private let headers: [String: String]
+    private let metrics: HLSBridgeMetrics
     private var routes: [String: Route] = [:]; private var connections: [ObjectIdentifier: NWConnection] = [:]
-    init(headers: [String: String]) throws { let port = NWEndpoint.Port(rawValue: UInt16.random(in: 49152...61000))!; let parameters = NWParameters.tcp; parameters.requiredLocalEndpoint = .hostPort(host: .ipv4(IPv4Address("127.0.0.1")!), port: .any); listener = try NWListener(using: parameters, on: port); baseURL = URL(string: "http://127.0.0.1:\(port.rawValue)")!; self.headers = headers }
+    init(headers: [String: String]) throws {
+        let port = NWEndpoint.Port(rawValue: UInt16.random(in: 49152...61000))!
+        let parameters = NWParameters.tcp
+        parameters.requiredLocalEndpoint = .hostPort(host: .ipv4(IPv4Address("127.0.0.1")!), port: .any)
+        listener = try NWListener(using: parameters, on: port)
+        baseURL = URL(string: "http://127.0.0.1:\(port.rawValue)")!
+        self.headers = headers
+        metrics = HLSBridgeMetrics(endpoint: "127.0.0.1", port: Int(port.rawValue))
+    }
     static func make(headers: [String: String]) throws -> LoopbackHTTPServer {
         var lastError: Error?
         for _ in 0..<24 {
@@ -654,12 +668,148 @@ private final class LoopbackHTTPServer: @unchecked Sendable {
         throw lastError ?? DASHBridgeError.unsupported
     }
     func add(path: String, route: Route) { routes[path] = route }
+    var diagnostics: HLSBridgeDiagnostics { metrics.snapshot(isActive: true) }
     func start() async throws { try await withCheckedThrowingContinuation { continuation in var resumed = false; listener.stateUpdateHandler = { state in if resumed { return }; switch state { case .ready: resumed = true; continuation.resume(); case let .failed(error): resumed = true; continuation.resume(throwing: error); default: break } }; listener.newConnectionHandler = { [weak self] in self?.accept($0) }; listener.start(queue: queue) } }
     func stop() { listener.cancel(); connections.values.forEach { $0.cancel() }; connections.removeAll() }
     private func accept(_ connection: NWConnection) { guard case let .hostPort(host, _) = connection.endpoint, host == .ipv4(IPv4Address("127.0.0.1")!) || host == .ipv6(IPv6Address("::1")!) else { connection.cancel(); return }; let id = ObjectIdentifier(connection); connections[id] = connection; connection.start(queue: queue); connection.receive(minimumIncompleteLength: 1, maximumLength: 16384) { [weak self] data, _, _, _ in self?.respond(connection, data ?? Data(), id: id) } }
-    private func respond(_ c: NWConnection, _ data: Data, id: ObjectIdentifier) { defer { connections[id] = nil }; guard let line = String(data: data, encoding: .utf8)?.split(separator: "\n").first else { return send(c, status: "400 Bad Request", data: Data(), type: "text/plain") }; let pieces = line.split(separator: " "); guard pieces.count > 1, let route = routes[String(pieces[1])] else { return send(c, status: "404 Not Found", data: Data(), type: "text/plain") }; switch route { case let .data(payload): send(c, status: "200 OK", data: payload, type: "application/vnd.apple.mpegurl"); case let .remote(url, range, timeOffset): Task { [headers] in do { var req = URLRequest(url: url); req.setValue(range.header, forHTTPHeaderField: "Range"); headers.forEach { req.setValue($0.value, forHTTPHeaderField: $0.key) }; let (payload, _) = try await URLSession.shared.data(for: req); self.queue.async { self.send(c, status: "200 OK", data: MP4Timeline.normalize(payload, subtracting: timeOffset), type: "video/iso.segment") } } catch { self.queue.async { self.send(c, status: "502 Bad Gateway", data: Data(), type: "text/plain") } } } } }
+    private func respond(_ c: NWConnection, _ data: Data, id: ObjectIdentifier) { defer { connections[id] = nil }; guard let line = String(data: data, encoding: .utf8)?.split(separator: "\n").first else { return send(c, status: "400 Bad Request", data: Data(), type: "text/plain") }; let pieces = line.split(separator: " "); guard pieces.count > 1, let route = routes[String(pieces[1])] else { return send(c, status: "404 Not Found", data: Data(), type: "text/plain") }; switch route { case let .data(payload): send(c, status: "200 OK", data: payload, type: "application/vnd.apple.mpegurl"); case let .remote(url, range, timeOffset): Task { [headers, metrics] in do { var req = URLRequest(url: url); req.setValue(range.header, forHTTPHeaderField: "Range"); headers.forEach { req.setValue($0.value, forHTTPHeaderField: $0.key) }; metrics.beginRequest(); let payload = try await RemoteRangeLoader { metrics.record(bytes: $0) }.load(req); metrics.finishRequest(success: true); self.queue.async { self.send(c, status: "200 OK", data: MP4Timeline.normalize(payload, subtracting: timeOffset), type: "video/iso.segment") } } catch { metrics.finishRequest(success: false); self.queue.async { self.send(c, status: "502 Bad Gateway", data: Data(), type: "text/plain") } } } } }
     private func send(_ c: NWConnection, status: String, data: Data, type: String) { let head = "HTTP/1.1 \(status)\r\nContent-Type: \(type)\r\nContent-Length: \(data.count)\r\nConnection: close\r\n\r\n"; var response = Data(head.utf8); response.append(data); c.send(content: response, completion: .contentProcessed { _ in c.cancel() }) }
     deinit { stop() }
+}
+
+/// Tracks bytes received from the CDN before they are returned over loopback.
+/// It deliberately does not measure the much faster AVPlayer-to-localhost hop.
+private final class HLSBridgeMetrics: @unchecked Sendable {
+    private let lock = NSLock()
+    private let endpoint: String
+    private let port: Int
+    private var activeRequestCount = 0
+    private var completedRequestCount = 0
+    private var totalBytesTransferred: Int64 = 0
+    private var pendingBytesForRate: Int64 = 0
+    private var loadingSpeedBytesPerSecond: Double = 0
+    private var lastRateSampleUptime: TimeInterval?
+    private var lastActivityUptime: TimeInterval?
+
+    init(endpoint: String, port: Int) {
+        self.endpoint = endpoint
+        self.port = port
+    }
+
+    func beginRequest() {
+        lock.lock()
+        activeRequestCount += 1
+        let now = ProcessInfo.processInfo.systemUptime
+        lastActivityUptime = now
+        if lastRateSampleUptime == nil { lastRateSampleUptime = now }
+        lock.unlock()
+    }
+
+    func record(bytes: Int) {
+        guard bytes > 0 else { return }
+        lock.lock()
+        let now = ProcessInfo.processInfo.systemUptime
+        totalBytesTransferred += Int64(bytes)
+        pendingBytesForRate += Int64(bytes)
+        if let lastRateSampleUptime, now - lastRateSampleUptime >= 0.05 {
+            loadingSpeedBytesPerSecond = Double(pendingBytesForRate) / (now - lastRateSampleUptime)
+            pendingBytesForRate = 0
+            self.lastRateSampleUptime = now
+        }
+        lastActivityUptime = now
+        lock.unlock()
+    }
+
+    func finishRequest(success: Bool) {
+        lock.lock()
+        let now = ProcessInfo.processInfo.systemUptime
+        activeRequestCount = max(activeRequestCount - 1, 0)
+        if success { completedRequestCount += 1 }
+        if let lastRateSampleUptime,
+           pendingBytesForRate > 0,
+           now > lastRateSampleUptime
+        {
+            loadingSpeedBytesPerSecond = Double(pendingBytesForRate) / (now - lastRateSampleUptime)
+            pendingBytesForRate = 0
+            self.lastRateSampleUptime = now
+        }
+        lastActivityUptime = now
+        lock.unlock()
+    }
+
+    func snapshot(isActive: Bool) -> HLSBridgeDiagnostics {
+        lock.lock()
+        let now = ProcessInfo.processInfo.systemUptime
+        let hasRecentActivity = lastActivityUptime.map { now - $0 < 1.5 } ?? false
+        let speed = hasRecentActivity ? loadingSpeedBytesPerSecond : 0
+        let snapshot = HLSBridgeDiagnostics(
+            isActive: isActive,
+            endpoint: endpoint,
+            port: port,
+            activeRequestCount: activeRequestCount,
+            completedRequestCount: completedRequestCount,
+            totalBytesTransferred: totalBytesTransferred,
+            loadingSpeedBytesPerSecond: speed
+        )
+        lock.unlock()
+        return snapshot
+    }
+}
+
+private final class RemoteRangeLoader: NSObject, URLSessionDataDelegate, @unchecked Sendable {
+    private let onBytesReceived: @Sendable (Int) -> Void
+    private let delegateQueue: OperationQueue
+    private var session: URLSession?
+    private var continuation: CheckedContinuation<Data, Error>?
+    private var payload = Data()
+
+    init(onBytesReceived: @escaping @Sendable (Int) -> Void) {
+        self.onBytesReceived = onBytesReceived
+        delegateQueue = OperationQueue()
+        delegateQueue.maxConcurrentOperationCount = 1
+        super.init()
+    }
+
+    func load(_ request: URLRequest) async throws -> Data {
+        try await withCheckedThrowingContinuation { continuation in
+            self.continuation = continuation
+            let configuration = URLSessionConfiguration.ephemeral
+            configuration.requestCachePolicy = .reloadIgnoringLocalCacheData
+            let session = URLSession(configuration: configuration, delegate: self, delegateQueue: delegateQueue)
+            self.session = session
+            session.dataTask(with: request).resume()
+        }
+    }
+
+    func urlSession(
+        _: URLSession,
+        dataTask _: URLSessionDataTask,
+        didReceive response: URLResponse,
+        completionHandler: @escaping (URLSession.ResponseDisposition) -> Void
+    ) {
+        guard let http = response as? HTTPURLResponse, (200...299).contains(http.statusCode) else {
+            completionHandler(.cancel)
+            return
+        }
+        completionHandler(.allow)
+    }
+
+    func urlSession(_: URLSession, dataTask _: URLSessionDataTask, didReceive data: Data) {
+        payload.append(data)
+        onBytesReceived(data.count)
+    }
+
+    func urlSession(_: URLSession, task _: URLSessionTask, didCompleteWithError error: Error?) {
+        let continuation = continuation
+        self.continuation = nil
+        session?.invalidateAndCancel()
+        session = nil
+        if let error {
+            continuation?.resume(throwing: error)
+        } else {
+            continuation?.resume(returning: payload)
+        }
+    }
 }
 
 private enum MP4Timeline {

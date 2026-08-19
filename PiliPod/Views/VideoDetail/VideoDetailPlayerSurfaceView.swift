@@ -172,7 +172,6 @@ struct VideoDetailPlayerSurfaceView: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomLeading)
             brightnessHudOverlay
             volumeHudOverlay
-            debugPanelOverlay
         }
         .frame(width: playerWidth, height: playerHeight, alignment: .center)
         .ignoresSafeArea(isFullscreen ? .all : [])
@@ -186,6 +185,16 @@ struct VideoDetailPlayerSurfaceView: View {
             hideControlsTask?.cancel()
             speedBoostTriggerTask?.cancel()
             stopDebugPanelRefresh()
+        }
+        .sheet(isPresented: $showDebugPanel, onDismiss: stopDebugPanelRefresh) {
+            DashStreamInfoSheet(
+                stream: stream,
+                player: player,
+                playerSnapshot: playerUISnapshot,
+                selectedQualityCode: selectedQualityCode
+            )
+            .presentationDetents([.medium, .large])
+            .presentationDragIndicator(.visible)
         }
         .onChange(of: player.uiSnapshot) { oldSnapshot, snapshot in
             playerUISnapshot = snapshot
@@ -396,22 +405,6 @@ struct VideoDetailPlayerSurfaceView: View {
                 systemName: "speaker.wave.3",
                 value: volumePreviewValue,
                 variableValue: volumePreviewValue
-            )
-        }
-    }
-
-    @ViewBuilder
-    private var debugPanelOverlay: some View {
-        if showDebugPanel {
-            DashStreamDebugPanel(
-                stream: stream,
-                player: player,
-                playerSnapshot: playerUISnapshot,
-                selectedQualityCode: selectedQualityCode,
-                onDismiss: {
-                    showDebugPanel = false
-                    stopDebugPanelRefresh()
-                }
             )
         }
     }
@@ -712,12 +705,8 @@ struct VideoDetailPlayerSurfaceView: View {
     }
 
     private func toggleDebugPanel() {
-        showDebugPanel.toggle()
-        if showDebugPanel {
-            startDebugPanelRefresh()
-        } else {
-            stopDebugPanelRefresh()
-        }
+        showDebugPanel = true
+        startDebugPanelRefresh()
     }
 
     private func startDebugPanelRefresh() {

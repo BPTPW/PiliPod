@@ -24,7 +24,7 @@ struct DashStream {
     let audioCodec: String
     let width: Int
     let height: Int
-    let fps: Int
+    let fps: Double
     let videoBitrate: Int
     let audioBitrate: Int
     let videoSegmentBase: DASHSegmentBase?
@@ -32,6 +32,14 @@ struct DashStream {
 
     var aspectRatio: CGFloat {
         CGFloat(width) / CGFloat(height)
+    }
+
+    var formattedFrameRate: String {
+        let rounded = fps.rounded()
+        if abs(fps - rounded) < 0.01 {
+            return "\(Int(rounded)) fps"
+        }
+        return String(format: "%.2f fps", fps)
     }
 
     func fallbackStream(at index: Int) -> DashStream? {
@@ -242,9 +250,7 @@ class DashStreamSelector {
             return nil
         }
 
-        let frameRateParts = video.frameRate.split(separator: "/")
-        let fps = frameRateParts.count == 2 ?
-            Int(frameRateParts[0]) ?? 30 : Int(video.frameRate) ?? 30
+        let fps = frameRate(from: video.frameRate)
 
         return makeStream(
             video: video,
@@ -277,9 +283,7 @@ class DashStreamSelector {
             return nil
         }
 
-        let frameRateParts = video.frameRate.split(separator: "/")
-        let fps = frameRateParts.count == 2 ?
-            Int(frameRateParts[0]) ?? 30 : Int(video.frameRate) ?? 30
+        let fps = frameRate(from: video.frameRate)
 
         return makeStream(
             video: video,
@@ -305,7 +309,7 @@ class DashStreamSelector {
         audioCodec: String,
         width: Int,
         height: Int,
-        fps: Int,
+        fps: Double,
         videoBitrate: Int,
         audioBitrate: Int,
         videoSegmentBase: DASHSegmentBase?,
@@ -350,5 +354,17 @@ class DashStreamSelector {
             videoSegmentBase: videoSegmentBase,
             audioSegmentBase: audioSegmentBase
         )
+    }
+
+    private static func frameRate(from value: String) -> Double {
+        let parts = value.split(separator: "/", maxSplits: 1)
+        if parts.count == 2,
+           let numerator = Double(parts[0]),
+           let denominator = Double(parts[1]),
+           denominator > 0
+        {
+            return numerator / denominator
+        }
+        return Double(value) ?? 30
     }
 }

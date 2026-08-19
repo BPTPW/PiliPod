@@ -4009,36 +4009,17 @@ private func normalizedProgress(_ value: TimeInterval, duration: TimeInterval) -
     return min(max(value / duration, 0), 1)
 }
 
-// MARK: - DASH 流详情窗口
+// MARK: - DASH 流详情抽屉
 
-struct DashStreamDebugPanel: View {
+struct DashStreamInfoSheet: View {
     let stream: DashStream
     let player: MPVKitPlayer?
     let playerSnapshot: PlayerUIPlaybackSnapshot
     let selectedQualityCode: Int?
-    let onDismiss: () -> Void
 
     var body: some View {
-        ZStack(alignment: .topLeading) {
-            Color.black.opacity(0.7)
-                .ignoresSafeArea()
-                .onTapGesture {
-                    onDismiss()
-                }
-
+        NavigationStack {
             VStack(alignment: .leading, spacing: 12) {
-                HStack {
-                    Text("DASH 流详情")
-                        .font(.headline)
-                    Spacer()
-                    Button(action: onDismiss) {
-                        Image(systemName: "xmark")
-                            .foregroundColor(.secondary)
-                    }
-                }
-
-                Divider()
-
                 ScrollView {
                     VStack(alignment: .leading, spacing: 12) {
                         VStack(alignment: .leading, spacing: 8) {
@@ -4051,7 +4032,7 @@ struct DashStreamDebugPanel: View {
                             )
                             InfoRow("分辨率", "\(stream.width)×\(stream.height)")
                             InfoRow("宽高比", String(format: "%.2f:1", stream.aspectRatio))
-                            InfoRow("帧率", "\(stream.fps) fps")
+                            InfoRow("帧率", stream.formattedFrameRate)
                         }
 
                         Divider()
@@ -4073,6 +4054,13 @@ struct DashStreamDebugPanel: View {
                         Divider()
 
                         VStack(alignment: .leading, spacing: 8) {
+                            Text("缓冲状态").font(.subheadline).fontWeight(.semibold).foregroundColor(.secondary)
+                            InfoRow("缓冲速度", formatBytesPerSecond(playerSnapshot.loadingSpeedBytesPerSecond))
+                        }
+
+                        Divider()
+
+                        VStack(alignment: .leading, spacing: 8) {
                             Text("流地址").font(.subheadline).fontWeight(.semibold).foregroundColor(.secondary)
                             URIRow("视频", stream.videoURL.absoluteString)
                             URIRow("音频", stream.audioURL.absoluteString)
@@ -4088,50 +4076,55 @@ struct DashStreamDebugPanel: View {
                                 InfoRow("总时长", formatTime(playerSnapshot.duration))
                             }
 
-                            Divider()
+                            if player.usesAVPlayer {
+                                Divider()
 
-                            VStack(alignment: .leading, spacing: 8) {
-                                Text("解码器").font(.subheadline).fontWeight(.semibold).foregroundColor(.secondary)
-                                InfoRow("硬件解码", player.hwdecCurrent.isEmpty ? "—" : player.hwdecCurrent)
-                                InfoRow("视频解码器", player.videoCodec.isEmpty ? "—" : player.videoCodec)
-                                InfoRow("音频解码器", player.audioCodec.isEmpty ? "—" : player.audioCodec)
-                            }
+                                bridgeInfo(playerSnapshot.hlsBridgeDiagnostics)
+                            } else {
+                                Divider()
 
-                            Divider()
+                                VStack(alignment: .leading, spacing: 8) {
+                                    Text("解码器").font(.subheadline).fontWeight(.semibold).foregroundColor(.secondary)
+                                    InfoRow("硬件解码", player.hwdecCurrent.isEmpty ? "—" : player.hwdecCurrent)
+                                    InfoRow("视频解码器", player.videoCodec.isEmpty ? "—" : player.videoCodec)
+                                    InfoRow("音频解码器", player.audioCodec.isEmpty ? "—" : player.audioCodec)
+                                }
 
-                            VStack(alignment: .leading, spacing: 8) {
-                                Text("高动态视频").font(.subheadline).fontWeight(.semibold).foregroundColor(.secondary)
-                                InfoRow("显示增强", playerSnapshot.hdrDiagnostics.isEnabledInSettings ? "已开启" : "已关闭")
-                                InfoRow("视频类型", dynamicRangeSourceLabel(for: playerSnapshot.hdrDiagnostics))
-                                InfoRow("高动态显示请求", playerSnapshot.hdrDiagnostics.requestsExtendedRange ? "已开启" : "未开启")
-                                InfoRow("高动态显示状态", playerSnapshot.hdrDiagnostics.extendedRangeActive ? "生效中" : "未生效")
-                                InfoRow(
-                                    "当前 / 最大高光余量",
-                                    String(
-                                        format: "%.2f / %.2f",
-                                        playerSnapshot.hdrDiagnostics.currentEDRHeadroom,
-                                        playerSnapshot.hdrDiagnostics.potentialEDRHeadroom
+                                Divider()
+
+                                VStack(alignment: .leading, spacing: 8) {
+                                    Text("高动态视频").font(.subheadline).fontWeight(.semibold).foregroundColor(.secondary)
+                                    InfoRow("显示增强", playerSnapshot.hdrDiagnostics.isEnabledInSettings ? "已开启" : "已关闭")
+                                    InfoRow("视频类型", dynamicRangeSourceLabel(for: playerSnapshot.hdrDiagnostics))
+                                    InfoRow("高动态显示请求", playerSnapshot.hdrDiagnostics.requestsExtendedRange ? "已开启" : "未开启")
+                                    InfoRow("高动态显示状态", playerSnapshot.hdrDiagnostics.extendedRangeActive ? "生效中" : "未生效")
+                                    InfoRow(
+                                        "当前 / 最大高光余量",
+                                        String(
+                                            format: "%.2f / %.2f",
+                                            playerSnapshot.hdrDiagnostics.currentEDRHeadroom,
+                                            playerSnapshot.hdrDiagnostics.potentialEDRHeadroom
+                                        )
                                     )
-                                )
-                                InfoRow("显示色域", fallback(playerSnapshot.hdrDiagnostics.displayGamut))
-                                InfoRow("显示空间", fallback(playerSnapshot.hdrDiagnostics.displayColorSpace))
-                                InfoRow("亮度映射", fallback(playerSnapshot.hdrDiagnostics.toneMapping))
-                                InfoRow("视频色域", fallback(playerSnapshot.hdrDiagnostics.videoPrimaries))
-                                InfoRow("亮度曲线", fallback(playerSnapshot.hdrDiagnostics.videoGamma))
-                                InfoRow("色阶范围", fallback(playerSnapshot.hdrDiagnostics.videoColorLevels))
-                                InfoRow("色彩矩阵", fallback(playerSnapshot.hdrDiagnostics.videoColorMatrix))
-                                InfoRow("解码像素格式", fallback(playerSnapshot.hdrDiagnostics.videoPixelFormat))
-                                InfoRow("硬件像素格式", fallback(playerSnapshot.hdrDiagnostics.videoHardwarePixelFormat))
-                                InfoRow("峰值亮度估计", fallback(playerSnapshot.hdrDiagnostics.videoSignalPeak))
+                                    InfoRow("显示色域", fallback(playerSnapshot.hdrDiagnostics.displayGamut))
+                                    InfoRow("显示空间", fallback(playerSnapshot.hdrDiagnostics.displayColorSpace))
+                                    InfoRow("亮度映射", fallback(playerSnapshot.hdrDiagnostics.toneMapping))
+                                    InfoRow("视频色域", fallback(playerSnapshot.hdrDiagnostics.videoPrimaries))
+                                    InfoRow("亮度曲线", fallback(playerSnapshot.hdrDiagnostics.videoGamma))
+                                    InfoRow("色阶范围", fallback(playerSnapshot.hdrDiagnostics.videoColorLevels))
+                                    InfoRow("色彩矩阵", fallback(playerSnapshot.hdrDiagnostics.videoColorMatrix))
+                                    InfoRow("解码像素格式", fallback(playerSnapshot.hdrDiagnostics.videoPixelFormat))
+                                    InfoRow("硬件像素格式", fallback(playerSnapshot.hdrDiagnostics.videoHardwarePixelFormat))
+                                    InfoRow("峰值亮度估计", fallback(playerSnapshot.hdrDiagnostics.videoSignalPeak))
+                                }
                             }
                         }
                     }
                 }
             }
             .padding(16)
-            .background(Color(.systemBackground))
-            .cornerRadius(12)
-            .padding(16)
+            .navigationTitle("视频流信息")
+            .navigationBarTitleDisplayMode(.inline)
         }
     }
 
@@ -4140,6 +4133,25 @@ struct DashStreamDebugPanel: View {
     private func formatBitrate(_ bitrate: Int) -> String {
         let kbps = Double(bitrate) / 1000
         return String(format: "%.2f Kbps", kbps)
+    }
+
+    private func formatBytesPerSecond(_ speed: Double) -> String {
+        let kilobytes = max(speed, 0) / 1024
+        if kilobytes < 1024 { return String(format: "%.2f KB/s", kilobytes) }
+        return String(format: "%.2f MB/s", kilobytes / 1024)
+    }
+
+    @ViewBuilder
+    private func bridgeInfo(_ diagnostics: HLSBridgeDiagnostics) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("HLS Bridge").font(.subheadline).fontWeight(.semibold).foregroundColor(.secondary)
+            InfoRow("状态", diagnostics.isActive ? "运行中" : "未启动")
+            InfoRow("本地地址", diagnostics.endpoint.isEmpty ? "—" : diagnostics.endpoint)
+            InfoRow("端口", diagnostics.port.map(String.init) ?? "—")
+            InfoRow("活动请求", "\(diagnostics.activeRequestCount)")
+            InfoRow("已完成分片请求", "\(diagnostics.completedRequestCount)")
+            InfoRow("远端已接收", ByteCountFormatter.string(fromByteCount: diagnostics.totalBytesTransferred, countStyle: .binary))
+        }
     }
 
     private func qualityDescription(_ code: Int) -> String {

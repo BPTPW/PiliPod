@@ -228,7 +228,7 @@ private struct OfflineCacheManifest: Codable {
     let audioFileName: String
     let width: Int
     let height: Int
-    let fps: Int
+    let fps: Double
     let videoBitrate: Int
     let audioBitrate: Int
     let videoCodec: String

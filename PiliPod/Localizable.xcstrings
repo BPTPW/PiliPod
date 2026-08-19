@@ -403,6 +403,7 @@
       }
     },
     "DASH 流详情" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -440,6 +441,9 @@
           }
         }
       }
+    },
+    "HLS Bridge" : {
+
     },
     "https://www.bsbsb.top" : {
       "shouldTranslate" : false
@@ -3826,6 +3830,9 @@
           }
         }
       }
+    },
+    "缓冲状态" : {
+
     },
     "缓存总大小" : {
       "localizations" : {
