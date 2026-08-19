@@ -5,23 +5,18 @@ private struct OfflineCacheTransferDocument: FileDocument {
     static var readableContentTypes: [UTType] { [.data, .zip, .json] }
     static var writableContentTypes: [UTType] { [.data, .zip, .json] }
 
-    let sourceURL: URL
+    let data: Data
 
     init(sourceURL: URL) {
-        self.sourceURL = sourceURL
+        data = (try? Data(contentsOf: sourceURL)) ?? Data()
     }
 
     init(configuration: ReadConfiguration) throws {
-        let tempURL = FileManager.default.temporaryDirectory
-            .appendingPathComponent(UUID().uuidString)
-            .appendingPathExtension("data")
-        let data = configuration.file.regularFileContents ?? Data()
-        try data.write(to: tempURL, options: .atomic)
-        sourceURL = tempURL
+        data = configuration.file.regularFileContents ?? Data()
     }
 
     func fileWrapper(configuration: WriteConfiguration) throws -> FileWrapper {
-        try FileWrapper(url: sourceURL, options: .immediate)
+        FileWrapper(regularFileWithContents: data)
     }
 }
 

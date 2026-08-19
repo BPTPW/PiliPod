@@ -432,7 +432,17 @@ enum OfflineCacheTransferService {
         case .packageZip:
             let zipURL = temporaryExportURL(filename: "\(item.relativeDirectory).zip")
             try recreateItem(at: zipURL)
-            try zipDirectory(at: directoryURL, to: zipURL)
+            let snapshotURL = temporaryDirectoryURL(name: "\(item.relativeDirectory)-export")
+            try recreateDirectory(at: snapshotURL)
+            let snapshotPayloadURL = snapshotURL.appendingPathComponent(item.relativeDirectory, isDirectory: true)
+            try FileManager.default.copyItem(at: directoryURL, to: snapshotPayloadURL)
+            guard FileManager.default.fileExists(atPath: snapshotPayloadURL.appendingPathComponent(detailFileName).path) else {
+                throw OfflineCacheTransferError.missingFile(detailFileName)
+            }
+            guard FileManager.default.fileExists(atPath: snapshotPayloadURL.appendingPathComponent(manifestFileName).path) else {
+                throw OfflineCacheTransferError.missingFile(manifestFileName)
+            }
+            try zipDirectory(at: snapshotPayloadURL, to: zipURL)
             return .init(url: zipURL, filename: zipURL.lastPathComponent, contentType: .zip)
         }
     }

@@ -133,11 +133,14 @@ final class AVPlayerSession: NSObject, AVPictureInPictureControllerDelegate {
         guard Self.supports(audioCodec: stream.audioCodec) else {
             fail(PlaybackError.unsupportedAudioCodec(stream.audioCodec)); return
         }
-        guard stream.videoSegmentBase?.initialization != nil,
-              stream.videoSegmentBase?.indexRange != nil,
-              stream.audioSegmentBase?.initialization != nil,
-              stream.audioSegmentBase?.indexRange != nil
-        else { fail(PlaybackError.missingSegmentIndex); return }
+        let isLocalCache = stream.videoURL.isFileURL && stream.audioURL.isFileURL
+        if !isLocalCache {
+            guard stream.videoSegmentBase?.initialization != nil,
+                  stream.videoSegmentBase?.indexRange != nil,
+                  stream.audioSegmentBase?.initialization != nil,
+                  stream.audioSegmentBase?.indexRange != nil
+            else { fail(PlaybackError.missingSegmentIndex); return }
+        }
 
         generation &+= 1
         let requestGeneration = generation
@@ -570,6 +573,22 @@ private final class LocalDASHHLSBridge: @unchecked Sendable {
     var diagnostics: HLSBridgeDiagnostics { server.diagnostics }
 
     static func make(stream: DashStream, headers: [String: String]) async throws -> LocalDASHHLSBridge {
+        if stream.videoURL.isFileURL && stream.audioURL.isFileURL,
+           stream.videoSegmentBase == nil, stream.audioSegmentBase == nil {
+            let videoData = try Data(contentsOf: stream.videoURL)
+            let audioData = try Data(contentsOf: stream.audioURL)
+            let server = try LoopbackHTTPServer.make(headers: headers)
+            let base = server.baseURL
+            let video = DASHRendition.local(data: videoData, duration: localDuration(url: stream.videoURL))
+            let audio = DASHRendition.local(data: audioData, duration: localDuration(url: stream.audioURL))
+            server.add(path: "/master.m3u8", route: .data(master(stream: stream, base: base)))
+            server.add(path: "/video.m3u8", route: .data(video.playlist(base: base, prefix: "v")))
+            server.add(path: "/audio.m3u8", route: .data(audio.playlist(base: base, prefix: "a")))
+            video.register(prefix: "v", into: server)
+            audio.register(prefix: "a", into: server)
+            try await server.start()
+            return LocalDASHHLSBridge(server: server, masterPlaylistURL: base.appendingPathComponent("master.m3u8"))
+        }
         guard let videoBase = stream.videoSegmentBase, let audioBase = stream.audioSegmentBase else { throw DASHBridgeError.unsupported }
         async let video = rendition(url: stream.videoURL, base: videoBase, headers: headers)
         async let audio = rendition(url: stream.audioURL, base: audioBase, headers: headers)
@@ -585,6 +604,11 @@ private final class LocalDASHHLSBridge: @unchecked Sendable {
         return LocalDASHHLSBridge(server: server, masterPlaylistURL: base.appendingPathComponent("master.m3u8"))
     }
 
+    private static func localDuration(url: URL) -> Double {
+        let seconds = AVURLAsset(url: url).duration.seconds
+        return seconds.isFinite && seconds > 0 ? seconds : 1
+    }
+
     private static func master(stream: DashStream, base: URL) -> Data {
         let codec = "\(stream.videoCodec),\(stream.audioCodec)"
         let text = "#EXTM3U\n#EXT-X-VERSION:7\n#EXT-X-INDEPENDENT-SEGMENTS\n#EXT-X-MEDIA:TYPE=AUDIO,GROUP-ID=\"audio\",NAME=\"Audio\",DEFAULT=YES,AUTOSELECT=YES,URI=\"\(base.appendingPathComponent("audio.m3u8").absoluteString)\"\n#EXT-X-STREAM-INF:BANDWIDTH=\(stream.videoBitrate + stream.audioBitrate),CODECS=\"\(codec)\",RESOLUTION=\(stream.width)x\(stream.height),AUDIO=\"audio\"\n\(base.appendingPathComponent("video.m3u8").absoluteString)\n"
@@ -596,7 +620,7 @@ private final class LocalDASHHLSBridge: @unchecked Sendable {
         let index = try await fetch(url: url, range: indexRange, headers: headers)
         let segments = try SIDX.parse(index, offset: indexRange.start)
         guard !segments.isEmpty else { throw DASHBridgeError.invalidIndex }
-        return DASHRendition(url: url, initialization: initRange, segments: segments)
+        return DASHRendition(url: url, initialization: initRange, segments: segments, localData: nil, duration: 0)
     }
 
     private static func parse(_ value: String?) -> DASHByteRange? {
@@ -614,13 +638,19 @@ private final class LocalDASHHLSBridge: @unchecked Sendable {
 }
 
 private struct DASHRendition {
-    let url: URL; let initialization: DASHByteRange; let segments: [DASHSegment]
+    let url: URL?; let initialization: DASHByteRange?; let segments: [DASHSegment]; let localData: Data?; let duration: Double
+    static func local(data: Data, duration: Double) -> DASHRendition { DASHRendition(url: nil, initialization: nil, segments: [], localData: data, duration: duration) }
     func playlist(base: URL, prefix: String) -> Data {
+        if localData != nil {
+            return Data("#EXTM3U\n#EXT-X-VERSION:7\n#EXT-X-PLAYLIST-TYPE:VOD\n#EXT-X-TARGETDURATION:\(max(1, Int(ceil(duration))))\n#EXTINF:\(String(format: "%.6f", duration)),\n\(base.appendingPathComponent("media/\(prefix)/0.m4s").absoluteString)\n#EXT-X-ENDLIST\n".utf8)
+        }
         let target = max(1, Int(ceil(segments.map(\.duration).max() ?? 1)))
         let lines = segments.enumerated().map { "#EXTINF:\(String(format: "%.6f", $0.element.duration)),\n\(base.appendingPathComponent("media/\(prefix)/\($0.offset).m4s").absoluteString)" }.joined(separator: "\n")
         return Data("#EXTM3U\n#EXT-X-VERSION:7\n#EXT-X-PLAYLIST-TYPE:VOD\n#EXT-X-TARGETDURATION:\(target)\n#EXT-X-MAP:URI=\"\(base.appendingPathComponent("media/\(prefix)/init.mp4").absoluteString)\"\n\(lines)\n#EXT-X-ENDLIST\n".utf8)
     }
     func register(prefix: String, into server: LoopbackHTTPServer) {
+        if let localData { server.add(path: "/media/\(prefix)/0.m4s", route: .local(localData)); return }
+        guard let url, let initialization else { return }
         server.add(path: "/media/\(prefix)/init.mp4", route: .remote(url, initialization, 0))
         for (index, segment) in segments.enumerated() { server.add(path: "/media/\(prefix)/\(index).m4s", route: .remote(url, segment.range, segment.startTicks)) }
     }
@@ -645,7 +675,7 @@ private enum SIDX {
 }
 
 private final class LoopbackHTTPServer: @unchecked Sendable {
-    enum Route { case data(Data); case remote(URL, DASHByteRange, UInt64) }
+    enum Route { case data(Data); case local(Data); case remote(URL, DASHByteRange, UInt64) }
     let baseURL: URL
     private let listener: NWListener; private let queue = DispatchQueue(label: "pilipod.avplayer.hls"); private let headers: [String: String]
     private let metrics: HLSBridgeMetrics
@@ -672,7 +702,7 @@ private final class LoopbackHTTPServer: @unchecked Sendable {
     func start() async throws { try await withCheckedThrowingContinuation { continuation in var resumed = false; listener.stateUpdateHandler = { state in if resumed { return }; switch state { case .ready: resumed = true; continuation.resume(); case let .failed(error): resumed = true; continuation.resume(throwing: error); default: break } }; listener.newConnectionHandler = { [weak self] in self?.accept($0) }; listener.start(queue: queue) } }
     func stop() { listener.cancel(); connections.values.forEach { $0.cancel() }; connections.removeAll() }
     private func accept(_ connection: NWConnection) { guard case let .hostPort(host, _) = connection.endpoint, host == .ipv4(IPv4Address("127.0.0.1")!) || host == .ipv6(IPv6Address("::1")!) else { connection.cancel(); return }; let id = ObjectIdentifier(connection); connections[id] = connection; connection.start(queue: queue); connection.receive(minimumIncompleteLength: 1, maximumLength: 16384) { [weak self] data, _, _, _ in self?.respond(connection, data ?? Data(), id: id) } }
-    private func respond(_ c: NWConnection, _ data: Data, id: ObjectIdentifier) { defer { connections[id] = nil }; guard let line = String(data: data, encoding: .utf8)?.split(separator: "\n").first else { return send(c, status: "400 Bad Request", data: Data(), type: "text/plain") }; let pieces = line.split(separator: " "); guard pieces.count > 1, let route = routes[String(pieces[1])] else { return send(c, status: "404 Not Found", data: Data(), type: "text/plain") }; switch route { case let .data(payload): send(c, status: "200 OK", data: payload, type: "application/vnd.apple.mpegurl"); case let .remote(url, range, timeOffset): Task { [headers, metrics] in do { var req = URLRequest(url: url); req.setValue(range.header, forHTTPHeaderField: "Range"); headers.forEach { req.setValue($0.value, forHTTPHeaderField: $0.key) }; metrics.beginRequest(); let payload = try await RemoteRangeLoader { metrics.record(bytes: $0) }.load(req); metrics.finishRequest(success: true); self.queue.async { self.send(c, status: "200 OK", data: MP4Timeline.normalize(payload, subtracting: timeOffset), type: "video/iso.segment") } } catch { metrics.finishRequest(success: false); self.queue.async { self.send(c, status: "502 Bad Gateway", data: Data(), type: "text/plain") } } } } }
+    private func respond(_ c: NWConnection, _ data: Data, id: ObjectIdentifier) { defer { connections[id] = nil }; guard let line = String(data: data, encoding: .utf8)?.split(separator: "\n").first else { return send(c, status: "400 Bad Request", data: Data(), type: "text/plain") }; let pieces = line.split(separator: " "); guard pieces.count > 1, let route = routes[String(pieces[1])] else { return send(c, status: "404 Not Found", data: Data(), type: "text/plain") }; switch route { case let .data(payload): send(c, status: "200 OK", data: payload, type: "application/vnd.apple.mpegurl"); case let .local(payload): send(c, status: "200 OK", data: payload, type: "video/iso.segment"); case let .remote(url, range, timeOffset): Task { [headers, metrics] in do { var request = URLRequest(url: url); request.setValue(range.header, forHTTPHeaderField: "Range"); headers.forEach { request.setValue($0.value, forHTTPHeaderField: $0.key) }; metrics.beginRequest(); let payload = try await RemoteRangeLoader { metrics.record(bytes: $0) }.load(request); metrics.finishRequest(success: true); self.queue.async { self.send(c, status: "200 OK", data: MP4Timeline.normalize(payload, subtracting: timeOffset), type: "video/iso.segment") } } catch { metrics.finishRequest(success: false); self.queue.async { self.send(c, status: "502 Bad Gateway", data: Data(), type: "text/plain") } } } } }
     private func send(_ c: NWConnection, status: String, data: Data, type: String) { let head = "HTTP/1.1 \(status)\r\nContent-Type: \(type)\r\nContent-Length: \(data.count)\r\nConnection: close\r\n\r\n"; var response = Data(head.utf8); response.append(data); c.send(content: response, completion: .contentProcessed { _ in c.cancel() }) }
     deinit { stop() }
 }
