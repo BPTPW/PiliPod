@@ -133,6 +133,10 @@ struct PlayerSubtitleItem: Codable, Identifiable {
         return (lan?.hasPrefix("ai-") == true) ? "\(baseName) (AI)" : baseName
     }
 
+    var isAIGenerated: Bool {
+        lan?.hasPrefix("ai-") == true
+    }
+
     enum CodingKeys: String, CodingKey {
         case aiStatus = "ai_status"
         case aiType = "ai_type"

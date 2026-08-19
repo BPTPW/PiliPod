@@ -730,6 +730,10 @@ struct VideoDetailPage: View {
             // A new page can expose a different subtitle set; always begin
             // with subtitles disabled rather than carrying a stale selection.
             selectedSubtitleID = nil
+            applyDefaultSubtitleSelectionIfNeeded()
+        }
+        .onChange(of: viewModel.playerInfo?.subtitle?.subtitles?.map(\.id)) { _, _ in
+            applyDefaultSubtitleSelectionIfNeeded()
         }
         .task {
             sponsorBlockSettings = SponsorBlockSettingsStore.load()
@@ -976,6 +980,15 @@ struct VideoDetailPage: View {
             result += attributedDescriptionSegment(for: item)
         }
         cachedIntroDescriptionText = result
+    }
+
+    private func applyDefaultSubtitleSelectionIfNeeded() {
+        guard selectedSubtitleID == nil,
+              SubtitleSettingsStore.load().defaultShowSubtitles,
+              let subtitles = viewModel.playerInfo?.subtitle?.subtitles,
+              let firstNonAI = subtitles.first(where: { !$0.isAIGenerated })
+        else { return }
+        selectedSubtitleID = firstNonAI.id
     }
 
     private func handleIntroLink(_ url: URL) -> OpenURLAction.Result {

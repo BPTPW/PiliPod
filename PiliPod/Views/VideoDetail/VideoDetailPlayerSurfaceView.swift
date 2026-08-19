@@ -89,6 +89,9 @@ struct VideoDetailPlayerSurfaceView: View {
     @State private var showDebugPanel = false
     @State private var debugPanelRefreshTask: Task<Void, Never>?
     @State private var subtitleLoader = SubtitleTrackLoader()
+    @State private var subtitleSettings = SubtitleSettingsStore.load()
+    @State private var hasAppliedDefaultSubtitle = false
+    @State private var appliedDefaultSubtitleOptionsKey: String?
 
     private var playerHeight: CGFloat {
         isFullscreen
@@ -181,6 +184,7 @@ struct VideoDetailPlayerSurfaceView: View {
         .ignoresSafeArea(isFullscreen ? .all : [])
         .onAppear {
             playerUISnapshot = player.uiSnapshot
+            subtitleSettings = SubtitleSettingsStore.load()
             player.setAmbientModeVisible(isFullscreen)
             showControlsAndAutoHideIfNeeded(forceShow: true)
         }
@@ -207,7 +211,27 @@ struct VideoDetailPlayerSurfaceView: View {
         .onChange(of: isFullscreen) { _, fullscreen in
             player.setAmbientModeVisible(fullscreen)
         }
-        .task(id: selectedSubtitleID) {
+        .onReceive(NotificationCenter.default.publisher(for: .subtitleSettingsDidChange)) { notification in
+            if let value = notification.object as? SubtitleSettings {
+                subtitleSettings = value
+            }
+        }
+        .task(id: subtitleTaskID) {
+            let optionsKey = subtitleOptions.map(\.id).joined(separator: ",")
+            if appliedDefaultSubtitleOptionsKey != optionsKey {
+                appliedDefaultSubtitleOptionsKey = optionsKey
+                hasAppliedDefaultSubtitle = false
+            }
+            if !hasAppliedDefaultSubtitle {
+                hasAppliedDefaultSubtitle = true
+                if selectedSubtitleID == nil,
+                   subtitleSettings.defaultShowSubtitles,
+                   let firstNonAI = subtitleOptions.first(where: { !$0.isAIGenerated })
+                {
+                    selectedSubtitleID = firstNonAI.id
+                    return
+                }
+            }
             let track = subtitleOptions.first { $0.id == selectedSubtitleID }
             await subtitleLoader.load(track: track)
         }
@@ -216,6 +240,10 @@ struct VideoDetailPlayerSurfaceView: View {
 
     private var currentOverlayTime: TimeInterval {
         activeSeekPreviewTime(duration: playerUISnapshot.duration) ?? playerUISnapshot.currentTime
+    }
+
+    private var subtitleTaskID: String {
+        "\(selectedSubtitleID ?? "off")|\(subtitleOptions.map(\.id).joined(separator: ","))"
     }
 
     private var gestureOverlay: some View {
@@ -251,7 +279,8 @@ struct VideoDetailPlayerSurfaceView: View {
             cues: subtitleLoader.cues,
             currentTime: currentOverlayTime,
             controlsVisible: controlsVisible,
-            isFullscreen: isFullscreen
+            isFullscreen: isFullscreen,
+            settings: subtitleSettings
         )
         .frame(width: videoRenderSize.width, height: videoRenderSize.height, alignment: .bottom)
         .allowsHitTesting(false)

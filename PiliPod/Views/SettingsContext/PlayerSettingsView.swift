@@ -85,6 +85,13 @@ private struct PlayerSettingsView: View {
                     }
                 }
             }
+            Section("字幕") {
+                NavigationLink {
+                    SubtitleSettingsContainerView()
+                } label: {
+                    Text("字幕设置")
+                }
+            }
             Section {
                 Picker("观看记录上报间隔", selection: $settings.historyReportInterval) {
                     ForEach(AudioVideoSettings.supportedHistoryReportIntervals, id: \.self) { interval in

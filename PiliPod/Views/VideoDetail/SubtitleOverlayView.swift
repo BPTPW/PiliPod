@@ -5,6 +5,7 @@ struct SubtitleOverlayView: View {
     let currentTime: TimeInterval
     let controlsVisible: Bool
     let isFullscreen: Bool
+    let settings: SubtitleSettings
 
     private var currentCue: SubtitleCue? {
         guard !cues.isEmpty else { return nil }
@@ -33,16 +34,13 @@ struct SubtitleOverlayView: View {
         if let currentCue {
             Text(currentCue.text)
                 .font(.system(size: isFullscreen ? 18 : 15, weight: .medium))
-                .foregroundStyle(.white)
+                .foregroundStyle(settings.usesGlassStyle ? .primary : settings.textColor.color)
                 .multilineTextAlignment(.center)
                 .lineLimit(nil)
                 .fixedSize(horizontal: false, vertical: true)
-                .padding(.horizontal, 12)
-                .padding(.vertical, 7)
-                .background(
-                    RoundedRectangle(cornerRadius: 8, style: .continuous)
-                        .fill(Color.black.opacity(0.5))
-                )
+                .padding(.horizontal, 9)
+                .padding(.vertical, 5)
+                .modifier(SubtitleBackgroundModifier(settings: settings))
                 .padding(.horizontal, isFullscreen ? 40 : 24)
                 .padding(.bottom, bottomOffset)
                 .frame(maxWidth: .infinity, alignment: .bottom)
