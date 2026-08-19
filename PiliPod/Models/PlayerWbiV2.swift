@@ -95,7 +95,17 @@ struct PlayerWbiV2Data: Codable {
 }
 
 struct PlayerSubtitle: Codable {
+    let allowSubmit: Bool?
+    let lan: String?
+    let lanDoc: String?
     let subtitles: [PlayerSubtitleItem]?
+
+    enum CodingKeys: String, CodingKey {
+        case allowSubmit = "allow_submit"
+        case lan
+        case lanDoc = "lan_doc"
+        case subtitles
+    }
 }
 
 struct PlayerSubtitleItem: Codable, Identifiable {
@@ -116,6 +126,12 @@ struct PlayerSubtitleItem: Codable, Identifiable {
     }
 
     var id: String { identity }
+
+    var displayName: String {
+        let name = lanDoc?.trimmingCharacters(in: .whitespacesAndNewlines)
+        let baseName = (name?.isEmpty == false ? name! : lan ?? "字幕")
+        return (lan?.hasPrefix("ai-") == true) ? "\(baseName) (AI)" : baseName
+    }
 
     enum CodingKeys: String, CodingKey {
         case aiStatus = "ai_status"

@@ -34,6 +34,7 @@ struct VideoDetailPlayerSurfaceView: View {
     let qualityOptions: [VideoQualityOption]
     let selectedQualityCode: Int?
     let selectedPlaybackRate: Double
+    let subtitleOptions: [PlayerSubtitleItem]
     let videoTitle: String
     let showsSponsorButton: Bool
     let showsSponsorInfoButton: Bool
@@ -61,6 +62,7 @@ struct VideoDetailPlayerSurfaceView: View {
     @Binding var danmakuConfig: DanmakuEngineConfig
     @Binding var isDanmakuEnabled: Bool
     @Binding var isFullscreen: Bool
+    @Binding var selectedSubtitleID: String?
 
     @State private var controlsVisible = true
     @State private var hideControlsTask: Task<Void, Never>?
@@ -86,6 +88,7 @@ struct VideoDetailPlayerSurfaceView: View {
     @State private var lastNowPlayingSyncedSecond: Int?
     @State private var showDebugPanel = false
     @State private var debugPanelRefreshTask: Task<Void, Never>?
+    @State private var subtitleLoader = SubtitleTrackLoader()
 
     private var playerHeight: CGFloat {
         isFullscreen
@@ -160,6 +163,7 @@ struct VideoDetailPlayerSurfaceView: View {
 
             gestureOverlay
             danmakuOverlay
+            subtitleOverlay
             loadingOverlay
             fullscreenGradientOverlay
             collapsedProgressOverlay
@@ -203,6 +207,10 @@ struct VideoDetailPlayerSurfaceView: View {
         .onChange(of: isFullscreen) { _, fullscreen in
             player.setAmbientModeVisible(fullscreen)
         }
+        .task(id: selectedSubtitleID) {
+            let track = subtitleOptions.first { $0.id == selectedSubtitleID }
+            await subtitleLoader.load(track: track)
+        }
         .layoutPriority(1)
     }
 
@@ -236,6 +244,17 @@ struct VideoDetailPlayerSurfaceView: View {
             config: danmakuOverlayConfig,
             isFullscreen: isFullscreen
         )
+    }
+
+    private var subtitleOverlay: some View {
+        SubtitleOverlayView(
+            cues: subtitleLoader.cues,
+            currentTime: currentOverlayTime,
+            controlsVisible: controlsVisible,
+            isFullscreen: isFullscreen
+        )
+        .frame(width: videoRenderSize.width, height: videoRenderSize.height, alignment: .bottom)
+        .allowsHitTesting(false)
     }
 
     private var loadingOverlay: some View {
@@ -305,6 +324,8 @@ struct VideoDetailPlayerSurfaceView: View {
             qualityOptions: qualityOptions,
             selectedQualityCode: selectedQualityCode,
             selectedPlaybackRate: selectedPlaybackRate,
+            subtitleOptions: subtitleOptions,
+            selectedSubtitleID: $selectedSubtitleID,
             isVisible: controlsVisible,
             showsSponsorButton: showsSponsorButton,
             showsSponsorInfoButton: showsSponsorInfoButton,

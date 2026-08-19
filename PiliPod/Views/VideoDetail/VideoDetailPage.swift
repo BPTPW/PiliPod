@@ -132,6 +132,7 @@ struct VideoDetailPage: View {
     @State private var isDanmakuEnabled = DanmakuConfigStore.load().isEnabled
     @State private var isDanmakuSettingsPresented = false
     @State private var isDanmakuListPresented = false
+    @State private var selectedSubtitleID: String?
     @State private var danmakuListBlockLevel = DanmakuConfigStore.load().blockLevel
     @Namespace private var danmakuActionGlass
     @State private var isFullscreen = false
@@ -333,6 +334,7 @@ struct VideoDetailPage: View {
                             qualityOptions: bindableViewModel.qualityOptions,
                             selectedQualityCode: bindableViewModel.selectedQualityCode,
                             selectedPlaybackRate: bindableViewModel.selectedPlaybackRate,
+                            subtitleOptions: bindableViewModel.playerInfo?.subtitle?.subtitles ?? [],
                             videoTitle: bindableViewModel.title,
                             showsSponsorButton: showsSponsorButton,
                             showsSponsorInfoButton: showsSponsorInfoButton,
@@ -415,7 +417,8 @@ struct VideoDetailPage: View {
                             },
                             danmakuConfig: $danmakuConfig,
                             isDanmakuEnabled: $isDanmakuEnabled,
-                            isFullscreen: $isFullscreen
+                            isFullscreen: $isFullscreen,
+                            selectedSubtitleID: $selectedSubtitleID
                         )
                     } else {
                         // 加载状态：先展示封面，保证卡片→详情的 Hero 动画有目标视图
@@ -722,6 +725,11 @@ struct VideoDetailPage: View {
             if !isEnabled {
                 isDanmakuListPresented = false
             }
+        }
+        .onChange(of: viewModel.cid) { _, _ in
+            // A new page can expose a different subtitle set; always begin
+            // with subtitles disabled rather than carrying a stale selection.
+            selectedSubtitleID = nil
         }
         .task {
             sponsorBlockSettings = SponsorBlockSettingsStore.load()
@@ -3262,6 +3270,8 @@ struct PlayerControlsOverlay: View {
     let qualityOptions: [VideoQualityOption]
     let selectedQualityCode: Int?
     let selectedPlaybackRate: Double
+    let subtitleOptions: [PlayerSubtitleItem]
+    @Binding var selectedSubtitleID: String?
     let isVisible: Bool
     let showsSponsorButton: Bool
     let showsSponsorInfoButton: Bool
@@ -3529,6 +3539,14 @@ struct PlayerControlsOverlay: View {
                 }
                 Spacer()
                 HStack(spacing: 8) {
+                    if !subtitleOptions.isEmpty {
+                        SubtitleMenuView(
+                            options: subtitleOptions,
+                            selectedID: $selectedSubtitleID,
+                            onUserInteracted: onUserInteracted
+                        )
+                    }
+
                     // 倍速目录
                     PlaybackRateMenuView(
                         selectedRate: selectedPlaybackRate,
@@ -3589,6 +3607,40 @@ struct PlayerControlsOverlay: View {
         let m = s / 60
         let r = s % 60
         return String(format: "%02d:%02d", m, r)
+    }
+}
+
+private struct SubtitleMenuView: View {
+    let options: [PlayerSubtitleItem]
+    @Binding var selectedID: String?
+    let onUserInteracted: () -> Void
+
+    var body: some View {
+        Picker(selection: $selectedID) {
+            Text("关闭")
+                .tag(Optional<String>.none)
+            ForEach(options) { option in
+                Text(option.displayName)
+                    .tag(Optional(option.id))
+            }
+        } label: {
+            Text(currentTitle)
+                .foregroundStyle(.white)
+                .font(.system(size: 12, weight: .semibold))
+                .padding(8)
+        }
+        .pickerStyle(.menu)
+        .tint(.white)
+        .onChange(of: selectedID) { _, _ in
+            onUserInteracted()
+        }
+    }
+
+    private var currentTitle: String {
+        guard let selectedID,
+              let selection = options.first(where: { $0.id == selectedID })
+        else { return "字幕" }
+        return selection.displayName
     }
 }
 
