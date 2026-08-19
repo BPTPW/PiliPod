@@ -46,6 +46,9 @@ class HomeViewModel {
     var feedCards: [FeedCardItem] = []
     var isLoading = false
     var userFace: String?
+    var unreadMessageCount = 0
+    private var lastUnreadMessageRequestAt: Date?
+    private var isLoadingUnreadMessageCount = false
     private var hasLoaded = false
 
     /// 下拉刷新时，新内容插入顶部后，此值标记了新卡片数量；
@@ -72,6 +75,36 @@ class HomeViewModel {
             ErrorLogService.record(error, context: "加载账号头像")
             print(error)
         }
+    }
+
+    func loadUnreadMessageCount(force: Bool = false) async {
+        guard LoginSession.shared.isLogin else {
+            unreadMessageCount = 0
+            return
+        }
+
+        guard !isLoadingUnreadMessageCount else { return }
+        if !force,
+           let lastRequest = lastUnreadMessageRequestAt,
+           Date().timeIntervalSince(lastRequest) < 2 * 60
+        {
+            return
+        }
+
+        isLoadingUnreadMessageCount = true
+        defer { isLoadingUnreadMessageCount = false }
+        do {
+            unreadMessageCount = try await BiliAPI.shared.fetchUnreadMessageCount()
+            lastUnreadMessageRequestAt = Date()
+        } catch {
+            // 未读数请求失败时不保留过期角标。
+            unreadMessageCount = 0
+            ErrorLogService.record(error, context: "加载未读消息数")
+        }
+    }
+
+    func refreshUnreadMessageCountIfNeeded() async {
+        await loadUnreadMessageCount()
     }
 
     // MARK: - 统一推荐入口

@@ -86,9 +86,25 @@ struct HomeView: View {
                         Button {
                             toastMessage = "暂时没有新消息"
                         } label: {
-                            Image(systemName: "bell.fill")
-                                .font(.system(size: 18))
-                                .frame(width: 40, height: 40)
+                            ZStack(alignment: .topTrailing) {
+                                Image(systemName: "bell.fill")
+                                    .font(.system(size: 18))
+                                    .frame(width: 40, height: 40)
+
+                                if viewModel.unreadMessageCount > 0 {
+                                    Text(unreadBadgeText)
+                                        .font(.system(size: 10, weight: .bold))
+                                        .foregroundStyle(.white)
+                                        .padding(.horizontal, 5)
+                                        .frame(minWidth: 17, minHeight: 17)
+                                        .background(.red, in: Capsule())
+                                        .overlay {
+                                            Capsule()
+                                                .stroke(.regularMaterial, lineWidth: 1)
+                                        }
+                                        .offset(x: 4, y: -4)
+                                }
+                            }
                         }
                         .foregroundStyle(.primary)
                         .glassEffect(
@@ -192,13 +208,18 @@ struct HomeView: View {
         }
         .task {
             await viewModel.loadUserIfNeeded()
+            await viewModel.refreshUnreadMessageCountIfNeeded()
             await viewModel.loadInitialVideos()
         }
         .onReceive(loginSession.$isLogin) { isLogin in
             if isLogin {
-                Task { await viewModel.loadUserIfNeeded() }
+                Task {
+                    await viewModel.loadUserIfNeeded()
+                    await viewModel.loadUnreadMessageCount(force: true)
+                }
             } else {
                 viewModel.userFace = nil
+                viewModel.unreadMessageCount = 0
             }
         }
         .onReceive(NotificationCenter.default.publisher(for: .manualPictureInPictureRestoreOnHome)) { notification in
@@ -216,6 +237,10 @@ struct HomeView: View {
             }
         }
         .toast(message: $toastMessage)
+    }
+
+    private var unreadBadgeText: String {
+        viewModel.unreadMessageCount > 99 ? "99+" : String(viewModel.unreadMessageCount)
     }
 
     private var tabBar: some View {

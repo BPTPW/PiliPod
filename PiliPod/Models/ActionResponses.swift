@@ -14,6 +14,57 @@ struct SimpleAPIResponse<T: Codable>: Codable {
     let data: T?
 }
 
+struct MessageFeedUnreadData: Codable {
+    let coin: Int
+    let danmu: Int
+    let favorite: Int
+    let recvLike: Int
+    let recvReply: Int
+    let sysMsg: Int
+    let up: Int
+
+    var total: Int {
+        coin + danmu + favorite + recvLike + recvReply + sysMsg + up
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case coin
+        case danmu
+        case favorite
+        case recvLike = "recv_like"
+        case recvReply = "recv_reply"
+        case sysMsg = "sys_msg"
+        case up
+    }
+}
+
+struct PrivateMessageUnreadData: Codable {
+    let unfollowUnread: Int
+    let followUnread: Int
+    let unfollowPushMsg: Int
+    let dustbinPushMsg: Int
+    let dustbinUnread: Int
+    let bizMsgUnfollowUnread: Int
+    let bizMsgFollowUnread: Int
+    let customUnread: Int
+
+    var total: Int {
+        unfollowUnread + followUnread + unfollowPushMsg + dustbinPushMsg
+            + dustbinUnread + bizMsgUnfollowUnread + bizMsgFollowUnread + customUnread
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case unfollowUnread = "unfollow_unread"
+        case followUnread = "follow_unread"
+        case unfollowPushMsg = "unfollow_push_msg"
+        case dustbinPushMsg = "dustbin_push_msg"
+        case dustbinUnread = "dustbin_unread"
+        case bizMsgUnfollowUnread = "biz_msg_unfollow_unread"
+        case bizMsgFollowUnread = "biz_msg_follow_unread"
+        case customUnread = "custom_unread"
+    }
+}
+
 struct LikeToastData: Codable {
     let toast: String?
 }

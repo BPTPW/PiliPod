@@ -274,6 +274,75 @@ class BiliAPI {
         return nil
     }
 
+    // MARK: - 获取未读消息数
+
+    /// 汇总消息中心通知和私信的未读数量。
+    /// 私信接口固定包含被拦截会话的未读数。
+    func fetchUnreadMessageCount() async throws -> Int {
+        guard let messageFeedURL = URL(string: "https://api.vc.bilibili.com/x/im/web/msgfeed/unread"),
+              var privateMessageComponents = URLComponents(
+                  string: "https://api.vc.bilibili.com/session_svr/v1/session_svr/single_unread"
+              )
+        else {
+            throw APIError.invalidURL
+        }
+
+        privateMessageComponents.queryItems = [
+            URLQueryItem(name: "show_dustbin", value: "1")
+        ]
+        guard let privateMessageURL = privateMessageComponents.url else {
+            throw APIError.invalidURL
+        }
+
+        async let messageFeedData = requestUnreadMessageFeed(url: messageFeedURL)
+        async let privateMessageData = requestUnreadPrivateMessages(url: privateMessageURL)
+        let (messageFeed, privateMessages) = try await (messageFeedData, privateMessageData)
+
+        return messageFeed.total + privateMessages.total
+    }
+
+    private func requestUnreadMessageFeed(url: URL) async throws -> MessageFeedUnreadData {
+        let (data, response) = try await URLSession.shared.data(for: makeRequest(url: url))
+        guard let httpResponse = response as? HTTPURLResponse,
+              (200 ... 299).contains(httpResponse.statusCode)
+        else {
+            throw APIError.requestFailed
+        }
+
+        let decoded = try JSONDecoder().decode(
+            SimpleAPIResponse<MessageFeedUnreadData>.self,
+            from: data
+        )
+        guard decoded.code == 0 else {
+            throw APIError.businessError(code: decoded.code, message: decoded.message)
+        }
+        guard let payload = decoded.data else {
+            throw APIError.requestFailed
+        }
+        return payload
+    }
+
+    private func requestUnreadPrivateMessages(url: URL) async throws -> PrivateMessageUnreadData {
+        let (data, response) = try await URLSession.shared.data(for: makeRequest(url: url))
+        guard let httpResponse = response as? HTTPURLResponse,
+              (200 ... 299).contains(httpResponse.statusCode)
+        else {
+            throw APIError.requestFailed
+        }
+
+        let decoded = try JSONDecoder().decode(
+            SimpleAPIResponse<PrivateMessageUnreadData>.self,
+            from: data
+        )
+        guard decoded.code == 0 else {
+            throw APIError.businessError(code: decoded.code, message: decoded.message)
+        }
+        guard let payload = decoded.data else {
+            throw APIError.requestFailed
+        }
+        return payload
+    }
+
     private func decodeGrpcMessage(_ raw: String?) -> String {
         guard let raw, !raw.isEmpty else { return "unknown" }
         let replaced = raw.replacingOccurrences(of: "+", with: " ")

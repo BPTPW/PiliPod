@@ -32,6 +32,12 @@ struct MainTabView: View {
                     Text("我的")
                 }
         }
+        .onChange(of: selectedTab) { newTab in
+            guard newTab == .home else { return }
+            Task {
+                await homeViewModel.refreshUnreadMessageCountIfNeeded()
+            }
+        }
         .onReceive(NotificationCenter.default.publisher(for: .manualPictureInPictureRestoreRequested)) { notification in
             selectedTab = .home
             // Deliver a second event after the tab transition has committed.
