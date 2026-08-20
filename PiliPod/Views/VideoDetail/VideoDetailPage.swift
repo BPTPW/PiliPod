@@ -3980,13 +3980,14 @@ private actor VideoShotSpriteLoader {
     private let cache = NSCache<NSURL, UIImage>()
 
     func loadImage(from url: URL) async -> UIImage? {
-        let nsURL = url as NSURL
+        let normalizedURL = Self.httpsURL(for: url)
+        let nsURL = normalizedURL as NSURL
         if let cached = cache.object(forKey: nsURL) {
             return cached
         }
 
         var request = URLRequest(
-            url: url,
+            url: normalizedURL,
             cachePolicy: .returnCacheDataElseLoad,
             timeoutInterval: 30
         )
@@ -4011,6 +4012,16 @@ private actor VideoShotSpriteLoader {
 
         cache.setObject(image, forKey: nsURL)
         return image
+    }
+
+    private static func httpsURL(for url: URL) -> URL {
+        guard var components = URLComponents(url: url, resolvingAgainstBaseURL: false),
+              components.scheme?.caseInsensitiveCompare("http") == .orderedSame
+        else {
+            return url
+        }
+        components.scheme = "https"
+        return components.url ?? url
     }
 }
 #endif

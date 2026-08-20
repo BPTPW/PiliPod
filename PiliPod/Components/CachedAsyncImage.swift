@@ -80,13 +80,17 @@ final class SharedRemoteImageStore {
     }
 
     func image(for url: URL) async -> UIImage? {
-        let key = url as NSURL
+        // iOS App Transport Security blocks plain HTTP image requests. Image
+        // URLs come from several API/model paths, so normalize at this shared
+        // boundary instead of relying on every caller to do it correctly.
+        let normalizedURL = Self.httpsURL(for: url)
+        let key = normalizedURL as NSURL
         if let cachedImage = memoryCache.object(forKey: key) {
             return cachedImage
         }
 
         let request = URLRequest(
-            url: url,
+            url: normalizedURL,
             cachePolicy: .returnCacheDataElseLoad,
             timeoutInterval: 60
         )
@@ -126,6 +130,17 @@ final class SharedRemoteImageStore {
         }
 
         return image
+    }
+
+    private static func httpsURL(for url: URL) -> URL {
+        guard var components = URLComponents(url: url, resolvingAgainstBaseURL: false),
+              components.scheme?.caseInsensitiveCompare("http") == .orderedSame
+        else {
+            return url
+        }
+
+        components.scheme = "https"
+        return components.url ?? url
     }
 }
 #endif
