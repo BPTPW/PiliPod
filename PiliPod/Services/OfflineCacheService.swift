@@ -278,6 +278,20 @@ struct OfflineCacheExportFile {
     let url: URL
     let filename: String
     let contentType: UTType
+    let cleanupURLs: [URL]
+
+    init(url: URL, filename: String, contentType: UTType, cleanupURLs: [URL] = []) {
+        self.url = url
+        self.filename = filename
+        self.contentType = contentType
+        self.cleanupURLs = cleanupURLs
+    }
+
+    func cleanup() {
+        for url in cleanupURLs where FileManager.default.fileExists(atPath: url.path) {
+            try? FileManager.default.removeItem(at: url)
+        }
+    }
 }
 
 enum OfflineCacheTransferService {
@@ -439,6 +453,13 @@ enum OfflineCacheTransferService {
             try recreateItem(at: zipURL)
             let snapshotURL = temporaryDirectoryURL(name: "\(item.relativeDirectory)-export")
             try recreateDirectory(at: snapshotURL)
+            var keepTemporaryFiles = true
+            defer {
+                if keepTemporaryFiles {
+                    try? FileManager.default.removeItem(at: zipURL)
+                    try? FileManager.default.removeItem(at: snapshotURL)
+                }
+            }
             let snapshotPayloadURL = snapshotURL.appendingPathComponent(item.relativeDirectory, isDirectory: true)
             try FileManager.default.createDirectory(at: snapshotPayloadURL, withIntermediateDirectories: true)
             progress(1, 2, 0, "正在准备缓存文件")
@@ -476,7 +497,8 @@ enum OfflineCacheTransferService {
             }, isCancelled: {
                 isCancelled()
             })
-            return .init(url: zipURL, filename: zipURL.lastPathComponent, contentType: .zip)
+            keepTemporaryFiles = false
+            return .init(url: zipURL, filename: zipURL.lastPathComponent, contentType: .zip, cleanupURLs: [zipURL, snapshotURL])
         }
     }
 

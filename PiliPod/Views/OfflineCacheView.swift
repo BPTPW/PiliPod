@@ -540,6 +540,7 @@ struct OfflineCacheView: View {
                         isPreparingExport = false
                         exportCancellationToken = nil
                         exportDocument = OfflineCacheTransferDocument(sourceURL: file.url)
+                        file.cleanup()
                         exportFilename = file.filename
                         exportContentType = file.contentType
                         isExporterPresented = true
@@ -561,6 +562,7 @@ struct OfflineCacheView: View {
                 option: option.kind
             )
             exportDocument = OfflineCacheTransferDocument(sourceURL: file.url)
+            file.cleanup()
             exportFilename = file.filename
             exportContentType = file.contentType
             dismissExportOptions()
