@@ -47,6 +47,7 @@ struct OfflineCacheView: View {
     @State private var exportFilename = "offline-cache-export.zip"
     @State private var exportContentType: UTType = .zip
     @State private var isExporterPresented = false
+    @State private var pendingExportCleanupURLs: [URL] = []
     @State private var isPreparingExport = false
     @State private var exportProgress = 0.0
     @State private var exportStage = "正在准备"
@@ -171,6 +172,11 @@ struct OfflineCacheView: View {
             defaultFilename: exportFilename,
             onComplete: handleExportResult
         ))
+        .onChange(of: isExporterPresented) { isPresented in
+            if !isPresented {
+                cleanupPendingExportFiles()
+            }
+        }
         .sheet(isPresented: $isPreparingExport) {
             ExportProgressSheet(progress: exportProgress, stage: exportStage, currentStep: exportCurrentStep, totalSteps: exportTotalSteps) {
                 exportCancellationToken?.cancel()
@@ -540,6 +546,7 @@ struct OfflineCacheView: View {
                         isPreparingExport = false
                         exportCancellationToken = nil
                         exportDocument = OfflineCacheTransferDocument(sourceURL: file.url)
+                        pendingExportCleanupURLs = file.cleanupURLs
                         file.cleanup()
                         exportFilename = file.filename
                         exportContentType = file.contentType
@@ -562,6 +569,7 @@ struct OfflineCacheView: View {
                 option: option.kind
             )
             exportDocument = OfflineCacheTransferDocument(sourceURL: file.url)
+            pendingExportCleanupURLs = file.cleanupURLs
             file.cleanup()
             exportFilename = file.filename
             exportContentType = file.contentType
@@ -574,6 +582,7 @@ struct OfflineCacheView: View {
     }
 
     private func handleExportResult(_ result: Result<URL, Error>) {
+        cleanupPendingExportFiles()
         switch result {
         case .success:
             toastMessage = "导出成功"
@@ -581,6 +590,13 @@ struct OfflineCacheView: View {
             transferErrorTitle = "导出失败"
             transferErrorMessage = error.localizedDescription
         }
+    }
+
+    private func cleanupPendingExportFiles() {
+        for url in pendingExportCleanupURLs where FileManager.default.fileExists(atPath: url.path) {
+            try? FileManager.default.removeItem(at: url)
+        }
+        pendingExportCleanupURLs.removeAll()
     }
 
     private func handleImportResult(_ result: Result<URL, Error>) {
