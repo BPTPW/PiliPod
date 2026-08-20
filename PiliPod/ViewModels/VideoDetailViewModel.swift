@@ -219,6 +219,7 @@ class VideoDetailViewModel {
             let currentCID = await MainActor.run { self.cid }
             var playbackCid = currentCID > 0 ? currentCID : detail.cid
             var playerInitialSeekTime: Double?
+            var playerHistoryCID: Int?
             if preferredCachedAsset == nil {
                 do {
                     let playerInfoResponse = try await BiliAPI.shared.fetchPlayerWbiV2(
@@ -244,8 +245,13 @@ class VideoDetailViewModel {
                         self.playerInfo = playerInfoData
                     }
 
-                    if currentCID <= 0, let lastPlayCID, lastPlayCID > 0 {
+                    // `last_play_cid` identifies the page that `last_play_time`
+                    // belongs to. The initial cid is commonly the first page
+                    // (including when opening an item from the history list),
+                    // so a valid history cid must take precedence over it.
+                    if let lastPlayCID, lastPlayCID > 0 {
                         playbackCid = lastPlayCID
+                        playerHistoryCID = lastPlayCID
                     }
                     playerInitialSeekTime = resolvedInitialSeekTime
                 } catch {
@@ -254,7 +260,15 @@ class VideoDetailViewModel {
             }
 
             let resolvedPlaybackCID = playbackCid
-            let resolvedInitialSeekTime = requestedInitialSeekTime ?? playerInitialSeekTime
+            // When the API supplies a page-specific history cid, its time must
+            // travel with that cid. Otherwise retain the progress supplied by
+            // the navigation item as a fallback.
+            let resolvedInitialSeekTime: Double?
+            if playerHistoryCID != nil, playerInitialSeekTime != nil {
+                resolvedInitialSeekTime = playerInitialSeekTime
+            } else {
+                resolvedInitialSeekTime = requestedInitialSeekTime ?? playerInitialSeekTime
+            }
 
             await MainActor.run {
                 self.cid = resolvedPlaybackCID
