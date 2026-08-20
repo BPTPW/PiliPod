@@ -112,50 +112,6 @@ struct HomeView: View {
                             in: .circle
                         )
 
-                        // 用户头像
-                        Group {
-                            if let face = viewModel.userFace, let url = URL(string: face) {
-                                CachedAsyncImage(url: url) { phase in
-                                    if case .success(let image) = phase {
-                                        image
-                                            .resizable()
-                                            .scaledToFill()
-                                    } else {
-                                        Circle()
-                                            .fill(.ultraThinMaterial)
-                                            .overlay {
-                                                Image(systemName: "person.fill")
-                                            }
-                                    }
-                                }
-                                .frame(width: 40, height: 40)
-                                .clipShape(Circle())
-                            } else {
-                                Circle()
-                                    .fill(.ultraThinMaterial)
-                                    .overlay {
-                                        Image(systemName: "person.fill")
-                                    }
-                                    .frame(width: 40, height: 40)
-                            }
-                        }
-                        .overlay {
-                            Circle()
-                                .stroke(
-                                    Color.white.opacity(0.18),
-                                    lineWidth: 1
-                                )
-                        }
-                        .shadow(
-                            color: .black.opacity(0.06),
-                            radius: 8,
-                            y: 4
-                        )
-                        .foregroundStyle(.primary)
-                        .glassEffect(
-                            .clear.interactive(),
-                            in: .circle
-                        )
                     }
                     .padding(.horizontal, 16)
                     .padding(.top, 8)
@@ -207,18 +163,15 @@ struct HomeView: View {
             }
         }
         .task {
-            await viewModel.loadUserIfNeeded()
             await viewModel.refreshUnreadMessageCountIfNeeded()
             await viewModel.loadInitialVideos()
         }
         .onReceive(loginSession.$isLogin) { isLogin in
             if isLogin {
                 Task {
-                    await viewModel.loadUserIfNeeded()
                     await viewModel.loadUnreadMessageCount(force: true)
                 }
             } else {
-                viewModel.userFace = nil
                 viewModel.unreadMessageCount = 0
             }
         }
