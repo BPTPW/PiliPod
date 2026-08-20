@@ -1741,6 +1741,34 @@ class BiliAPI {
         return response.data
     }
 
+    // MARK: - 视频实时在线人数
+
+    func fetchVideoOnlineTotal(bvid: String, cid: Int) async throws -> String {
+        var components = URLComponents(
+            string: "https://api.bilibili.com/x/player/online/total"
+        )
+        components?.queryItems = [
+            URLQueryItem(name: "bvid", value: bvid),
+            URLQueryItem(name: "cid", value: String(cid))
+        ]
+
+        guard let url = components?.url else {
+            throw APIError.invalidURL
+        }
+
+        let request = makeRequest(url: url)
+        let (data, _) = try await URLSession.shared.data(for: request)
+        let response = try JSONDecoder().decode(VideoOnlineTotalResponse.self, from: data)
+
+        guard response.code == 0 else {
+            throw APIError.responseError(response.code)
+        }
+        guard let total = response.data?.total, !total.isEmpty else {
+            throw APIError.requestFailed
+        }
+        return total
+    }
+
     // MARK: - 视频关系（点赞/点踩/投币/收藏状态）
 
     func fetchArchiveRelation(bvid: String) async throws -> ArchiveRelationData {
@@ -2482,6 +2510,29 @@ private struct LiveRecommendWatchedShow: Codable {
     enum CodingKeys: String, CodingKey {
         case textLarge = "text_large"
     }
+}
+
+private struct VideoOnlineTotalResponse: Codable {
+    let code: Int
+    let message: String?
+    let ttl: Int?
+    let data: VideoOnlineTotalData?
+}
+
+private struct VideoOnlineTotalData: Codable {
+    let total: String
+    let count: String?
+    let showSwitch: VideoOnlineTotalShowSwitch?
+
+    enum CodingKeys: String, CodingKey {
+        case total
+        case count
+        case showSwitch = "show_switch"
+    }
+}
+
+private struct VideoOnlineTotalShowSwitch: Codable {
+    // The endpoint may add fields here; the display only needs `total`.
 }
 
 struct LivePlaybackInfo {

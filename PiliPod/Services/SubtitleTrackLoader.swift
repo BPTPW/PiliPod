@@ -60,11 +60,16 @@ final class SubtitleTrackLoader {
             else { throw URLError(.badServerResponse) }
 
             let document = try JSONDecoder().decode(SubtitleDocument.self, from: data)
-            cues = document.body.compactMap { item in
+            cues = document.body.enumerated().compactMap { index, item in
                 guard item.to > item.from else { return nil }
                 let text = Self.normalizedText(item.content)
                 guard !text.isEmpty else { return nil }
-                return SubtitleCue(id: item.sid, start: item.from, end: item.to, text: text)
+                return SubtitleCue(
+                    id: item.sid ?? index,
+                    start: item.from,
+                    end: item.to,
+                    text: text
+                )
             }
             .sorted { $0.start < $1.start }
         } catch is CancellationError {
@@ -100,6 +105,6 @@ private struct SubtitleDocument: Decodable {
 private struct SubtitleDocumentItem: Decodable {
     let from: TimeInterval
     let to: TimeInterval
-    let sid: Int
+    let sid: Int?
     let content: String
 }

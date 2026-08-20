@@ -19,7 +19,7 @@ struct IntroTabDisplayModel: Equatable {
     let viewCount: Int
     let danmakuCount: Int
     let pubdate: Int
-    let onlineCount: Int?
+    let onlineTotal: String?
     let isExpanded: Bool
     let introDescriptionText: AttributedString
     let isLiked: Bool
@@ -176,11 +176,11 @@ struct IntroTabContentView: View, Equatable {
                     Label(VideoItem.formatCount(model.viewCount), systemImage: "play.fill")
                     Label(VideoItem.formatCount(model.danmakuCount), systemImage: "text.bubble.fill")
                     Text(VideoItem.formatTimestamp(model.pubdate))
-                    if let online = model.onlineCount,
-                       online > 0,
+                    if let onlineTotal = model.onlineTotal,
+                       !onlineTotal.isEmpty,
                        Date().timeIntervalSince1970 >= TimeInterval(model.pubdate)
                     {
-                        Label("\(VideoItem.formatCount(online))人在看", systemImage: "person.2.fill")
+                        Label("\(onlineTotal)人在看", systemImage: "person.2.fill")
                     }
                 }
                 .font(.system(size: 11))

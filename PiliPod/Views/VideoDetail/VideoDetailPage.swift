@@ -160,6 +160,7 @@ struct VideoDetailPage: View {
     @State private var shouldResumeAfterBackgroundPause = false
     @State private var backgroundPauseRestoreTime: TimeInterval?
     @State private var offlineCachePrefill: OfflineCacheQueryPrefill?
+    @State private var onlineTotal: String?
 #if canImport(UIKit)
     @State private var preferredFullscreenOrientation: UIInterfaceOrientation = .landscapeRight
     @StateObject private var audioSessionManager = VideoPlaybackAudioSessionManager()
@@ -689,6 +690,7 @@ struct VideoDetailPage: View {
             isDanmakuEnabled = danmakuConfig.isEnabled
             sponsorBlockSettings = SponsorBlockSettingsStore.load()
             cachedIntroDescriptionText = AttributedString("")
+            onlineTotal = nil
             skippedSponsorSegmentIDs = []
             hiddenManualSponsorSegmentIDs = []
             manualSkipSegment = nil
@@ -757,6 +759,28 @@ struct VideoDetailPage: View {
             // 加载完成后启动历史上报
             if bindableViewModel.dashStream != nil, !bindableViewModel.isPlayingOfflineCache {
                 bindableViewModel.startHistoryReporting()
+            }
+
+            // The player endpoint's online_count is not the display value used
+            // by the video page. Poll the dedicated endpoint while this page is visible.
+            while !Task.isCancelled {
+                let currentCID = bindableViewModel.cid
+                if currentCID > 0 {
+                    do {
+                        onlineTotal = try await BiliAPI.shared.fetchVideoOnlineTotal(
+                            bvid: video.bvid,
+                            cid: currentCID
+                        )
+                    } catch {
+                        // Keep the last successful value when a refresh fails.
+                    }
+                }
+
+                do {
+                    try await Task.sleep(for: .seconds(30))
+                } catch {
+                    break
+                }
             }
         }
         .onDisappear {
@@ -1154,7 +1178,7 @@ struct VideoDetailPage: View {
             viewCount: detail.stat.view,
             danmakuCount: detail.stat.danmaku,
             pubdate: detail.pubdate,
-            onlineCount: viewModel.playerInfo?.onlineCount,
+            onlineTotal: onlineTotal,
             isExpanded: isVideoDetailExpanded,
             introDescriptionText: cachedIntroDescriptionText,
             isLiked: viewModel.isLiked,
