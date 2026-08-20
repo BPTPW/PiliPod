@@ -240,6 +240,7 @@ enum OfflineCacheTransferError: LocalizedError {
     case missingFile(String)
     case invalidArchive
     case unsupportedArchiveLayout
+    case cancelled
 
     var errorDescription: String? {
         switch self {
@@ -251,6 +252,8 @@ enum OfflineCacheTransferError: LocalizedError {
             return "无法识别该缓存压缩包。"
         case .unsupportedArchiveLayout:
             return "压缩包内容不符合 PiliPod 离线缓存格式。"
+        case .cancelled:
+            return "导出已取消。"
         }
     }
 }
@@ -358,7 +361,9 @@ enum OfflineCacheTransferService {
 
     static func prepareExport(
         for item: OfflineCacheItem,
-        option: OfflineCacheExportOption.Kind
+        option: OfflineCacheExportOption.Kind,
+        progress: @escaping (Int, Int, Double, String) -> Void = { _, _, _, _ in },
+        isCancelled: @escaping () -> Bool = { false }
     ) throws -> OfflineCacheExportFile {
         guard item.status == .completed else {
             throw OfflineCacheTransferError.itemNotCompleted
@@ -435,14 +440,42 @@ enum OfflineCacheTransferService {
             let snapshotURL = temporaryDirectoryURL(name: "\(item.relativeDirectory)-export")
             try recreateDirectory(at: snapshotURL)
             let snapshotPayloadURL = snapshotURL.appendingPathComponent(item.relativeDirectory, isDirectory: true)
-            try FileManager.default.copyItem(at: directoryURL, to: snapshotPayloadURL)
+            try FileManager.default.createDirectory(at: snapshotPayloadURL, withIntermediateDirectories: true)
+            progress(1, 2, 0, "正在准备缓存文件")
+            let entries = try FileManager.default.subpathsOfDirectory(atPath: directoryURL.path)
+            let fileEntries = entries.filter {
+                var isDirectory: ObjCBool = false
+                let source = directoryURL.appendingPathComponent($0)
+                return FileManager.default.fileExists(atPath: source.path, isDirectory: &isDirectory) && !isDirectory.boolValue
+            }
+            let fileWeights = fileEntries.map { relativePath -> Int64 in
+                let url = directoryURL.appendingPathComponent(relativePath)
+                return Int64((try? url.resourceValues(forKeys: [.fileSizeKey]).fileSize) ?? 0)
+            }
+            let totalBytes = max(fileWeights.reduce(0, +), 1)
+            var copiedBytes: Int64 = 0
+            for (index, relativePath) in fileEntries.enumerated() {
+                if isCancelled() { throw OfflineCacheTransferError.cancelled }
+                progress(1, 2, Double(copiedBytes) / Double(totalBytes), "正在复制 \\(relativePath)")
+                let source = directoryURL.appendingPathComponent(relativePath)
+                let destination = snapshotPayloadURL.appendingPathComponent(relativePath)
+                try FileManager.default.createDirectory(at: destination.deletingLastPathComponent(), withIntermediateDirectories: true)
+                try FileManager.default.copyItem(at: source, to: destination)
+                copiedBytes += fileWeights[index]
+                progress(1, 2, Double(copiedBytes) / Double(totalBytes), "已复制 \\(relativePath)")
+            }
             guard FileManager.default.fileExists(atPath: snapshotPayloadURL.appendingPathComponent(detailFileName).path) else {
                 throw OfflineCacheTransferError.missingFile(detailFileName)
             }
             guard FileManager.default.fileExists(atPath: snapshotPayloadURL.appendingPathComponent(manifestFileName).path) else {
                 throw OfflineCacheTransferError.missingFile(manifestFileName)
             }
-            try zipDirectory(at: snapshotPayloadURL, to: zipURL)
+            progress(2, 2, 0, "正在压缩缓存文件")
+            try zipDirectory(at: snapshotPayloadURL, to: zipURL, fileWeights: fileWeights, progress: { fraction, stage in
+                progress(2, 2, fraction, stage.name)
+            }, isCancelled: {
+                isCancelled()
+            })
             return .init(url: zipURL, filename: zipURL.lastPathComponent, contentType: .zip)
         }
     }
@@ -622,7 +655,7 @@ enum OfflineCacheTransferService {
         return total
     }
 
-    private static func zipDirectory(at sourceURL: URL, to destinationURL: URL) throws {
+    private static func zipDirectory(at sourceURL: URL, to destinationURL: URL, fileWeights: [Int64] = [], progress: @escaping (Double, ZipProgressStage) -> Void = { _, _ in }, isCancelled: @escaping () -> Bool = { false }) throws {
         guard let archive = Archive(url: destinationURL, accessMode: .create) else {
             throw OfflineCacheTransferError.invalidArchive
         }
@@ -634,23 +667,62 @@ enum OfflineCacheTransferService {
             options: [.skipsHiddenFiles]
         )
 
+        let allEntries = (enumerator?.allObjects as? [URL] ?? []).filter { url in
+            var isDirectory: ObjCBool = false
+            return FileManager.default.fileExists(atPath: url.path, isDirectory: &isDirectory) && !isDirectory.boolValue
+        }
+        let weights = allEntries.enumerated().map { index, url -> Int64 in
+            if index < fileWeights.count { return fileWeights[index] }
+            return Int64((try? url.resourceValues(forKeys: [.fileSizeKey]).fileSize) ?? 0)
+        }
+        let totalWeight = max(weights.reduce(0, +), 1)
+        var completedWeight: Int64 = 0
         try archive.addEntry(
             with: sourceURL.lastPathComponent,
             relativeTo: baseParentURL,
             compressionMethod: .deflate
         )
 
-        while let fileURL = enumerator?.nextObject() as? URL {
+        if isCancelled() { throw OfflineCacheTransferError.cancelled }
+        for (index, fileURL) in allEntries.enumerated() {
             let relativePath = fileURL.path.replacingOccurrences(
                 of: baseParentURL.path + "/",
                 with: ""
             )
-            try archive.addEntry(
-                with: relativePath,
-                relativeTo: baseParentURL,
-                compressionMethod: .deflate
-            )
+            if isCancelled() { throw OfflineCacheTransferError.cancelled }
+            let stepProgress = Progress()
+            let monitorFinished = DispatchSemaphore(value: 0)
+            DispatchQueue.global(qos: .userInitiated).async {
+                while monitorFinished.wait(timeout: .now()) == .timedOut {
+                    if isCancelled() { stepProgress.cancel() }
+                    let fraction = stepProgress.totalUnitCount > 0
+                        ? Double(stepProgress.completedUnitCount) / Double(stepProgress.totalUnitCount)
+                        : 0
+                    let weighted = (Double(completedWeight) + Double(weights[index]) * fraction) / Double(totalWeight)
+                    progress(weighted, .init(index: index, name: "正在压缩 \(relativePath)"))
+                    usleep(50_000)
+                }
+            }
+            do {
+                try archive.addEntry(
+                    with: relativePath,
+                    relativeTo: baseParentURL,
+                    compressionMethod: .deflate,
+                    progress: stepProgress
+                )
+            } catch {
+                monitorFinished.signal()
+                throw error
+            }
+            monitorFinished.signal()
+            completedWeight += weights[index]
+            progress(Double(completedWeight) / Double(totalWeight), .init(index: index, name: "已压缩 \(relativePath)"))
         }
+    }
+
+    private struct ZipProgressStage {
+        let index: Int
+        let name: String
     }
 
     private static func unzipArchive(at sourceURL: URL, to destinationURL: URL) throws {

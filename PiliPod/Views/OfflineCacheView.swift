@@ -47,6 +47,12 @@ struct OfflineCacheView: View {
     @State private var exportFilename = "offline-cache-export.zip"
     @State private var exportContentType: UTType = .zip
     @State private var isExporterPresented = false
+    @State private var isPreparingExport = false
+    @State private var exportProgress = 0.0
+    @State private var exportStage = "正在准备"
+    @State private var exportCurrentStep = 0
+    @State private var exportTotalSteps = 0
+    @State private var exportCancellationToken: OfflineExportCancellationToken?
     @State private var isImporterPresented = false
     @State private var transferErrorTitle: String?
     @State private var transferErrorMessage: String?
@@ -165,6 +171,14 @@ struct OfflineCacheView: View {
             defaultFilename: exportFilename,
             onComplete: handleExportResult
         ))
+        .sheet(isPresented: $isPreparingExport) {
+            ExportProgressSheet(progress: exportProgress, stage: exportStage, currentStep: exportCurrentStep, totalSteps: exportTotalSteps) {
+                exportCancellationToken?.cancel()
+            }
+                .interactiveDismissDisabled(true)
+                .presentationDetents([.height(190)])
+                .presentationDragIndicator(.hidden)
+        }
         .task {
             guard !hasConsumedInitialPrefill else { return }
             hasConsumedInitialPrefill = true
@@ -497,6 +511,50 @@ struct OfflineCacheView: View {
 
     private func export(item: OfflineCacheItem?, option: OfflineCacheExportOption) {
         guard let item else { return }
+        if option.kind == .packageZip {
+            dismissExportOptions()
+            isPreparingExport = true
+            exportProgress = 0
+            exportStage = "正在准备缓存文件"
+            exportCurrentStep = 0
+            exportTotalSteps = 0
+            let cancellationToken = OfflineExportCancellationToken()
+            exportCancellationToken = cancellationToken
+            let itemCopy = item
+            DispatchQueue.global(qos: .userInitiated).async {
+                do {
+                    let file = try OfflineCacheTransferService.prepareExport(
+                        for: itemCopy,
+                        option: .packageZip,
+                        progress: { index, total, progress, stage in
+                            DispatchQueue.main.async {
+                                exportProgress = progress
+                                exportStage = stage
+                                exportCurrentStep = min(index + 1, total)
+                                exportTotalSteps = total
+                            }
+                        },
+                        isCancelled: { cancellationToken.isCancelled }
+                    )
+                    DispatchQueue.main.async {
+                        isPreparingExport = false
+                        exportCancellationToken = nil
+                        exportDocument = OfflineCacheTransferDocument(sourceURL: file.url)
+                        exportFilename = file.filename
+                        exportContentType = file.contentType
+                        isExporterPresented = true
+                    }
+                } catch {
+                    DispatchQueue.main.async {
+                        isPreparingExport = false
+                        exportCancellationToken = nil
+                        transferErrorTitle = "导出失败"
+                        transferErrorMessage = error.localizedDescription
+                    }
+                }
+            }
+            return
+        }
         do {
             let file = try OfflineCacheTransferService.prepareExport(
                 for: item,
@@ -606,6 +664,51 @@ private struct OfflineCacheExporter: ViewModifier {
                 defaultFilename: defaultFilename,
                 onCompletion: onComplete
             )
+        }
+    }
+}
+
+private final class OfflineExportCancellationToken {
+    private let lock = NSLock()
+    private var value = false
+    var isCancelled: Bool { lock.lock(); defer { lock.unlock() }; return value }
+    func cancel() { lock.lock(); value = true; lock.unlock() }
+}
+
+private struct ExportProgressSheet: View {
+    let progress: Double
+    let stage: String
+    let currentStep: Int
+    let totalSteps: Int
+    let onCancel: () -> Void
+
+    var body: some View {
+        NavigationStack {
+            VStack(alignment: .leading, spacing: 12) {
+                HStack {
+                    Text(totalSteps > 0 ? "步骤 \(currentStep)/\(totalSteps)" : "准备中")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                    Spacer()
+                    Text("\(Int((progress * 100).rounded()))%")
+                        .font(.subheadline.monospacedDigit())
+                        .foregroundStyle(.secondary)
+                }
+                ProgressView(value: progress, total: 1)
+                    .progressViewStyle(.linear)
+                Text(stage)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+            }
+            .padding(20)
+            .navigationTitle("导出缓存文件包")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("取消", role: .cancel, action: onCancel)
+                }
+            }
         }
     }
 }

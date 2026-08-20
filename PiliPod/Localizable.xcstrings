@@ -1357,6 +1357,9 @@
         }
       }
     },
+    "准备中" : {
+
+    },
     "分享图片" : {
       "localizations" : {
         "en" : {
@@ -2009,6 +2012,9 @@
           }
         }
       }
+    },
+    "导出缓存文件包" : {
+
     },
     "导出设置数据" : {
       "localizations" : {
@@ -3006,6 +3012,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "キャッシュを集計中"
+          }
+        }
+      }
+    },
+    "步骤 %lld/%lld" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "步骤 %1$lld/%2$lld"
           }
         }
       }
