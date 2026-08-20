@@ -5,15 +5,21 @@ struct CacheStorageSummary {
     var urlCacheDiskCapacity: Int64
     var cachesDirectorySize: Int64
     var temporaryDirectorySize: Int64
+    var offlineCacheSize: Int64
 
     static let empty = CacheStorageSummary(
         urlCacheDiskUsage: 0,
         urlCacheDiskCapacity: 0,
         cachesDirectorySize: 0,
-        temporaryDirectorySize: 0
+        temporaryDirectorySize: 0,
+        offlineCacheSize: 0
     )
 
     var totalCacheSize: Int64 {
+        cachesDirectorySize + temporaryDirectorySize + offlineCacheSize
+    }
+
+    var clearableCacheSize: Int64 {
         cachesDirectorySize + temporaryDirectorySize
     }
 }
@@ -22,6 +28,7 @@ enum CacheStorageService {
     private static let sharedURLCacheMemoryCapacity = 32 * 1_024 * 1_024
     private static let sharedURLCacheDiskCapacity = 160 * 1_024 * 1_024
     private static let sharedURLCacheDiskPath = "PiliPodURLCache"
+    private static let offlineCacheDirectoryName = "OfflineVideoCache"
 
     static func configureSharedURLCacheIfNeeded() {
         let current = URLCache.shared
@@ -44,18 +51,25 @@ enum CacheStorageService {
 
         let cachesDirectory = fileManager.urls(for: .cachesDirectory, in: .userDomainMask).first
         let temporaryDirectory = fileManager.temporaryDirectory
+        let offlineCacheDirectory = cachesDirectory?.appendingPathComponent(offlineCacheDirectoryName, isDirectory: true)
+        let allCachesSize = directorySize(at: cachesDirectory)
+        let offlineCacheSize = directorySize(at: offlineCacheDirectory)
 
         return CacheStorageSummary(
             urlCacheDiskUsage: Int64(urlCache.currentDiskUsage),
             urlCacheDiskCapacity: Int64(urlCache.diskCapacity),
-            cachesDirectorySize: directorySize(at: cachesDirectory),
-            temporaryDirectorySize: directorySize(at: temporaryDirectory)
+            cachesDirectorySize: max(allCachesSize - offlineCacheSize, 0),
+            temporaryDirectorySize: directorySize(at: temporaryDirectory),
+            offlineCacheSize: offlineCacheSize
         )
     }
 
     static func clearCaches() throws {
         URLCache.shared.removeAllCachedResponses()
-        try clearDirectoryContents(at: FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first)
+        try clearDirectoryContents(
+            at: FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first,
+            preserving: [offlineCacheDirectoryName]
+        )
         try clearDirectoryContents(at: FileManager.default.temporaryDirectory)
     }
 
@@ -94,7 +108,7 @@ enum CacheStorageService {
         return total
     }
 
-    private static func clearDirectoryContents(at url: URL?) throws {
+    private static func clearDirectoryContents(at url: URL?, preserving names: Set<String> = []) throws {
         guard let url else { return }
 
         let fileManager = FileManager.default
@@ -105,6 +119,7 @@ enum CacheStorageService {
         )
 
         for itemURL in contents {
+            guard !names.contains(itemURL.lastPathComponent) else { continue }
             try fileManager.removeItem(at: itemURL)
         }
     }

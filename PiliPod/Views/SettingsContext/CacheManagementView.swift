@@ -10,7 +10,7 @@ struct CacheManagementView: View {
     var body: some View {
         List {
             Section {
-                LabeledContent("缓存总大小", value: CacheStorageService.formattedSize(summary.totalCacheSize))
+                LabeledContent("可清理缓存总大小", value: CacheStorageService.formattedSize(summary.clearableCacheSize))
                 LabeledContent("URL 响应缓存") {
                     VStack(alignment: .trailing, spacing: 4) {
                         Text(CacheStorageService.formattedSize(summary.urlCacheDiskUsage))
@@ -23,8 +23,16 @@ struct CacheManagementView: View {
                 LabeledContent("tmp 临时目录", value: CacheStorageService.formattedSize(summary.temporaryDirectorySize))
             } header: {
                 Text("缓存概览")
-            } footer: {
-                Text("这里显示的是可直接清理的缓存空间。系统里看到的“文稿与数据”还可能包含 Cookie、数据库、偏好设置等其他持久化内容。")
+            }
+            
+            Section{
+                LabeledContent("离线缓存视频") {
+                    VStack(alignment: .trailing, spacing: 4) {
+                        Text(CacheStorageService.formattedSize(summary.offlineCacheSize))
+                    }
+                }
+            } footer:{
+                Text("离线缓存视频不会清理操作删除，需要管理或删除时请前往离线缓存页面。")
             }
 
             Section {
@@ -59,7 +67,7 @@ struct CacheManagementView: View {
                 }
                 .disabled(isLoading || isClearing)
             } footer: {
-                Text("会清理 URL 响应缓存、Library/Caches 和 tmp 临时文件。封面、头像、表情和预览图会在下次使用时重新建立缓存。")
+                Text("会清理 URL 响应缓存、Library/Caches（保留离线缓存视频）和 tmp 临时文件。封面、头像、表情和预览图会在下次使用时重新建立缓存。")
             }
         }
         .navigationTitle("缓存管理")
@@ -88,7 +96,7 @@ struct CacheManagementView: View {
             }
             Button("取消", role: .cancel) {}
         } message: {
-            Text("这不会影响登录状态和设置，但页面里的封面、头像、预览图下次会重新加载。")
+            Text("离线缓存视频不会被清除；如需管理，请前往离线缓存页面。页面里的封面、头像、预览图下次会重新加载。")
         }
     }
 

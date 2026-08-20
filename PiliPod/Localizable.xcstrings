@@ -1082,6 +1082,7 @@
       }
     },
     "会清理 URL 响应缓存、Library/Caches 和 tmp 临时文件。封面、头像、表情和预览图会在下次使用时重新建立缓存。" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -1096,6 +1097,9 @@
           }
         }
       }
+    },
+    "会清理 URL 响应缓存、Library/Caches（保留离线缓存视频）和 tmp 临时文件。封面、头像、表情和预览图会在下次使用时重新建立缓存。" : {
+
     },
     "你提交了 %lld 片段" : {
       "localizations" : {
@@ -1673,6 +1677,9 @@
           }
         }
       }
+    },
+    "可清理缓存总大小" : {
+
     },
     "同步" : {
       "localizations" : {
@@ -3721,6 +3728,15 @@
         }
       }
     },
+    "离线缓存视频" : {
+
+    },
+    "离线缓存视频不会清理操作删除，需要管理或删除时请前往离线缓存页面。" : {
+
+    },
+    "离线缓存视频不会被清除；如需管理，请前往离线缓存页面。页面里的封面、头像、预览图下次会重新加载。" : {
+
+    },
     "移动网络默认画质" : {
       "localizations" : {
         "en" : {
@@ -3875,6 +3891,7 @@
 
     },
     "缓存总大小" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -4330,6 +4347,7 @@
       }
     },
     "这不会影响登录状态和设置，但页面里的封面、头像、预览图下次会重新加载。" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -4378,6 +4396,7 @@
       }
     },
     "这里显示的是可直接清理的缓存空间。系统里看到的“文稿与数据”还可能包含 Cookie、数据库、偏好设置等其他持久化内容。" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
