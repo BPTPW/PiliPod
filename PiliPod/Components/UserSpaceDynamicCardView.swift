@@ -1,4 +1,5 @@
 import SwiftUI
+import SafariServices
 
 struct UserSpaceDynamicCardView: View {
     let item: UserSpaceDynamicItem
@@ -9,7 +10,9 @@ struct UserSpaceDynamicCardView: View {
 
     @Environment(\.openURL) private var openURL
     @State private var showsFullText = false
+    @State private var showsOriginalFullText = false
     @State private var selectedImageURL: String?
+    @State private var selectedWebURL: URL?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -28,6 +31,9 @@ struct UserSpaceDynamicCardView: View {
             if let url = selectedImageURL {
                 FullscreenImageViewer(imageURL: url, onDismiss: { selectedImageURL = nil })
             }
+        }
+        .sheet(isPresented: Binding(get: { selectedWebURL != nil }, set: { if !$0 { selectedWebURL = nil } })) {
+            if let selectedWebURL { SafariView(url: selectedWebURL) }
         }
     }
 
@@ -62,25 +68,29 @@ struct UserSpaceDynamicCardView: View {
 
     private var textContent: some View {
         VStack(alignment: .leading, spacing: 6) {
-            Text(item.text)
+            RichTextFlow(nodes: item.richText, onMention: onAuthorTap, onWeb: { selectedWebURL = $0 })
                 .font(.body)
-                .foregroundStyle(.primary)
-                .lineLimit(showsFullText ? nil : 5)
+                .frame(maxHeight: showsFullText ? nil : 4 * 24, alignment: .top)
+                .clipped()
                 .frame(maxWidth: .infinity, alignment: .leading)
-            if item.text.count > 120 {
+            if estimatedLineCount > 4 {
                 Button(showsFullText ? "收起" : "展开") { showsFullText.toggle() }
                     .font(.subheadline.weight(.medium))
                     .foregroundStyle(.biliPink)
             }
-            let links = item.richText.compactMap { $0.url.map { ($0, $0) } }
-            ForEach(Array(Set(links.map(\.0))), id: \.self) { url in
-                Button { if let destination = URL(string: url) { openURL(destination) } } label: {
-                    Label("打开链接", systemImage: "link")
-                        .font(.caption)
-                        .foregroundStyle(.biliPink)
-                }
-                .buttonStyle(.plain)
-            }
+        }
+    }
+
+    private var estimatedLineCount: Int {
+        estimatedLineCount(for: item.richText)
+    }
+
+    private func estimatedLineCount(for nodes: [UserSpaceDynamicItem.RichTextNode]) -> Int {
+        let availableCharactersPerLine = 22
+        return nodes.reduce(0) { total, node in
+            if node.kind == .emoji { return total + 1 }
+            let explicitLines = node.text.split(separator: "\n", omittingEmptySubsequences: false)
+            return total + explicitLines.reduce(0) { $0 + max(1, Int(ceil(Double($1.count) / Double(availableCharactersPerLine)))) }
         }
     }
 
@@ -160,7 +170,20 @@ struct UserSpaceDynamicCardView: View {
             Text(original.author.name.isEmpty ? "原动态不可用" : "@\(original.author.name)")
                 .font(.subheadline.weight(.medium))
                 .foregroundStyle(.secondary)
-            if !original.text.isEmpty { Text(original.text).font(.subheadline).lineLimit(4) }
+            if let title = original.title, !title.isEmpty {
+                Text(title).font(.subheadline.weight(.bold)).foregroundStyle(.primary)
+            }
+            if !original.richText.isEmpty {
+                RichTextFlow(nodes: original.richText, onMention: onAuthorTap, onWeb: { selectedWebURL = $0 })
+                    .font(.body)
+                    .frame(maxHeight: showsOriginalFullText ? nil : 4 * 24, alignment: .top)
+                    .clipped()
+                if estimatedLineCount(for: original.richText) > 4 {
+                    Button(showsOriginalFullText ? "收起" : "展开") { showsOriginalFullText.toggle() }
+                        .font(.subheadline.weight(.medium))
+                        .foregroundStyle(.biliPink)
+                }
+            }
             if let video = original.video { videoPreview(video) }
             else if let live = original.live { livePreview(live) }
             else if let preview = original.previewCard { genericPreview(preview) }
@@ -261,4 +284,124 @@ struct UserSpaceDynamicCardView: View {
         guard let timestamp else { return "" }
         return VideoItem.formatHistoryTimestamp(timestamp)
     }
+}
+
+private struct RichTextFlow: View {
+    let nodes: [UserSpaceDynamicItem.RichTextNode]
+    let onMention: (Int) -> Void
+    let onWeb: (URL) -> Void
+
+    var body: some View {
+        RichTextWrappingLayout(spacing: 4, lineSpacing: 2) {
+            ForEach(nodes) { node in
+                nodeView(node)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func nodeView(_ node: UserSpaceDynamicItem.RichTextNode) -> some View {
+        switch node.kind {
+        case .emoji:
+            if let urlString = node.emojiURL, let url = URL(string: urlString) {
+                CachedAsyncImage(url: url) { phase in
+                    if case .success(let image) = phase {
+                        image.resizable().scaledToFit()
+                    } else {
+                        Text(node.text)
+                    }
+                }
+                .frame(height: 21)
+                .fixedSize()
+                .accessibilityLabel(node.text)
+            } else { Text(node.text) }
+        case .mention:
+            Button {
+                if let rid = node.rid { onMention(rid) }
+            } label: {
+                Text(node.text).foregroundStyle(.biliPink)
+            }
+            .buttonStyle(.plain)
+            .disabled(node.rid == nil)
+        case .link:
+            Button { if let url = node.url.flatMap(URL.init(string:)) { onWeb(url) } } label: {
+                Text(node.text).foregroundStyle(.biliPink)
+            }
+            .buttonStyle(.plain)
+        case .text:
+            Text(node.text)
+                .foregroundStyle(.primary)
+                .fixedSize(horizontal: false, vertical: true)
+                .layoutValue(key: RichTextWrappingLayout.WrapTextKey.self, value: true)
+        case .topic, .other:
+            Text(node.text)
+                .foregroundStyle(.biliPink)
+                .fixedSize(horizontal: true, vertical: true)
+        }
+    }
+}
+
+private struct RichTextWrappingLayout: Layout {
+    var spacing: CGFloat
+    var lineSpacing: CGFloat
+
+    struct WrapTextKey: LayoutValueKey {
+        static let defaultValue = false
+    }
+
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
+        let width = proposal.width ?? .greatestFiniteMagnitude
+        var x: CGFloat = 0, y: CGFloat = 0, rowHeight: CGFloat = 0
+        for subview in subviews {
+            let wraps = subview[WrapTextKey.self]
+            var size = subview.sizeThatFits(ProposedViewSize(width: wraps ? max(0, width - x) : nil, height: nil))
+            if x > 0 && wraps {
+                let intrinsic = subview.sizeThatFits(.unspecified)
+                if intrinsic.width > width - x {
+                    y += rowHeight + lineSpacing
+                    x = 0
+                    rowHeight = 0
+                    size = subview.sizeThatFits(ProposedViewSize(width: width, height: nil))
+                }
+            } else if x > 0 && !wraps && x + size.width > width {
+                y += rowHeight + lineSpacing
+                x = 0
+                rowHeight = 0
+                size = subview.sizeThatFits(ProposedViewSize(width: wraps ? width : nil, height: nil))
+            }
+            x += size.width + spacing
+            rowHeight = max(rowHeight, size.height)
+        }
+        return CGSize(width: proposal.width ?? x, height: y + rowHeight)
+    }
+
+    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
+        var x = bounds.minX, y = bounds.minY, rowHeight: CGFloat = 0
+        for subview in subviews {
+            let wraps = subview[WrapTextKey.self]
+            var size = subview.sizeThatFits(ProposedViewSize(width: wraps ? max(0, bounds.maxX - x) : nil, height: nil))
+            if x > bounds.minX && wraps {
+                let intrinsic = subview.sizeThatFits(.unspecified)
+                if intrinsic.width > bounds.maxX - x {
+                    y += rowHeight + lineSpacing
+                    x = bounds.minX
+                    rowHeight = 0
+                    size = subview.sizeThatFits(ProposedViewSize(width: bounds.width, height: nil))
+                }
+            } else if x > bounds.minX && !wraps && x + size.width > bounds.maxX {
+                y += rowHeight + lineSpacing
+                x = bounds.minX
+                rowHeight = 0
+                size = subview.sizeThatFits(ProposedViewSize(width: wraps ? bounds.width : nil, height: nil))
+            }
+            subview.place(at: CGPoint(x: x, y: y), proposal: ProposedViewSize(width: size.width, height: size.height))
+            x += size.width + spacing; rowHeight = max(rowHeight, size.height)
+        }
+    }
+}
+
+private struct SafariView: UIViewControllerRepresentable {
+    let url: URL
+    func makeUIViewController(context: Context) -> SFSafariViewController { SFSafariViewController(url: url) }
+    func updateUIViewController(_ controller: SFSafariViewController, context: Context) {}
 }

@@ -75,7 +75,8 @@ struct UserSpaceDynamicItem: Identifiable, Hashable {
     }
     struct Original: Hashable {
         let author: Author
-        let text: String
+        let title: String?
+        let richText: [RichTextNode]
         let images: [ImageAsset]
         let video: Video?
         let live: Live?
@@ -103,12 +104,13 @@ struct UserSpaceDynamicItem: Identifiable, Hashable {
     }
 
     struct RichTextNode: Identifiable, Hashable {
-        enum Kind: Hashable { case text, link, mention, topic, emoji }
+        enum Kind: Hashable { case text, link, mention, topic, emoji, other }
         let id: UUID
         let kind: Kind
         let text: String
         let url: String?
         let emojiURL: String?
+        let rid: Int?
     }
 
     struct Video: Hashable {
@@ -142,6 +144,7 @@ struct UserSpaceDynamicItem: Identifiable, Hashable {
     let id: String
     let type: String
     let author: Author
+    let opusTitle: String?
     let richText: [RichTextNode]
     let images: [ImageAsset]
     let video: Video?
@@ -168,8 +171,11 @@ struct UserSpaceDynamicItem: Identifiable, Hashable {
         let desc = dynamic["desc"]?.objectValue ?? [:]
         let major = dynamic["major"]?.objectValue ?? [:]
         let additional = dynamic["additional"]?.objectValue ?? [:]
-        let richText = richNodes(from: desc)
-        let fallbackText = firstText(in: [desc, dynamic, major, additional])
+        let opus = major["opus"]?.objectValue
+        let opusSummary = opus?["summary"]?.objectValue
+        let content = opusSummary ?? desc
+        let richText = richNodes(from: content)
+        let fallbackText = firstText(in: [content, desc, dynamic, major, additional])
         let nodes = richText.isEmpty ? plainNodes(fallbackText) : richText
         let stat = modules["module_stat"]?.objectValue ?? [:]
         let item = UserSpaceDynamicItem(
@@ -182,6 +188,7 @@ struct UserSpaceDynamicItem: Identifiable, Hashable {
                 publishTime: authorValue.string("pub_time", "pubTime"),
                 publishTimestamp: authorValue.int("pub_ts", "pubTs")
             ),
+            opusTitle: opus?.string("title"),
             richText: nodes,
             images: uniqueImages(in: [dynamic["major"], dynamic["desc"], dynamic["additional"]]),
             video: videoFrom(major),
@@ -198,10 +205,13 @@ struct UserSpaceDynamicItem: Identifiable, Hashable {
                 resourceID: basic.string("rid_str"),
                 type: basic.int("comment_type")
             ),
-            original: depth == 0 ? object["orig"].flatMap { make(from: $0, depth: 1).map { Original(author: $0.author, text: $0.text, images: $0.images, video: $0.video, live: $0.live, previewCard: $0.previewCard) } } : nil
+            original: depth == 0 ? object["orig"].flatMap { make(from: $0, depth: 1).map {
+                Original(author: $0.author, title: $0.opusTitle, richText: $0.richText, images: $0.images, video: $0.video, live: $0.live, previewCard: $0.previewCard)
+            } } : nil
         )
         return item.isDisplayable ? item : nil
     }
+
 }
 
 private extension SpaceDynamicJSONValue {
@@ -244,19 +254,31 @@ private extension Dictionary where Key == String, Value == SpaceDynamicJSONValue
 
 private func richNodes(from desc: [String: SpaceDynamicJSONValue]) -> [UserSpaceDynamicItem.RichTextNode] {
     guard let nodes = desc["rich_text_nodes"]?.arrayValue else { return [] }
-    return nodes.compactMap { raw in
+    var result: [UserSpaceDynamicItem.RichTextNode] = nodes.compactMap { raw -> UserSpaceDynamicItem.RichTextNode? in
         guard let value = raw.objectValue else { return nil }
         let text = value.string("text", "orig_text", "raw_text") ?? ""
         guard !text.isEmpty else { return nil }
         let type = (value.string("type") ?? "").uppercased()
-        let kind: UserSpaceDynamicItem.RichTextNode.Kind = type.contains("EMOJI") ? .emoji : type.contains("AT") ? .mention : type.contains("TOPIC") ? .topic : value.string("jump_url", "url") != nil ? .link : .text
-        return .init(id: UUID(), kind: kind, text: text, url: normalizedURL(value.string("jump_url", "url")), emojiURL: normalizedURL(value["emoji"]?.objectValue?.string("icon_url", "url")))
+        let kind: UserSpaceDynamicItem.RichTextNode.Kind = type.contains("EMOJI") ? .emoji : type.contains("AT") ? .mention : type.contains("TOPIC") ? .topic : type.contains("WEB") || value.string("jump_url", "url") != nil ? .link : type == "RICH_TEXT_NODE_TYPE_TEXT" ? .text : .other
+        return .init(id: UUID(), kind: kind, text: text, url: normalizedURL(value.string("jump_url", "url")), emojiURL: normalizedURL(value["emoji"]?.objectValue?.string("icon_url", "gif_url", "webp_url", "url")), rid: value.int("rid"))
     }
+    result = result.map { node in
+        guard node.kind == .text else { return node }
+        return UserSpaceDynamicItem.RichTextNode(
+            id: node.id,
+            kind: node.kind,
+            text: node.text.replacingOccurrences(of: "\r\n", with: "\n"),
+            url: node.url,
+            emojiURL: node.emojiURL,
+            rid: node.rid
+        )
+    }
+    return result.filter { !$0.text.isEmpty }
 }
 
 private func plainNodes(_ text: String?) -> [UserSpaceDynamicItem.RichTextNode] {
     guard let text = text?.trimmedDynamicText, !text.isEmpty else { return [] }
-    return [.init(id: UUID(), kind: .text, text: text, url: nil, emojiURL: nil)]
+    return [.init(id: UUID(), kind: .text, text: text, url: nil, emojiURL: nil, rid: nil)]
 }
 
 private func firstText(in objects: [[String: SpaceDynamicJSONValue]]) -> String? {
