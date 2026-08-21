@@ -62,10 +62,10 @@ struct FullscreenImageViewer: View {
             } label: {
                 Image(systemName: "xmark")
                     .font(.system(size: 14, weight: .semibold))
-                    .foregroundStyle(.white)
+                    .foregroundStyle(.black)
                     .frame(width: 34, height: 34)
-                    .background(.black.opacity(0.45), in: Circle())
             }
+            .glassEffect(.regular, in: .circle)
             .padding(.top, 18)
             .padding(.trailing, 16)
 
@@ -77,10 +77,10 @@ struct FullscreenImageViewer: View {
                     } label: {
                         Image(systemName: "square.and.arrow.down")
                             .font(.system(size: 16, weight: .semibold))
-                            .foregroundStyle(.white)
+                            .foregroundStyle(.black)
                             .frame(width: 38, height: 38)
-                            .background(.black.opacity(0.45), in: Circle())
                     }
+                    .glassEffect(.regular, in: .circle)
                     .disabled(currentImage == nil)
 
                     Spacer()
