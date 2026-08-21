@@ -93,7 +93,7 @@ struct UserSpaceDynamicCardView: View {
                         if item.images.count == 1 {
                             dynamicImage(
                                 asset,
-                                aspectRatio: max((asset.width ?? 1) / (asset.height ?? 1), 0.2),
+                                aspectRatio: min(max((asset.width ?? 1) / (asset.height ?? 1), 0.2), 4.0 / 3.0),
                                 cornerRadius: 12
                             )
                         } else {
@@ -117,6 +117,7 @@ struct UserSpaceDynamicCardView: View {
                     .frame(maxWidth: .infinity)
                     .aspectRatio(16 / 9, contentMode: .fit)
                     .clipped()
+                    .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
                     Text("视频")
                         .font(.caption.weight(.semibold))
                         .foregroundStyle(.primary)
