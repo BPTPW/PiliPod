@@ -22,6 +22,7 @@ struct UserSpaceView: View {
     @Namespace private var videoHeroNamespace
     @State private var selectedVideo: VideoItem?
     @State private var selectedLiveRoom: LiveCardModel?
+    @State private var selectedAuthorMID: Int?
 
     let mid: Int
     let fromViewAid: Int?
@@ -46,6 +47,10 @@ struct UserSpaceView: View {
                     }
                 }
                 .background(Color(.systemBackground))
+                .refreshable {
+                    if selectedTab == .posts { await viewModel.refreshDynamics() }
+                    else if selectedTab == .video { await viewModel.refreshArchive() }
+                }
             }
             .overlay(alignment: .top) {
                 topBar(topInset: topInset)
@@ -75,6 +80,9 @@ struct UserSpaceView: View {
         }
         .navigationDestination(item: $selectedLiveRoom) { room in
             LivePlaybackPage(room: room)
+        }
+        .navigationDestination(item: $selectedAuthorMID) { authorMID in
+            UserSpaceView(mid: authorMID)
         }
         .task {
             await viewModel.load(mid: mid, fromViewAid: fromViewAid)
@@ -299,7 +307,9 @@ struct UserSpaceView: View {
             }
             .pickerStyle(.segmented)
 
-            if selectedTab == .video {
+            if selectedTab == .posts {
+                dynamicsTabContent
+            } else if selectedTab == .video {
                 postsTabContent
             } else {
                 RoundedRectangle(cornerRadius: 14, style: .continuous)
@@ -310,6 +320,36 @@ struct UserSpaceView: View {
         .padding(.horizontal, 16)
         .padding(.top, 18)
         .padding(.bottom, 24)
+    }
+
+    @ViewBuilder
+    private var dynamicsTabContent: some View {
+        if viewModel.dynamicIsLoading && viewModel.dynamicItems.isEmpty {
+            RoundedRectangle(cornerRadius: 14, style: .continuous).fill(Color(.systemBackground)).frame(height: 200).overlay { ProgressView("加载动态中…") }
+        } else if let error = viewModel.dynamicErrorMessage, viewModel.dynamicItems.isEmpty {
+            RoundedRectangle(cornerRadius: 14, style: .continuous).fill(Color(.systemBackground)).frame(height: 200).overlay { Text(error).font(.subheadline).foregroundStyle(.secondary).padding() }
+        } else if viewModel.dynamicItems.isEmpty {
+            RoundedRectangle(cornerRadius: 14, style: .continuous).fill(Color(.systemBackground)).frame(height: 200).overlay { Text("还没有动态").font(.subheadline).foregroundStyle(.secondary) }
+        } else {
+            LazyVStack(spacing: 12) {
+                ForEach(viewModel.dynamicItems) { item in
+                    UserSpaceDynamicCardView(item: item, onVideoTap: { video in
+                        guard let bvid = video.bvid, !bvid.isEmpty else { return }
+                        selectedVideo = VideoItem(bvid: bvid, cid: nil, cover: video.coverURL ?? "", title: video.title, playCount: VideoItem.formatCount(video.playCount), danmakuCount: VideoItem.formatCount(video.danmakuCount), uploader: item.author.name, duration: video.duration, progressSeconds: nil, publishTimeText: item.author.publishTime ?? "--", bottomRcmdReasonText: nil)
+                    }, onLiveTap: { live in
+                        selectedLiveRoom = LiveCardModel(roomId: live.roomID, uid: item.author.mid, title: live.title, coverURL: live.coverURL ?? "", onlineCount: live.onlineCount, anchorName: item.author.name, faceURL: item.author.faceURL ?? "", areaName: live.areaName, badgeText: "直播中", link: live.link)
+                    }, onAuthorTap: { authorMID in
+                        selectedAuthorMID = authorMID
+                    }, onCommentTap: { target in
+                        guard target.resourceID != nil || target.commentID != nil else { return }
+                        toastMessage = "评论功能即将接入"
+                    })
+                    .onAppear { Task { await viewModel.loadMoreDynamicsIfNeeded(current: item) } }
+                }
+                if viewModel.dynamicIsLoading { ProgressView().padding(.vertical, 8) }
+                else if !viewModel.dynamicHasMore { Text("没有更多动态").font(.caption).foregroundStyle(.secondary).padding(.vertical, 8) }
+            }
+        }
     }
 
     @ViewBuilder

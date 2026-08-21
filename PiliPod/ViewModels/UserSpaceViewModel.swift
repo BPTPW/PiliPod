@@ -12,10 +12,16 @@ final class UserSpaceViewModel: ObservableObject {
     @Published var archiveErrorMessage: String?
     @Published var archiveHasMore = true
     @Published private(set) var archiveOrder: BiliAPI.SpaceArchiveOrder = .pubdate
+    @Published var dynamicItems: [UserSpaceDynamicItem] = []
+    @Published var dynamicIsLoading = false
+    @Published var dynamicErrorMessage: String?
+    @Published var dynamicHasMore = true
 
     private var archiveNextAid: Int?
     private var archiveMid: Int?
     private var loadedMid: Int?
+    private var dynamicMid: Int?
+    private var dynamicOffset: String?
 
     func load(mid: Int, fromViewAid: Int?) async {
         guard !isLoading else { return }
@@ -30,11 +36,55 @@ final class UserSpaceViewModel: ObservableObject {
         do {
             data = try await BiliAPI.shared.fetchUserSpace(mid: mid, fromViewAid: fromViewAid)
             await refreshArchive()
+            await refreshDynamics()
             loadedMid = mid
         } catch {
             ErrorLogService.record(error, context: "加载用户空间")
             data = nil
             errorMessage = error.localizedDescription
+        }
+    }
+
+    func refreshDynamics() async {
+        guard let mid = archiveMid else { return }
+        dynamicMid = mid
+        dynamicIsLoading = true
+        dynamicErrorMessage = nil
+        dynamicHasMore = true
+        dynamicOffset = nil
+        defer { dynamicIsLoading = false }
+        do {
+            let page = try await BiliAPI.shared.fetchUserSpaceDynamics(mid: mid)
+            dynamicItems = page.items
+            dynamicOffset = page.nextOffset
+            dynamicHasMore = page.hasMore && page.nextOffset != nil && !page.items.isEmpty
+        } catch {
+            ErrorLogService.record(error, context: "加载用户动态")
+            dynamicItems = []
+            dynamicErrorMessage = error.localizedDescription
+            dynamicHasMore = false
+        }
+    }
+
+    func loadMoreDynamicsIfNeeded(current item: UserSpaceDynamicItem) async {
+        guard item.id == dynamicItems.last?.id else { return }
+        await loadMoreDynamics()
+    }
+
+    func loadMoreDynamics() async {
+        guard let mid = dynamicMid, !dynamicIsLoading, dynamicHasMore, let offset = dynamicOffset else { return }
+        dynamicIsLoading = true
+        defer { dynamicIsLoading = false }
+        do {
+            let page = try await BiliAPI.shared.fetchUserSpaceDynamics(mid: mid, offset: offset)
+            let existing = Set(dynamicItems.map(\.id))
+            dynamicItems.append(contentsOf: page.items.filter { !existing.contains($0.id) })
+            dynamicOffset = page.nextOffset
+            dynamicHasMore = page.hasMore && page.nextOffset != nil && !page.items.isEmpty
+        } catch {
+            ErrorLogService.record(error, context: "加载更多用户动态")
+            dynamicErrorMessage = error.localizedDescription
+            dynamicHasMore = false
         }
     }
 
