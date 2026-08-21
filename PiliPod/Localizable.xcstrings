@@ -1876,22 +1876,6 @@
         }
       }
     },
-    "导入登录 JSON 后即可同步账号状态。" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Import login JSON to sync account status."
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "ログインJSONをインポートすると、アカウントの状態を同期できます。"
-          }
-        }
-      }
-    },
     "导入登录信息" : {
       "localizations" : {
         "en" : {
@@ -2313,6 +2297,7 @@
       }
     },
     "当前未登录" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -2327,6 +2312,9 @@
           }
         }
       }
+    },
+    "当前未登录账号" : {
+
     },
     "当前没有可用的真实播放 URL，将使用 Host 连通性参考请求，403/959 仅代表 CDN 拒绝裸探测，不代表播放失败。" : {
       "localizations" : {
@@ -3293,6 +3281,9 @@
           }
         }
       }
+    },
+    "点击登录" : {
+
     },
     "片段处理方式" : {
       "localizations" : {

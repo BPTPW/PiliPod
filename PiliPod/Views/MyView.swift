@@ -42,26 +42,6 @@ struct MyView: View {
                     .padding(.horizontal, 30)
 
                 Spacer()
-
-                VStack(spacing: 12) {
-                    if loginSession.isLogin {
-                        Button("退出登录") {
-                            LoginImportService.clearLoginState()
-                            viewModel.user = nil
-                        }
-                        .buttonStyle(.bordered)
-                        .tint(.red)
-                        .frame(maxWidth: .infinity)
-                    } else {
-                        Button("登录") {
-                            showLoginSheet = true
-                        }
-                        .buttonStyle(.borderedProminent)
-                        .frame(maxWidth: .infinity)
-                    }
-                }
-                .padding(.horizontal)
-                .padding(.bottom, 20)
             }
             .task {
                 await viewModel.loadUser()
@@ -135,22 +115,17 @@ struct MyView: View {
             }
             .buttonStyle(.plain)
         } else {
-            HStack(alignment: .top, spacing: 14) {
-                Image(systemName: "person.crop.circle")
-                    .font(.system(size: 50))
-                    .foregroundStyle(.secondary)
-
-                VStack(alignment: .leading, spacing: 8) {
-                    Text(loginSession.isLogin ? "正在加载个人信息…" : "当前未登录")
-                        .font(.title3)
-                        .fontWeight(.semibold)
-
-                    Text("导入登录 JSON 后即可同步账号状态。")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+            Group {
+                if loginSession.isLogin {
+                    loggedOutHeader
+                } else {
+                    Button {
+                        showLoginSheet = true
+                    } label: {
+                        loggedOutHeader
+                    }
+                    .buttonStyle(.plain)
                 }
-
-                Spacer(minLength: 0)
             }
         }
         if let stat = viewModel.stat {
@@ -184,6 +159,26 @@ struct MyView: View {
                 Spacer()
             }
             .padding(.top, 2)
+        }
+    }
+
+    private var loggedOutHeader: some View {
+        HStack(alignment: .top, spacing: 14) {
+            Image(systemName: "person.crop.circle")
+                .font(.system(size: 50))
+                .foregroundStyle(.secondary)
+
+            VStack(alignment: .leading, spacing: 8) {
+                Text(loginSession.isLogin ? "正在加载个人信息…" : "点击登录")
+                    .font(.title3)
+                    .fontWeight(.semibold)
+
+                Text("当前未登录账号")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+
+            Spacer(minLength: 0)
         }
     }
 

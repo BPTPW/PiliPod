@@ -1,6 +1,8 @@
 import SwiftUI
 
 struct SettingsView: View {
+    @ObservedObject private var loginSession = LoginSession.shared
+
     var body: some View {
         List {
             Section {
@@ -73,6 +75,20 @@ struct SettingsView: View {
                         tint: .gray
                     )
                 }
+            }
+
+            Section {
+                Button {
+                    LoginImportService.clearLoginState()
+                } label: {
+                    SettingsCategoryRow(
+                        title: "退出登录",
+                        systemImage: "rectangle.portrait.and.arrow.right",
+                        tint: .red
+                    )
+                }
+                .tint(.red)
+                .disabled(!loginSession.isLogin)
             }
         }
         .navigationTitle("设置")
