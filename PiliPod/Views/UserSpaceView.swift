@@ -23,6 +23,7 @@ struct UserSpaceView: View {
     @State private var selectedVideo: VideoItem?
     @State private var selectedLiveRoom: LiveCardModel?
     @State private var selectedAuthorMID: Int?
+    @State private var selectedDynamic: UserSpaceDynamicItem?
 
     let mid: Int
     let fromViewAid: Int?
@@ -83,6 +84,19 @@ struct UserSpaceView: View {
         }
         .navigationDestination(item: $selectedAuthorMID) { authorMID in
             UserSpaceView(mid: authorMID)
+        }
+        .navigationDestination(item: $selectedDynamic) { dynamic in
+            UserSpaceDynamicDetailView(
+                item: dynamic,
+                onVideoTap: { video in
+                    guard let bvid = video.bvid, !bvid.isEmpty else { return }
+                    selectedVideo = VideoItem(bvid: bvid, cid: nil, cover: video.coverURL ?? "", title: video.title, playCount: VideoItem.formatCount(video.playCount), danmakuCount: VideoItem.formatCount(video.danmakuCount), uploader: dynamic.author.name, duration: video.duration, progressSeconds: nil, publishTimeText: dynamic.author.publishTime ?? "--", bottomRcmdReasonText: nil)
+                },
+                onLiveTap: { live in
+                    selectedLiveRoom = LiveCardModel(roomId: live.roomID, uid: dynamic.author.mid, title: live.title, coverURL: live.coverURL ?? "", onlineCount: live.onlineCount, anchorName: dynamic.author.name, faceURL: dynamic.author.faceURL ?? "", areaName: live.areaName, badgeText: "直播中", link: live.link)
+                },
+                onAuthorTap: { selectedAuthorMID = $0 }
+            )
         }
         .task {
             await viewModel.load(mid: mid, fromViewAid: fromViewAid)
@@ -342,7 +356,9 @@ struct UserSpaceView: View {
                         selectedAuthorMID = authorMID
                     }, onCommentTap: { target in
                         guard target.resourceID != nil || target.commentID != nil else { return }
-                        toastMessage = "评论功能即将接入"
+                        selectedDynamic = item
+                    }, onTapDetail: {
+                        selectedDynamic = item
                     })
                     .onAppear { Task { await viewModel.loadMoreDynamicsIfNeeded(current: item) } }
                 }

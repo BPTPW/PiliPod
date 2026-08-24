@@ -8,8 +8,23 @@
 import SwiftUI
 
 struct VideoCommentsTabView: View {
-    let aid: Int
+    let oid: Int64
+    let commentType: Int
     let onOpenUserSpace: (Int) -> Void
+    let allowsPosting: Bool
+    let isEmbedded: Bool
+
+    init(aid: Int, onOpenUserSpace: @escaping (Int) -> Void) {
+        self.init(oid: Int64(aid), commentType: 1, onOpenUserSpace: onOpenUserSpace, allowsPosting: true, isEmbedded: false)
+    }
+
+    init(oid: Int64, commentType: Int, onOpenUserSpace: @escaping (Int) -> Void, allowsPosting: Bool = true, isEmbedded: Bool = false) {
+        self.oid = oid
+        self.commentType = commentType
+        self.onOpenUserSpace = onOpenUserSpace
+        self.allowsPosting = allowsPosting
+        self.isEmbedded = isEmbedded
+    }
 
     @State private var isLoading = false
     @State private var isLoadingMore = false
@@ -60,54 +75,16 @@ struct VideoCommentsTabView: View {
                         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
                         .padding(16)
                 } else {
-                    List {
-                        ForEach(comments) { item in
-                            CommentCardView(
-                                comment: item,
-                                onTapAvatar: onOpenUserSpace,
-                                onTapReplyUser: onOpenUserSpace,
-                                onTapComment: { tapped in
-                                    Task { @MainActor in
-                                        await openDetailMode(with: tapped)
-                                    }
-                                },
-                                onTapLike: { tapped in
-                                    Task { @MainActor in
-                                        await toggleLike(for: tapped)
-                                    }
-                                },
-                                onTapDislike: { tapped in
-                                    Task { @MainActor in
-                                        await toggleDislike(for: tapped)
-                                    }
-                                }
-                            )
-                        }
-
-                        if hasMore {
-                            HStack(spacing: 8) {
-                                if isLoadingMore {
-                                    ProgressView()
-                                }
-                                Text(isLoadingMore ? "加载更多评论中…" : "上拉加载更多")
-                                    .font(.footnote)
-                                    .foregroundStyle(.secondary)
-                            }
-                            .frame(maxWidth: .infinity, alignment: .center)
-                            .padding(.vertical, 12)
-                            .listRowSeparator(.hidden)
-                            .onAppear {
-                                Task { @MainActor in
-                                    await loadMoreCommentsIfNeeded()
-                                }
-                            }
-                        }
+                    if isEmbedded {
+                        LazyVStack(spacing: 0) { mainCommentRows }
+                    } else {
+                        List { mainCommentRows }
+                            .listStyle(.plain)
                     }
-                    .listStyle(.plain)
                 }
             }
 
-            Button {
+            if allowsPosting { Button {
                 composerContext = defaultComposerContext
                 composerDetent = .fraction(0.5)
                 showComposer = true
@@ -123,11 +100,11 @@ struct VideoCommentsTabView: View {
             }
             .tint(.primary)
             .padding(.trailing, 24)
-            .padding(.bottom, 24)
+            .padding(.bottom, 24) }
         }
-        .sheet(isPresented: $showComposer) {
+        .sheet(isPresented: Binding(get: { allowsPosting && showComposer }, set: { showComposer = $0 })) {
             CommentComposerSheet(
-                aid: aid,
+                aid: Int(oid),
                 titleText: composerContext.titleText,
                 placeholderText: composerContext.placeholderText,
                 rootRpid: composerContext.rootRpid,
@@ -145,8 +122,8 @@ struct VideoCommentsTabView: View {
             .presentationDetents([.fraction(0.5), .fraction(0.78)], selection: $composerDetent)
             .presentationDragIndicator(.visible)
         }
-        .task(id: aid) {
-            guard aid > 0 else { return }
+        .task(id: oid) {
+            guard oid > 0 else { return }
             hasLoaded = false
             hasMore = true
             nextCursor = 0
@@ -158,6 +135,38 @@ struct VideoCommentsTabView: View {
 
     private var isInDetailMode: Bool {
         detailRootComment != nil
+    }
+
+    @ViewBuilder
+    private var mainCommentRows: some View {
+        ForEach(comments) { item in
+            CommentCardView(
+                comment: item,
+                onTapAvatar: onOpenUserSpace,
+                onTapReplyUser: onOpenUserSpace,
+                onTapComment: { tapped in
+                    Task { @MainActor in await openDetailMode(with: tapped) }
+                },
+                onTapLike: { tapped in
+                    Task { @MainActor in await toggleLike(for: tapped) }
+                },
+                onTapDislike: { tapped in
+                    Task { @MainActor in await toggleDislike(for: tapped) }
+                }
+            )
+            .padding(.horizontal, isEmbedded ? 16 : 0)
+        }
+        if hasMore {
+            HStack(spacing: 8) {
+                if isLoadingMore { ProgressView() }
+                Text(isLoadingMore ? "加载更多评论中…" : "上拉加载更多")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+            }
+            .frame(maxWidth: .infinity, alignment: .center)
+            .padding(.vertical, 12)
+            .onAppear { Task { @MainActor in await loadMoreCommentsIfNeeded() } }
+        }
     }
 
     private var defaultComposerContext: ComposerContext {
@@ -304,7 +313,7 @@ struct VideoCommentsTabView: View {
         defer { isLoading = false }
 
         do {
-            let reply = try await BiliAPI.shared.fetchVideoCommentMainList(aid: Int64(aid))
+            let reply = try await BiliAPI.shared.fetchVideoCommentMainList(oid: oid, type: commentType)
             comments = reply.replies.map { toCommentItem($0) }
             nextCursor = reply.cursor.next
             hasMore = !reply.cursor.isEnd && !reply.replies.isEmpty
@@ -318,13 +327,14 @@ struct VideoCommentsTabView: View {
 
     @MainActor
     private func loadMoreCommentsIfNeeded() async {
-        guard hasLoaded, hasMore, !isLoadingMore, aid > 0 else { return }
+        guard hasLoaded, hasMore, !isLoadingMore, oid > 0 else { return }
         isLoadingMore = true
         defer { isLoadingMore = false }
 
         do {
             let reply = try await BiliAPI.shared.fetchVideoCommentMainList(
-                aid: Int64(aid),
+                oid: oid,
+                type: commentType,
                 next: nextCursor
             )
             let appended = reply.replies.map { toCommentItem($0) }
@@ -350,7 +360,8 @@ struct VideoCommentsTabView: View {
 
         do {
             let response = try await BiliAPI.shared.fetchVideoCommentDetailList(
-                aid: Int64(aid),
+                oid: oid,
+                type: commentType,
                 rootRpid: Int64(comment.rpid),
                 next: 0
             )
@@ -370,13 +381,14 @@ struct VideoCommentsTabView: View {
               root.rpid > 0,
               detailHasMore,
               !detailIsLoadingMore,
-              aid > 0 else { return }
+              oid > 0 else { return }
         detailIsLoadingMore = true
         defer { detailIsLoadingMore = false }
 
         do {
             let response = try await BiliAPI.shared.fetchVideoCommentDetailList(
-                aid: Int64(aid),
+                oid: oid,
+                type: commentType,
                 rootRpid: Int64(root.rpid),
                 next: detailNextCursor
             )
@@ -478,9 +490,10 @@ struct VideoCommentsTabView: View {
         let willLike = !comment.isLiked
         do {
             try await BiliAPI.shared.likeComment(
-                oid: aid,
+                oid: Int(oid),
                 rpid: comment.rpid,
-                isCancel: !willLike
+                isCancel: !willLike,
+                type: commentType
             )
             applyCommentState(
                 rpid: comment.rpid,
@@ -510,9 +523,10 @@ struct VideoCommentsTabView: View {
         let willDislike = !comment.isDisliked
         do {
             try await BiliAPI.shared.hateComment(
-                oid: aid,
+                oid: Int(oid),
                 rpid: comment.rpid,
-                isCancel: !willDislike
+                isCancel: !willDislike,
+                type: commentType
             )
             applyCommentState(
                 rpid: comment.rpid,

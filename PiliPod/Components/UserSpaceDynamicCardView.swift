@@ -7,6 +7,8 @@ struct UserSpaceDynamicCardView: View {
     let onLiveTap: (UserSpaceDynamicItem.Live) -> Void
     let onAuthorTap: (Int) -> Void
     let onCommentTap: (UserSpaceDynamicItem.CommentTarget) -> Void
+    var showsFullTextByDefault = false
+    var onTapDetail: (() -> Void)? = nil
 
     @Environment(\.openURL) private var openURL
     @State private var showsFullText = false
@@ -27,6 +29,9 @@ struct UserSpaceDynamicCardView: View {
         }
         .padding(14)
         .background(cardBackground)
+        .contentShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+        .onTapGesture { onTapDetail?() }
+        .onAppear { if showsFullTextByDefault { showsFullText = true; showsOriginalFullText = true } }
         .fullScreenCover(isPresented: Binding(get: { selectedImageURL != nil }, set: { if !$0 { selectedImageURL = nil } })) {
             if let url = selectedImageURL {
                 FullscreenImageViewer(imageURL: url, onDismiss: { selectedImageURL = nil })

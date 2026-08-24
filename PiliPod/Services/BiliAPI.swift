@@ -141,11 +141,12 @@ class BiliAPI {
     func fetchVideoCommentMainList(
         aid: Int64,
         next: Int64 = 0,
-        mode: Bilibili_Main_Community_Reply_V1_Mode = .mainListHot
+        mode: Bilibili_Main_Community_Reply_V1_Mode = .mainListHot,
+        type: Int = 1
     ) async throws -> Bilibili_Main_Community_Reply_V1_MainListReply {
         var reqMessage = Bilibili_Main_Community_Reply_V1_MainListReq()
         reqMessage.oid = aid
-        reqMessage.type = 1
+        reqMessage.type = Int64(type)
         reqMessage.cursor = .init()
         reqMessage.cursor.next = next
         reqMessage.cursor.mode = mode
@@ -157,15 +158,25 @@ class BiliAPI {
         return try Bilibili_Main_Community_Reply_V1_MainListReply(serializedBytes: payload)
     }
 
+    func fetchVideoCommentMainList(
+        oid: Int64,
+        type: Int,
+        next: Int64 = 0,
+        mode: Bilibili_Main_Community_Reply_V1_Mode = .mainListHot
+    ) async throws -> Bilibili_Main_Community_Reply_V1_MainListReply {
+        try await fetchVideoCommentMainList(aid: oid, next: next, mode: mode, type: type)
+    }
+
     func fetchVideoCommentDetailList(
         aid: Int64,
         rootRpid: Int64,
         next: Int64 = 0,
-        mode: Bilibili_Main_Community_Reply_V1_Mode = .mainListHot
+        mode: Bilibili_Main_Community_Reply_V1_Mode = .mainListHot,
+        type: Int = 1
     ) async throws -> Bilibili_Main_Community_Reply_V1_DetailListReply {
         var reqMessage = Bilibili_Main_Community_Reply_V1_DetailListReq()
         reqMessage.oid = aid
-        reqMessage.type = 1
+        reqMessage.type = Int64(type)
         reqMessage.root = rootRpid
         reqMessage.rpid = rootRpid
         reqMessage.scene = .reply
@@ -178,6 +189,16 @@ class BiliAPI {
             body: reqMessage.serializedData()
         )
         return try Bilibili_Main_Community_Reply_V1_DetailListReply(serializedBytes: payload)
+    }
+
+    func fetchVideoCommentDetailList(
+        oid: Int64,
+        type: Int,
+        rootRpid: Int64,
+        next: Int64 = 0,
+        mode: Bilibili_Main_Community_Reply_V1_Mode = .mainListHot
+    ) async throws -> Bilibili_Main_Community_Reply_V1_DetailListReply {
+        try await fetchVideoCommentDetailList(aid: oid, rootRpid: rootRpid, next: next, mode: mode, type: type)
     }
 
     private func sendGrpcUnary(path: String, body: Data) async throws -> Data {
@@ -1367,7 +1388,8 @@ class BiliAPI {
     func likeComment(
         oid: Int,
         rpid: Int,
-        isCancel: Bool
+        isCancel: Bool,
+        type: Int = 1
     ) async throws {
         guard LoginSession.shared.isLogin else {
             throw APIError.responseError(-101)
@@ -1378,7 +1400,7 @@ class BiliAPI {
 
         let urlString = "https://api.bilibili.com/x/v2/reply/action"
         let params: [String: String] = [
-            "type": "1",
+            "type": String(type),
             "oid": String(oid),
             "rpid": String(rpid),
             "action": isCancel ? "0" : "1",
@@ -1404,7 +1426,8 @@ class BiliAPI {
     func hateComment(
         oid: Int,
         rpid: Int,
-        isCancel: Bool
+        isCancel: Bool,
+        type: Int = 1
     ) async throws {
         guard LoginSession.shared.isLogin else {
             throw APIError.responseError(-101)
@@ -1415,7 +1438,7 @@ class BiliAPI {
 
         let urlString = "https://api.bilibili.com/x/v2/reply/hate"
         let params: [String: String] = [
-            "type": "1",
+            "type": String(type),
             "oid": String(oid),
             "rpid": String(rpid),
             "action": isCancel ? "0" : "1",
