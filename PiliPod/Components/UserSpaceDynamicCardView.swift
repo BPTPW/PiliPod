@@ -78,7 +78,7 @@ struct UserSpaceDynamicCardView: View {
                 .frame(maxHeight: showsFullText ? nil : 4 * 24, alignment: .top)
                 .clipped()
                 .frame(maxWidth: .infinity, alignment: .leading)
-            if estimatedLineCount > 4 {
+            if !showsFullTextByDefault && estimatedLineCount > 4 {
                 Button(showsFullText ? "收起" : "展开") { showsFullText.toggle() }
                     .font(.subheadline.weight(.medium))
                     .foregroundStyle(.biliPink)
@@ -183,7 +183,7 @@ struct UserSpaceDynamicCardView: View {
                     .font(.body)
                     .frame(maxHeight: showsOriginalFullText ? nil : 4 * 24, alignment: .top)
                     .clipped()
-                if estimatedLineCount(for: original.richText) > 4 {
+                if !showsFullTextByDefault && estimatedLineCount(for: original.richText) > 4 {
                     Button(showsOriginalFullText ? "收起" : "展开") { showsOriginalFullText.toggle() }
                         .font(.subheadline.weight(.medium))
                         .foregroundStyle(.biliPink)

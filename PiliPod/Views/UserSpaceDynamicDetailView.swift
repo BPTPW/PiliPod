@@ -40,6 +40,7 @@ struct UserSpaceDynamicDetailView: View {
                             isEmbedded: true
                         )
                     }
+                    .padding(.top, 12)
                 } else {
                     Text("暂无评论")
                         .font(.subheadline)
