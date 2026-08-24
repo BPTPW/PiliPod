@@ -73,6 +73,7 @@ struct LivePlaybackPage: View {
         }
         .toolbar(.hidden, for: .navigationBar)
         .toolbar(.hidden, for: .tabBar)
+        .background(NavigationPopGestureEnabler())
         .navigationDestination(item: $selectedUserSpaceRoute) { route in
             UserSpaceView(mid: route.mid)
         }

@@ -122,6 +122,7 @@ struct SearchView: View {
             }
         }
         .background(Color(.systemBackground))
+        .background(NavigationPopGestureEnabler())
         .navigationBarBackButtonHidden(true)
         .navigationBarHidden(true)
         .toolbar(.hidden, for: .tabBar)

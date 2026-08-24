@@ -247,22 +247,33 @@ struct VideoDetailPlayerSurfaceView: View {
     }
 
     private var gestureOverlay: some View {
-        Color.clear
-            .contentShape(Rectangle())
-            .frame(maxWidth: .infinity)
-            .frame(height: gestureHitAreaHeight)
-            .onTapGesture {
-                showControlsAndAutoHideIfNeeded(forceShow: false)
+        HStack(spacing: 0) {
+            if !isFullscreen {
+                // This transparent handle intentionally does not participate
+                // in hit testing. UIKit receives edge swipes directly.
+                Color.clear
+                    .frame(width: nonFullscreenBackSwipeReservedWidth)
+                    .allowsHitTesting(false)
             }
-            .highPriorityGesture(
-                TapGesture(count: 2)
-                    .onEnded {
-                        togglePlayback()
-                        showControlsAndAutoHideIfNeeded(forceShow: true)
-                    }
-            )
-            .simultaneousGesture(playerGesture)
-            .allowsHitTesting(gestureHitAreaHeight > 0)
+
+            Color.clear
+                .contentShape(Rectangle())
+                .frame(maxWidth: .infinity)
+                .onTapGesture {
+                    showControlsAndAutoHideIfNeeded(forceShow: false)
+                }
+                .highPriorityGesture(
+                    TapGesture(count: 2)
+                        .onEnded {
+                            togglePlayback()
+                            showControlsAndAutoHideIfNeeded(forceShow: true)
+                        }
+                )
+                .simultaneousGesture(playerGesture)
+        }
+        .frame(maxWidth: .infinity)
+        .frame(height: gestureHitAreaHeight)
+        .allowsHitTesting(gestureHitAreaHeight > 0)
     }
 
     private var danmakuOverlay: some View {
@@ -473,9 +484,7 @@ struct VideoDetailPlayerSurfaceView: View {
     private var playerGesture: some Gesture {
         DragGesture(minimumDistance: 0)
             .onChanged { value in
-                if !isFullscreen, value.startLocation.x <= nonFullscreenBackSwipeReservedWidth {
-                    return
-                }
+                let startX = value.startLocation.x + playerGestureLeadingInset
 
                 if dragInteractionMode == .horizontalSeek {
                     let width = max(1, containerSize.width)
@@ -537,7 +546,7 @@ struct VideoDetailPlayerSurfaceView: View {
                 let shouldStartBrightnessAdjust =
                     !isHorizontalSeeking &&
                     !isBrightnessAdjusting &&
-                    value.startLocation.x <= containerSize.width * 0.5 &&
+                    startX <= containerSize.width * 0.5 &&
                     abs(dy) > 18 &&
                     abs(dy) > abs(dx)
 
@@ -565,7 +574,7 @@ struct VideoDetailPlayerSurfaceView: View {
                     !isHorizontalSeeking &&
                     !isBrightnessAdjusting &&
                     !isVolumeAdjusting &&
-                    value.startLocation.x > containerSize.width * 0.5 &&
+                    startX > containerSize.width * 0.5 &&
                     abs(dy) > 18 &&
                     abs(dy) > abs(dx)
 
@@ -625,6 +634,10 @@ struct VideoDetailPlayerSurfaceView: View {
                 endSpeedBoostIfNeeded()
                 dragInteractionMode = .none
             }
+    }
+
+    private var playerGestureLeadingInset: CGFloat {
+        isFullscreen ? 0 : nonFullscreenBackSwipeReservedWidth
     }
 
     private var effectiveDuration: TimeInterval {

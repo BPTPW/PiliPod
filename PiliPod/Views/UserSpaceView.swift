@@ -1,20 +1,6 @@
 import SwiftUI
 
-// 通过扩展 UINavigationController 强制开启侧滑返回手势
-extension UINavigationController: @retroactive UIGestureRecognizerDelegate {
-    override open func viewDidLoad() {
-        super.viewDidLoad()
-        interactivePopGestureRecognizer?.delegate = self
-    }
-
-    public func gestureRecognizerShouldBegin(_ gestureRecognizer: UIGestureRecognizer) -> Bool {
-        // 只有在导航栈内有超过一个视图时才允许滑动返回，防止在根视图滑动导致卡死
-        return viewControllers.count > 1
-    }
-}
-
 struct UserSpaceView: View {
-    @Environment(\.dismiss) private var dismiss
     @StateObject private var viewModel = UserSpaceViewModel()
     @State private var selectedTab: UserSpaceTab = .video
     @State private var toastMessage: String?
@@ -37,12 +23,10 @@ struct UserSpaceView: View {
 
     var body: some View {
         GeometryReader { proxy in
-            let topInset = proxy.safeAreaInsets.top
-
             ZStack(alignment: .top) {
                 ScrollView(showsIndicators: false) {
                     VStack(spacing: 0) {
-                        header(topInset: topInset)
+                        header(topInset: proxy.safeAreaInsets.top)
                         profileInfo
                         tabs
                     }
@@ -53,13 +37,17 @@ struct UserSpaceView: View {
                     else if selectedTab == .video { await viewModel.refreshArchive() }
                 }
             }
-            .overlay(alignment: .top) {
-                topBar(topInset: topInset)
-            }
             .ignoresSafeArea(edges: .top)
         }
-        .toolbar(.hidden, for: .navigationBar)
         .toolbar(.hidden, for: .tabBar)
+        .navigationTitle("")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbarBackground(.hidden, for: .navigationBar)
+        .toolbar {
+            ToolbarItemGroup(placement: .topBarTrailing) {
+                userSpaceTopTools
+            }
+        }
         .toast(message: $toastMessage)
         .navigationDestination(item: $selectedVideo) { video in
             if #available(iOS 18.0, *) {
@@ -130,67 +118,42 @@ struct UserSpaceView: View {
         .clipped()
     }
 
-    private func topBar(topInset: CGFloat) -> some View {
-        HStack {
-            Button {
-                if let onBack {
-                    onBack()
-                } else {
-                    dismiss()
+    private var userSpaceTopTools: some View {
+        GlassEffectContainer {
+            HStack(spacing: 30) {
+                Button {} label: {
+                    Image(systemName: "magnifyingglass")
+                        .foregroundStyle(.primary)
                 }
-            } label: {
-                Image(systemName: "chevron.left")
-                    .frame(width: 40, height: 40)
-                    // 修复二：增加 contentShape，保证整个 Frame 区域都可点击，防止被透明像素穿透
-                    .contentShape(Rectangle())
-                    .foregroundStyle(.primary)
-            }
-            .buttonStyle(.plain)
-            .glassEffect(
-                .regular.interactive(),
-                in: .circle
-            )
+                .padding(.leading, 5)
+                .glassEffectUnion(id: "UserSpaceTopTools", namespace: topToolsGlass)
 
-            Spacer()
-
-            GlassEffectContainer {
-                HStack(spacing: 5) {
-                    Button {} label: {
-                        Image(systemName: "magnifyingglass")
-                            .foregroundStyle(.primary)
-                    }
-                    .buttonStyle(.glass)
-                    .glassEffectUnion(id: "UserSpaceTopTools", namespace: topToolsGlass)
-
-                    Menu {
-                        Button("举报") {}
-                        Section {
-                            Picker(
-                                "排序方式",
-                                selection: Binding(
-                                    get: { viewModel.archiveOrder },
-                                    set: { order in
-                                        Task { await viewModel.setArchiveOrder(order) }
-                                    }
-                                )
-                            ) {
-                                Text("最新发布").tag(BiliAPI.SpaceArchiveOrder.pubdate)
-                                Text("最多播放").tag(BiliAPI.SpaceArchiveOrder.click)
-                            }
-                            .pickerStyle(.inline)
+                Menu {
+                    Button("举报") {}
+                    Section {
+                        Picker(
+                            "排序方式",
+                            selection: Binding(
+                                get: { viewModel.archiveOrder },
+                                set: { order in
+                                    Task { await viewModel.setArchiveOrder(order) }
+                                }
+                            )
+                        ) {
+                            Text("最新发布").tag(BiliAPI.SpaceArchiveOrder.pubdate)
+                            Text("最多播放").tag(BiliAPI.SpaceArchiveOrder.click)
                         }
-                    } label: {
-                        Image(systemName: "ellipsis.circle")
-                            .foregroundStyle(.primary)
+                        .pickerStyle(.inline)
                     }
-                    .buttonStyle(.glass)
-                    .glassEffectUnion(id: "UserSpaceTopTools", namespace: topToolsGlass)
+                } label: {
+                    Image(systemName: "ellipsis")
+                        .foregroundStyle(.primary)
                 }
+                .padding(.trailing, 5)
+                .glassEffectUnion(id: "UserSpaceTopTools", namespace: topToolsGlass)
             }
-            .frame(height: 40)
         }
-        .padding(.horizontal, 16)
-        .padding(.top, topInset + 10)
+        .frame(height: 40)
     }
 
     private var profileInfo: some View {

@@ -161,6 +161,7 @@ struct VideoDetailPage: View {
     @State private var backgroundPauseRestoreTime: TimeInterval?
     @State private var offlineCachePrefill: OfflineCacheQueryPrefill?
     @State private var onlineTotal: String?
+    @State private var isClosing = false
 #if canImport(UIKit)
     @State private var preferredFullscreenOrientation: UIInterfaceOrientation = .landscapeRight
     @StateObject private var audioSessionManager = VideoPlaybackAudioSessionManager()
@@ -171,7 +172,9 @@ struct VideoDetailPage: View {
     let onBack: () -> Void
     private let maxHorizontalSeekOffset: TimeInterval = 50
     private let verticalBrightnessDragSensitivity: Double = 2.5
-    private let nonFullscreenBackSwipeReservedWidth: CGFloat = 20
+    // Keep this strip completely free of SwiftUI drag recognizers so UIKit's
+    // interactive pop gesture has an uncontested edge-pan area.
+    private let nonFullscreenBackSwipeReservedWidth: CGFloat = 32
 
     private var heroID: String { "videoHero.\(video.bvid)" }
     private var progressSegments: [ProgressSegment] {
@@ -683,8 +686,11 @@ struct VideoDetailPage: View {
                     Color(.systemBackground).ignoresSafeArea(edges: .bottom)
                 }
             }
+            .background(NavigationPopGestureEnabler())
+            .allowsHitTesting(!isClosing)
         }
         .onAppear {
+            isClosing = false
             ManualPictureInPictureCoordinator.shared.stopIfNeeded()
             danmakuConfig = DanmakuConfigStore.load()
             isDanmakuEnabled = danmakuConfig.isEnabled
@@ -828,7 +834,7 @@ struct VideoDetailPage: View {
         .onReceive(NotificationCenter.default.publisher(for: .manualPictureInPictureDidStart)) { _ in
             // Every nested detail page receives this, so a video opened from
             // recommendations unwinds all the way back to the actual home page.
-            onBack()
+            requestPageDismissal()
         }
         .onChange(of: selectedUserSpaceRoute?.mid) { oldValue, newValue in
             guard oldValue != nil, newValue == nil else { return }
@@ -1890,8 +1896,17 @@ struct VideoDetailPage: View {
             updateDeviceOrientationForFullscreen(isFullscreen: false)
 #endif
         } else {
-            onBack()
+            requestPageDismissal()
         }
+    }
+
+    private func requestPageDismissal() {
+        // A button tap, an edge-pop completion and the PiP notification can
+        // arrive in the same transition. Let the hosting NavigationStack own
+        // one state change only.
+        guard !isClosing else { return }
+        isClosing = true
+        onBack()
     }
 
 }
@@ -1930,7 +1945,10 @@ private struct TabPager<IntroContent: View, CommentsContent: View>: View {
         .offset(x: -currentIndex * width + dragOffset)
         .animation(.interactiveSpring(response: 0.32, dampingFraction: 0.86), value: selectedTab)
         .contentShape(Rectangle())
-        .gesture(pagerGesture)
+        // A transparent overlay here would intercept ScrollView and button
+        // touches. Keep the pager gesture simultaneous with the content
+        // instead, and leave the edge strip inert in the gesture callbacks.
+        .simultaneousGesture(pagerGesture)
         .clipped()
     }
 

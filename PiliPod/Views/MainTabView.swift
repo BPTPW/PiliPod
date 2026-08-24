@@ -35,6 +35,7 @@ struct MainTabView: View {
                     Text("我的")
                 }
         }
+        .toolbar(.visible, for: .tabBar)
         .task {
             await homeViewModel.loadUserIfNeeded()
         }
