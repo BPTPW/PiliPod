@@ -16,6 +16,7 @@ struct MainTabView: View {
 
     private enum MainTab: Hashable {
         case home
+        case dynamic
         case mine
     }
 
@@ -26,6 +27,14 @@ struct MainTabView: View {
                 .tabItem {
                     Image(systemName: "house.fill")
                     Text("首页")
+                }
+
+            DynamicView()
+                .tag(MainTab.dynamic)
+                .tabItem {
+                    Image("DynamicIcon")
+                        .renderingMode(.template)
+                    Text("动态")
                 }
 
             MyView()

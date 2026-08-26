@@ -972,6 +972,41 @@ class BiliAPI {
         return UserSpaceDynamicPageResult(items: items, hasMore: payload.hasMore ?? false, nextOffset: payload.offset)
     }
 
+    // MARK: - 获取全部动态（Web）
+
+    func fetchAllDynamics(offset: String? = nil) async throws -> UserSpaceDynamicPageResult {
+        var components = URLComponents(string: "https://api.bilibili.com/x/polymer/web-dynamic/v1/feed/all")
+        var queryItems = [
+            URLQueryItem(name: "platform", value: "web"),
+            URLQueryItem(name: "web_location", value: "333.1387"),
+            URLQueryItem(name: "features", value: "itemOpusStyle,listOnlyfans,opusBigCover,onlyfansVote,forwardListHidden,decorationCard,commentsNewVersion,onlyfansAssetsV2,ugcDelete,onlyfansQaCard")
+        ]
+        if let offset, !offset.isEmpty {
+            queryItems.append(URLQueryItem(name: "offset", value: offset))
+        }
+        components?.queryItems = queryItems
+
+        guard let url = components?.url else { throw APIError.invalidURL }
+        let signedURL = try await BiliWbiSigner.shared.sign(url: url)
+        var request = makeRequest(url: signedURL)
+        request.setValue("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 Version/18.0 Safari/605.1.15", forHTTPHeaderField: "User-Agent")
+        request.setValue("https://www.bilibili.com", forHTTPHeaderField: "Referer")
+        request.setValue("web", forHTTPHeaderField: "Origin")
+
+        let (data, response) = try await URLSession.shared.data(for: request)
+        guard let httpResponse = response as? HTTPURLResponse, (200 ... 299).contains(httpResponse.statusCode) else {
+            throw APIError.requestFailed
+        }
+
+        let decoded = try JSONDecoder().decode(UserSpaceDynamicPage.self, from: data)
+        guard decoded.code == 0 else {
+            throw APIError.businessError(code: decoded.code, message: decoded.message)
+        }
+        guard let payload = decoded.data else { throw APIError.requestFailed }
+        let items = (payload.items ?? []).compactMap { UserSpaceDynamicItem.make(from: $0) }
+        return UserSpaceDynamicPageResult(items: items, hasMore: payload.hasMore ?? false, nextOffset: payload.offset)
+    }
+
     // MARK: - 获取个人空间投稿
 
     func fetchSpaceArchiveCursor(

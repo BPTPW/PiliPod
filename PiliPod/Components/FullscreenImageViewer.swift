@@ -62,7 +62,7 @@ struct FullscreenImageViewer: View {
             } label: {
                 Image(systemName: "xmark")
                     .font(.system(size: 14, weight: .semibold))
-                    .foregroundStyle(.black)
+                    .foregroundStyle(.white)
                     .frame(width: 34, height: 34)
             }
             .glassEffect(.regular, in: .circle)
@@ -77,7 +77,7 @@ struct FullscreenImageViewer: View {
                     } label: {
                         Image(systemName: "square.and.arrow.down")
                             .font(.system(size: 16, weight: .semibold))
-                            .foregroundStyle(.black)
+                            .foregroundStyle(.white)
                             .frame(width: 38, height: 38)
                     }
                     .glassEffect(.regular, in: .circle)
