@@ -1,7 +1,7 @@
 import SwiftUI
 import SafariServices
 
-struct UserSpaceDynamicCardView: View {
+struct DynamicCardView: View {
     let item: UserSpaceDynamicItem
     let onVideoTap: (UserSpaceDynamicItem.Video) -> Void
     let onLiveTap: (UserSpaceDynamicItem.Live) -> Void
@@ -63,7 +63,7 @@ struct UserSpaceDynamicCardView: View {
                     .foregroundStyle(.primary)
                     .buttonStyle(.plain)
                     .disabled(item.author.mid == nil)
-                Text(item.author.publishTime ?? UserSpaceDynamicCardView.timestampText(item.author.publishTimestamp))
+                Text(item.author.publishTime ?? DynamicCardView.timestampText(item.author.publishTimestamp))
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }

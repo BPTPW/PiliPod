@@ -310,7 +310,7 @@ struct UserSpaceView: View {
         } else {
             LazyVStack(spacing: 12) {
                 ForEach(viewModel.dynamicItems) { item in
-                    UserSpaceDynamicCardView(item: item, onVideoTap: { video in
+                    DynamicCardView(item: item, onVideoTap: { video in
                         guard let bvid = video.bvid, !bvid.isEmpty else { return }
                         selectedVideo = VideoItem(bvid: bvid, cid: nil, cover: video.coverURL ?? "", title: video.title, playCount: VideoItem.formatCount(video.playCount), danmakuCount: VideoItem.formatCount(video.danmakuCount), uploader: item.author.name, duration: video.duration, progressSeconds: nil, publishTimeText: item.author.publishTime ?? "--", bottomRcmdReasonText: nil)
                     }, onLiveTap: { live in

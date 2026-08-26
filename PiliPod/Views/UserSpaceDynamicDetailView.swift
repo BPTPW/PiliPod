@@ -18,7 +18,7 @@ struct UserSpaceDynamicDetailView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 0) {
-                UserSpaceDynamicCardView(
+                DynamicCardView(
                     item: item,
                     onVideoTap: onVideoTap,
                     onLiveTap: onLiveTap,

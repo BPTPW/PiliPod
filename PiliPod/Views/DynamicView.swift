@@ -60,7 +60,7 @@ struct DynamicView: View {
         } else {
             LazyVStack(spacing: 12) {
                 ForEach(viewModel.items) { item in
-                    UserSpaceDynamicCardView(
+                    DynamicCardView(
                         item: item,
                         onVideoTap: openVideo,
                         onLiveTap: openLive,
