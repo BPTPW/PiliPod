@@ -4,41 +4,51 @@ import UniformTypeIdentifiers
 
 struct AppSettingsBackupPayload: Codable {
     var appIdentifier = "PiliPod"
-    var schemaVersion = 1
+    var schemaVersion = 2
     var exportedAt = Date()
     var settings: SettingsSnapshot
 
     struct SettingsSnapshot: Codable {
         var recommendSource: RecommendAPIMode?
         var audioVideo: AudioVideoSettings?
+        var subtitle: SubtitleSettings?
         var danmaku: DanmakuEngineConfig?
         var sponsorBlock: SponsorBlockSettings?
+        var errorLogMaximumEntryCount: Int?
 
         private enum CodingKeys: String, CodingKey {
             case recommendSource
             case audioVideo
+            case subtitle
             case danmaku
             case sponsorBlock
+            case errorLogMaximumEntryCount
         }
 
         init(
             recommendSource: RecommendAPIMode? = nil,
             audioVideo: AudioVideoSettings? = nil,
+            subtitle: SubtitleSettings? = nil,
             danmaku: DanmakuEngineConfig? = nil,
-            sponsorBlock: SponsorBlockSettings? = nil
+            sponsorBlock: SponsorBlockSettings? = nil,
+            errorLogMaximumEntryCount: Int? = nil
         ) {
             self.recommendSource = recommendSource
             self.audioVideo = audioVideo
+            self.subtitle = subtitle
             self.danmaku = danmaku
             self.sponsorBlock = sponsorBlock
+            self.errorLogMaximumEntryCount = errorLogMaximumEntryCount
         }
 
         init(from decoder: Decoder) throws {
             let container = try decoder.container(keyedBy: CodingKeys.self)
             recommendSource = try container.decodeIfPresent(RecommendAPIMode.self, forKey: .recommendSource)
             audioVideo = try container.decodeIfPresent(AudioVideoSettings.self, forKey: .audioVideo)
+            subtitle = try container.decodeIfPresent(SubtitleSettings.self, forKey: .subtitle)
             danmaku = try container.decodeIfPresent(DanmakuEngineConfig.self, forKey: .danmaku)
             sponsorBlock = try container.decodeIfPresent(SponsorBlockSettings.self, forKey: .sponsorBlock)
+            errorLogMaximumEntryCount = try container.decodeIfPresent(Int.self, forKey: .errorLogMaximumEntryCount)
         }
     }
 
@@ -51,7 +61,7 @@ struct AppSettingsBackupPayload: Codable {
 
     init(
         appIdentifier: String = "PiliPod",
-        schemaVersion: Int = 1,
+        schemaVersion: Int = 2,
         exportedAt: Date = Date(),
         settings: SettingsSnapshot
     ) {
@@ -87,8 +97,10 @@ enum AppSettingsBackupService {
             settings: .init(
                 recommendSource: RecommendSettingsStore.loadSource(),
                 audioVideo: AudioVideoSettingsStore.load(),
+                subtitle: SubtitleSettingsStore.load(),
                 danmaku: DanmakuConfigStore.load(),
-                sponsorBlock: SponsorBlockSettingsStore.load()
+                sponsorBlock: SponsorBlockSettingsStore.load(),
+                errorLogMaximumEntryCount: ErrorLogService.shared.maximumEntryCount
             )
         )
     }
@@ -134,6 +146,10 @@ enum AppSettingsBackupService {
             AudioVideoSettingsStore.save(audioVideo)
         }
 
+        if let subtitle = payload.settings.subtitle {
+            SubtitleSettingsStore.save(subtitle)
+        }
+
         if let danmaku = payload.settings.danmaku {
             DanmakuConfigStore.save(danmaku)
         }
@@ -142,6 +158,10 @@ enum AppSettingsBackupService {
             var normalized = sponsorBlock.clamped()
             SponsorBlockSettingsStore.ensureUserIDIfNeeded(for: &normalized)
             SponsorBlockSettingsStore.save(normalized)
+        }
+
+        if let maximumEntryCount = payload.settings.errorLogMaximumEntryCount {
+            ErrorLogService.shared.setMaximumEntryCount(maximumEntryCount)
         }
     }
 }
