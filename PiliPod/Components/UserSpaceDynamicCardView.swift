@@ -28,6 +28,8 @@ struct UserSpaceDynamicCardView: View {
             actionBar
         }
         .padding(14)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
         .background(cardBackground)
         .contentShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
         .onTapGesture { onTapDetail?() }
@@ -118,6 +120,7 @@ struct UserSpaceDynamicCardView: View {
                     .buttonStyle(.plain)
                 }
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
     }
 
