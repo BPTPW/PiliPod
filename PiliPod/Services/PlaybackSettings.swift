@@ -223,6 +223,7 @@ struct AudioVideoSettings: Codable, Equatable {
     var cellularDefaultQuality: PreferredVideoQuality = .ultraHD4K
     var liveDefaultQuality: PreferredLiveQuality = .original
     var cellularLiveDefaultQuality: PreferredLiveQuality = .blueRay
+    var defaultDolbyAudioEnabled = false
     var bufferSize: VideoBufferSizeOption = .mb8
     var preferredCodec: PreferredCodecOption = .hevc
     var playbackCDNRoute: PlaybackCDNRoute = .automatic
@@ -249,6 +250,7 @@ struct AudioVideoSettings: Codable, Equatable {
         case cellularDefaultQuality
         case liveDefaultQuality
         case cellularLiveDefaultQuality
+        case defaultDolbyAudioEnabled
         case bufferSize
         case preferredCodec
         case playbackCDNRoute
@@ -294,6 +296,7 @@ struct AudioVideoSettings: Codable, Equatable {
         cellularDefaultQuality = try container.decodeIfPresent(PreferredVideoQuality.self, forKey: .cellularDefaultQuality) ?? .ultraHD4K
         liveDefaultQuality = try container.decodeIfPresent(PreferredLiveQuality.self, forKey: .liveDefaultQuality) ?? .original
         cellularLiveDefaultQuality = try container.decodeIfPresent(PreferredLiveQuality.self, forKey: .cellularLiveDefaultQuality) ?? .blueRay
+        defaultDolbyAudioEnabled = try container.decodeIfPresent(Bool.self, forKey: .defaultDolbyAudioEnabled) ?? false
         bufferSize = try container.decodeIfPresent(VideoBufferSizeOption.self, forKey: .bufferSize) ?? .mb8
         preferredCodec = try container.decodeIfPresent(PreferredCodecOption.self, forKey: .preferredCodec) ?? .hevc
         playbackCDNRoute = try container.decodeIfPresent(PlaybackCDNRoute.self, forKey: .playbackCDNRoute) ?? .automatic

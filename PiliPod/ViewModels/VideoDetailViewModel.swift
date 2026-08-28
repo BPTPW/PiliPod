@@ -19,6 +19,7 @@ class VideoDetailViewModel {
     var playUrlData: PlayUrlResponse?
     var qualityOptions: [VideoQualityOption] = []
     var selectedQualityCode: Int?
+    var isDolbyEnabled = false
     var selectedPlaybackRate: Double = 1.0
     var videoShotMetadata: VideoShotPreviewMetadata?
     var videoShotIsLoading = false
@@ -351,6 +352,7 @@ class VideoDetailViewModel {
                         )
                     ]
                     self.selectedQualityCode = cachedAsset.item.qualityCode
+                    self.isDolbyEnabled = false
                     self.dashStream = cachedAsset.stream
                     self.isPlayingOfflineCache = true
                     self.isLoading = false
@@ -387,15 +389,17 @@ class VideoDetailViewModel {
                 }
 
                 await MainActor.run {
+                    let useDefaultDolby = playbackSettings.defaultDolbyAudioEnabled && stream.supportsDolby
                     self.playUrlData = playUrlResponse
                     self.qualityOptions = options
                     self.selectedQualityCode = quality
-                    self.dashStream = stream
+                    self.isDolbyEnabled = useDefaultDolby
+                    self.dashStream = stream.applying(dolbyEnabled: useDefaultDolby)
                     self.isPlayingOfflineCache = false
                     self.isLoading = false
 
                     if let player = self.player {
-                        player.play(stream: stream)
+                        player.play(stream: self.dashStream!)
                         player.setPlaybackRate(self.selectedPlaybackRate)
                     }
                 }
@@ -441,10 +445,44 @@ class VideoDetailViewModel {
         let shouldResume = player.isPlaying
 
         selectedQualityCode = code
-        dashStream = stream
-        player.play(stream: stream)
+        let resolvedStream = stream.applying(dolbyEnabled: isDolbyEnabled)
+        dashStream = resolvedStream
+        player.play(stream: resolvedStream)
         player.setPlaybackRate(resumeRate)
 
+        await restorePlaybackState(
+            on: player,
+            time: resumeTime,
+            rate: resumeRate,
+            shouldResume: shouldResume
+        )
+    }
+
+    @MainActor
+    func toggleDolby() async {
+        guard !isPlayingOfflineCache,
+              let currentStream = dashStream,
+              currentStream.supportsDolby,
+              let player,
+              let selectedQualityCode,
+              let playUrlData,
+              let baseStream = DashStreamSelector.selectStream(
+                  from: playUrlData,
+                  qualityCode: selectedQualityCode,
+                  preferredCodec: AudioVideoSettingsStore.load().preferredCodec
+              )
+        else { return }
+
+        let nextValue = !isDolbyEnabled
+        let resumeTime = player.currentTime
+        let resumeRate = selectedPlaybackRate
+        let shouldResume = player.isPlaying
+        let resolvedStream = baseStream.applying(dolbyEnabled: nextValue)
+
+        isDolbyEnabled = nextValue
+        dashStream = resolvedStream
+        player.play(stream: resolvedStream)
+        player.setPlaybackRate(resumeRate)
         await restorePlaybackState(
             on: player,
             time: resumeTime,
@@ -504,15 +542,16 @@ class VideoDetailViewModel {
             throw APIError.noVideoOrAudio
         }
 
+        let resolvedStream = stream.applying(dolbyEnabled: isDolbyEnabled)
         playUrlData = playUrlResponse
         qualityOptions = options
         selectedQualityCode = resolvedQuality
-        dashStream = stream
+        dashStream = resolvedStream
         isPlayingOfflineCache = false
         error = nil
 
         guard let currentPlayer else { return }
-        currentPlayer.play(stream: stream)
+        currentPlayer.play(stream: resolvedStream)
         currentPlayer.setPlaybackRate(resumeRate)
 
         await restorePlaybackState(
@@ -584,6 +623,7 @@ class VideoDetailViewModel {
                 videoShotCID = 0
                 error = nil
                 isPlayingOfflineCache = true
+                isDolbyEnabled = false
 
                 if let player {
                     player.play(stream: cachedAsset.stream)
@@ -637,7 +677,9 @@ class VideoDetailViewModel {
             playUrlData = playUrlResponse
             qualityOptions = options
             selectedQualityCode = resolvedQuality
-            dashStream = stream
+            let useDefaultDolby = AudioVideoSettingsStore.load().defaultDolbyAudioEnabled && stream.supportsDolby
+            isDolbyEnabled = useDefaultDolby
+            dashStream = stream.applying(dolbyEnabled: useDefaultDolby)
             videoShotMetadata = nil
             danmakuElements = []
             loadedDanmakuSegments = []
@@ -654,7 +696,7 @@ class VideoDetailViewModel {
             isPlayingOfflineCache = false
 
             if let player {
-                player.play(stream: stream)
+                player.play(stream: dashStream!)
                 player.setPlaybackRate(selectedPlaybackRate)
                 if previousIsPlaying {
                     player.resume()

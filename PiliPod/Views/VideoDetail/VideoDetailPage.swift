@@ -338,6 +338,13 @@ struct VideoDetailPage: View {
                             qualityOptions: bindableViewModel.qualityOptions,
                             selectedQualityCode: bindableViewModel.selectedQualityCode,
                             selectedPlaybackRate: bindableViewModel.selectedPlaybackRate,
+                            supportsDolby: stream.supportsDolby,
+                            isDolbyEnabled: bindableViewModel.isDolbyEnabled,
+                            onToggleDolby: {
+                                Task { @MainActor in
+                                    await bindableViewModel.toggleDolby()
+                                }
+                            },
                             subtitleOptions: bindableViewModel.playerInfo?.subtitle?.subtitles ?? [],
                             videoTitle: bindableViewModel.title,
                             showsSponsorButton: showsSponsorButton,
@@ -3325,6 +3332,9 @@ struct PlayerControlsOverlay: View {
     let qualityOptions: [VideoQualityOption]
     let selectedQualityCode: Int?
     let selectedPlaybackRate: Double
+    let supportsDolby: Bool
+    let isDolbyEnabled: Bool
+    let onToggleDolby: () -> Void
     let subtitleOptions: [PlayerSubtitleItem]
     @Binding var selectedSubtitleID: String?
     let isVisible: Bool
@@ -3594,6 +3604,13 @@ struct PlayerControlsOverlay: View {
                 }
                 Spacer()
                 HStack(spacing: 8) {
+                    if supportsDolby {
+                        DolbyToggleButton(
+                            isEnabled: isDolbyEnabled,
+                            onUserInteracted: onUserInteracted,
+                            onToggle: onToggleDolby
+                        )
+                    }
                     if !subtitleOptions.isEmpty {
                         SubtitleMenuView(
                             options: subtitleOptions,
@@ -3696,6 +3713,32 @@ private struct SubtitleMenuView: View {
               let selection = options.first(where: { $0.id == selectedID })
         else { return "字幕" }
         return selection.displayName
+    }
+}
+
+// MARK: - 杜比全景声开关
+
+private struct DolbyToggleButton: View {
+    let isEnabled: Bool
+    let onUserInteracted: () -> Void
+    let onToggle: () -> Void
+
+    var body: some View {
+        Button {
+            onUserInteracted()
+            onToggle()
+        } label: {
+            Image("Dolby")
+                .renderingMode(.template)
+                .resizable()
+                .scaledToFit()
+                .frame(width: 58, height: 20)
+                .foregroundStyle(isEnabled ? Color("BiliPink") : .white)
+                .frame(width: 58, height: 32)
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("杜比全景声")
+        .accessibilityValue(isEnabled ? "已开启" : "已关闭")
     }
 }
 

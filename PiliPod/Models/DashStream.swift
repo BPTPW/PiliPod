@@ -29,6 +29,103 @@ struct DashStream {
     let audioBitrate: Int
     let videoSegmentBase: DASHSegmentBase?
     let audioSegmentBase: DASHSegmentBase?
+    let dolbyAudioURL: URL?
+    let dolbyAudioURLCandidates: [URL]
+    let originalDolbyAudioURLs: [URL]
+    let dolbyAudioCodec: String?
+    let dolbyAudioBitrate: Int?
+    let dolbyAudioSegmentBase: DASHSegmentBase?
+    let isDolbyEnabled: Bool
+
+    init(
+        videoURL: URL,
+        audioURL: URL,
+        videoURLCandidates: [URL],
+        audioURLCandidates: [URL],
+        originalVideoURLs: [URL],
+        originalAudioURLs: [URL],
+        qualityCode: Int,
+        videoCodec: String,
+        audioCodec: String,
+        width: Int,
+        height: Int,
+        fps: Double,
+        videoBitrate: Int,
+        audioBitrate: Int,
+        videoSegmentBase: DASHSegmentBase?,
+        audioSegmentBase: DASHSegmentBase?,
+        dolbyAudioURL: URL? = nil,
+        dolbyAudioURLCandidates: [URL] = [],
+        originalDolbyAudioURLs: [URL] = [],
+        dolbyAudioCodec: String? = nil,
+        dolbyAudioBitrate: Int? = nil,
+        dolbyAudioSegmentBase: DASHSegmentBase? = nil,
+        isDolbyEnabled: Bool = false
+    ) {
+        self.videoURL = videoURL
+        self.audioURL = audioURL
+        self.videoURLCandidates = videoURLCandidates
+        self.audioURLCandidates = audioURLCandidates
+        self.originalVideoURLs = originalVideoURLs
+        self.originalAudioURLs = originalAudioURLs
+        self.qualityCode = qualityCode
+        self.videoCodec = videoCodec
+        self.audioCodec = audioCodec
+        self.width = width
+        self.height = height
+        self.fps = fps
+        self.videoBitrate = videoBitrate
+        self.audioBitrate = audioBitrate
+        self.videoSegmentBase = videoSegmentBase
+        self.audioSegmentBase = audioSegmentBase
+        self.dolbyAudioURL = dolbyAudioURL
+        self.dolbyAudioURLCandidates = dolbyAudioURLCandidates
+        self.originalDolbyAudioURLs = originalDolbyAudioURLs
+        self.dolbyAudioCodec = dolbyAudioCodec
+        self.dolbyAudioBitrate = dolbyAudioBitrate
+        self.dolbyAudioSegmentBase = dolbyAudioSegmentBase
+        self.isDolbyEnabled = isDolbyEnabled
+    }
+
+    var supportsDolby: Bool { dolbyAudioURL != nil }
+
+    func applying(dolbyEnabled: Bool) -> DashStream {
+        guard dolbyEnabled == isDolbyEnabled else {
+            let route = AudioVideoSettingsStore.load().playbackCDNRoute
+            let standardCandidates = PlaybackCDNPlanner.candidates(
+                primary: originalAudioURLs[0],
+                backups: Array(originalAudioURLs.dropFirst()),
+                route: route
+            )
+            let selectedStandardURL = standardCandidates[0]
+            return DashStream(
+                videoURL: videoURL,
+                audioURL: dolbyEnabled ? (dolbyAudioURL ?? selectedStandardURL) : selectedStandardURL,
+                videoURLCandidates: videoURLCandidates,
+                audioURLCandidates: dolbyEnabled ? (dolbyAudioURLCandidates.isEmpty ? standardCandidates : dolbyAudioURLCandidates) : standardCandidates,
+                originalVideoURLs: originalVideoURLs,
+                originalAudioURLs: dolbyEnabled ? (originalDolbyAudioURLs.isEmpty ? originalAudioURLs : originalDolbyAudioURLs) : originalAudioURLs,
+                qualityCode: qualityCode,
+                videoCodec: videoCodec,
+                audioCodec: dolbyEnabled ? (dolbyAudioCodec ?? audioCodec) : audioCodec,
+                width: width,
+                height: height,
+                fps: fps,
+                videoBitrate: videoBitrate,
+                audioBitrate: dolbyEnabled ? (dolbyAudioBitrate ?? audioBitrate) : audioBitrate,
+                videoSegmentBase: videoSegmentBase,
+                audioSegmentBase: dolbyEnabled ? (dolbyAudioSegmentBase ?? audioSegmentBase) : audioSegmentBase,
+                dolbyAudioURL: dolbyAudioURL,
+                dolbyAudioURLCandidates: dolbyAudioURLCandidates,
+                originalDolbyAudioURLs: originalDolbyAudioURLs,
+                dolbyAudioCodec: dolbyAudioCodec,
+                dolbyAudioBitrate: dolbyAudioBitrate,
+                dolbyAudioSegmentBase: dolbyAudioSegmentBase,
+                isDolbyEnabled: dolbyEnabled && supportsDolby
+            )
+        }
+        return self
+    }
 
     var aspectRatio: CGFloat {
         CGFloat(width) / CGFloat(height)
@@ -64,7 +161,14 @@ struct DashStream {
             videoBitrate: videoBitrate,
             audioBitrate: audioBitrate,
             videoSegmentBase: videoSegmentBase,
-            audioSegmentBase: audioSegmentBase
+            audioSegmentBase: audioSegmentBase,
+            dolbyAudioURL: dolbyAudioURL,
+            dolbyAudioURLCandidates: dolbyAudioURLCandidates,
+            originalDolbyAudioURLs: originalDolbyAudioURLs,
+            dolbyAudioCodec: dolbyAudioCodec,
+            dolbyAudioBitrate: dolbyAudioBitrate,
+            dolbyAudioSegmentBase: dolbyAudioSegmentBase,
+            isDolbyEnabled: isDolbyEnabled
         )
     }
 
@@ -79,23 +183,38 @@ struct DashStream {
             backups: Array(originalAudioURLs.dropFirst()),
             route: route
         )
+        let dolbyCandidates = originalDolbyAudioURLs.isEmpty ? [] : PlaybackCDNPlanner.candidates(
+            primary: originalDolbyAudioURLs[0],
+            backups: Array(originalDolbyAudioURLs.dropFirst()),
+            route: route
+        )
+        let selectedAudioCandidates = isDolbyEnabled && !dolbyCandidates.isEmpty ? dolbyCandidates : audioCandidates
+        let selectedAudioURLs = isDolbyEnabled && !originalDolbyAudioURLs.isEmpty ? originalDolbyAudioURLs : originalAudioURLs
+        let selectedAudioURL = selectedAudioCandidates[0]
         return DashStream(
             videoURL: videoCandidates[0],
-            audioURL: audioCandidates[0],
+            audioURL: selectedAudioURL,
             videoURLCandidates: videoCandidates,
-            audioURLCandidates: audioCandidates,
+            audioURLCandidates: selectedAudioCandidates,
             originalVideoURLs: originalVideoURLs,
             originalAudioURLs: originalAudioURLs,
             qualityCode: qualityCode,
             videoCodec: videoCodec,
-            audioCodec: audioCodec,
+            audioCodec: isDolbyEnabled ? (dolbyAudioCodec ?? audioCodec) : audioCodec,
             width: width,
             height: height,
             fps: fps,
             videoBitrate: videoBitrate,
-            audioBitrate: audioBitrate,
+            audioBitrate: isDolbyEnabled ? (dolbyAudioBitrate ?? audioBitrate) : audioBitrate,
             videoSegmentBase: videoSegmentBase,
-            audioSegmentBase: audioSegmentBase
+            audioSegmentBase: isDolbyEnabled ? (dolbyAudioSegmentBase ?? audioSegmentBase) : audioSegmentBase,
+            dolbyAudioURL: dolbyCandidates.first,
+            dolbyAudioURLCandidates: dolbyCandidates,
+            originalDolbyAudioURLs: originalDolbyAudioURLs,
+            dolbyAudioCodec: dolbyAudioCodec,
+            dolbyAudioBitrate: dolbyAudioBitrate,
+            dolbyAudioSegmentBase: dolbyAudioSegmentBase,
+            isDolbyEnabled: isDolbyEnabled
         )
     }
 }
@@ -264,7 +383,8 @@ class DashStreamSelector {
             videoBitrate: video.bandwidth,
             audioBitrate: audio.bandwidth,
             videoSegmentBase: video.segmentBase,
-            audioSegmentBase: audio.segmentBase
+            audioSegmentBase: audio.segmentBase,
+            dolbyAudio: data.data.dash.dolby?.audio?.first
         )
     }
 
@@ -297,7 +417,8 @@ class DashStreamSelector {
             videoBitrate: video.bandwidth,
             audioBitrate: audio.bandwidth,
             videoSegmentBase: video.segmentBase,
-            audioSegmentBase: audio.segmentBase
+            audioSegmentBase: audio.segmentBase,
+            dolbyAudio: data.data.dash.dolby?.audio?.first
         )
     }
 
@@ -313,7 +434,8 @@ class DashStreamSelector {
         videoBitrate: Int,
         audioBitrate: Int,
         videoSegmentBase: DASHSegmentBase?,
-        audioSegmentBase: DASHSegmentBase?
+        audioSegmentBase: DASHSegmentBase?,
+        dolbyAudio: DASHAudio?
     ) -> DashStream? {
         guard let videoPrimary = URL(string: video.baseUrl), let audioPrimary = URL(string: audio.baseUrl) else {
             return nil
@@ -323,6 +445,12 @@ class DashStreamSelector {
         let route = AudioVideoSettingsStore.load().playbackCDNRoute
         let videoCandidates = PlaybackCDNPlanner.candidates(primary: videoPrimary, backups: videoBackups, route: route)
         let audioCandidates = PlaybackCDNPlanner.candidates(primary: audioPrimary, backups: audioBackups, route: route)
+        let dolbyPrimary = dolbyAudio.flatMap { URL(string: $0.baseUrl) }
+        let dolbyBackups = dolbyAudio?.backupUrl?.compactMap(URL.init(string:)) ?? []
+        let dolbyOriginalURLs = dolbyPrimary.map { [$0] + dolbyBackups } ?? []
+        let dolbyCandidates = dolbyPrimary.map {
+            PlaybackCDNPlanner.candidates(primary: $0, backups: dolbyBackups, route: route)
+        } ?? []
         guard let videoURL = videoCandidates.first, let audioURL = audioCandidates.first else { return nil }
 
         PlaybackCDNProbeURLStore.shared.update([videoPrimary] + videoBackups + [audioPrimary] + audioBackups)
@@ -352,7 +480,14 @@ class DashStreamSelector {
             videoBitrate: videoBitrate,
             audioBitrate: audioBitrate,
             videoSegmentBase: videoSegmentBase,
-            audioSegmentBase: audioSegmentBase
+            audioSegmentBase: audioSegmentBase,
+            dolbyAudioURL: dolbyCandidates.first,
+            dolbyAudioURLCandidates: dolbyCandidates,
+            originalDolbyAudioURLs: dolbyOriginalURLs,
+            dolbyAudioCodec: dolbyAudio?.codecs,
+            dolbyAudioBitrate: dolbyAudio?.bandwidth,
+            dolbyAudioSegmentBase: dolbyAudio?.segmentBase,
+            isDolbyEnabled: false
         )
     }
 

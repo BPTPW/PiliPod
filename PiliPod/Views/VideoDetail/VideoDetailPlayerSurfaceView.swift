@@ -34,6 +34,9 @@ struct VideoDetailPlayerSurfaceView: View {
     let qualityOptions: [VideoQualityOption]
     let selectedQualityCode: Int?
     let selectedPlaybackRate: Double
+    let supportsDolby: Bool
+    let isDolbyEnabled: Bool
+    let onToggleDolby: () -> Void
     let subtitleOptions: [PlayerSubtitleItem]
     let videoTitle: String
     let showsSponsorButton: Bool
@@ -364,6 +367,9 @@ struct VideoDetailPlayerSurfaceView: View {
             qualityOptions: qualityOptions,
             selectedQualityCode: selectedQualityCode,
             selectedPlaybackRate: selectedPlaybackRate,
+            supportsDolby: supportsDolby,
+            isDolbyEnabled: isDolbyEnabled,
+            onToggleDolby: onToggleDolby,
             subtitleOptions: subtitleOptions,
             selectedSubtitleID: $selectedSubtitleID,
             isVisible: controlsVisible,

@@ -91,6 +91,11 @@ private struct AudioVideoSettingsView: View {
                 }
             }
 
+            Section("音频") {
+                Toggle("默认打开杜比全景声", isOn: $settings.defaultDolbyAudioEnabled)
+                    .tint(Color("BiliPink"))
+            }
+
             Section {
                 NavigationLink {
                     BufferSizeChoiceListView(
