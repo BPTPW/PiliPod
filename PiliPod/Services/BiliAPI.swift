@@ -297,6 +297,42 @@ class BiliAPI {
 
     // MARK: - 获取未读消息数
 
+    func fetchReplyMessageFeed() async throws -> ReplyMessageFeedData {
+        try await fetchMessageFeed(
+            urlString: "https://api.bilibili.com/x/msgfeed/reply",
+            type: ReplyMessageFeedData.self
+        )
+    }
+
+    func fetchAtMessageFeed() async throws -> AtMessageFeedData {
+        try await fetchMessageFeed(
+            urlString: "https://api.bilibili.com/x/msgfeed/at",
+            type: AtMessageFeedData.self
+        )
+    }
+
+    func fetchLikeMessageFeed() async throws -> LikeMessageFeedData {
+        try await fetchMessageFeed(
+            urlString: "https://api.bilibili.com/x/msgfeed/like",
+            type: LikeMessageFeedData.self
+        )
+    }
+
+    private func fetchMessageFeed<T: Codable>(urlString: String, type: T.Type) async throws -> T {
+        guard let url = URL(string: urlString) else { throw APIError.invalidURL }
+        let (data, response) = try await URLSession.shared.data(for: makeRequest(url: url))
+        guard let httpResponse = response as? HTTPURLResponse,
+              (200 ... 299).contains(httpResponse.statusCode)
+        else { throw APIError.requestFailed }
+
+        let decoded = try JSONDecoder().decode(SimpleAPIResponse<T>.self, from: data)
+        guard decoded.code == 0 else {
+            throw APIError.businessError(code: decoded.code, message: decoded.message)
+        }
+        guard let payload = decoded.data else { throw APIError.requestFailed }
+        return payload
+    }
+
     func fetchUnreadMessageCount() async throws -> Int {
         try await fetchUnreadMessageCounts().total
     }

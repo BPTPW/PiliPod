@@ -62,6 +62,130 @@ struct MessageUnreadCounts: Sendable {
     let total: Int
 }
 
+struct MessageFeedUser: Codable, Hashable {
+    let mid: Int
+    let nickname: String
+    let avatar: String
+
+    enum CodingKeys: String, CodingKey {
+        case mid, nickname, avatar
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        mid = try container.decodeIfPresent(Int.self, forKey: .mid) ?? 0
+        nickname = try container.decodeIfPresent(String.self, forKey: .nickname) ?? "未知用户"
+        avatar = try container.decodeIfPresent(String.self, forKey: .avatar) ?? ""
+    }
+}
+
+struct MessageFeedAtDetail: Codable, Hashable {
+    let mid: Int
+    let nickname: String
+
+    enum CodingKeys: String, CodingKey { case mid, nickname }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        mid = try container.decodeIfPresent(Int.self, forKey: .mid) ?? 0
+        nickname = try container.decodeIfPresent(String.self, forKey: .nickname) ?? ""
+    }
+}
+
+struct MessageFeedItem: Codable, Hashable {
+    let type: String
+    let business: String
+    let title: String
+    let image: String
+    let uri: String
+    let sourceContent: String
+    let atDetails: [MessageFeedAtDetail]
+
+    enum CodingKeys: String, CodingKey {
+        case type, business, title, image, uri
+        case sourceContent = "source_content"
+        case atDetails = "at_details"
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        type = try container.decodeIfPresent(String.self, forKey: .type) ?? "video"
+        business = try container.decodeIfPresent(String.self, forKey: .business) ?? "视频"
+        title = try container.decodeIfPresent(String.self, forKey: .title) ?? ""
+        image = try container.decodeIfPresent(String.self, forKey: .image) ?? ""
+        uri = try container.decodeIfPresent(String.self, forKey: .uri) ?? ""
+        sourceContent = try container.decodeIfPresent(String.self, forKey: .sourceContent) ?? ""
+        atDetails = try container.decodeIfPresent([MessageFeedAtDetail].self, forKey: .atDetails) ?? []
+    }
+}
+
+struct ReplyMessageFeedItem: Codable, Hashable {
+    let id: Int
+    let user: MessageFeedUser
+    let item: MessageFeedItem
+    let replyTime: Int
+
+    enum CodingKeys: String, CodingKey {
+        case id, user, item
+        case replyTime = "reply_time"
+    }
+}
+
+struct AtMessageFeedItem: Codable, Hashable {
+    let id: Int
+    let user: MessageFeedUser
+    let item: MessageFeedItem
+    let atTime: Int
+
+    enum CodingKeys: String, CodingKey {
+        case id, user, item
+        case atTime = "at_time"
+    }
+}
+
+struct LikeMessageFeedItem: Codable, Hashable {
+    let id: Int
+    let users: [MessageFeedUser]
+    let item: MessageFeedItem
+    let counts: Int
+    let likeTime: Int
+
+    enum CodingKeys: String, CodingKey {
+        case id, users, item, counts
+        case likeTime = "like_time"
+    }
+}
+
+struct MessageFeedCursor: Codable {
+    let isEnd: Bool
+    let id: Int
+    let time: Int
+
+    enum CodingKeys: String, CodingKey {
+        case isEnd = "is_end"
+        case id, time
+    }
+}
+
+struct ReplyMessageFeedData: Codable {
+    let cursor: MessageFeedCursor
+    let items: [ReplyMessageFeedItem]
+}
+
+struct AtMessageFeedData: Codable {
+    let cursor: MessageFeedCursor
+    let items: [AtMessageFeedItem]
+}
+
+struct LikeMessageFeedTotal: Codable {
+    let cursor: MessageFeedCursor
+    let items: [LikeMessageFeedItem]
+}
+
+struct LikeMessageFeedData: Codable {
+    let total: LikeMessageFeedTotal
+}
+
 struct PrivateMessageUnreadData: Codable {
     let unfollowUnread: Int
     let followUnread: Int

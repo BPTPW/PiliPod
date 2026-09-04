@@ -7,6 +7,7 @@ import SwiftUI
 
 struct MessageView: View {
     @Bindable var viewModel: HomeViewModel
+    @State private var selectedCategory: MessageFeedView.Category?
 
     private struct MessageCategory: Identifiable {
         let id: String
@@ -28,7 +29,7 @@ struct MessageView: View {
             VStack(spacing: 0) {
             HStack(spacing: 10) {
                 ForEach(categories) { category in
-                    Button { } label: {
+                        Button { selectedCategory = category.id == "reply" ? .reply : category.id == "at" ? .at : .like } label: {
                         VStack(spacing: 7) {
                             ZStack(alignment: .topTrailing) {
                                 Image(systemName: category.icon)
@@ -73,6 +74,9 @@ struct MessageView: View {
         .navigationTitle("消息")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar(.visible, for: .navigationBar)
+        .navigationDestination(item: $selectedCategory) { category in
+            MessageFeedView(category: category)
+        }
         .task {
             await viewModel.loadUnreadMessageCount(force: true)
         }
