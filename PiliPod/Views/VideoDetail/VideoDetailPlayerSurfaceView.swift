@@ -47,6 +47,7 @@ struct VideoDetailPlayerSurfaceView: View {
     let currentVideoDurationFallback: TimeInterval
     let onBack: () -> Void
     let onShowDanmakuSettingsSheet: () -> Void
+    let onShowListenVideo: () -> Void
     let onShowSponsorSegments: () -> Void
     let onShowSponsorSubmit: () -> Void
     let onCacheVideo: () -> Void
@@ -360,6 +361,7 @@ struct VideoDetailPlayerSurfaceView: View {
                     onShowDanmakuSettingsSheet()
                 }
             },
+            onShowListenVideo: onShowListenVideo,
             onShowSponsorSegments: onShowSponsorSegments,
             onShowSponsorSubmit: onShowSponsorSubmit,
             isFullscreen: isFullscreen,

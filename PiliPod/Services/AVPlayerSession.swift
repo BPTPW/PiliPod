@@ -52,6 +52,7 @@ final class AVPlayerSession: NSObject, AVPictureInPictureControllerDelegate {
     private var ambientVideoOutput: AVPlayerItemVideoOutput?
     private var lastAmbientSampleUptime: TimeInterval = 0
     private var isAmbientModeActive = false
+    private var isListenVideoModeActive = false
     private(set) var playbackRate = 1.0
     private(set) var snapshot = PlayerUIPlaybackSnapshot()
     private(set) var seekRevision = 0
@@ -112,6 +113,14 @@ final class AVPlayerSession: NSObject, AVPictureInPictureControllerDelegate {
             applyBufferPreference(to: item)
         }
         publish()
+    }
+
+    func setListenVideoModeActive(_ active: Bool) {
+        isListenVideoModeActive = active
+        configureBackgroundPlayback(allowsPlayback: active || playbackSettings.allowsBackgroundPlayback)
+        if active {
+            stopPictureInPicture()
+        }
     }
 
     func setAmbientModeActive(_ active: Bool) {
@@ -502,7 +511,7 @@ final class AVPlayerSession: NSObject, AVPictureInPictureControllerDelegate {
     }
 
     private func configureBackgroundPlayback(allowsPlayback: Bool) {
-        player.audiovisualBackgroundPlaybackPolicy = allowsPlayback
+        player.audiovisualBackgroundPlaybackPolicy = (allowsPlayback || isListenVideoModeActive)
             ? .continuesIfPossible
             : .automatic
     }

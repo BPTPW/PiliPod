@@ -131,6 +131,7 @@ struct VideoDetailPage: View {
     @State private var danmakuConfig = DanmakuConfigStore.load()
     @State private var isDanmakuEnabled = DanmakuConfigStore.load().isEnabled
     @State private var isDanmakuSettingsPresented = false
+    @State private var isListenVideoPresented = false
     @State private var isDanmakuListPresented = false
     @State private var selectedSubtitleID: String?
     @State private var danmakuListBlockLevel = DanmakuConfigStore.load().blockLevel
@@ -363,6 +364,11 @@ struct VideoDetailPage: View {
                             onShowDanmakuSettingsSheet: {
                                 isDanmakuSettingsPresented = true
                             },
+                            onShowListenVideo: {
+                                withAnimation(.spring(response: 0.42, dampingFraction: 0.88)) {
+                                    isListenVideoPresented = true
+                                }
+                            },
                             onShowSponsorSegments: {
                                 showsSponsorList.toggle()
                             },
@@ -583,6 +589,26 @@ struct VideoDetailPage: View {
                     }
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: isFullscreen ? .center : .top)
+                .sheet(isPresented: $isListenVideoPresented) {
+                    if let player = bindableViewModel.player {
+                        ListenVideoPlayerSheet(
+                            player: player,
+                            coverURL: URL(string: bindableViewModel.cover),
+                            title: bindableViewModel.title.isEmpty ? video.title : bindableViewModel.title,
+                            artist: bindableViewModel.videoDetail?.owner.name ?? video.uploader,
+                            segments: progressSegments,
+                            onTogglePlayPause: {
+                                togglePlayback(player: player)
+                            },
+                            onSeek: { time in
+                                seekPlayback(to: time, player: player)
+                            }
+                        )
+                        .presentationDetents([.large])
+                        .presentationDragIndicator(.visible)
+                        .presentationBackground(ListenVideoPlayerSheet.presentationBackground)
+                    }
+                }
                 .sheet(isPresented: $isFavoriteSheetPresented) {
                     FavoriteFolderSheet(
                         folders: $favoriteFolders,
@@ -715,6 +741,7 @@ struct VideoDetailPage: View {
             sponsorSubmitErrorText = nil
             sponsorIsSubmitting = false
             previewDraftSegmentID = nil
+            isListenVideoPresented = false
             showsVideoPageDrawer = false
             shouldResumeAfterBackgroundPause = false
             backgroundPauseRestoreTime = nil
@@ -739,6 +766,13 @@ struct VideoDetailPage: View {
         .onChange(of: isDanmakuEnabled) { _, isEnabled in
             if !isEnabled {
                 isDanmakuListPresented = false
+            }
+        }
+        .onChange(of: isListenVideoPresented) { _, isPresented in
+            viewModel.player?.setListenVideoModeActive(isPresented)
+            if isPresented {
+                viewModel.player?.stopPictureInPicture()
+                syncSystemMediaControl(reason: "listen-video-opened")
             }
         }
         .onChange(of: viewModel.cid) { _, _ in
@@ -798,6 +832,7 @@ struct VideoDetailPage: View {
         }
         .onDisappear {
             if let player = bindableViewModel.player {
+                player.setListenVideoModeActive(false)
                 let isRetainedForPictureInPicture =
                     ManualPictureInPictureCoordinator.shared.isRetaining(player)
                 // Capture the final position before AVPlayer releases its item.
@@ -1714,6 +1749,10 @@ struct VideoDetailPage: View {
     }
 
     private func handleDidEnterBackground() {
+        if isListenVideoPresented {
+            syncSystemMediaControl(reason: "listen-video-background")
+            return
+        }
         let playbackSettings = AudioVideoSettingsStore.load()
         guard !playbackSettings.allowsBackgroundPlayback,
               !playbackSettings.allowsVideoPictureInPicture,
@@ -1732,6 +1771,10 @@ struct VideoDetailPage: View {
     }
 
     private func startPictureInPictureForBackgroundIfNeeded() {
+        if isListenVideoPresented {
+            viewModel.player?.stopPictureInPicture()
+            return
+        }
         let playbackSettings = AudioVideoSettingsStore.load()
         guard let player = viewModel.player else { return }
         guard playbackSettings.allowsVideoPictureInPicture, player.isPlaying else {
@@ -3325,6 +3368,7 @@ struct PlayerControlsOverlay: View {
 
     let videoTitle: String
     let onShowDanmakuSettings: () -> Void
+    let onShowListenVideo: () -> Void
     let onShowSponsorSegments: () -> Void
     let onShowSponsorSubmit: () -> Void
     let isFullscreen: Bool
@@ -3448,24 +3492,42 @@ struct PlayerControlsOverlay: View {
                     )
                 }
 
-                // 右上角弹幕设置按钮
-                Button(action: {
-                    onUserInteracted()
-                    onShowDanmakuSettings()
-                }) {
-                    Image("DanmakuSetting")
-                        .renderingMode(.template)
-                        .resizable()
-                        .scaledToFit()
-                        .frame(width: 16, height: 16)
-                        .foregroundColor(.white)
-                        .frame(width: 32, height: 32)
+                if !isFullscreen {
+                    Button(action: {
+                        onUserInteracted()
+                        onShowListenVideo()
+                    }) {
+                        Image(systemName: "headphones")
+                            .font(.system(size: 16, weight: .semibold))
+                            .foregroundColor(.white)
+                            .frame(width: 32, height: 32)
+                    }
+                    .background(Circle().fill(Color(.black.opacity(0.2))))
+                    .glassEffect(
+                        .clear.interactive(),
+                        in: .circle
+                    )
+
+                    // 右上角弹幕设置按钮
+                    Button(action: {
+                        onUserInteracted()
+                        onShowDanmakuSettings()
+                    }) {
+                        Image("DanmakuSetting")
+                            .renderingMode(.template)
+                            .resizable()
+                            .scaledToFit()
+                            .frame(width: 16, height: 16)
+                            .foregroundColor(.white)
+                            .frame(width: 32, height: 32)
+                    }
+                    .background(Circle().fill(Color(.black.opacity(0.2))))
+                    .glassEffect(
+                        .clear.interactive(),
+                        in: .circle
+                    )
                 }
-                .background(Circle().fill(Color(.black.opacity(0.2))))
-                .glassEffect(
-                    .clear.interactive(),
-                    in: .circle
-                )
+
 
                 MoreActionsMenuView(
                     onUserInteracted: onUserInteracted,
@@ -4087,7 +4149,7 @@ private actor VideoShotSpriteLoader {
 }
 #endif
 
-private struct VideoProgressTrack: View {
+struct VideoProgressTrack: View {
     let width: CGFloat
     let height: CGFloat
     let playedProgress: Double
@@ -4165,7 +4227,7 @@ private struct VideoProgressTrack: View {
     }
 }
 
-private func normalizedProgress(_ value: TimeInterval, duration: TimeInterval) -> Double {
+func normalizedProgress(_ value: TimeInterval, duration: TimeInterval) -> Double {
     guard duration > 0 else { return 0 }
     return min(max(value / duration, 0), 1)
 }

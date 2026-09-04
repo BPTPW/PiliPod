@@ -256,6 +256,12 @@ class MPVKitPlayer: NSObject {
         avPlayerSession?.stopPictureInPicture()
     }
 
+    /// The listen-video presentation keeps the existing playback session alive
+    /// while the app is backgrounded, without creating another player.
+    func setListenVideoModeActive(_ active: Bool) {
+        avPlayerSession?.setListenVideoModeActive(active)
+    }
+
     func play(stream: DashStream) {
         if let avPlayerSession {
             pendingStream = nil
