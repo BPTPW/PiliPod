@@ -589,7 +589,9 @@ struct VideoDetailPage: View {
                     }
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: isFullscreen ? .center : .top)
-                .sheet(isPresented: $isListenVideoPresented) {
+                .background {
+                    NativeListenVideoSheetPresenter(isPresented: $isListenVideoPresented) {
+                        Group {
                     if let player = bindableViewModel.player {
                         ListenVideoPlayerSheet(
                             player: player,
@@ -597,6 +599,9 @@ struct VideoDetailPage: View {
                             title: bindableViewModel.title.isEmpty ? video.title : bindableViewModel.title,
                             artist: bindableViewModel.videoDetail?.owner.name ?? video.uploader,
                             segments: progressSegments,
+                            onDismiss: {
+                                isListenVideoPresented = false
+                            },
                             onTogglePlayPause: {
                                 togglePlayback(player: player)
                             },
@@ -604,9 +609,8 @@ struct VideoDetailPage: View {
                                 seekPlayback(to: time, player: player)
                             }
                         )
-                        .presentationDetents([.large])
-                        .presentationDragIndicator(.visible)
-                        .presentationBackground(ListenVideoPlayerSheet.presentationBackground)
+                    }
+                        }
                     }
                 }
                 .sheet(isPresented: $isFavoriteSheetPresented) {

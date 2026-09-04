@@ -10,12 +10,15 @@ struct ListenVideoPlayerSheet: View {
     let title: String
     let artist: String
     let segments: [ProgressSegment]
+    let onDismiss: () -> Void
     let onTogglePlayPause: () -> Void
     let onSeek: (TimeInterval) -> Void
 
     @State private var systemVolume = SystemVolumeController()
     @State private var volume: Double = 0.5
+    @State private var dismissalOffset: CGFloat = 0
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.dismiss) private var dismissPresentation
 
     private var snapshot: PlayerUIPlaybackSnapshot { player.uiSnapshot }
 
@@ -32,16 +35,34 @@ struct ListenVideoPlayerSheet: View {
     }
 
     var body: some View {
-        ZStack {
-            background
-                .ignoresSafeArea()
+        GeometryReader { geo in
+            ZStack {
+                ListenVideoDrawerSurface(
+                    background: background,
+                    topCornerRadius: 62
+                )
+                .frame(
+                    width: geo.size.width,
+                    height: geo.size.height + geo.safeAreaInsets.top
+                )
+                .offset(y: -geo.safeAreaInsets.top)
 
-            GeometryReader { geo in
                 let maximumArtworkSide = max(1, min(geo.size.width - 56, 360))
                 let artworkSide = maximumArtworkSide * (snapshot.isPlaying ? 1 : 0.88)
 
                 VStack(spacing: 0) {
-                    Spacer(minLength: 36)
+                    Spacer(minLength: max(geo.safeAreaInsets.top + 10, 34))
+
+                    Button(action: requestDismissal) {
+                        Capsule(style: .continuous)
+                            .fill(.white.opacity(0.38))
+                            .frame(width: 36, height: 5)
+                            .frame(width: 72, height: 28)
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("关闭听视频")
+
+                    Spacer(minLength: 24)
 
                     ZStack {
                         Color.clear
@@ -112,6 +133,9 @@ struct ListenVideoPlayerSheet: View {
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
+            .offset(y: dismissalOffset)
+            .contentShape(Rectangle())
+            .simultaneousGesture(dismissGesture(height: geo.size.height))
         }
         .ignoresSafeArea(edges: .top)
         .onAppear {
@@ -128,6 +152,69 @@ struct ListenVideoPlayerSheet: View {
 
     private var background: some View { Self.presentationBackground }
 
+    private func dismissGesture(height: CGFloat) -> some Gesture {
+        DragGesture(minimumDistance: 8)
+            .onChanged { value in
+                guard value.translation.height > 0,
+                      value.translation.height > abs(value.translation.width)
+                else { return }
+                dismissalOffset = value.translation.height
+            }
+            .onEnded { value in
+                let shouldDismiss = value.translation.height > height * 0.22
+                    || value.predictedEndTranslation.height > height * 0.32
+
+                guard shouldDismiss else {
+                    withAnimation(.spring(response: 0.34, dampingFraction: 0.82)) {
+                        dismissalOffset = 0
+                    }
+                    return
+                }
+
+                requestDismissal()
+            }
+    }
+
+    private func requestDismissal() {
+        dismissalOffset = 0
+        onDismiss()
+        dismissPresentation()
+    }
+
+}
+
+private struct ListenVideoDrawerSurface<Background: View>: View {
+    let background: Background
+    let topCornerRadius: CGFloat
+
+    var body: some View {
+        background
+            .clipShape(TopRoundedRectangle(cornerRadius: topCornerRadius))
+    }
+}
+
+private struct TopRoundedRectangle: Shape {
+    let cornerRadius: CGFloat
+
+    func path(in rect: CGRect) -> Path {
+        let radius = min(max(cornerRadius, 0), min(rect.width, rect.height) / 2)
+        var path = Path()
+
+        path.move(to: CGPoint(x: rect.minX, y: rect.maxY))
+        path.addLine(to: CGPoint(x: rect.minX, y: rect.minY + radius))
+        path.addQuadCurve(
+            to: CGPoint(x: rect.minX + radius, y: rect.minY),
+            control: CGPoint(x: rect.minX, y: rect.minY)
+        )
+        path.addLine(to: CGPoint(x: rect.maxX - radius, y: rect.minY))
+        path.addQuadCurve(
+            to: CGPoint(x: rect.maxX, y: rect.minY + radius),
+            control: CGPoint(x: rect.maxX, y: rect.minY)
+        )
+        path.addLine(to: CGPoint(x: rect.maxX, y: rect.maxY))
+        path.closeSubpath()
+        return path
+    }
 }
 
 #if canImport(UIKit)
