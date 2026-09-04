@@ -34,7 +34,7 @@ struct HomeView: View {
     @State private var selectedTab: HomeTab = .recommended
     @State private var selectedVideo: VideoItem?
     @State private var isSearchViewPresented = false
-    @State private var toastMessage: String?
+    @State private var isMessageViewPresented = false
     @State private var liveHomeViewModel = LiveHomeViewModel()
     @Namespace private var videoHeroNamespace
     @Bindable var viewModel: HomeViewModel
@@ -84,7 +84,7 @@ struct HomeView: View {
 
                         // 消息按钮
                         Button {
-                            toastMessage = "暂时没有新消息"
+                            isMessageViewPresented = true
                         } label: {
                             ZStack(alignment: .topTrailing) {
                                 Image(systemName: "bell.fill")
@@ -161,6 +161,9 @@ struct HomeView: View {
             .navigationDestination(isPresented: $isSearchViewPresented) {
                 SearchView()
             }
+            .navigationDestination(isPresented: $isMessageViewPresented) {
+                MessageView(viewModel: viewModel)
+            }
         }
         .task {
             await viewModel.refreshUnreadMessageCountIfNeeded()
@@ -189,7 +192,6 @@ struct HomeView: View {
                 selectedTab = .live
             }
         }
-        .toast(message: $toastMessage)
     }
 
     private var unreadBadgeText: String {

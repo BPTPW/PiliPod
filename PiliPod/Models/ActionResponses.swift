@@ -22,6 +22,8 @@ struct MessageFeedUnreadData: Codable {
     let recvReply: Int
     let sysMsg: Int
     let up: Int
+    let reply: Int
+    let at: Int
 
     var total: Int {
         coin + danmu + favorite + recvLike + recvReply + sysMsg + up
@@ -35,7 +37,29 @@ struct MessageFeedUnreadData: Codable {
         case recvReply = "recv_reply"
         case sysMsg = "sys_msg"
         case up
+        case reply
+        case at
     }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        coin = try container.decodeIfPresent(Int.self, forKey: .coin) ?? 0
+        danmu = try container.decodeIfPresent(Int.self, forKey: .danmu) ?? 0
+        favorite = try container.decodeIfPresent(Int.self, forKey: .favorite) ?? 0
+        recvLike = try container.decodeIfPresent(Int.self, forKey: .recvLike) ?? 0
+        recvReply = try container.decodeIfPresent(Int.self, forKey: .recvReply) ?? 0
+        sysMsg = try container.decodeIfPresent(Int.self, forKey: .sysMsg) ?? 0
+        up = try container.decodeIfPresent(Int.self, forKey: .up) ?? 0
+        reply = try container.decodeIfPresent(Int.self, forKey: .reply) ?? 0
+        at = try container.decodeIfPresent(Int.self, forKey: .at) ?? 0
+    }
+}
+
+struct MessageUnreadCounts: Sendable {
+    let reply: Int
+    let at: Int
+    let receivedLike: Int
+    let total: Int
 }
 
 struct PrivateMessageUnreadData: Codable {

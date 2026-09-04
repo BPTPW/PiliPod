@@ -297,9 +297,11 @@ class BiliAPI {
 
     // MARK: - 获取未读消息数
 
-    /// 汇总消息中心通知和私信的未读数量。
-    /// 私信接口固定包含被拦截会话的未读数。
     func fetchUnreadMessageCount() async throws -> Int {
+        try await fetchUnreadMessageCounts().total
+    }
+
+    func fetchUnreadMessageCounts() async throws -> MessageUnreadCounts {
         guard let messageFeedURL = URL(string: "https://api.vc.bilibili.com/x/im/web/msgfeed/unread"),
               var privateMessageComponents = URLComponents(
                   string: "https://api.vc.bilibili.com/session_svr/v1/session_svr/single_unread"
@@ -319,7 +321,12 @@ class BiliAPI {
         async let privateMessageData = requestUnreadPrivateMessages(url: privateMessageURL)
         let (messageFeed, privateMessages) = try await (messageFeedData, privateMessageData)
 
-        return messageFeed.total + privateMessages.total
+        return MessageUnreadCounts(
+            reply: messageFeed.reply,
+            at: messageFeed.at,
+            receivedLike: messageFeed.recvLike,
+            total: messageFeed.total + privateMessages.total
+        )
     }
 
     private func requestUnreadMessageFeed(url: URL) async throws -> MessageFeedUnreadData {
