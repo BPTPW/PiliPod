@@ -26,9 +26,9 @@ struct ListenVideoPlayerSheet: View {
     static var presentationBackground: LinearGradient {
         LinearGradient(
             colors: [
-                Color(.systemGray2),
-                Color(.systemGray4),
-                Color(.systemGray3)
+                Color(red: 99/255, green: 99/255, blue: 102/255), // 固定对应 Gray2
+                Color(red: 58/255, green: 58/255, blue: 60/255),  // 固定对应 Gray4
+                Color(red: 72/255, green: 72/255, blue: 74/255)   // 固定对应 Gray3
             ],
             startPoint: .topLeading,
             endPoint: .bottomTrailing
@@ -84,11 +84,11 @@ struct ListenVideoPlayerSheet: View {
                     VStack(alignment: .leading, spacing: 7) {
                         MarqueeTitle(text: title)
                             .font(.system(size: 21, weight: .semibold))
-                            .foregroundStyle(.primary)
+                        .foregroundStyle(Color.white)
 
                         Text(artist.isEmpty ? "--" : artist)
                             .font(.system(size: 16, weight: .regular))
-                            .foregroundStyle(.primary.opacity(0.56))
+                            .foregroundStyle(Color.white.opacity(0.56))
                             .lineLimit(1)
                     }
                     .padding(.horizontal, 28)
@@ -121,7 +121,7 @@ struct ListenVideoPlayerSheet: View {
                         }
                         .disabled(true)
                     }
-                    .foregroundStyle(.primary)
+                    .foregroundStyle(Color.white)
                     .padding(.top, 36)
 
                     ListenVideoVolumeControl(volume: $volume)
@@ -367,7 +367,7 @@ private struct ListenVideoProgressControl: View {
                     Text("-\(formatTime(max(duration - duration * displayedProgress, 0)))")
                 }
                 .font(.system(size: 12, weight: .medium, design: .rounded))
-                .foregroundStyle(.primary.opacity(opacity))
+                .foregroundStyle(Color.white.opacity(opacity))
                 .frame(width: width)
             }
             .scaleEffect(scale)
@@ -430,7 +430,7 @@ private struct ListenVideoVolumeControl: View {
             HStack(spacing: spacing) {
                 Image(systemName: "speaker.fill")
                     .font(.system(size: 15, weight: .medium))
-                    .foregroundStyle(.primary.opacity(0.72))
+                    .foregroundStyle(Color.white.opacity(0.72))
                     .frame(width: iconWidth)
 
                 VideoProgressTrack(
@@ -450,7 +450,7 @@ private struct ListenVideoVolumeControl: View {
 
                 Image(systemName: "speaker.wave.3.fill")
                     .font(.system(size: 16, weight: .medium))
-                    .foregroundStyle(.primary.opacity(0.72))
+                    .foregroundStyle(Color.white.opacity(0.72))
                     .frame(width: iconWidth)
             }
             .scaleEffect(isDragging ? 1.055 : 1)
