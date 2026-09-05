@@ -139,6 +139,7 @@ class MPVKitPlayer: NSObject {
     private(set) var uiSnapshot = PlayerUIPlaybackSnapshot()
     private(set) var playbackError: String?
     private(set) var ambientPalette = AmbientPalette.fallback
+    private(set) var listenVideoAudioEnergy: Float = 0
 
     var videoCodec: String { controller?.videoCodec() ?? "" }
     var audioCodec: String { controller?.audioCodec() ?? "" }
@@ -183,6 +184,9 @@ class MPVKitPlayer: NSObject {
             if palette.differsVisibly(from: self.ambientPalette) {
                 self.ambientPalette = palette
             }
+        }
+        avPlayerSession?.onListenVideoAudioEnergy = { [weak self] energy in
+            self?.listenVideoAudioEnergy = energy
         }
         settingsObserver = NotificationCenter.default.addObserver(
             forName: .audioVideoSettingsDidChange,
@@ -260,6 +264,9 @@ class MPVKitPlayer: NSObject {
     /// while the app is backgrounded, without creating another player.
     func setListenVideoModeActive(_ active: Bool) {
         avPlayerSession?.setListenVideoModeActive(active)
+        if !active {
+            listenVideoAudioEnergy = 0
+        }
     }
 
     func play(stream: DashStream) {

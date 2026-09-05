@@ -16,6 +16,7 @@ struct ListenVideoPlayerSheet: View {
 
     @State private var systemVolume = SystemVolumeController()
     @State private var volume: Double = 0.5
+    @State private var artworkPalette = AmbientPalette.fallback
     @State private var dismissalOffset: CGFloat = 0
     @State private var isDismissing = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -140,6 +141,17 @@ struct ListenVideoPlayerSheet: View {
         .onAppear {
             volume = systemVolume.currentVolume
         }
+        .task(id: coverURL) {
+            guard player.usesAVPlayer,
+                  let coverURL,
+                  let image = await SharedRemoteImageStore.shared.image(for: coverURL),
+                  let palette = ArtworkPaletteAnalyzer.palette(from: image)
+            else {
+                artworkPalette = .fallback
+                return
+            }
+            artworkPalette = palette
+        }
     }
 
     private var coverArtwork: some View {
@@ -149,7 +161,18 @@ struct ListenVideoPlayerSheet: View {
         )
     }
 
-    private var background: some View { Self.presentationBackground }
+    @ViewBuilder
+    private var background: some View {
+        if player.usesAVPlayer {
+            ListenVideoDynamicBackground(
+                palette: artworkPalette,
+                audioEnergy: player.listenVideoAudioEnergy,
+                isPlaying: snapshot.isPlaying
+            )
+        } else {
+            Self.presentationBackground
+        }
+    }
 
     private func dismissGesture(height: CGFloat) -> some Gesture {
         DragGesture(minimumDistance: 8)
@@ -242,6 +265,65 @@ private struct ListenVideoDrawerSurface<Background: View>: View {
         background
             .clipShape(TopRoundedRectangle(cornerRadius: topCornerRadius))
     }
+}
+
+private struct ListenVideoDynamicBackground: View {
+    let palette: AmbientPalette
+    let audioEnergy: Float
+    let isPlaying: Bool
+
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    private var colors: [Color] {
+        let source = palette == .fallback ? Self.fallbackPalette : palette
+        return [
+            source.topLeading.swiftUIColor,
+            source.topTrailing.swiftUIColor,
+            source.bottomLeading.swiftUIColor,
+            source.bottomTrailing.swiftUIColor
+        ]
+    }
+
+    var body: some View {
+        TimelineView(.animation(minimumInterval: 1.0 / 30.0)) { context in
+            let time = reduceMotion || !isPlaying
+                ? 0
+                : context.date.timeIntervalSinceReferenceDate
+            let phase = Float(time)
+            let horizontalMotion = sin(phase * 0.37) * 0.11
+            let verticalMotion = cos(phase * 0.29) * 0.10
+            let pulse = reduceMotion || !isPlaying ? 0 : min(max(audioEnergy, 0), 1) * 0.12
+
+            MeshGradient(
+                width: 3,
+                height: 3,
+                points: [
+                    SIMD2<Float>(0, 0), SIMD2<Float>(0.5 + horizontalMotion * 0.38, 0), SIMD2<Float>(1, 0),
+                    SIMD2<Float>(0, 0.5 - verticalMotion * 0.42),
+                    SIMD2<Float>(0.5 + horizontalMotion + pulse, 0.5 + verticalMotion - pulse),
+                    SIMD2<Float>(1, 0.5 + verticalMotion * 0.55),
+                    SIMD2<Float>(0, 1), SIMD2<Float>(0.5 - horizontalMotion * 0.58, 1), SIMD2<Float>(1, 1)
+                ],
+                colors: [
+                    colors[0], colors[1], colors[0],
+                    colors[2], colors[3], colors[1],
+                    colors[2], colors[0], colors[3]
+                ]
+            )
+            .scaleEffect(1.10 + CGFloat(pulse * 0.32))
+            .blur(radius: 42, opaque: true)
+            .overlay(Color.black.opacity(0.31 - Double(pulse) * 0.10))
+            .clipped()
+            .allowsHitTesting(false)
+        }
+    }
+
+    private static let fallbackPalette = AmbientPalette(
+        topLeading: AmbientColor(red: 0.38, green: 0.18, blue: 0.30),
+        topTrailing: AmbientColor(red: 0.16, green: 0.29, blue: 0.42),
+        bottomLeading: AmbientColor(red: 0.12, green: 0.20, blue: 0.26),
+        bottomTrailing: AmbientColor(red: 0.30, green: 0.20, blue: 0.16)
+    )
 }
 
 private struct TopRoundedRectangle: Shape {

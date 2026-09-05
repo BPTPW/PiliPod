@@ -1,5 +1,8 @@
 import AVFoundation
 import SwiftUI
+#if canImport(UIKit)
+import UIKit
+#endif
 
 struct AmbientColor: Equatable, Sendable {
     let red: Double
@@ -145,3 +148,91 @@ enum AmbientPaletteAnalyzer {
         }
     }
 }
+
+#if canImport(UIKit)
+enum ArtworkPaletteAnalyzer {
+    static func palette(from image: UIImage) -> AmbientPalette? {
+        guard let cgImage = image.cgImage else { return nil }
+
+        let width = 40
+        let height = 40
+        let bytesPerPixel = 4
+        let bytesPerRow = width * bytesPerPixel
+        var pixels = [UInt8](repeating: 0, count: height * bytesPerRow)
+        guard let context = CGContext(
+            data: &pixels,
+            width: width,
+            height: height,
+            bitsPerComponent: 8,
+            bytesPerRow: bytesPerRow,
+            space: CGColorSpaceCreateDeviceRGB(),
+            bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+        ) else {
+            return nil
+        }
+
+        context.interpolationQuality = .medium
+        context.draw(cgImage, in: CGRect(x: 0, y: 0, width: width, height: height))
+
+        var samples = Array(repeating: ArtworkColorAccumulator(), count: 4)
+        for y in 0 ..< height {
+            for x in 0 ..< width {
+                let offset = y * bytesPerRow + x * bytesPerPixel
+                let red = Double(pixels[offset]) / 255
+                let green = Double(pixels[offset + 1]) / 255
+                let blue = Double(pixels[offset + 2]) / 255
+                let luma = red * 0.2126 + green * 0.7152 + blue * 0.0722
+                let saturation = max(red, green, blue) - min(red, green, blue)
+                let quadrant = (y >= height / 2 ? 2 : 0) + (x >= width / 2 ? 1 : 0)
+                samples[quadrant].add(
+                    red: red,
+                    green: green,
+                    blue: blue,
+                    weight: 0.25 + luma * 0.4 + saturation * 1.8
+                )
+            }
+        }
+
+        let colors = samples.map(\.color)
+        return AmbientPalette(
+            topLeading: colors[0],
+            topTrailing: colors[1],
+            bottomLeading: colors[2],
+            bottomTrailing: colors[3]
+        )
+    }
+
+    private struct ArtworkColorAccumulator {
+        private var red = 0.0
+        private var green = 0.0
+        private var blue = 0.0
+        private var weight = 0.0
+
+        mutating func add(red: Double, green: Double, blue: Double, weight: Double) {
+            self.red += red * weight
+            self.green += green * weight
+            self.blue += blue * weight
+            self.weight += weight
+        }
+
+        var color: AmbientColor {
+            guard weight > 0 else { return .black }
+            let averageRed = red / weight
+            let averageGreen = green / weight
+            let averageBlue = blue / weight
+            let luma = averageRed * 0.2126 + averageGreen * 0.7152 + averageBlue * 0.0722
+
+            func enhanced(_ component: Double) -> Double {
+                let saturated = luma + (component - luma) * 1.45
+                return min(0.92, max(0.08, (saturated - 0.5) * 1.16 + 0.5))
+            }
+
+            return AmbientColor(
+                red: enhanced(averageRed),
+                green: enhanced(averageGreen),
+                blue: enhanced(averageBlue)
+            )
+        }
+    }
+}
+#endif
