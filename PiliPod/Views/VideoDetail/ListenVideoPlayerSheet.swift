@@ -17,6 +17,7 @@ struct ListenVideoPlayerSheet: View {
     @State private var systemVolume = SystemVolumeController()
     @State private var volume: Double = 0.5
     @State private var dismissalOffset: CGFloat = 0
+    @State private var isDismissing = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.dismiss) private var dismissPresentation
 
@@ -109,12 +110,10 @@ struct ListenVideoPlayerSheet: View {
                         }
                         .disabled(true)
 
-                        Button(action: onTogglePlayPause) {
-                            Image(systemName: snapshot.isPlaying ? "pause.fill" : "play.fill")
-                                .font(.system(size: 42, weight: .semibold))
-                                .frame(width: 64, height: 64)
-                        }
-                        .accessibilityLabel(snapshot.isPlaying ? "暂停" : "播放")
+                        ListenVideoPlayPauseButton(
+                            isPlaying: snapshot.isPlaying,
+                            action: onTogglePlayPause
+                        )
 
                         Button(action: {}) {
                             Image(systemName: "forward.fill")
@@ -171,16 +170,68 @@ struct ListenVideoPlayerSheet: View {
                     return
                 }
 
-                requestDismissal()
+                finishDismissal(from: dismissalOffset, height: height)
             }
     }
 
     private func requestDismissal() {
-        dismissalOffset = 0
-        onDismiss()
-        dismissPresentation()
+        finishDismissal(from: dismissalOffset, height: UIScreen.main.bounds.height)
     }
 
+    private func finishDismissal(from currentOffset: CGFloat, height: CGFloat) {
+        guard !isDismissing else { return }
+        isDismissing = true
+
+        let remainingDistance = max(height - currentOffset, 0)
+        let duration = max(0.12, min(0.28, 0.28 * remainingDistance / max(height, 1)))
+
+        withAnimation(.easeOut(duration: duration)) {
+            dismissalOffset = height
+        }
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + duration) {
+            onDismiss()
+            dismissPresentation()
+        }
+    }
+
+}
+
+private struct ListenVideoPlayPauseButton: View {
+    let isPlaying: Bool
+    let action: () -> Void
+
+    @State private var scale: CGFloat = 1
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    var body: some View {
+        Button(action: animateToggle) {
+            Image(systemName: isPlaying ? "pause.fill" : "play.fill")
+                .font(.system(size: 42, weight: .semibold))
+                .frame(width: 64, height: 64)
+                .scaleEffect(scale)
+                .contentTransition(.identity)
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(isPlaying ? "暂停" : "播放")
+    }
+
+    private func animateToggle() {
+        withAnimation(.easeIn(duration: 0.12)) {
+            scale = 0.5
+        }
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.12) {
+            action()
+            withAnimation(
+                reduceMotion
+                    ? .easeOut(duration: 0.16)
+                    : .spring(response: 0.32, dampingFraction: 0.56)
+            ) {
+                scale = 1
+            }
+        }
+    }
 }
 
 private struct ListenVideoDrawerSurface<Background: View>: View {

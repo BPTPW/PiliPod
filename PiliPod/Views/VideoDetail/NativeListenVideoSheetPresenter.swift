@@ -27,10 +27,8 @@ struct NativeListenVideoSheetPresenter<SheetContent: View>: UIViewControllerRepr
         }
     }
 
-    final class Coordinator: NSObject, UIViewControllerTransitioningDelegate, UIAdaptivePresentationControllerDelegate, UIGestureRecognizerDelegate {
+    final class Coordinator: NSObject, UIViewControllerTransitioningDelegate, UIAdaptivePresentationControllerDelegate {
         private var isPresented: Binding<Bool>
-        private var dismissalInteraction: UIPercentDrivenInteractiveTransition?
-        private weak var presentedController: UIViewController?
 
         init(isPresented: Binding<Bool>) {
             self.isPresented = isPresented
@@ -65,51 +63,6 @@ struct NativeListenVideoSheetPresenter<SheetContent: View>: UIViewControllerRepr
             ListenVideoSlideAnimator(isPresenting: false)
         }
 
-        func interactionControllerForDismissal(
-            using _: any UIViewControllerAnimatedTransitioning
-        ) -> (any UIViewControllerInteractiveTransitioning)? {
-            dismissalInteraction
-        }
-
-        func installDismissalPanGesture(on controller: UIViewController) {
-            presentedController = controller
-            let panGesture = UIPanGestureRecognizer(target: self, action: #selector(handleDismissalPan(_:)))
-            panGesture.delegate = self
-            controller.view.addGestureRecognizer(panGesture)
-        }
-
-        @objc private func handleDismissalPan(_ gesture: UIPanGestureRecognizer) {
-            guard let view = gesture.view else { return }
-            let translation = gesture.translation(in: view)
-            let progress = min(max(translation.y / max(view.bounds.height, 1), 0), 1)
-
-            switch gesture.state {
-            case .began:
-                dismissalInteraction = UIPercentDrivenInteractiveTransition()
-                presentedController?.dismiss(animated: true)
-            case .changed:
-                dismissalInteraction?.update(progress)
-            case .ended, .cancelled, .failed:
-                let velocity = gesture.velocity(in: view).y
-                if progress > 0.24 || velocity > 1_000 {
-                    dismissalInteraction?.finish()
-                } else {
-                    dismissalInteraction?.cancel()
-                }
-                dismissalInteraction = nil
-            default:
-                break
-            }
-        }
-
-        func gestureRecognizerShouldBegin(_ gestureRecognizer: UIGestureRecognizer) -> Bool {
-            guard let panGesture = gestureRecognizer as? UIPanGestureRecognizer,
-                  let view = panGesture.view
-            else { return false }
-
-            let velocity = panGesture.velocity(in: view)
-            return velocity.y > 0 && velocity.y > abs(velocity.x)
-        }
     }
 
     final class PresenterViewController: UIViewController {
@@ -135,7 +88,6 @@ struct NativeListenVideoSheetPresenter<SheetContent: View>: UIViewControllerRepr
             controller.modalPresentationStyle = .custom
             controller.modalPresentationCapturesStatusBarAppearance = true
             controller.transitioningDelegate = coordinator
-            coordinator.installDismissalPanGesture(on: controller)
 
             present(controller, animated: true)
             sheetController = controller
