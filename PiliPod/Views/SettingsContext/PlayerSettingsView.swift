@@ -79,6 +79,20 @@ private struct PlayerSettingsView: View {
                 }
             }
             Section {
+                Toggle("背景随音乐闪烁", isOn: $settings.listenVideoAudioEnergyEnabled)
+                    .tint(Color("BiliPink"))
+                    .disabled(!supportsAmbientMode)
+                Toggle("显示调试信息", isOn: $settings.listenVideoAudioDebugEnabled)
+                    .tint(Color("BiliPink"))
+                    .disabled(!supportsAmbientMode)
+            } header: {
+                Text("听视频")
+            } footer: {
+                if !supportsAmbientMode {
+                    Text("听视频背景效果仅支持 AVPlayer 内核。")
+                }
+            }
+            Section {
                 Picker("进度条样式", selection: $settings.videoProgressBarStyle) {
                     ForEach(VideoProgressBarStyle.allCases, id: \.self) { style in
                         Text(style.title).tag(style)
@@ -114,6 +128,8 @@ private struct PlayerSettingsView: View {
                     settings.ambientModeEnabled = defaultSettings.ambientModeEnabled
                     settings.ambientSamplingRate = defaultSettings.ambientSamplingRate
                     settings.ambientGradientSpeed = defaultSettings.ambientGradientSpeed
+                    settings.listenVideoAudioEnergyEnabled = defaultSettings.listenVideoAudioEnergyEnabled
+                    settings.listenVideoAudioDebugEnabled = defaultSettings.listenVideoAudioDebugEnabled
                     settings.videoProgressBarStyle = defaultSettings.videoProgressBarStyle
                 }
             }

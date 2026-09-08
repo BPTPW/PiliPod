@@ -132,6 +132,21 @@ struct ListenVideoPlayerSheet: View {
                     Spacer(minLength: max(geo.safeAreaInsets.bottom, 20))
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
+
+                Group {
+                    if player.listenVideoAudioDebugEnabled {
+                        ListenVideoAudioDebugOverlay(
+                            energy: player.listenVideoAudioEnergy,
+                            isPlaying: snapshot.isPlaying,
+                            playbackTime: snapshot.currentTime,
+                            envelopeTime: player.listenVideoAudioEnvelopeTime,
+                            envelopeFrameCount: player.listenVideoAudioEnvelopeFrameCount
+                        )
+                    }
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                .padding(.top, max(geo.safeAreaInsets.top + 12, 46))
+                .padding(.leading, 14)
             }
             .offset(y: dismissalOffset)
             .contentShape(Rectangle())
@@ -220,6 +235,42 @@ struct ListenVideoPlayerSheet: View {
 
 }
 
+private struct ListenVideoAudioDebugOverlay: View {
+    let energy: Float
+    let isPlaying: Bool
+    let playbackTime: TimeInterval
+    let envelopeTime: TimeInterval?
+    let envelopeFrameCount: Int
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 3) {
+            Text("Audio Energy")
+                .font(.system(size: 11, weight: .semibold))
+            Text(String(format: "%.4f  (%d%%)", energy, Int(min(max(energy, 0), 1) * 100)))
+                .font(.system(size: 13, weight: .medium, design: .monospaced))
+            Text(String(format: "player %.2fs", playbackTime))
+                .font(.system(size: 10, design: .monospaced))
+            if let envelopeTime {
+                Text(String(format: "envelope %.2fs  delta %+.2fs", envelopeTime, envelopeTime - playbackTime))
+                    .font(.system(size: 10, design: .monospaced))
+            } else {
+                Text("envelope loading")
+                    .font(.system(size: 10, design: .monospaced))
+            }
+            Text("frames \(envelopeFrameCount)")
+                .font(.system(size: 10, design: .monospaced))
+            Text(isPlaying ? "playing" : "paused")
+                .font(.system(size: 10, design: .monospaced))
+                .foregroundStyle(.white.opacity(0.72))
+        }
+        .foregroundStyle(.white)
+        .padding(.horizontal, 9)
+        .padding(.vertical, 7)
+        .background(.black.opacity(0.48), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+        .allowsHitTesting(false)
+    }
+}
+
 private struct ListenVideoPlayPauseButton: View {
     let isPlaying: Bool
     let action: () -> Void
@@ -290,9 +341,12 @@ private struct ListenVideoDynamicBackground: View {
                 ? 0
                 : context.date.timeIntervalSinceReferenceDate
             let phase = Float(time)
-            let horizontalMotion = sin(phase * 0.37) * 0.11
-            let verticalMotion = cos(phase * 0.29) * 0.10
-            let pulse = reduceMotion || !isPlaying ? 0 : min(max(audioEnergy, 0), 1) * 0.12
+            let horizontalMotion = sin(phase * 0.72) * 0.16
+            let verticalMotion = cos(phase * 0.56) * 0.14
+            let highlight = reduceMotion || !isPlaying ? 0 : min(max(audioEnergy, 0), 1)
+            let highlightDriftX = CGFloat(sin(phase * 0.42) * 120 + horizontalMotion * 300)
+            let highlightDriftY = CGFloat(cos(phase * 0.34) * 100 + verticalMotion * 260)
+            let highlightSize = 380 + CGFloat(highlight) * 100
 
             MeshGradient(
                 width: 3,
@@ -300,7 +354,7 @@ private struct ListenVideoDynamicBackground: View {
                 points: [
                     SIMD2<Float>(0, 0), SIMD2<Float>(0.5 + horizontalMotion * 0.38, 0), SIMD2<Float>(1, 0),
                     SIMD2<Float>(0, 0.5 - verticalMotion * 0.42),
-                    SIMD2<Float>(0.5 + horizontalMotion + pulse, 0.5 + verticalMotion - pulse),
+                    SIMD2<Float>(0.5 + horizontalMotion, 0.5 + verticalMotion),
                     SIMD2<Float>(1, 0.5 + verticalMotion * 0.55),
                     SIMD2<Float>(0, 1), SIMD2<Float>(0.5 - horizontalMotion * 0.58, 1), SIMD2<Float>(1, 1)
                 ],
@@ -310,9 +364,24 @@ private struct ListenVideoDynamicBackground: View {
                     colors[2], colors[0], colors[3]
                 ]
             )
-            .scaleEffect(1.10 + CGFloat(pulse * 0.32))
+            .scaleEffect(1.10)
             .blur(radius: 42, opaque: true)
-            .overlay(Color.black.opacity(0.31 - Double(pulse) * 0.10))
+            .overlay {
+                RadialGradient(
+                    colors: [
+                        colors[1].opacity(0.08 + Double(highlight) * 0.50),
+                        colors[3].opacity(0.03 + Double(highlight) * 0.18),
+                        .clear
+                    ],
+                    center: .center,
+                    startRadius: 0,
+                    endRadius: highlightSize * 0.55
+                )
+                .frame(width: highlightSize, height: highlightSize)
+                .offset(x: 118 + highlightDriftX, y: -106 + highlightDriftY)
+                .blur(radius: 14)
+            }
+            .overlay(Color.black.opacity(0.31))
             .clipped()
             .allowsHitTesting(false)
         }

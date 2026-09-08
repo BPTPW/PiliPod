@@ -5,8 +5,6 @@
 
 import AVFoundation
 import AVKit
-import Accelerate
-import MediaToolbox
 import Network
 import UIKit
 
@@ -55,7 +53,10 @@ final class AVPlayerSession: NSObject, AVPictureInPictureControllerDelegate {
     private var lastAmbientSampleUptime: TimeInterval = 0
     private var isAmbientModeActive = false
     private var isListenVideoModeActive = false
-    private var listenVideoAudioAnalyzer: AVPlayerAudioEnergyAnalyzer?
+    private var listenVideoAudioEnergyEnabled = false
+    private var activeStream: DashStream?
+    private var listenVideoAudioEnvelopeAnalyzer: AudioEnvelopeAnalyzer?
+    private var listenVideoAudioEnvelope: [AudioEnvelopeFrame] = []
     private(set) var playbackRate = 1.0
     private(set) var snapshot = PlayerUIPlaybackSnapshot()
     private(set) var seekRevision = 0
@@ -63,10 +64,12 @@ final class AVPlayerSession: NSObject, AVPictureInPictureControllerDelegate {
     var onSnapshot: ((PlayerUIPlaybackSnapshot) -> Void)?
     var onAmbientPalette: ((AmbientPalette) -> Void)?
     var onListenVideoAudioEnergy: ((Float) -> Void)?
+    var onListenVideoAudioEnvelopeDebug: ((TimeInterval, TimeInterval?, Int) -> Void)?
 
     init(headers: [String: String], playbackSettings: AudioVideoSettings) {
         self.headers = headers
         self.playbackSettings = playbackSettings.clamped()
+        self.listenVideoAudioEnergyEnabled = self.playbackSettings.listenVideoAudioEnergyEnabled
         super.init()
         player.automaticallyWaitsToMinimizeStalling = true
         player.audiovisualBackgroundPlaybackPolicy = .automatic
@@ -112,6 +115,16 @@ final class AVPlayerSession: NSObject, AVPictureInPictureControllerDelegate {
 
     func applyPlaybackSettings(_ settings: AudioVideoSettings) {
         playbackSettings = settings.clamped()
+        let wasAudioEnergyEnabled = listenVideoAudioEnergyEnabled
+        listenVideoAudioEnergyEnabled = playbackSettings.listenVideoAudioEnergyEnabled
+        if listenVideoAudioEnergyEnabled && !wasAudioEnergyEnabled {
+            if isListenVideoModeActive, let activeStream {
+                startListenVideoAudioEnvelope(for: activeStream)
+            }
+        } else if !listenVideoAudioEnergyEnabled && wasAudioEnergyEnabled {
+            detachListenVideoAudioEnvelopeAnalyzer()
+            onListenVideoAudioEnergy?(0)
+        }
         applyDynamicRangePreference(to: layer)
         if let item = player.currentItem {
             applyBufferPreference(to: item)
@@ -124,9 +137,14 @@ final class AVPlayerSession: NSObject, AVPictureInPictureControllerDelegate {
         configureBackgroundPlayback(allowsPlayback: active || playbackSettings.allowsBackgroundPlayback)
         if active {
             stopPictureInPicture()
-            attachListenVideoAudioAnalyzer(to: player.currentItem)
+            if listenVideoAudioEnergyEnabled,
+               listenVideoAudioEnvelopeAnalyzer == nil,
+               let activeStream {
+                startListenVideoAudioEnvelope(for: activeStream)
+            }
+            publishListenVideoAudioEnergy(at: player.currentTime().seconds)
         } else {
-            detachListenVideoAudioAnalyzer()
+            detachListenVideoAudioEnvelopeAnalyzer()
             onListenVideoAudioEnergy?(0)
         }
     }
@@ -163,6 +181,7 @@ final class AVPlayerSession: NSObject, AVPictureInPictureControllerDelegate {
         let requestGeneration = generation
         prepareTask?.cancel()
         tearDownItem()
+        activeStream = stream
         wantsPlayback = true
         errorMessage = nil
         prepareTask = Task { [weak self] in
@@ -174,6 +193,7 @@ final class AVPlayerSession: NSObject, AVPictureInPictureControllerDelegate {
                     let bridge = try await LocalDASHHLSBridge.make(stream: candidate, headers: self.headers)
                     guard !Task.isCancelled, requestGeneration == self.generation else { bridge.stop(); return }
                     self.bridge = bridge
+                    self.startListenVideoAudioEnvelope(for: candidate)
                     let asset = AVURLAsset(url: bridge.masterPlaylistURL)
                     let item = AVPlayerItem(asset: asset)
                     self.install(item)
@@ -194,6 +214,7 @@ final class AVPlayerSession: NSObject, AVPictureInPictureControllerDelegate {
         generation &+= 1
         prepareTask?.cancel()
         tearDownItem()
+        activeStream = nil
         wantsPlayback = true
         errorMessage = nil
         let asset = AVURLAsset(url: liveURL, options: ["AVURLAssetHTTPHeaderFieldsKey": headers])
@@ -220,9 +241,6 @@ final class AVPlayerSession: NSObject, AVPictureInPictureControllerDelegate {
     private func install(_ item: AVPlayerItem) {
         resetAccessLogSpeedTracking()
         player.replaceCurrentItem(with: item)
-        if isListenVideoModeActive {
-            attachListenVideoAudioAnalyzer(to: item)
-        }
         if isAmbientModeActive {
             attachAmbientVideoOutput(to: item)
         }
@@ -243,9 +261,10 @@ final class AVPlayerSession: NSObject, AVPictureInPictureControllerDelegate {
             item.observe(\.loadedTimeRanges, options: [.new]) { [weak self] _, _ in Task { @MainActor in self?.publish() } },
             player.observe(\.timeControlStatus, options: [.initial, .new]) { [weak self] _, _ in Task { @MainActor in self?.publish() } }
         ]
-        timeObserver = player.addPeriodicTimeObserver(forInterval: CMTime(seconds: 0.1, preferredTimescale: 600), queue: .main) { [weak self] time in
+        timeObserver = player.addPeriodicTimeObserver(forInterval: CMTime(seconds: 1.0 / 30.0, preferredTimescale: 600), queue: .main) { [weak self] time in
             self?.publish()
             self?.sampleAmbientPalette(at: time)
+            self?.publishListenVideoAudioEnergy(at: time.seconds)
         }
         endObserver = NotificationCenter.default.addObserver(forName: .AVPlayerItemDidPlayToEndTime, object: item, queue: .main) { [weak self] _ in
             Task { @MainActor in self?.handleEnd() }
@@ -361,7 +380,7 @@ final class AVPlayerSession: NSObject, AVPictureInPictureControllerDelegate {
         if let endObserver { NotificationCenter.default.removeObserver(endObserver) }
         endObserver = nil
         detachAmbientVideoOutput()
-        detachListenVideoAudioAnalyzer()
+        detachListenVideoAudioEnvelopeAnalyzer()
         player.replaceCurrentItem(with: nil)
         resetAccessLogSpeedTracking()
         bridge?.stop(); bridge = nil
@@ -407,19 +426,49 @@ final class AVPlayerSession: NSObject, AVPictureInPictureControllerDelegate {
         onAmbientPalette?(palette)
     }
 
-    private func attachListenVideoAudioAnalyzer(to item: AVPlayerItem?) {
-        guard let item, listenVideoAudioAnalyzer == nil else { return }
-
-        let analyzer = AVPlayerAudioEnergyAnalyzer { [weak self] energy in
-            self?.onListenVideoAudioEnergy?(energy)
+    private func startListenVideoAudioEnvelope(for stream: DashStream) {
+        guard isListenVideoModeActive, listenVideoAudioEnergyEnabled else { return }
+        listenVideoAudioEnvelope = []
+        let analyzer = AudioEnvelopeAnalyzer(headers: headers) { [weak self] frames in
+            guard let self else { return }
+            self.listenVideoAudioEnvelope = frames
+            self.publishListenVideoAudioEnergy(at: self.player.currentTime().seconds)
         }
-        analyzer.attach(to: item)
-        listenVideoAudioAnalyzer = analyzer
+        listenVideoAudioEnvelopeAnalyzer = analyzer
+        analyzer.start(stream: stream)
     }
 
-    private func detachListenVideoAudioAnalyzer() {
-        listenVideoAudioAnalyzer?.detach()
-        listenVideoAudioAnalyzer = nil
+    private func detachListenVideoAudioEnvelopeAnalyzer() {
+        listenVideoAudioEnvelopeAnalyzer?.cancel()
+        listenVideoAudioEnvelopeAnalyzer = nil
+        listenVideoAudioEnvelope = []
+        onListenVideoAudioEnvelopeDebug?(player.currentTime().seconds, nil, 0)
+    }
+
+    private func publishListenVideoAudioEnergy(at time: TimeInterval) {
+        guard isListenVideoModeActive,
+              !listenVideoAudioEnvelope.isEmpty,
+              time.isFinite,
+              time >= 0
+        else { return }
+
+        var low = 0
+        var high = listenVideoAudioEnvelope.count
+        while low < high {
+            let middle = (low + high) / 2
+            if listenVideoAudioEnvelope[middle].time < time {
+                low = middle + 1
+            } else {
+                high = middle
+            }
+        }
+        let upperIndex = min(low, listenVideoAudioEnvelope.count - 1)
+        let lowerIndex = max(upperIndex - 1, 0)
+        let lower = listenVideoAudioEnvelope[lowerIndex]
+        let upper = listenVideoAudioEnvelope[upperIndex]
+        let frame = abs(upper.time - time) < abs(lower.time - time) ? upper : lower
+        onListenVideoAudioEnergy?(frame.energy)
+        onListenVideoAudioEnvelopeDebug?(time, frame.time, listenVideoAudioEnvelope.count)
     }
 
     private func preparePictureInPictureController() {
@@ -594,192 +643,6 @@ final class AVPlayerSession: NSObject, AVPictureInPictureControllerDelegate {
         tearDownItem()
         layer?.removeFromSuperlayer()
     }
-}
-
-private final class AVPlayerAudioEnergyAnalyzer {
-    private let onEnergy: (Float) -> Void
-    private weak var item: AVPlayerItem?
-    private var audioMix: AVAudioMix?
-    private var attachmentTask: Task<Void, Never>?
-    private var smoothedEnergy: Float = 0
-    private var lastPublicationUptime: TimeInterval = 0
-    private var isFloatPCM = false
-    private var bitsPerChannel: UInt32 = 0
-
-    init(onEnergy: @escaping (Float) -> Void) {
-        self.onEnergy = onEnergy
-    }
-
-    func attach(to item: AVPlayerItem) {
-        guard self.item == nil else { return }
-        self.item = item
-        attachmentTask = Task { @MainActor [weak self, weak item] in
-            guard let self, let item else { return }
-            do {
-                let tracks = try await item.asset.loadTracks(withMediaType: .audio)
-                guard !Task.isCancelled,
-                      self.item === item,
-                      let track = tracks.first
-                else { return }
-                self.installTap(on: track, for: item)
-            } catch {
-                // Artwork animation remains available when a stream's audio
-                // track cannot be inspected before playback begins.
-            }
-        }
-    }
-
-    func detach() {
-        attachmentTask?.cancel()
-        attachmentTask = nil
-        item?.audioMix = nil
-        audioMix = nil
-        item = nil
-        smoothedEnergy = 0
-        lastPublicationUptime = 0
-    }
-
-    private func installTap(on track: AVAssetTrack, for item: AVPlayerItem) {
-        var callbacks = MTAudioProcessingTapCallbacks(
-            version: kMTAudioProcessingTapCallbacksVersion_0,
-            clientInfo: Unmanaged.passUnretained(self).toOpaque(),
-            init: listenVideoAudioTapInit,
-            finalize: nil,
-            prepare: listenVideoAudioTapPrepare,
-            unprepare: nil,
-            process: listenVideoAudioTapProcess
-        )
-        var tap: MTAudioProcessingTap?
-        let status = MTAudioProcessingTapCreate(
-            kCFAllocatorDefault,
-            &callbacks,
-            kMTAudioProcessingTapCreationFlag_PreEffects,
-            &tap
-        )
-        guard status == noErr, let tap, self.item === item else { return }
-
-        let parameters = AVMutableAudioMixInputParameters(track: track)
-        parameters.audioTapProcessor = tap
-        let audioMix = AVMutableAudioMix()
-        audioMix.inputParameters = [parameters]
-        item.audioMix = audioMix
-        self.audioMix = audioMix
-    }
-
-    fileprivate func prepare(processingFormat: UnsafePointer<AudioStreamBasicDescription>) {
-        isFloatPCM = processingFormat.pointee.mFormatID == kAudioFormatLinearPCM
-            && processingFormat.pointee.mFormatFlags & kAudioFormatFlagIsFloat != 0
-        bitsPerChannel = processingFormat.pointee.mBitsPerChannel
-    }
-
-    fileprivate func consume(
-        bufferList: UnsafeMutablePointer<AudioBufferList>,
-        frameCount: CMItemCount
-    ) {
-        guard frameCount > 0 else { return }
-        let buffers = UnsafeMutableAudioBufferListPointer(bufferList)
-        var sumOfSquares: Float = 0
-        var sampleCount = 0
-
-        for buffer in buffers {
-            guard let data = buffer.mData else { continue }
-            switch (isFloatPCM, bitsPerChannel) {
-            case (true, 32):
-                let count = Int(buffer.mDataByteSize) / MemoryLayout<Float>.size
-                guard count > 0 else { continue }
-                var meanSquare: Float = 0
-                vDSP_measqv(data.assumingMemoryBound(to: Float.self), 1, &meanSquare, vDSP_Length(count))
-                sumOfSquares += meanSquare * Float(count)
-                sampleCount += count
-            case (false, 16):
-                let samples = data.assumingMemoryBound(to: Int16.self)
-                let count = Int(buffer.mDataByteSize) / MemoryLayout<Int16>.size
-                for index in 0 ..< count {
-                    let value = Float(samples[index]) / Float(Int16.max)
-                    sumOfSquares += value * value
-                }
-                sampleCount += count
-            case (false, 32):
-                let samples = data.assumingMemoryBound(to: Int32.self)
-                let count = Int(buffer.mDataByteSize) / MemoryLayout<Int32>.size
-                for index in 0 ..< count {
-                    let value = Float(samples[index]) / Float(Int32.max)
-                    sumOfSquares += value * value
-                }
-                sampleCount += count
-            default:
-                continue
-            }
-        }
-
-        guard sampleCount > 0 else { return }
-        let rms = sqrtf(sumOfSquares / Float(sampleCount))
-        let normalized = min(max((rms - 0.012) * 12, 0), 1)
-        smoothedEnergy = smoothedEnergy * 0.68 + normalized * 0.32
-
-        let now = ProcessInfo.processInfo.systemUptime
-        guard now - lastPublicationUptime >= 1.0 / 30.0 else { return }
-        lastPublicationUptime = now
-        let energy = smoothedEnergy
-        DispatchQueue.main.async { [onEnergy] in
-            onEnergy(energy)
-        }
-    }
-
-}
-
-private func listenVideoAudioTapInit(
-    _: MTAudioProcessingTap,
-    _ clientInfo: UnsafeMutableRawPointer?,
-    _ tapStorageOut: UnsafeMutablePointer<UnsafeMutableRawPointer?>
-) {
-    tapStorageOut.pointee = clientInfo
-}
-
-private func listenVideoAudioTapPrepare(
-    tap: MTAudioProcessingTap,
-    _: CMItemCount,
-    processingFormat: UnsafePointer<AudioStreamBasicDescription>
-) {
-    listenVideoAudioAnalyzer(for: tap).prepare(processingFormat: processingFormat)
-}
-
-private func listenVideoAudioTapProcess(
-    tap: MTAudioProcessingTap,
-    numberFrames: CMItemCount,
-    _: MTAudioProcessingTapFlags,
-    bufferListInOut: UnsafeMutablePointer<AudioBufferList>,
-    numberFramesOut: UnsafeMutablePointer<CMItemCount>,
-    flagsOut: UnsafeMutablePointer<MTAudioProcessingTapFlags>
-) {
-    var sourceFlags: MTAudioProcessingTapFlags = 0
-    var sourceFrames: CMItemCount = 0
-    let status = MTAudioProcessingTapGetSourceAudio(
-        tap,
-        numberFrames,
-        bufferListInOut,
-        &sourceFlags,
-        nil,
-        &sourceFrames
-    )
-    guard status == noErr else {
-        numberFramesOut.pointee = 0
-        flagsOut.pointee = 0
-        return
-    }
-
-    numberFramesOut.pointee = sourceFrames
-    flagsOut.pointee = sourceFlags
-    listenVideoAudioAnalyzer(for: tap).consume(
-        bufferList: bufferListInOut,
-        frameCount: sourceFrames
-    )
-}
-
-private func listenVideoAudioAnalyzer(for tap: MTAudioProcessingTap) -> AVPlayerAudioEnergyAnalyzer {
-    Unmanaged<AVPlayerAudioEnergyAnalyzer>
-        .fromOpaque(MTAudioProcessingTapGetStorage(tap))
-        .takeUnretainedValue()
 }
 
 private struct DASHByteRange { let start: Int64; let end: Int64; var header: String { "bytes=\(start)-\(end)" } }

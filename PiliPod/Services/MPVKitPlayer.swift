@@ -140,6 +140,10 @@ class MPVKitPlayer: NSObject {
     private(set) var playbackError: String?
     private(set) var ambientPalette = AmbientPalette.fallback
     private(set) var listenVideoAudioEnergy: Float = 0
+    private(set) var listenVideoAudioEnergyEnabled = false
+    private(set) var listenVideoAudioDebugEnabled = false
+    private(set) var listenVideoAudioEnvelopeTime: TimeInterval?
+    private(set) var listenVideoAudioEnvelopeFrameCount = 0
 
     var videoCodec: String { controller?.videoCodec() ?? "" }
     var audioCodec: String { controller?.audioCodec() ?? "" }
@@ -155,6 +159,8 @@ class MPVKitPlayer: NSObject {
             "Origin": "https://www.bilibili.com"
         ]
         self.playbackSettings = AudioVideoSettingsStore.load()
+        self.listenVideoAudioEnergyEnabled = playbackSettings.listenVideoAudioEnergyEnabled
+        self.listenVideoAudioDebugEnabled = playbackSettings.listenVideoAudioDebugEnabled
         self.usesAVPlayer = playbackSettings.playerCore == .avPlayer
         self.isAmbientModeEnabled = playbackSettings.playerCore == .avPlayer
             && playbackSettings.ambientModeEnabled
@@ -188,6 +194,10 @@ class MPVKitPlayer: NSObject {
         avPlayerSession?.onListenVideoAudioEnergy = { [weak self] energy in
             self?.listenVideoAudioEnergy = energy
         }
+        avPlayerSession?.onListenVideoAudioEnvelopeDebug = { [weak self] _, frameTime, frameCount in
+            self?.listenVideoAudioEnvelopeTime = frameTime
+            self?.listenVideoAudioEnvelopeFrameCount = frameCount
+        }
         settingsObserver = NotificationCenter.default.addObserver(
             forName: .audioVideoSettingsDidChange,
             object: nil,
@@ -198,6 +208,13 @@ class MPVKitPlayer: NSObject {
             else { return }
             self.isAmbientModeEnabled = self.usesAVPlayer && settings.ambientModeEnabled
             self.ambientGradientDuration = settings.ambientGradientSpeed.duration
+            self.listenVideoAudioEnergyEnabled = self.usesAVPlayer && settings.listenVideoAudioEnergyEnabled
+            self.listenVideoAudioDebugEnabled = self.usesAVPlayer && settings.listenVideoAudioDebugEnabled
+            if !self.listenVideoAudioEnergyEnabled {
+                self.listenVideoAudioEnergy = 0
+                self.listenVideoAudioEnvelopeTime = nil
+                self.listenVideoAudioEnvelopeFrameCount = 0
+            }
             if !self.isAmbientModeEnabled {
                 self.ambientPalette = .fallback
             }
@@ -266,6 +283,8 @@ class MPVKitPlayer: NSObject {
         avPlayerSession?.setListenVideoModeActive(active)
         if !active {
             listenVideoAudioEnergy = 0
+            listenVideoAudioEnvelopeTime = nil
+            listenVideoAudioEnvelopeFrameCount = 0
         }
     }
 

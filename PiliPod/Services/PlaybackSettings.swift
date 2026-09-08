@@ -219,6 +219,8 @@ struct AudioVideoSettings: Codable, Equatable {
     var ambientModeEnabled = false
     var ambientSamplingRate: AmbientSamplingRate = .fiveTimes
     var ambientGradientSpeed: AmbientGradientSpeed = .normal
+    var listenVideoAudioEnergyEnabled = false
+    var listenVideoAudioDebugEnabled = false
     var defaultQuality: PreferredVideoQuality = .ultraHD4K
     var cellularDefaultQuality: PreferredVideoQuality = .ultraHD4K
     var liveDefaultQuality: PreferredLiveQuality = .original
@@ -246,6 +248,8 @@ struct AudioVideoSettings: Codable, Equatable {
         case ambientModeEnabled
         case ambientSamplingRate
         case ambientGradientSpeed
+        case listenVideoAudioEnergyEnabled
+        case listenVideoAudioDebugEnabled
         case defaultQuality
         case cellularDefaultQuality
         case liveDefaultQuality
@@ -292,6 +296,8 @@ struct AudioVideoSettings: Codable, Equatable {
         ambientModeEnabled = try container.decodeIfPresent(Bool.self, forKey: .ambientModeEnabled) ?? false
         ambientSamplingRate = (try? container.decode(AmbientSamplingRate.self, forKey: .ambientSamplingRate)) ?? .fiveTimes
         ambientGradientSpeed = (try? container.decode(AmbientGradientSpeed.self, forKey: .ambientGradientSpeed)) ?? .normal
+        listenVideoAudioEnergyEnabled = try container.decodeIfPresent(Bool.self, forKey: .listenVideoAudioEnergyEnabled) ?? false
+        listenVideoAudioDebugEnabled = try container.decodeIfPresent(Bool.self, forKey: .listenVideoAudioDebugEnabled) ?? false
         defaultQuality = try container.decodeIfPresent(PreferredVideoQuality.self, forKey: .defaultQuality) ?? .ultraHD4K
         cellularDefaultQuality = try container.decodeIfPresent(PreferredVideoQuality.self, forKey: .cellularDefaultQuality) ?? .ultraHD4K
         liveDefaultQuality = try container.decodeIfPresent(PreferredLiveQuality.self, forKey: .liveDefaultQuality) ?? .original

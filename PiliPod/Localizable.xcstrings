@@ -372,6 +372,9 @@
     "Aa" : {
       "shouldTranslate" : false
     },
+    "Audio Energy" : {
+
+    },
     "BPTPW/PiliPod" : {
       "shouldTranslate" : false
     },
@@ -444,6 +447,9 @@
         }
       }
     },
+    "envelope loading" : {
+
+    },
     "followinglist.search.placeholder" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -466,6 +472,9 @@
           }
         }
       }
+    },
+    "frames %lld" : {
+
     },
     "HLS Bridge" : {
 
@@ -590,6 +599,9 @@
         }
       }
     },
+    "paused" : {
+
+    },
     "permission.private" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -651,6 +663,9 @@
           }
         }
       }
+    },
+    "playing" : {
+
     },
     "tab.live" : {
       "extractionState" : "manual",
@@ -1753,6 +1768,12 @@
         }
       }
     },
+    "听视频" : {
+
+    },
+    "听视频背景效果仅支持 AVPlayer 内核。" : {
+
+    },
     "响应情况" : {
       "localizations" : {
         "ja" : {
@@ -2767,6 +2788,9 @@
       }
     },
     "显示效果" : {
+
+    },
+    "显示调试信息" : {
 
     },
     "暂停" : {
@@ -4071,6 +4095,9 @@
 
     },
     "背景透明度" : {
+
+    },
+    "背景随音乐闪烁" : {
 
     },
     "背景颜色" : {
