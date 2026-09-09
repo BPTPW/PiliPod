@@ -138,6 +138,84 @@ class BiliAPI {
 
     // MARK: - 获取视频评论（gRPC）
 
+    // MARK: - 私信
+
+    func fetchPrivateMessageSessions() async throws -> [PrivateMessageSession] {
+        var components = URLComponents(
+            string: "https://api.vc.bilibili.com/session_svr/v1/session_svr/get_sessions"
+        )
+        components?.queryItems = [
+            URLQueryItem(name: "session_type", value: "4"),
+            URLQueryItem(name: "group_fold", value: "0"),
+            URLQueryItem(name: "unfollow_fold", value: "0"),
+            URLQueryItem(name: "sort_rule", value: "2"),
+            URLQueryItem(name: "size", value: "50"),
+            URLQueryItem(name: "build", value: "0"),
+            URLQueryItem(name: "mobi_app", value: "web")
+        ]
+        guard let url = components?.url else { throw APIError.invalidURL }
+
+        var request = makeRequest(url: url)
+        request.setValue(
+            "bili-universal/103300 (iPhone; iOS 18.2; Scale/3.00)",
+            forHTTPHeaderField: "User-Agent"
+        )
+        let (data, response) = try await URLSession.shared.data(for: request)
+        guard let httpResponse = response as? HTTPURLResponse,
+              (200 ... 299).contains(httpResponse.statusCode)
+        else { throw APIError.requestFailed }
+
+        let decoded = try JSONDecoder().decode(
+            DecodableAPIResponse<PrivateMessageRESTSessionsData>.self,
+            from: data
+        )
+        guard decoded.code == 0 else {
+            throw APIError.businessError(code: decoded.code, message: decoded.message)
+        }
+        guard let sessions = decoded.data?.sessionList else { return [] }
+
+        let userIDs = sessions
+            .filter { $0.sessionType == 1 && $0.accountInfo == nil }
+            .map(\.talkerID)
+        let cards = (try? await fetchPrivateMessageUserCards(mids: userIDs)) ?? []
+        let profiles = Dictionary(uniqueKeysWithValues: cards.map { ($0.mid, $0) })
+
+        return sessions.map { session in
+            let profile = profiles[session.talkerID]
+            return PrivateMessageSession(
+                restSession: session,
+                name: profile?.name,
+                avatarURL: profile?.face
+            )
+        }
+    }
+
+    private func fetchPrivateMessageUserCards(mids: [UInt64]) async throws -> [PrivateMessageUserCard] {
+        guard !mids.isEmpty else { return [] }
+
+        var components = URLComponents(string: "https://api.vc.bilibili.com/account/v1/user/cards")
+        components?.queryItems = [
+            URLQueryItem(name: "uids", value: mids.map(String.init).joined(separator: ",")),
+            URLQueryItem(name: "build", value: "0"),
+            URLQueryItem(name: "mobi_app", value: "web")
+        ]
+        guard let url = components?.url else { throw APIError.invalidURL }
+
+        let (data, response) = try await URLSession.shared.data(for: makeRequest(url: url))
+        guard let httpResponse = response as? HTTPURLResponse,
+              (200 ... 299).contains(httpResponse.statusCode)
+        else { throw APIError.requestFailed }
+
+        let decoded = try JSONDecoder().decode(
+            DecodableAPIResponse<[PrivateMessageUserCard]>.self,
+            from: data
+        )
+        guard decoded.code == 0 else {
+            throw APIError.businessError(code: decoded.code, message: decoded.message)
+        }
+        return decoded.data ?? []
+    }
+
     func fetchVideoCommentMainList(
         aid: Int64,
         next: Int64 = 0,
@@ -2580,6 +2658,12 @@ class BiliAPI {
             return encodedValue.isEmpty ? encodedKey : "\(encodedKey)=\(encodedValue)"
         }.joined(separator: "&")
     }
+}
+
+private struct DecodableAPIResponse<T: Decodable>: Decodable {
+    let code: Int
+    let message: String?
+    let data: T?
 }
 
 // MARK: - 错误处理
