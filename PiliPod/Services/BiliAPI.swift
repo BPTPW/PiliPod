@@ -190,6 +190,53 @@ class BiliAPI {
         }
     }
 
+    func fetchPrivateMessageMessages(
+        talkerID: UInt64,
+        sessionType: UInt32,
+        endSeqno: UInt64 = 0,
+        beginSeqno: UInt64 = 0,
+        size: Int32 = 50
+    ) async throws -> [Bilibili_Im_Type_Msg] {
+        var components = URLComponents(
+            string: "https://api.vc.bilibili.com/svr_sync/v1/svr_sync/fetch_session_msgs"
+        )
+        var queryItems = [
+            URLQueryItem(name: "talker_id", value: String(talkerID)),
+            URLQueryItem(name: "session_type", value: String(sessionType)),
+            URLQueryItem(name: "size", value: String(min(max(size, 1), 2_000))),
+            URLQueryItem(name: "sender_device_id", value: "1"),
+            URLQueryItem(name: "build", value: "0"),
+            URLQueryItem(name: "mobi_app", value: "web")
+        ]
+        if beginSeqno > 0 {
+            queryItems.append(URLQueryItem(name: "begin_seqno", value: String(beginSeqno)))
+        }
+        if endSeqno > 0 {
+            queryItems.append(URLQueryItem(name: "end_seqno", value: String(endSeqno)))
+        }
+        components?.queryItems = queryItems
+        guard let url = components?.url else { throw APIError.invalidURL }
+
+        var request = makeRequest(url: url)
+        request.setValue(
+            "bili-universal/103300 (iPhone; iOS 18.2; Scale/3.00)",
+            forHTTPHeaderField: "User-Agent"
+        )
+        let (data, response) = try await URLSession.shared.data(for: request)
+        guard let httpResponse = response as? HTTPURLResponse,
+              (200 ... 299).contains(httpResponse.statusCode)
+        else { throw APIError.requestFailed }
+
+        let decoded = try JSONDecoder().decode(
+            DecodableAPIResponse<PrivateMessageRESTMessagesData>.self,
+            from: data
+        )
+        guard decoded.code == 0 else {
+            throw APIError.businessError(code: decoded.code, message: decoded.message)
+        }
+        return decoded.data?.messages.map(\.protobufMessage) ?? []
+    }
+
     private func fetchPrivateMessageUserCards(mids: [UInt64]) async throws -> [PrivateMessageUserCard] {
         guard !mids.isEmpty else { return [] }
 

@@ -11,6 +11,7 @@ struct MessageView: View {
     @State private var privateSessions: [PrivateMessageSession] = []
     @State private var isLoadingPrivateSessions = false
     @State private var privateSessionError: String?
+    @State private var selectedSession: PrivateMessageSession?
 
     private struct MessageCategory: Identifiable {
         let id: String
@@ -93,6 +94,8 @@ struct MessageView: View {
                     ForEach(privateSessions) { session in
                         PrivateMessageSessionRow(session: session)
                             .messageListRow()
+                            .contentShape(Rectangle())
+                            .onTapGesture { selectedSession = session }
                     }
                 }
             }
@@ -109,6 +112,9 @@ struct MessageView: View {
         .toolbar(.visible, for: .navigationBar)
         .navigationDestination(item: $selectedCategory) { category in
             MessageFeedView(category: category)
+        }
+        .navigationDestination(item: $selectedSession) { session in
+            MessageConversationView(session: session)
         }
         .task {
             await viewModel.loadUnreadMessageCount(force: true)

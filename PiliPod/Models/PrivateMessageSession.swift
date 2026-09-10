@@ -5,7 +5,7 @@
 
 import Foundation
 
-struct PrivateMessageSession: Identifiable, Sendable {
+struct PrivateMessageSession: Identifiable, Hashable, Sendable {
     let talkerID: UInt64
     let sessionType: UInt32
     let name: String
@@ -182,6 +182,76 @@ struct PrivateMessageRESTMessage: Decodable, Sendable {
         case msgType = "msg_type"
         case content
         case timestamp
+    }
+}
+
+struct PrivateMessageRESTMessagesData: Decodable, Sendable {
+    let messages: [PrivateMessageRESTDetailMessage]
+
+    enum CodingKeys: String, CodingKey {
+        case messages
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        messages = try container.decodeIfPresent([PrivateMessageRESTDetailMessage].self, forKey: .messages) ?? []
+    }
+}
+
+struct PrivateMessageRESTDetailMessage: Decodable, Sendable {
+    let senderUID: UInt64
+    let receiverType: Int
+    let receiverID: UInt64
+    let messageType: Int
+    let content: String
+    let sequenceNumber: UInt64
+    let timestamp: UInt64
+    let messageKey: UInt64
+    let status: UInt32
+    let isSystemCancelled: Bool
+
+    enum CodingKeys: String, CodingKey {
+        case senderUID = "sender_uid"
+        case receiverType = "receiver_type"
+        case receiverID = "receiver_id"
+        case messageType = "msg_type"
+        case content
+        case sequenceNumber = "msg_seqno"
+        case timestamp
+        case messageKey = "msg_key"
+        case status = "msg_status"
+        case isSystemCancelled = "sys_cancel"
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        senderUID = try container.decode(UInt64.self, forKey: .senderUID)
+        receiverType = try container.decodeIfPresent(Int.self, forKey: .receiverType) ?? 1
+        receiverID = try container.decodeIfPresent(UInt64.self, forKey: .receiverID) ?? 0
+        messageType = try container.decode(Int.self, forKey: .messageType)
+        content = try container.decodeIfPresent(String.self, forKey: .content) ?? ""
+        sequenceNumber = try container.decodeIfPresent(UInt64.self, forKey: .sequenceNumber) ?? 0
+        timestamp = try container.decodeIfPresent(UInt64.self, forKey: .timestamp) ?? 0
+        messageKey = try container.decodeIfPresent(UInt64.self, forKey: .messageKey) ?? 0
+        status = try container.decodeIfPresent(UInt32.self, forKey: .status) ?? 0
+        isSystemCancelled = try container.decodeIfPresent(Bool.self, forKey: .isSystemCancelled) ?? false
+    }
+
+    var protobufMessage: Bilibili_Im_Type_Msg {
+        var message = Bilibili_Im_Type_Msg()
+        message.senderUid = senderUID
+        message.receiverID = receiverID
+        message.receiverType = Bilibili_Im_Type_RecverType(rawValue: receiverType)
+            ?? .enRecverTypePeer
+        message.msgType = Bilibili_Im_Type_MsgType(rawValue: messageType)
+            ?? .enInvalidMsgType
+        message.content = content
+        message.msgSeqno = sequenceNumber
+        message.timestamp = timestamp
+        message.msgKey = messageKey
+        message.msgStatus = status
+        message.sysCancel = isSystemCancelled
+        return message
     }
 }
 
