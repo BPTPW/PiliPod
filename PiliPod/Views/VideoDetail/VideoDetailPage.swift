@@ -75,6 +75,30 @@ private struct TripleChargeButtonEffect: ViewModifier {
     }
 }
 
+#if canImport(UIKit)
+private struct VideoFullscreenOrientationScope: View {
+    let orientation: UIInterfaceOrientation
+
+    private var orientationMask: UIInterfaceOrientationMask {
+        orientation == .landscapeLeft ? .landscapeLeft : .landscapeRight
+    }
+
+    var body: some View {
+        Color.clear
+            .allowsHitTesting(false)
+            .onAppear {
+                PiliPodAppDelegate.updateOrientation(to: orientationMask)
+            }
+            .onChange(of: orientation) { _, _ in
+                PiliPodAppDelegate.updateOrientation(to: orientationMask)
+            }
+            .onDisappear {
+                PiliPodAppDelegate.updateOrientation(to: .portrait)
+            }
+    }
+}
+#endif
+
 struct VideoDetailPage: View {
     private static let introBVPattern = try? NSRegularExpression(
         pattern: #"BV[0-9A-Za-z]{10}"#
@@ -726,6 +750,15 @@ struct VideoDetailPage: View {
             .background(NavigationPopGestureEnabler())
             .allowsHitTesting(!isClosing)
         }
+#if canImport(UIKit)
+        .background {
+            if isFullscreen {
+                VideoFullscreenOrientationScope(
+                    orientation: preferredFullscreenOrientation
+                )
+            }
+        }
+#endif
         .onAppear {
             isClosing = false
             ManualPictureInPictureCoordinator.shared.stopIfNeeded()
@@ -1856,34 +1889,8 @@ struct VideoDetailPage: View {
     }
 
 #if canImport(UIKit)
-    private func updateDeviceOrientationForFullscreen(isFullscreen: Bool) {
-        updateDeviceOrientationForFullscreen(
-            isFullscreen: isFullscreen,
-            orientation: preferredFullscreenOrientation
-        )
-    }
-
-    private func updateDeviceOrientationForFullscreen(
-        isFullscreen: Bool,
-        orientation: UIInterfaceOrientation
-    ) {
-        guard let scene = UIApplication.shared.connectedScenes.first as? UIWindowScene else { return }
-        let targetOrientationMask: UIInterfaceOrientationMask
-        if isFullscreen {
-            targetOrientationMask = orientation == .landscapeLeft ? .landscapeLeft : .landscapeRight
-        } else {
-            targetOrientationMask = .portrait
-        }
-        let prefs = UIWindowScene.GeometryPreferences.iOS(
-            interfaceOrientations: targetOrientationMask
-        )
-        scene.requestGeometryUpdate(prefs) { error in
-            print("requestGeometryUpdate failed: \(error.localizedDescription)")
-        }
-    }
-
     private func currentInterfaceOrientation() -> UIInterfaceOrientation? {
-        (UIApplication.shared.connectedScenes.first as? UIWindowScene)?.interfaceOrientation
+        PiliPodAppDelegate.activeWindowScene?.effectiveGeometry.interfaceOrientation
     }
 
     private func updatePreferredFullscreenOrientation(from orientation: UIInterfaceOrientation?) {
@@ -1891,11 +1898,24 @@ struct VideoDetailPage: View {
         preferredFullscreenOrientation = orientation == .landscapeLeft ? .landscapeLeft : .landscapeRight
     }
 
+    private func updatePreferredFullscreenOrientation(from orientation: UIDeviceOrientation) {
+        switch orientation {
+        case .landscapeLeft:
+            preferredFullscreenOrientation = .landscapeRight
+        case .landscapeRight:
+            preferredFullscreenOrientation = .landscapeLeft
+        default:
+            break
+        }
+    }
+
     private func restoreFullscreenOrientationBeforeActivation() {
         guard isFullscreen else { return }
-        updateDeviceOrientationForFullscreen(
-            isFullscreen: true,
-            orientation: preferredFullscreenOrientation
+        let orientationMask: UIInterfaceOrientationMask =
+            preferredFullscreenOrientation == .landscapeLeft ? .landscapeLeft : .landscapeRight
+        PiliPodAppDelegate.updateOrientation(
+            to: orientationMask,
+            in: PiliPodAppDelegate.activeWindowScene
         )
     }
 
@@ -1905,6 +1925,7 @@ struct VideoDetailPage: View {
         let willEnterFullscreen = !isFullscreen
 #if canImport(UIKit)
         if willEnterFullscreen {
+            updatePreferredFullscreenOrientation(from: UIDevice.current.orientation)
             updatePreferredFullscreenOrientation(from: currentInterfaceOrientation())
         }
 #endif
@@ -1912,24 +1933,20 @@ struct VideoDetailPage: View {
             isFullscreen = willEnterFullscreen
             fullscreenTrigger = willEnterFullscreen ? .manual : .none
         }
-#if canImport(UIKit)
-        updateDeviceOrientationForFullscreen(isFullscreen: willEnterFullscreen)
-#endif
     }
 
 #if canImport(UIKit)
     private func handleDeviceOrientationChange() {
-        guard let scene = UIApplication.shared.connectedScenes.first as? UIWindowScene else { return }
-        let interfaceOrientation = scene.interfaceOrientation
-        if interfaceOrientation.isLandscape {
-            updatePreferredFullscreenOrientation(from: interfaceOrientation)
+        let deviceOrientation = UIDevice.current.orientation
+        if deviceOrientation.isLandscape {
+            updatePreferredFullscreenOrientation(from: deviceOrientation)
             if !isFullscreen {
                 withAnimation(.easeInOut(duration: 0.2)) {
                     isFullscreen = true
                     fullscreenTrigger = .rotation
                 }
             }
-        } else if interfaceOrientation.isPortrait {
+        } else if deviceOrientation.isPortrait {
             if isFullscreen, fullscreenTrigger == .rotation {
                 withAnimation(.easeInOut(duration: 0.2)) {
                     isFullscreen = false
@@ -1946,9 +1963,6 @@ struct VideoDetailPage: View {
                 isFullscreen = false
                 fullscreenTrigger = .none
             }
-#if canImport(UIKit)
-            updateDeviceOrientationForFullscreen(isFullscreen: false)
-#endif
         } else {
             requestPageDismissal()
         }

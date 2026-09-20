@@ -653,23 +653,17 @@ struct LivePlaybackPage: View {
         isFullscreen: Bool,
         orientation: UIInterfaceOrientation
     ) {
-        guard let scene = UIApplication.shared.connectedScenes.first as? UIWindowScene else { return }
         let targetOrientationMask: UIInterfaceOrientationMask
         if isFullscreen {
             targetOrientationMask = orientation == .landscapeLeft ? .landscapeLeft : .landscapeRight
         } else {
             targetOrientationMask = .portrait
         }
-        let prefs = UIWindowScene.GeometryPreferences.iOS(
-            interfaceOrientations: targetOrientationMask
-        )
-        scene.requestGeometryUpdate(prefs) { error in
-            print("requestGeometryUpdate failed: \(error.localizedDescription)")
-        }
+        PiliPodAppDelegate.updateOrientation(to: targetOrientationMask)
     }
 
     private func currentInterfaceOrientation() -> UIInterfaceOrientation? {
-        (UIApplication.shared.connectedScenes.first as? UIWindowScene)?.interfaceOrientation
+        PiliPodAppDelegate.activeWindowScene?.effectiveGeometry.interfaceOrientation
     }
 
     private func setIdleTimerDisabled(_ isDisabled: Bool) {
@@ -679,6 +673,17 @@ struct LivePlaybackPage: View {
     private func updatePreferredFullscreenOrientation(from orientation: UIInterfaceOrientation?) {
         guard let orientation, orientation.isLandscape else { return }
         preferredFullscreenOrientation = orientation == .landscapeLeft ? .landscapeLeft : .landscapeRight
+    }
+
+    private func updatePreferredFullscreenOrientation(from orientation: UIDeviceOrientation) {
+        switch orientation {
+        case .landscapeLeft:
+            preferredFullscreenOrientation = .landscapeRight
+        case .landscapeRight:
+            preferredFullscreenOrientation = .landscapeLeft
+        default:
+            break
+        }
     }
 
     private func restoreFullscreenOrientationBeforeActivation() {
@@ -692,6 +697,7 @@ struct LivePlaybackPage: View {
     private func toggleFullscreenManually() {
         let willEnterFullscreen = !isFullscreen
         if willEnterFullscreen {
+            updatePreferredFullscreenOrientation(from: UIDevice.current.orientation)
             updatePreferredFullscreenOrientation(from: currentInterfaceOrientation())
         }
         withAnimation(.easeInOut(duration: 0.2)) {
@@ -704,24 +710,25 @@ struct LivePlaybackPage: View {
     }
 
     private func handleDeviceOrientationChange() {
-        guard let scene = UIApplication.shared.connectedScenes.first as? UIWindowScene else { return }
-        let interfaceOrientation = scene.interfaceOrientation
-        if interfaceOrientation.isLandscape {
-            updatePreferredFullscreenOrientation(from: interfaceOrientation)
+        let deviceOrientation = UIDevice.current.orientation
+        if deviceOrientation.isLandscape {
+            updatePreferredFullscreenOrientation(from: deviceOrientation)
             if !isFullscreen {
                 withAnimation(.easeInOut(duration: 0.2)) {
                     isFullscreen = true
                     fullscreenTrigger = .rotation
                     controlsVisible = true
                 }
+                updateDeviceOrientationForFullscreen(isFullscreen: true)
                 refreshControlsAutoHideIfNeeded()
             }
-        } else if interfaceOrientation.isPortrait, isFullscreen, fullscreenTrigger == .rotation {
+        } else if deviceOrientation.isPortrait, isFullscreen, fullscreenTrigger == .rotation {
             withAnimation(.easeInOut(duration: 0.2)) {
                 isFullscreen = false
                 fullscreenTrigger = .none
                 controlsVisible = true
             }
+            updateDeviceOrientationForFullscreen(isFullscreen: false)
             refreshControlsAutoHideIfNeeded()
         }
     }
