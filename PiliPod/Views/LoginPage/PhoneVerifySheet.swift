@@ -8,83 +8,76 @@
 import SwiftUI
 
 struct PhoneVerifySheet: View {
-    let phoneText: String
+    @State var phoneText: String
     let isLoading: Bool
     let errorMessage: String?
     let onSendCode: () -> Void
     let onSubmitCode: (_ code: String) -> Void
-    @Environment(\.dismiss) private var dismiss
     @State private var smsCode = ""
 
     var body: some View {
         NavigationStack {
-            VStack(spacing: 20) {
-                Text("需要验证手机号")
-                    .font(.headline)
-
-                Text(phoneText)
-                    .font(.title3)
-
-                HStack {
-                    TextField("请输入短信验证码", text: $smsCode)
-                        .textFieldStyle(.plain)
-                        .keyboardType(.numberPad)
-                    Button("发送验证码") {
-                        onSendCode()
+            Group {
+                Form {
+                    Section {
+                        TextField("", text: self.$phoneText)
+                            .disabled(true)
+                        HStack {
+                            TextField("请输入短信验证码", text: $smsCode)
+                                .textFieldStyle(.plain)
+                                .keyboardType(.numberPad)
+                                .onChange(of: smsCode) { newValue in
+                                    if newValue.count > 6 {
+                                        smsCode = String(newValue.prefix(6))
+                                    }
+                                }
+                            Divider()
+                                .frame(height: 32)
+                                .padding(.horizontal, 4)
+                            Button("发送验证码") {
+                                onSendCode()
+                            }
+                                .foregroundStyle(.primary)
+                                .disabled(false)
+                                .buttonStyle(.borderless)
+                            
+                        }
+                    } footer: {
+                        if let error = errorMessage {
+                            Text(error)
+                                .font(.footnote)
+                                .foregroundStyle(.red)
+                        }
                     }
-                    .padding(10)
-                    .foregroundStyle(.primary)
-                    .disabled(false)
-                    .glassEffect(
-                        .regular.interactive(),
-                        in: .capsule
-                    )
-                }
-                .padding(.vertical, 10)
-                .padding(.horizontal, 20)
-                .glassEffect(.regular.interactive(), in: .capsule)
-
-                HStack(spacing: 12) {
-                    Button {
-                        onSubmitCode(smsCode)
-                    } label: {
-                        Text("验证并登录")
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 10)
+                    Section {
+                        Button {  
+                            onSubmitCode(smsCode)
+                        } label: {
+                            Text("验证并登录")
+                                .frame(maxWidth: .infinity)
+                        }
+                        .disabled(isLoading || smsCode.isEmpty)
                     }
-                    .disabled(isLoading || smsCode.isEmpty)
-                    .foregroundStyle(.white)
-                    .glassEffect(
-                        .regular.interactive().tint(.blue),
-                        in: .capsule
-                    )
                 }
 
-                if let errorMessage, !errorMessage.isEmpty {
-                    Text(errorMessage)
-                        .font(.footnote)
-                        .foregroundStyle(.red)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                }
-
-                if isLoading {
-                    ProgressView()
-                }
-
-                Spacer()
+//                if isLoading {
+//                    ProgressView()
+//                }
             }
-            .padding()
-            .navigationTitle("手机号验证")
         }
+        .navigationTitle("验证手机号")
+        .navigationBarTitleDisplayMode(.inline)
     }
 }
 
 #Preview {
-    PhoneVerifySheet(
-        phoneText: "139*****999",
-        isLoading: false,
-        errorMessage: nil,
-        onSendCode: {},
-        onSubmitCode: { code in print("Submit code: \(code)") }
-    )
+    NavigationStack {
+        PhoneVerifySheet(
+            phoneText: "139*****999",
+            isLoading: false,
+            errorMessage: nil,
+            onSendCode: {},
+            onSubmitCode: { code in print("Submit code: \(code)") }
+        )
+    }
 }

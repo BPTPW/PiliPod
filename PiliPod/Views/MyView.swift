@@ -37,8 +37,9 @@ struct MyView: View {
             .task {
                 await viewModel.loadUser()
             }
-            .fullScreenCover(isPresented: $showLoginSheet) {
+            .sheet(isPresented: $showLoginSheet) {
                 LoginPageView()
+                    .presentationDetents([.large])
             }
             .onReceive(loginSession.$isLogin) { isLogin in
                 if isLogin {

@@ -30,6 +30,8 @@ struct GeetestCaptchaSheet: View {
                 dismiss()
             }
             .navigationTitle("人机验证")
+            .navigationBarTitleDisplayMode(.inline)
+            .ignoresSafeArea(.all, edges: .bottom)
         }
     }
 }
