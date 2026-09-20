@@ -23,7 +23,7 @@ struct MainTabView: View {
     var body: some View {
         TabView(selection: $selectedTab) {
             Tab(String("首页"), systemImage: "house.fill", value: MainTab.home) {
-                NHomeView(viewModel: homeViewModel)
+                HomeView(viewModel: homeViewModel)
             }
             Tab(String("动态"), image: "DynamicIcon", value: MainTab.dynamic) {
                 DynamicView()
