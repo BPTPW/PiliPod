@@ -22,27 +22,21 @@ struct MainTabView: View {
 
     var body: some View {
         TabView(selection: $selectedTab) {
-            HomeView(viewModel: homeViewModel)
-                .tag(MainTab.home)
-                .tabItem {
-                    Image(systemName: "house.fill")
-                    Text("首页")
-                }
-
-            DynamicView()
-                .tag(MainTab.dynamic)
-                .tabItem {
-                    Image("DynamicIcon")
-                        .renderingMode(.template)
-                    Text("动态")
-                }
-
-            MyView()
-                .tag(MainTab.mine)
-                .tabItem {
-                    profileTabIcon
+            Tab(String("首页"), systemImage: "house.fill", value: MainTab.home) {
+                NHomeView(viewModel: homeViewModel)
+            }
+            Tab(String("动态"), image: "DynamicIcon", value: MainTab.dynamic) {
+                DynamicView()
+            }
+            Tab(value: MainTab.mine) {
+                MyView()
+            } label: {
+                Label {
                     Text("我的")
+                } icon: {
+                    profileTabIcon
                 }
+            }
         }
         .toolbar(.visible, for: .tabBar)
         .task {
