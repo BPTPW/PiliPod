@@ -38,9 +38,6 @@ struct MainTabView: View {
                     profileTabIcon
                 }
             }
-            Tab(String("动态"), image: "DynamicIcon", value: MainTab.dynamic) {
-                DynamicView()
-            }
             // iOS 27 之后 .search 的表现行为和 iOS 26 有所区别，但我不建议使用 .prominet，会导致无法正常生成搜索框
             Tab(String("搜索"), systemImage: "magnifyingglass", value: MainTab.search, role: .search) {
                 NavigationStack {

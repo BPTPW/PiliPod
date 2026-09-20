@@ -167,6 +167,7 @@ struct HomeView: View {
                 .padding(.horizontal, 16)
                 .backgroundStyle(Color.clear)
             }
+            .padding(.bottom, 8)
             .backgroundStyle(Color.clear)
             .onChange(of: selectedTab) { _, newValue in
                 withAnimation(.easeInOut(duration: 0.2)) {
