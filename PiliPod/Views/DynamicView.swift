@@ -32,8 +32,8 @@ struct DynamicView: View {
                     }
                 }
             }
-            .background(Color(.systemGroupedBackground))
             .navigationTitle("动态")
+            .navigationBarTitleDisplayMode(.inline)
             .refreshable { await viewModel.refresh() }
             .task { await viewModel.refresh() }
             .navigationDestination(item: $selectedVideo) { video in
