@@ -18,14 +18,9 @@ struct MyView: View {
 
     var body: some View {
         NavigationStack {
-            VStack(spacing: 20) {
+            List {
                 headerView
-                    .padding(.horizontal, 30)
-
                 quickActionRow
-                    .padding(.horizontal, 30)
-
-                Spacer()
             }
             .toolbar {
                 ToolbarItem(placement: .primaryAction) {
@@ -73,133 +68,177 @@ struct MyView: View {
 
     @ViewBuilder
     private var headerView: some View {
-        if let user = viewModel.user {
-            NavigationLink {
-                UserSpaceView(mid: Int(user.mid))
-            } label: {
-                HStack(alignment: .top, spacing: 14) {
-                    CachedAsyncImage(url: URL(string: user.face)) { phase in
-                        if case .success(let image) = phase {
-                            image
-                                .resizable()
-                                .scaledToFill()
-                        } else {
-                            ProgressView()
+        Section {
+            if let user = viewModel.user {
+                NavigationLink {
+                    UserSpaceView(mid: Int(user.mid))
+                } label: {
+                    HStack(spacing: 14) {
+                        CachedAsyncImage(url: URL(string: user.face)) { phase in
+                            if case .success(let image) = phase {
+                                image
+                                    .resizable()
+                                    .scaledToFill()
+                            } else {
+                                ProgressView()
+                            }
                         }
-                    }
-                    .frame(width: 56, height: 56)
-                    .clipShape(Circle())
+                        .frame(width: 60, height: 60)
+                        .clipShape(Circle())
 
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text(user.name)
-                            .font(.title3)
-                            .fontWeight(.semibold)
-                            .foregroundStyle(.primary)
+                        VStack(alignment: .leading, spacing: 4) {
+                            HStack(spacing: 6) {
+                                Text(user.name)
+                                    .font(.title3)
+                                    .fontWeight(.semibold)
+                                    .foregroundStyle(.primary)
+                                    .lineLimit(1)
 
-                        HStack(spacing: 12) {
+                                Image(levelIconName(for: user))
+                                    .resizable()
+                                    .scaledToFit()
+                                    .frame(height: 14)
+                            }
+
                             Text("硬币 \(formattedMoney(user.money))")
-                            Text("经验 \(user.levelInfo.currentExp)/\(maxExperienceText(for: user))")
+                                .font(.subheadline)
+                                .foregroundStyle(.secondary)
+                                .lineLimit(1)
+
+                            HStack(spacing: 8) {
+                                ProgressView(value: experienceProgress(for: user))
+                                    .tint(Color("BiliPink"))
+                                    .progressViewStyle(.linear)
+
+                                Text("\(user.levelInfo.currentExp)/\(maxExperienceText(for: user))")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                                    .lineLimit(1)
+                            }
                         }
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-
-                        ProgressView(value: experienceProgress(for: user))
-                            .tint(Color("BiliPink"))
-                            .progressViewStyle(.linear)
                     }
-
-                    Spacer(minLength: 0)
+                    .padding(.vertical, 4)
                 }
-            }
-            .buttonStyle(.plain)
-        } else {
-            Group {
-                if loginSession.isLogin {
-                    loggedOutHeader
-                } else {
-                    Button {
-                        showLoginSheet = true
-                    } label: {
+                .alignmentGuide(.listRowSeparatorLeading) { _ in 0 }
+            } else {
+                Group {
+                    if loginSession.isLogin {
                         loggedOutHeader
+                    } else {
+                        Button {
+                            showLoginSheet = true
+                        } label: {
+                            loggedOutHeader
+                        }
+                        .buttonStyle(.plain)
                     }
-                    .buttonStyle(.plain)
                 }
+                .alignmentGuide(.listRowSeparatorLeading) { _ in 0 }
             }
-        }
-        if let stat = viewModel.stat {
-            HStack {
-                Spacer()
-                statItem(value: stat.dynamicCount, title: L10n.string("my.posts"))
-                Spacer()
-                if let user = viewModel.user {
-                    Button {
-                        followingRoute = MyFollowingRoute(mid: user.mid)
-                    } label: {
-                        statItem(value: stat.following, title: L10n.string("my.following"))
+            VStack {
+                if let stat = viewModel.stat {
+                    HStack {
+                        Spacer()
+                        statItem(value: stat.dynamicCount, title: L10n.string("my.posts"))
+                        Spacer()
+                        if let user = viewModel.user {
+                            Button {
+                                followingRoute = MyFollowingRoute(mid: user.mid)
+                            } label: {
+                                statItem(value: stat.following, title: L10n.string("my.following"))
+                            }
+                            .buttonStyle(.plain)
+                        } else {
+                            statItem(value: stat.following, title: L10n.string("my.following"))
+                        }
+                        Spacer()
+                        statItem(value: stat.follower, title:  L10n.string("my.followers"))
+                        Spacer()
                     }
-                    .buttonStyle(.plain)
+                    .padding(.top, 2)
                 } else {
-                    statItem(value: stat.following, title: L10n.string("my.following"))
+                    HStack {
+                        Spacer()
+                        statItem(value: 0, title: L10n.string("my.posts"))
+                        Spacer()
+                        statItem(value: 0, title: L10n.string("my.following"))
+                        Spacer()
+                        statItem(value: 0, title: L10n.string("my.followers"))
+                        Spacer()
+                    }
+                    .padding(.top, 2)
                 }
-                Spacer()
-                statItem(value: stat.follower, title:  L10n.string("my.followers"))
-                Spacer()
             }
-            .padding(.top, 2)
-        } else {
-            HStack {
-                Spacer()
-                statItem(value: 0, title: L10n.string("my.posts"))
-                Spacer()
-                statItem(value: 0, title: L10n.string("my.following"))
-                Spacer()
-                statItem(value: 0, title: L10n.string("my.followers"))
-                Spacer()
-            }
-            .padding(.top, 2)
         }
     }
 
     private var loggedOutHeader: some View {
-        HStack(alignment: .top, spacing: 14) {
-            Image(systemName: "person.crop.circle")
-                .font(.system(size: 50))
-                .foregroundStyle(.secondary)
+        HStack(spacing: 14) {
+            Image(systemName: "person.crop.circle.fill")
+                .font(.system(size: 54))
+                .foregroundStyle(Color(.systemGray3))
+                .frame(width: 60, height: 60)
 
-            VStack(alignment: .leading, spacing: 8) {
+            VStack(alignment: .leading, spacing: 4) {
                 Text(loginSession.isLogin ? "正在加载个人信息…" : "点击登录")
                     .font(.title3)
                     .fontWeight(.semibold)
+                    .foregroundStyle(.primary)
 
-                Text("当前未登录账号")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                if !loginSession.isLogin {
+                    Text("登录哔哩哔哩账号")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                }
             }
 
             Spacer(minLength: 0)
+
+            if !loginSession.isLogin {
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundStyle(.tertiary)
+            }
         }
+        .padding(.vertical, 4)
     }
 
     private var quickActionRow: some View {
-        HStack(spacing: 12) {
-            quickActionButton(
-                title: L10n.string("离线缓存"),
-                systemImage: "square.and.arrow.down",
-                action: { showOfflineCache = true }
-            )
+        Section {
+            HStack(spacing: 4) {
+                quickActionButton(
+                    title: L10n.string("离线缓存"),
+                    systemImage: "square.and.arrow.down",
+                    action: { showOfflineCache = true }
+                )
+                
+                quickActionButton(
+                    title: L10n.string("观看记录"),
+                    systemImage: "memories",
+                    action: { showHistory = true }
+                )
+                
+                quickActionButton(
+                    title: L10n.string("收藏"),
+                    systemImage: "star",
+                    action: { /* TODO */ }
+                )
 
-            quickActionButton(
-                title: L10n.string("观看记录"),
-                systemImage: "memories",
-                action: { showHistory = true }
-            )
-
-            quickActionButton(
-                title: L10n.string("稍后再看"),
-                systemImage: "clock.badge",
-                action: { showWatchLater = true }
-            )
+                quickActionButton(
+                    title: L10n.string("稍后再看"),
+                    systemImage: "clock.badge",
+                    action: { showWatchLater = true }
+                )
+            }
         }
+    }
+
+    private func levelIconName(for user: UserCard) -> String {
+        let level = min(max(user.levelInfo.currentLevel, 0), 6)
+        if level == 6, user.isSeniorMember == 1 {
+            return "LV6_Lightning"
+        }
+        return "LV\(level)"
     }
 
     private func maxExperienceText(for user: UserCard) -> String {
@@ -268,7 +307,6 @@ struct MyView: View {
             .frame(height: 72)
         }
         .buttonStyle(.plain)
-        .glassEffect(.regular.interactive(), in: RoundedRectangle(cornerRadius: 18, style: .continuous))
     }
 }
 

@@ -240,6 +240,16 @@
     "%lld" : {
       "shouldTranslate" : false
     },
+    "%lld/%@" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$lld/%2$@"
+          }
+        }
+      }
+    },
     "%lld/1000" : {
       "shouldTranslate" : false
     },
@@ -2381,9 +2391,6 @@
         }
       }
     },
-    "当前未登录账号" : {
-
-    },
     "当前没有可用的真实播放 URL，将使用 Host 连通性参考请求，403/959 仅代表 CDN 拒绝裸探测，不代表播放失败。" : {
       "localizations" : {
         "ja" : {
@@ -3485,6 +3492,9 @@
           }
         }
       }
+    },
+    "登录哔哩哔哩账号" : {
+
     },
     "登录数据" : {
       "localizations" : {
