@@ -11,9 +11,7 @@ struct DynamicView: View {
     var body: some View {
         NavigationStack {
             ScrollView {
-                if !viewModel.isLoading && viewModel.errorMessage == nil && viewModel.items.isEmpty {
-                    Text("暂无动态").foregroundStyle(.secondary).frame(maxWidth: .infinity, minHeight: 240)
-                } else if !viewModel.isLoading && viewModel.errorMessage == nil && !viewModel.items.isEmpty {
+                if !viewModel.isLoading && viewModel.errorMessage == nil && !viewModel.items.isEmpty {
                     LazyVStack(spacing: 12) {
                         ForEach(viewModel.items) { item in
                             DynamicCardView(
@@ -67,6 +65,10 @@ struct DynamicView: View {
                 } actions: {
                     Button("重试") { Task { await viewModel.refresh() } }
                         .buttonStyle(.borderless)
+                }
+            } else if !viewModel.isLoading && viewModel.errorMessage == nil && viewModel.items.isEmpty {
+                ContentUnavailableView {
+                    Label("暂无动态", image: "DynamicIcon")
                 }
             } else if viewModel.isLoading && viewModel.items.isEmpty {
                 ProgressView()

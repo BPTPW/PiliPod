@@ -1568,6 +1568,7 @@
 
     },
     "加载历史记录中…" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {

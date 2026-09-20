@@ -8,23 +8,7 @@ struct WatchLaterView: View {
 
     var body: some View {
         List {
-            if viewModel.isLoading && viewModel.videos.isEmpty {
-                ProgressView("加载中…")
-                    .frame(maxWidth: .infinity, minHeight: 240)
-                    .watchLaterListRow()
-            } else if let error = viewModel.errorMessage, viewModel.videos.isEmpty {
-                Text(error)
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-                    .frame(maxWidth: .infinity, minHeight: 240)
-                    .watchLaterListRow()
-            } else if viewModel.videos.isEmpty {
-                Text("暂无稍后再看的内容")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-                    .frame(maxWidth: .infinity, minHeight: 240)
-                    .watchLaterListRow()
-            } else {
+            if !viewModel.isLoading && viewModel.errorMessage == nil && !viewModel.videos.isEmpty {
                 ForEach(viewModel.videos) { video in
                     VideoCardSingleView(
                         video: video,
@@ -47,6 +31,26 @@ struct WatchLaterView: View {
         .listStyle(.plain)
         .refreshable {
             await viewModel.refreshFromUser()
+        }
+        .overlay {
+            if let error = viewModel.errorMessage, viewModel.videos.isEmpty {
+                ContentUnavailableView {
+                    Label(error, systemImage: "exclamationmark.triangle")
+                } actions: {
+                    Button("重试") {
+                        Task {
+                            await viewModel.refreshFromUser()
+                        }
+                    }
+                    .buttonStyle(.borderless)
+                }
+            } else if !viewModel.isLoading && viewModel.errorMessage == nil && viewModel.videos.isEmpty {
+                ContentUnavailableView {
+                    Label("暂无稍后再看的内容", systemImage: "clock.badge")
+                }
+            } else if viewModel.isLoading && viewModel.videos.isEmpty {
+                ProgressView()
+            }
         }
         .scrollContentBackground(.hidden)
         .background(Color(.systemBackground))
