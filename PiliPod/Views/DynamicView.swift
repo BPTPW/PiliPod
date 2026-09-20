@@ -62,7 +62,7 @@ struct DynamicView: View {
         }
         .overlay {
             if let error = viewModel.errorMessage, viewModel.items.isEmpty {
-                ContentUnavailableView {
+                ContentUnavailableView {
                     Label(error, systemImage: "exclamationmark.triangle")
                 } actions: {
                     Button("重试") { Task { await viewModel.refresh() } }

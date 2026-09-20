@@ -19,22 +19,6 @@ struct MyView: View {
     var body: some View {
         NavigationStack {
             VStack(spacing: 20) {
-                // 顶部按钮
-                HStack {
-                    Spacer()
-                    NavigationLink {
-                        SettingsView()
-                    } label: {
-                        Image(systemName: "gear")
-                            .frame(width: 20, height: 20)
-                            .padding(10)
-                    }
-                    .tint(.primary)
-                    .glassEffect(.regular.interactive(), in: .circle)
-                }
-                .padding(.horizontal, 30)
-                .padding(.top, 10)
-
                 headerView
                     .padding(.horizontal, 30)
 
@@ -42,6 +26,18 @@ struct MyView: View {
                     .padding(.horizontal, 30)
 
                 Spacer()
+            }
+            .toolbar {
+                ToolbarItem(placement: .primaryAction) {
+                    Button {
+                    } label: {
+                        NavigationLink {
+                            SettingsView()
+                        } label: {
+                            Image(systemName: "gear")
+                        }
+                    }
+                }
             }
             .task {
                 await viewModel.loadUser()
@@ -58,6 +54,8 @@ struct MyView: View {
                     viewModel.user = nil
                 }
             }
+            .navigationTitle("我的")
+            .navigationBarTitleDisplayMode(.inline)
             .navigationDestination(isPresented: $showHistory) {
                 HistoryView()
             }
