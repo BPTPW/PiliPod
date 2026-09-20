@@ -65,21 +65,7 @@ struct LoginPageView: View {
                 )
             ) {
                 if let context = viewModel.phoneVerifyContext {
-                    PhoneVerifySheet(
-                        phoneText: context.maskedTel,
-                        isLoading: viewModel.isLoading,
-                        errorMessage: viewModel.phoneVerifyMessage,
-                        onSendCode: {
-                            Task {
-                                await viewModel.sendPhoneVerifySMS()
-                            }
-                        },
-                        onSubmitCode: { code in
-                            Task {
-                                await viewModel.submitPhoneVerifyCode(code)
-                            }
-                        }
-                    )
+                    PhoneVerifySheet(viewModel: viewModel, phoneText: context.maskedTel)
                 }
             }
         }

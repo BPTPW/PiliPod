@@ -31,8 +31,9 @@ struct GeetestCaptchaSheet: View {
             }
             .navigationTitle("人机验证")
             .navigationBarTitleDisplayMode(.inline)
-            .ignoresSafeArea(.all, edges: .bottom)
+            .ignoresSafeArea(.all, edges: .vertical)
         }
+        .ignoresSafeArea(.all, edges: .vertical)
     }
 }
 
@@ -56,8 +57,11 @@ private struct GeetestWebView: UIViewRepresentable {
         config.preferences.javaScriptEnabled = true
 
         let webView = WKWebView(frame: .zero, configuration: config)
+        webView.scrollView.contentInsetAdjustmentBehavior = .never
+        webView.insetsLayoutMarginsFromSafeArea = false
         webView.navigationDelegate = context.coordinator
         webView.loadHTMLString(htmlTemplate, baseURL: nil)
+        
         return webView
     }
 
