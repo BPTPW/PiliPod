@@ -13,64 +13,59 @@ struct LoginPageView: View {
 
     var body: some View {
         NavigationStack {
-            VStack(spacing: 16) {
-                HStack(spacing: 15) {
-                    Image(systemName: "person.fill")
-                    TextField("账号", text: $viewModel.username)
-                        .textInputAutocapitalization(.never)
-                        .autocorrectionDisabled()
-                }
-                .padding(.vertical, 10)
-                .padding(.horizontal, 20)
-                .glassEffect(.regular.interactive(), in: .capsule)
-
-                HStack(spacing: 15) {
-                    Image(systemName: "lock.fill")
-                    SecureField("密码", text: $viewModel.password)
-                        .textInputAutocapitalization(.never)
-                        .autocorrectionDisabled()
-                }
-                .padding(.vertical, 10)
-                .padding(.horizontal, 20)
-                .glassEffect(.regular.interactive(), in: .capsule)
-
-                Button {
-                    Task {
-                        await viewModel.executeLoginFlow()
+            Group {
+                Form {
+                    Section {
+                        TextField("账号", text: $viewModel.username)
+                            .textContentType(.username)
+                            .textInputAutocapitalization(.never)
+                            .autocorrectionDisabled()
+                        SecureField("密码", text: $viewModel.password)
+                            .textInputAutocapitalization(.never)
+                            .autocorrectionDisabled()
+                    } footer: {
+                        if let message = viewModel.errorMessage, !message.isEmpty {
+                            Text(message)
+                                .font(.footnote)
+                                .foregroundStyle(.red)
+                        }
                     }
-                } label: {
-                    if viewModel.isLoading {
-                        ProgressView()
-                            .frame(maxWidth: .infinity)
-                    } else {
-                        Text("登录")
-                            .frame(maxWidth: .infinity)
-                            .foregroundStyle(.white)
-                            .padding(.vertical, 10)
+                    Section {
+                        Button {
+                            Task {
+                                await viewModel.executeLoginFlow()
+                            }
+                        } label: {
+                            if viewModel.isLoading {
+                                ProgressView()
+                                    .frame(maxWidth: .infinity)
+                            } else {
+                                Text("登录")
+                                    .frame(maxWidth: .infinity)
+                            }
+                        }
                     }
                 }
-                .glassEffect(
-                    .regular.interactive().tint(.blue),
-                    in: .capsule
-                )
-                .disabled(viewModel.isLoading)
-
-                if let message = viewModel.errorMessage, !message.isEmpty {
-                    Text(message)
-                        .font(.footnote)
-                        .foregroundStyle(.red)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                }
-
-                Spacer()
             }
-            .padding()
             .navigationTitle("登录")
+            .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button("关闭") {
+                    Button {
                         dismiss()
+                    } label: {
+                        Image(systemName: "xmark")
                     }
+                }
+            }
+            .navigationDestination(
+                isPresented: Binding(
+                    get: { viewModel.phoneVerifyContext != nil },
+                    set: { if !$0 { viewModel.phoneVerifyContext = nil } }
+                )
+            ) {
+                if let context = viewModel.phoneVerifyContext {
+                    PhoneVerifySheet(viewModel: viewModel, phoneText: context.maskedTel)
                 }
             }
         }
@@ -90,23 +85,6 @@ struct LoginPageView: View {
                     }
                 }
             }
-        }
-        .sheet(item: $viewModel.phoneVerifyContext) { context in
-            PhoneVerifySheet(
-                phoneText: context.maskedTel,
-                isLoading: viewModel.isLoading,
-                errorMessage: viewModel.phoneVerifyMessage,
-                onSendCode: {
-                    Task {
-                        await viewModel.sendPhoneVerifySMS()
-                    }
-                },
-                onSubmitCode: { code in
-                    Task {
-                        await viewModel.submitPhoneVerifyCode(code)
-                    }
-                }
-            )
         }
         .onReceive(viewModel.$loginSucceeded) { succeeded in
             if succeeded {

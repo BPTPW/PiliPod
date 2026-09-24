@@ -7,45 +7,52 @@ struct HistoryView: View {
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 16) {
-                if viewModel.isLoading && viewModel.videos.isEmpty {
-                    ProgressView("加载历史记录中…")
-                        .frame(maxWidth: .infinity, minHeight: 240)
-                } else if let error = viewModel.errorMessage, viewModel.videos.isEmpty {
-                    Text(error)
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                        .frame(maxWidth: .infinity, minHeight: 240)
-                } else if viewModel.videos.isEmpty {
-                    Text("还没有观看记录")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                        .frame(maxWidth: .infinity, minHeight: 240)
-                } else {
-                    LazyVStack(spacing: 12) {
-                        ForEach(viewModel.videos) { video in
-                            VideoCardSingleView(
-                                video: video,
-                                progress: video.progressSeconds,
-                                namespace: videoHeroNamespace,
-                                onTap: { selectedVideo = video }
-                            )
-                            .onAppear {
-                                Task { await viewModel.loadMoreIfNeeded(current: video) }
-                            }
-                        }
-
-                        if viewModel.isLoading {
-                            ProgressView()
-                                .padding(.vertical, 8)
+            if viewModel.errorMessage == nil && !viewModel.videos.isEmpty {
+                LazyVStack(spacing: 12) {
+                    ForEach(viewModel.videos) { video in
+                        VideoCardSingleView(
+                            video: video,
+                            progress: video.progressSeconds,
+                            namespace: videoHeroNamespace,
+                            onTap: { selectedVideo = video }
+                        )
+                        .onAppear {
+                            Task { await viewModel.loadMoreIfNeeded(current: video) }
                         }
                     }
+
+                    if viewModel.isLoading {
+                        ProgressView()
+                            .padding(.vertical, 8)
+                    }
                 }
+            } else {
+                // 防止 overlay 内容被挤压在中间
+                Color.clear.frame(maxWidth: .infinity).frame(height: 1)
             }
-            .padding(16)
         }
         .refreshable {
             await viewModel.refreshFromUser()
+        }
+        .overlay {
+            if let error = viewModel.errorMessage, viewModel.videos.isEmpty {
+                ContentUnavailableView {
+                    Label(error, systemImage: "exclamationmark.triangle")
+                } actions: {
+                    Button("重试") {
+                        Task {
+                            await viewModel.refreshFromUser()
+                        }
+                    }
+                    .buttonStyle(.borderless)
+                }
+            } else if !viewModel.isLoading && viewModel.errorMessage == nil && viewModel.videos.isEmpty {
+                ContentUnavailableView {
+                    Label("还没有观看记录", systemImage: "memories")
+                }
+            } else if viewModel.isLoading && viewModel.videos.isEmpty {
+                ProgressView()
+            }
         }
         .background(Color(.systemBackground))
         .navigationTitle("观看记录")

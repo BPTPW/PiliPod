@@ -240,6 +240,16 @@
     "%lld" : {
       "shouldTranslate" : false
     },
+    "%lld/%@" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$lld/%2$@"
+          }
+        }
+      }
+    },
     "%lld/1000" : {
       "shouldTranslate" : false
     },
@@ -1066,6 +1076,9 @@
         }
       }
     },
+    "主页" : {
+
+    },
     "举报" : {
       "localizations" : {
         "en" : {
@@ -1568,6 +1581,7 @@
 
     },
     "加载历史记录中…" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -1692,6 +1706,9 @@
 
     },
     "原动态不可用" : {
+
+    },
+    "发送" : {
 
     },
     "发送验证码" : {
@@ -1865,6 +1882,9 @@
       }
     },
     "复制" : {
+
+    },
+    "好" : {
 
     },
     "如果遇到播放异常请关闭。" : {
@@ -2380,9 +2400,6 @@
         }
       }
     },
-    "当前未登录账号" : {
-
-    },
     "当前没有可用的真实播放 URL，将使用 Host 连通性参考请求，403/959 仅代表 CDN 拒绝裸探测，不代表播放失败。" : {
       "localizations" : {
         "ja" : {
@@ -2590,6 +2607,12 @@
           }
         }
       }
+    },
+    "提示" : {
+
+    },
+    "搜索" : {
+
     },
     "搜索中…" : {
       "localizations" : {
@@ -3484,6 +3507,9 @@
           }
         }
       }
+    },
+    "登录哔哩哔哩账号" : {
+
     },
     "登录数据" : {
       "localizations" : {
@@ -4716,6 +4742,7 @@
       }
     },
     "首页" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -4746,6 +4773,9 @@
           }
         }
       }
+    },
+    "验证手机号" : {
+
     },
     "高动态视频" : {
       "localizations" : {

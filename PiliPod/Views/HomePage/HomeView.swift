@@ -54,92 +54,35 @@ struct HomeView: View {
 
     var body: some View {
         NavigationStack {
-            VStack(spacing: 0) {
-                // 顶部区域
-                VStack(spacing: 14) {
-                    // 第一行
-                    HStack(spacing: 12) {
-                        // 搜索框
-                        Button {
-                            isSearchViewPresented = true
-                        } label: {
-                            HStack(spacing: 8) {
-                                Image(systemName: "magnifyingglass")
-                                    .foregroundStyle(.secondary)
+            GeometryReader { proxy in
+                let availableWidth = proxy.size.width - (horizontalPadding * 2)
+                let videoCardWidth = (availableWidth - columnSpacing) / 2
 
-                                Text("搜索视频")
-                                    .foregroundStyle(.secondary)
-
-                                Spacer(minLength: 0)
-                            }
-                            .padding(.horizontal, 14)
-                            .frame(height: 40)
-                            .contentShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
-                        }
-                        .buttonStyle(.plain)
-                        .glassEffect(
-                            .regular.interactive(),
-                            in: RoundedRectangle(cornerRadius: 22, style: .continuous)
-                        )
-
-                        // 消息按钮
-                        Button {
-                            isMessageViewPresented = true
-                        } label: {
-                            ZStack(alignment: .topTrailing) {
-                                Image(systemName: "bell.fill")
-                                    .font(.system(size: 18))
-                                    .frame(width: 40, height: 40)
-
-                                if viewModel.unreadMessageCount > 0 {
-                                    Text(unreadBadgeText)
-                                        .font(.system(size: 10, weight: .bold))
-                                        .foregroundStyle(.white)
-                                        .padding(.horizontal, 5)
-                                        .frame(minWidth: 17, minHeight: 17)
-                                        .background(.red, in: Capsule())
-                                        .overlay {
-                                            Capsule()
-                                                .stroke(.regularMaterial, lineWidth: 1)
-                                        }
-                                        .offset(x: 4, y: -4)
-                                }
-                            }
-                        }
-                        .foregroundStyle(.primary)
-                        .glassEffect(
-                            .regular.interactive(),
-                            in: .circle
-                        )
-
+                // 删除 TabView 有两个考虑：一个是它会再叠一层 TopBar 还无法单独关闭；一个是翻页时可能会触发中间页面的加载
+                ForEach(tabs, id: \.self) { tab in
+                    if (selectedTab == tab) {
+                        tabPage(for: tab, videoCardWidth: videoCardWidth)
+                            .tag(tab)
                     }
-                    .padding(.horizontal, 16)
-                    .padding(.top, 8)
-
-                    // 分类栏
-                    tabBar
                 }
-                .padding(.bottom, 10)
-                .background(.regularMaterial)
-
-                Divider()
-
-                // 视频流
-                GeometryReader { proxy in
-                    let availableWidth = proxy.size.width - (horizontalPadding * 2)
-                    let videoCardWidth = (availableWidth - columnSpacing) / 2
-
-                    TabView(selection: $selectedTab) {
-                        ForEach(tabs, id: \.self) { tab in
-                            tabPage(for: tab, videoCardWidth: videoCardWidth)
-                                .tag(tab)
-                        }
-                    }
-                    .tabViewStyle(.page(indexDisplayMode: .never))
-                }
-                .ignoresSafeArea(edges: .bottom)
             }
-            .navigationBarHidden(true)
+            .ignoresSafeArea(edges: .bottom)
+            .animation(.easeInOut(duration: 0.3), value: selectedTab)
+            .safeAreaBar(edge: .top) {
+                tabBar
+            }
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button {
+                        isMessageViewPresented = true
+                    } label: {
+                        Image(systemName: "bell.fill")
+                    }
+                    .badge(viewModel.unreadMessageCount > 0 ? Text(unreadBadgeText) : nil)
+                }
+            }
+            .navigationTitle("主页")
+            .navigationBarTitleDisplayMode(.inline)
             .navigationDestination(item: $selectedVideo) { video in
                 if #available(iOS 18.0, *) {
                     VideoDetailPage(
@@ -222,13 +165,17 @@ struct HomeView: View {
                     }
                 }
                 .padding(.horizontal, 16)
+                .backgroundStyle(Color.clear)
             }
+            .padding(.bottom, 8)
+            .backgroundStyle(Color.clear)
             .onChange(of: selectedTab) { _, newValue in
                 withAnimation(.easeInOut(duration: 0.2)) {
                     proxy.scrollTo(newValue, anchor: .center)
                 }
             }
         }
+        .backgroundStyle(Color.clear)
     }
 
     @ViewBuilder
