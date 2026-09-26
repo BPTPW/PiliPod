@@ -37,6 +37,13 @@ private struct AudioVideoSettingsView: View {
     var body: some View {
         Form {
             Section {
+                Toggle("详情页直接播放", isOn: $settings.directPlayOnVideoDetail)
+                    .tint(Color("BiliPink"))
+            } footer: {
+                Text("关闭后，进入视频详情页需点击播放键才开始播放。")
+            }
+
+            Section {
                 Toggle("硬件解码", isOn: $settings.hardwareDecodingEnabled)
                     .tint(Color("BiliPink"))
             } footer: {

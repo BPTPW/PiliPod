@@ -11,6 +11,17 @@ import Testing
 
 struct PiliPodTests {
 
+    @Test func videoDetailAutoPlayDefaultsOnForExistingSettings() throws {
+        let existingSettings = try JSONDecoder().decode(AudioVideoSettings.self, from: Data("{}".utf8))
+        #expect(existingSettings.directPlayOnVideoDetail)
+
+        var updatedSettings = existingSettings
+        updatedSettings.directPlayOnVideoDetail = false
+        let savedData = try JSONEncoder().encode(updatedSettings)
+        let restoredSettings = try JSONDecoder().decode(AudioVideoSettings.self, from: savedData)
+        #expect(!restoredSettings.directPlayOnVideoDetail)
+    }
+
     @Test func manualCDNRewritePreservesMediaPathAndSignature() throws {
         let source = try #require(URL(string: "https://upos-sz-mirrorcos.bilivideo.com/upgcxcode/12/34/56/video.m4s?deadline=123&sign=abc%2Fdef"))
 

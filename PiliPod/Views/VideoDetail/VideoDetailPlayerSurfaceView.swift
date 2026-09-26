@@ -21,6 +21,8 @@ struct VideoDetailPlayerSurfaceView: View {
 
     let stream: DashStream
     let player: MPVKitPlayer
+    let coverURL: URL?
+    let isAwaitingPlayback: Bool
     let playerViewID: String
     let containerSize: CGSize
     let safeAreaInsets: EdgeInsets
@@ -61,6 +63,7 @@ struct VideoDetailPlayerSurfaceView: View {
     let onPreloadDanmakuBoundary: (TimeInterval) -> Void
     let onPreviewDraftFinished: () -> Void
     let onPlaybackEnded: () -> Void
+    let onTogglePlayPause: () -> Void
     let onToggleFullscreen: () -> Void
 
     @Binding var danmakuConfig: DanmakuEngineConfig
@@ -168,7 +171,31 @@ struct VideoDetailPlayerSurfaceView: View {
             // canvas can expose the ambient background around it.
             .frame(width: videoRenderSize.width, height: videoRenderSize.height, alignment: .center)
 
+            if isAwaitingPlayback {
+                CachedAsyncImage(url: coverURL) { phase in
+                    if case .success(let image) = phase {
+                        image.resizable().scaledToFill()
+                    } else {
+                        Color.black
+                    }
+                }
+                .frame(width: videoRenderSize.width, height: videoRenderSize.height)
+                .clipped()
+                .allowsHitTesting(false)
+            }
+
             gestureOverlay
+            if isAwaitingPlayback {
+                Button(action: togglePlayback) {
+                    Image(systemName: "play.fill")
+                        .font(.system(size: 28, weight: .semibold))
+                        .foregroundStyle(.white)
+                        .frame(width: 64, height: 64)
+                        .background(.black.opacity(0.55), in: Circle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("播放视频")
+            }
             danmakuOverlay
             subtitleOverlay
             loadingOverlay
@@ -761,11 +788,7 @@ struct VideoDetailPlayerSurfaceView: View {
     }
 
     private func togglePlayback() {
-        if player.isPlaying {
-            player.pause()
-        } else {
-            player.resume()
-        }
+        onTogglePlayPause()
         playerUISnapshot = player.uiSnapshot
     }
 
