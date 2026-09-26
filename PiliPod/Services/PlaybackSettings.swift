@@ -210,6 +210,7 @@ struct AudioVideoSettings: Codable, Equatable {
     static let supportedHistoryReportIntervals = [5, 10, 20, 30]
 
     var playerCore: PlayerCore = .avPlayer
+    var directPlayOnVideoDetail = true
     var historyReportInterval = 10
     var hardwareDecodingEnabled = true
     var allowsBackgroundPlayback = false
@@ -240,6 +241,7 @@ struct AudioVideoSettings: Codable, Equatable {
     private enum CodingKeys: String, CodingKey {
         case hardwareDecodingEnabled
         case playerCore
+        case directPlayOnVideoDetail
         case historyReportInterval
         case allowsBackgroundPlayback
         case allowsLiveBackgroundPlayback
@@ -288,6 +290,7 @@ struct AudioVideoSettings: Codable, Equatable {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         hardwareDecodingEnabled = try container.decodeIfPresent(Bool.self, forKey: .hardwareDecodingEnabled) ?? true
         playerCore = try container.decodeIfPresent(PlayerCore.self, forKey: .playerCore) ?? .avPlayer
+        directPlayOnVideoDetail = try container.decodeIfPresent(Bool.self, forKey: .directPlayOnVideoDetail) ?? true
         historyReportInterval = try container.decodeIfPresent(Int.self, forKey: .historyReportInterval) ?? 10
         allowsBackgroundPlayback = try container.decodeIfPresent(Bool.self, forKey: .allowsBackgroundPlayback) ?? false
         allowsLiveBackgroundPlayback = try container.decodeIfPresent(Bool.self, forKey: .allowsLiveBackgroundPlayback) ?? false

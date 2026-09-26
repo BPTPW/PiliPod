@@ -26,6 +26,8 @@ class VideoDetailViewModel {
     var videoPages: [VideoPageListItem] = []
     var videoPagesIsLoading = false
     var isPlayingOfflineCache = false
+    private(set) var hasStartedPlayback = false
+    private(set) var isStartingPlayback = false
 
     var relatedVideos: [VideoItem] = []
     var relatedIsLoading = false
@@ -175,8 +177,11 @@ class VideoDetailViewModel {
         videoShotMetadata = nil
         videoShotIsLoading = false
         isPlayingOfflineCache = false
+        hasStartedPlayback = false
+        isStartingPlayback = false
         videoShotWarmTask?.cancel()
         videoShotWarmTask = nil
+        let shouldAutoPlay = AudioVideoSettingsStore.load().directPlayOnVideoDetail
 
         let preferredCachedAsset = OfflineCacheStorage.loadPlayableAsset(
             bvid: bvid,
@@ -357,9 +362,10 @@ class VideoDetailViewModel {
                     self.isPlayingOfflineCache = true
                     self.isLoading = false
 
-                    if let player = self.player {
+                    if shouldAutoPlay, let player = self.player {
                         player.play(stream: cachedAsset.stream)
                         player.setPlaybackRate(self.selectedPlaybackRate)
+                        self.hasStartedPlayback = true
                     }
                 }
             } else {
@@ -398,9 +404,10 @@ class VideoDetailViewModel {
                     self.isPlayingOfflineCache = false
                     self.isLoading = false
 
-                    if let player = self.player {
+                    if shouldAutoPlay, let player = self.player {
                         player.play(stream: self.dashStream!)
                         player.setPlaybackRate(self.selectedPlaybackRate)
+                        self.hasStartedPlayback = true
                     }
                 }
             }
@@ -410,7 +417,7 @@ class VideoDetailViewModel {
             }
 
             // 历史记录跳转播放：等待播放器状态开始更新后再恢复，避免 load 后被底层 0 位置覆盖。
-            if let seekTo = seekTime, seekTo > 0, let activePlayer {
+            if shouldAutoPlay, let seekTo = seekTime, seekTo > 0, let activePlayer {
                 await restorePlaybackState(
                     on: activePlayer,
                     time: seekTo,
@@ -426,6 +433,36 @@ class VideoDetailViewModel {
                 self.isLoading = false
             }
         }
+    }
+
+    @MainActor
+    func startPlaybackIfNeeded() async -> Bool {
+        guard !Task.isCancelled, !hasStartedPlayback, !isStartingPlayback,
+              let player, let dashStream else { return false }
+
+        isStartingPlayback = true
+        hasStartedPlayback = true
+        player.play(stream: dashStream)
+        player.setPlaybackRate(selectedPlaybackRate)
+
+        if let seekTo = initialSeekTime, seekTo > 0 {
+            if player.usesAVPlayer {
+                player.seek(to: seekTo)
+            }
+            await restorePlaybackState(
+                on: player,
+                time: seekTo,
+                rate: selectedPlaybackRate,
+                shouldResume: true
+            )
+        }
+        isStartingPlayback = false
+        if Task.isCancelled {
+            player.stop()
+            hasStartedPlayback = false
+            return false
+        }
+        return true
     }
 
     @MainActor
@@ -447,6 +484,7 @@ class VideoDetailViewModel {
         selectedQualityCode = code
         let resolvedStream = stream.applying(dolbyEnabled: isDolbyEnabled)
         dashStream = resolvedStream
+        guard hasStartedPlayback else { return }
         player.play(stream: resolvedStream)
         player.setPlaybackRate(resumeRate)
 
@@ -481,6 +519,7 @@ class VideoDetailViewModel {
 
         isDolbyEnabled = nextValue
         dashStream = resolvedStream
+        guard hasStartedPlayback else { return }
         player.play(stream: resolvedStream)
         player.setPlaybackRate(resumeRate)
         await restorePlaybackState(
@@ -550,7 +589,10 @@ class VideoDetailViewModel {
         isPlayingOfflineCache = false
         error = nil
 
-        guard let currentPlayer else { return }
+        guard hasStartedPlayback, let currentPlayer else {
+            pendingNavigationResumeTime = nil
+            return
+        }
         currentPlayer.play(stream: resolvedStream)
         currentPlayer.setPlaybackRate(resumeRate)
 
@@ -569,8 +611,10 @@ class VideoDetailViewModel {
 
         pendingNavigationResumeTime = max(0, currentPlayer.currentTime)
         pendingNavigationShouldResume = currentPlayer.isPlaying
-        stopHistoryReporting(with: currentPlayer)
-        currentPlayer.pause()
+        if hasStartedPlayback {
+            stopHistoryReporting(with: currentPlayer)
+            currentPlayer.pause()
+        }
     }
 
     @MainActor
@@ -625,7 +669,7 @@ class VideoDetailViewModel {
                 isPlayingOfflineCache = true
                 isDolbyEnabled = false
 
-                if let player {
+                if hasStartedPlayback, let player {
                     player.play(stream: cachedAsset.stream)
                     player.setPlaybackRate(selectedPlaybackRate)
                     if previousIsPlaying {
@@ -695,7 +739,7 @@ class VideoDetailViewModel {
             error = nil
             isPlayingOfflineCache = false
 
-            if let player {
+            if hasStartedPlayback, let player {
                 player.play(stream: dashStream!)
                 player.setPlaybackRate(selectedPlaybackRate)
                 if previousIsPlaying {
@@ -753,6 +797,8 @@ class VideoDetailViewModel {
         player = newPlayer
         playerRebuildToken = UUID()
 
+        guard hasStartedPlayback else { return }
+
         newPlayer.play(stream: stream.applying(route: AudioVideoSettingsStore.load().playbackCDNRoute))
         newPlayer.setPlaybackRate(resumeRate)
 
@@ -772,16 +818,19 @@ class VideoDetailViewModel {
         rate: Double,
         shouldResume: Bool
     ) async {
+        guard !Task.isCancelled else { return }
         let targetTime = max(0, time)
 
         // Wait for player state to start updating (controller attached / file loaded).
         for _ in 0 ..< 20 {
+            guard !Task.isCancelled else { return }
             if player.duration > 0 || player.currentTime > 0 {
                 break
             }
             try? await Task.sleep(nanoseconds: 100000000)
         }
 
+        guard !Task.isCancelled else { return }
         player.seek(to: targetTime)
         player.setPlaybackRate(rate)
 
@@ -794,6 +843,7 @@ class VideoDetailViewModel {
         // One more correction pass to reduce occasional drift after stream rebuild.
         for _ in 0 ..< 6 {
             try? await Task.sleep(nanoseconds: 120000000)
+            guard !Task.isCancelled else { return }
             if abs(player.currentTime - targetTime) <= 1.0 {
                 break
             }
@@ -1336,7 +1386,7 @@ class VideoDetailViewModel {
     // MARK: - History Report
 
 	    func startHistoryReporting() {
-        guard !isPlayingOfflineCache else { return }
+        guard hasStartedPlayback, !isPlayingOfflineCache else { return }
         historyReportStartTask?.cancel()
         historyReportTimer?.invalidate()
         historyReportTimer = nil
@@ -1381,7 +1431,7 @@ class VideoDetailViewModel {
         historyReportTimer?.invalidate()
         historyReportTimer = nil
 
-        guard !isPlayingOfflineCache else { return }
+        guard hasStartedPlayback, !isPlayingOfflineCache else { return }
 
         // 退出时最后上报一次
         let finalProgress = Int(player.currentTime)

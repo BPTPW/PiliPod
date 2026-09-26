@@ -183,6 +183,7 @@ struct VideoDetailPage: View {
     @State private var showsVideoPageDrawer = false
     @State private var cachedIntroDescriptionText = AttributedString("")
     @State private var shouldResumeAfterBackgroundPause = false
+    @State private var initialPlaybackTask: Task<Void, Never>?
     @State private var backgroundPauseRestoreTime: TimeInterval?
     @State private var offlineCachePrefill: OfflineCacheQueryPrefill?
     @State private var onlineTotal: String?
@@ -350,6 +351,8 @@ struct VideoDetailPage: View {
                         VideoDetailPlayerSurfaceView(
                             stream: stream,
                             player: player,
+                            coverURL: URL(string: bindableViewModel.cover),
+                            isAwaitingPlayback: !bindableViewModel.hasStartedPlayback,
                             playerViewID: bindableViewModel.currentPlayerViewID,
                             containerSize: geo.size,
                             safeAreaInsets: geo.safeAreaInsets,
@@ -440,7 +443,9 @@ struct VideoDetailPage: View {
                                 syncSystemMediaControl(reason: reason)
                             },
                             onPlaybackTick: { currentTime in
-                                handleSponsorSegmentPlayback(currentTime: currentTime, player: player)
+                                if bindableViewModel.hasStartedPlayback {
+                                    handleSponsorSegmentPlayback(currentTime: currentTime, player: player)
+                                }
                             },
                             onPreloadDanmakuBoundary: { currentTime in
                                 Task {
@@ -452,6 +457,9 @@ struct VideoDetailPage: View {
                             },
                             onPlaybackEnded: {
                                 pausePlayback(player: player)
+                            },
+                            onTogglePlayPause: {
+                                togglePlayback(player: player)
                             },
                             onToggleFullscreen: {
                                 toggleFullscreenManually()
@@ -832,10 +840,12 @@ struct VideoDetailPage: View {
             refreshCachedIntroDescription()
             ensureSponsorSegmentsLoadedIfNeeded()
 #if canImport(UIKit)
-            audioSessionManager.activate()
-            if let player = bindableViewModel.player {
-                Task { @MainActor in
-                    await syncSystemMediaControlWhenPlaybackStarts(player: player)
+            if bindableViewModel.hasStartedPlayback {
+                audioSessionManager.activate()
+                if let player = bindableViewModel.player {
+                    Task { @MainActor in
+                        await syncSystemMediaControlWhenPlaybackStarts(player: player)
+                    }
                 }
             }
 #endif
@@ -868,6 +878,8 @@ struct VideoDetailPage: View {
             }
         }
         .onDisappear {
+            initialPlaybackTask?.cancel()
+            initialPlaybackTask = nil
             if let player = bindableViewModel.player {
                 player.setListenVideoModeActive(false)
                 let isRetainedForPictureInPicture =
@@ -1693,6 +1705,18 @@ struct VideoDetailPage: View {
 
 #if canImport(UIKit)
     private func togglePlayback(player: MPVKitPlayer) {
+        if !viewModel.hasStartedPlayback {
+            initialPlaybackTask?.cancel()
+            initialPlaybackTask = Task { @MainActor in
+                guard !Task.isCancelled else { return }
+                audioSessionManager.activate()
+                guard await viewModel.startPlaybackIfNeeded(), !Task.isCancelled else { return }
+                viewModel.startHistoryReporting()
+                await syncSystemMediaControlWhenPlaybackStarts(player: player)
+            }
+            return
+        }
+        guard !viewModel.isStartingPlayback else { return }
         if player.isPlaying {
             pausePlayback(player: player)
         } else {
