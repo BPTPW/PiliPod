@@ -20,8 +20,7 @@ struct SearchView: View {
         var id: String { rawValue }
     }
 
-    @Environment(\.dismiss) private var dismiss
-    @State private var isSearchFieldFocused = false
+    @FocusState private var isSearchFieldFocused
     @State private var searchText = ""
     @State private var searchSuggestions: [SearchSuggestItem] = []
     @State private var isLoadingSuggestions = false
@@ -57,49 +56,6 @@ struct SearchView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            HStack(spacing: 12) {
-                Button {
-                    dismiss()
-                } label: {
-                    Image(systemName: "chevron.left")
-                        .font(.system(size: 18, weight: .semibold))
-                        .frame(width: 40, height: 40)
-                }
-                .foregroundStyle(.primary)
-                .glassEffect(.regular.interactive(), in: .circle)
-
-                HStack(spacing: 8) {
-                    Image(systemName: "magnifyingglass")
-                        .foregroundStyle(.secondary)
-
-                    SearchTextField(
-                        text: $searchText,
-                        isFocused: $isSearchFieldFocused,
-                        onSubmit: { _ in submitSearch() }
-                    )
-                    .frame(maxWidth: .infinity)
-
-                    if !searchText.isEmpty {
-                        Button {
-                            clearSearch()
-                        } label: {
-                            Image(systemName: "xmark.circle.fill")
-                                .foregroundStyle(.tertiary)
-                        }
-                        .buttonStyle(.plain)
-                    }
-                }
-                .padding(.horizontal, 14)
-                .frame(height: 40)
-                .glassEffect(
-                    .regular.interactive(),
-                    in: .capsule
-                )
-            }
-            .padding(.horizontal, 16)
-            .padding(.top, 8)
-            .padding(.bottom, 12)
-
             ZStack(alignment: .top) {
                 if isShowingSearchResults {
                     VStack(spacing: 0) {
@@ -121,11 +77,14 @@ struct SearchView: View {
                 }
             }
         }
+        .searchable(text: $searchText, prompt: "搜索视频")
+        .searchFocused($isSearchFieldFocused)
+        .onSubmit(of: .search) {
+            submitSearch()
+        }
         .background(Color(.systemBackground))
-        .background(NavigationPopGestureEnabler())
-        .navigationBarBackButtonHidden(true)
-        .navigationBarHidden(true)
-        .toolbar(.hidden, for: .tabBar)
+        .navigationTitle("搜索")
+        .navigationBarTitleDisplayMode(.inline)
         .navigationDestination(item: $selectedVideo) { video in
             VideoDetailPage(
                 video: video,

@@ -8,83 +8,105 @@
 import SwiftUI
 
 struct PhoneVerifySheet: View {
-    let phoneText: String
-    let isLoading: Bool
-    let errorMessage: String?
-    let onSendCode: () -> Void
-    let onSubmitCode: (_ code: String) -> Void
-    @Environment(\.dismiss) private var dismiss
+    @ObservedObject var viewModel: LoginViewModel
+    @State var phoneText: String
     @State private var smsCode = ""
+    @State private var tmpStr = ""
+    @State private var sendCodeCountdown = 0
+    @State private var alertMessage: String?
 
     var body: some View {
-        NavigationStack {
-            VStack(spacing: 20) {
-                Text("需要验证手机号")
-                    .font(.headline)
-
-                Text(phoneText)
-                    .font(.title3)
-
+        Form {
+            Section {
+                TextField("", text: self.$phoneText)
+                    .disabled(true)
                 HStack {
-                    TextField("请输入短信验证码", text: $smsCode)
+                    TextField(smsCode, text: $tmpStr)
                         .textFieldStyle(.plain)
                         .keyboardType(.numberPad)
-                    Button("发送验证码") {
-                        onSendCode()
-                    }
-                    .padding(10)
-                    .foregroundStyle(.primary)
-                    .disabled(false)
-                    .glassEffect(
-                        .regular.interactive(),
-                        in: .capsule
-                    )
-                }
-                .padding(.vertical, 10)
-                .padding(.horizontal, 20)
-                .glassEffect(.regular.interactive(), in: .capsule)
-
-                HStack(spacing: 12) {
+                        .onChange(of: smsCode) { newValue in
+                            if newValue.count > 6 {
+                                smsCode = String(newValue.prefix(6))
+                            }
+                        }
+                    Divider()
+                        .frame(height: 32)
+                        .padding(.horizontal, 4)
                     Button {
-                        onSubmitCode(smsCode)
+                        Task {
+                            await viewModel.sendPhoneVerifySMS()
+                        }
                     } label: {
-                        Text("验证并登录")
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 10)
+                        if sendCodeCountdown > 0 {
+                            Text("\(sendCodeCountdown)")
+                        } else {
+                            Text("发送")
+                        }
                     }
-                    .disabled(isLoading || smsCode.isEmpty)
-                    .foregroundStyle(.white)
-                    .glassEffect(
-                        .regular.interactive().tint(.blue),
-                        in: .capsule
-                    )
+                    .foregroundStyle(.primary)
+                    .disabled(sendCodeCountdown > 0)
+                    .buttonStyle(.borderless)
+                    .padding(.horizontal, 8)
                 }
-
-                if let errorMessage, !errorMessage.isEmpty {
-                    Text(errorMessage)
+            } footer: {
+                if let message = viewModel.errorMessage {
+                    Text(message)
                         .font(.footnote)
                         .foregroundStyle(.red)
-                        .frame(maxWidth: .infinity, alignment: .leading)
                 }
-
-                if isLoading {
-                    ProgressView()
-                }
-
-                Spacer()
             }
-            .padding()
-            .navigationTitle("手机号验证")
+            Section {
+                Button {
+                    Task {
+                        await viewModel.submitPhoneVerifyCode(smsCode)
+                    }
+                } label: {
+                    if viewModel.isLoading {
+                        ProgressView()
+                            .frame(maxWidth: .infinity)
+                    } else {
+                        Text("验证并登录")
+                            .frame(maxWidth: .infinity)
+                    }
+                }
+                .disabled(viewModel.isLoading || smsCode.isEmpty)
+            }
+        }
+        .navigationTitle("验证手机号")
+        .navigationBarTitleDisplayMode(.inline)
+        .onChange(of: viewModel.phoneVerifyMessage) { message in
+            // 只有验证码发送成功才弹窗并开始冷却，其余提示保留在页脚
+            guard let message, !message.isEmpty, viewModel.phoneVerifySMSSent else { return }
+            viewModel.errorMessage = nil
+            alertMessage = "验证码发送成功"
+            startSendCodeCountdown()
+        }
+        .alert(
+            "提示",
+            isPresented: Binding(
+                get: { alertMessage != nil },
+                set: { if !$0 { alertMessage = nil } }
+            )
+        ) {
+            Button("好", role: .cancel) {}
+        } message: {
+            Text(alertMessage ?? "")
+        }
+    }
+
+    private func startSendCodeCountdown() {
+        sendCodeCountdown = 60
+        Task { @MainActor in
+            while sendCodeCountdown > 0 {
+                try? await Task.sleep(for: .seconds(1))
+                sendCodeCountdown -= 1
+            }
         }
     }
 }
 
 #Preview {
-    PhoneVerifySheet(
-        phoneText: "139*****999",
-        isLoading: false,
-        errorMessage: nil,
-        onSendCode: {},
-        onSubmitCode: { code in print("Submit code: \(code)") }
-    )
+    NavigationStack {
+        PhoneVerifySheet(viewModel: LoginViewModel(), phoneText: "139*****999")
+    }
 }

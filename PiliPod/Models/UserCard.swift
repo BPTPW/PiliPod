@@ -13,6 +13,7 @@ struct UserCard: Codable {
     let face: String
     let money: Double
     let levelInfo: UserLevelInfo
+    let isSeniorMember: Int?
 
     enum CodingKeys: String, CodingKey {
         case mid
@@ -20,6 +21,7 @@ struct UserCard: Codable {
         case face
         case money
         case levelInfo = "level_info"
+        case isSeniorMember = "is_senior_member"
     }
 }
 

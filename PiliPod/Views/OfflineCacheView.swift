@@ -62,10 +62,7 @@ struct OfflineCacheView: View {
 
     var body: some View {
         List {
-            if cacheManager.sortedItems.isEmpty {
-                emptyState
-                    .offlineCacheListRow()
-            } else {
+            if !cacheManager.sortedItems.isEmpty {
                 ForEach(cacheManager.sortedItems) { item in
                     OfflineCacheCardView(
                         item: item,
@@ -147,6 +144,13 @@ struct OfflineCacheView: View {
             }
         }
         .overlay(alignment: .bottomTrailing) {
+            if (cacheManager.sortedItems.isEmpty) {
+                ContentUnavailableView {
+                    Label("暂无缓存视频", systemImage: "square.and.arrow.down")
+                } description: {
+                    Text("添加缓存任务或在视频播放页进行缓存")
+                }
+            }
             if isSelectionMode {
                 selectionDeleteButton
                     .padding(.trailing, 20)
@@ -267,24 +271,6 @@ struct OfflineCacheView: View {
             Text(transferErrorMessage ?? "未知错误")
         }
         .toast(message: $toastMessage)
-    }
-
-    private var emptyState: some View {
-        VStack(spacing: 12) {
-            Image(systemName: "square.and.arrow.down")
-                .font(.system(size: 28, weight: .semibold))
-                .foregroundStyle(.secondary)
-
-            Text("暂无缓存视频")
-                .font(.headline)
-
-            Text("添加缓存任务或在视频播放页进行缓存")
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-                .multilineTextAlignment(.center)
-        }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 44)
     }
 
     private var selectionDeleteButton: some View {
