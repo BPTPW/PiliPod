@@ -69,18 +69,18 @@ struct AboutView: View {
                 }
             }
 
-            Section("登录数据") {
-                Button("导入登录信息") {
+            Section("账号数据") {
+                Button("导入账号", systemImage: "square.and.arrow.down") {
                     activeImporter = .login
                     showImportSheet = true
                 }
                 .foregroundStyle(.primary)
 
-                Button("导出登录信息") {
+                Button("导出账号", systemImage: "square.and.arrow.up") {
                     prepareLoginExport()
                 }
                 .foregroundStyle(.primary)
-                .disabled(!loginSession.isLogin)
+                .disabled(loginSession.accounts.isEmpty)
             }
 
             Section {
@@ -103,7 +103,8 @@ struct AboutView: View {
         .listStyle(.insetGrouped)
         .fileImporter(
             isPresented: $showImportSheet,
-            allowedContentTypes: [.json]
+            // Account exports may be reported as generic data by file providers.
+            allowedContentTypes: activeImporter == .login ? [.data] : [.json]
         ) { result in
             handleImportResult(result, for: activeImporter)
             activeImporter = nil
@@ -127,7 +128,7 @@ struct AboutView: View {
         } message: {
             Text(exportErrorMessage ?? "未知错误")
         }
-        .alert("登录数据", isPresented: Binding(
+        .alert("账号数据", isPresented: Binding(
             get: { loginTransferMessage != nil },
             set: { if !$0 { loginTransferMessage = nil } }
         )) {
@@ -174,38 +175,12 @@ struct AboutView: View {
     }
 
     private func prepareLoginExport() {
-        guard let cookies = loginSession.cookies else { return }
-
-        let uid = cookies.DedeUserID
-        let loginType: [Int] = loginSession.type ?? [0, 1, 2, 3]
-
-        let cookieDict: [String: String] = [
-            "SESSDATA": cookies.SESSDATA,
-            "bili_jct": cookies.bili_jct,
-            "DedeUserID": cookies.DedeUserID,
-            "DedeUserID__ckMd5": "",
-            "sid": cookies.sid ?? "",
-            "buvid3": cookies.buvid3 ?? ""
-        ]
-
-        let userDict: [String: Any] = [
-            "cookies": cookieDict,
-            "accessKey": loginSession.accessKey ?? "",
-            "refresh": loginSession.refresh ?? "",
-            "type": loginType
-        ]
-
-        let payload: [String: Any] = [
-            uid: userDict
-        ]
-
+        let state = loginSession.snapshot
+        guard !state.accounts.isEmpty else { return }
         do {
-            let data = try JSONSerialization.data(
-                withJSONObject: payload,
-                options: [.prettyPrinted, .sortedKeys]
-            )
+            let data = try LoginImportService.encode(state)
             exportDocument = JSONExportDocument(data: data)
-            exportFilename = "bili_login_\(uid).json"
+            exportFilename = "pilipod_account.json"
             showExportSheet = true
         } catch {
             ErrorLogService.record(error, context: "导出登录信息")
@@ -220,7 +195,7 @@ struct AboutView: View {
         case let (.login, .success(url)):
             do {
                 try LoginImportService.importFrom(url: url)
-                loginTransferMessage = "登录信息已导入。"
+                loginTransferMessage = "账号已导入。"
             } catch {
                 ErrorLogService.record(error, context: "导入登录信息")
                 loginTransferMessage = error.localizedDescription
@@ -281,7 +256,7 @@ private struct AppIconPreview: View {
 #endif
 }
 
-private struct JSONExportDocument: FileDocument {
+struct JSONExportDocument: FileDocument {
     static var readableContentTypes: [UTType] { [.json] }
 
     let data: Data

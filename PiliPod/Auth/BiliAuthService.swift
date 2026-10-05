@@ -2,6 +2,28 @@ import CryptoKit
 import Foundation
 import Security
 
+struct BiliQRCode {
+    let url: String
+    let authCode: String
+    let expiresIn: Int
+}
+
+enum BiliQRPollStatus {
+    case waiting(String), expired, login(BiliLoginStatus)
+}
+
+enum BiliSMSSendStatus {
+    case sent(String), captcha(BiliPreCaptchaData), failed(String)
+}
+
+struct BiliLoginCountry: Identifiable, Hashable {
+    let id: Int
+    let name: String
+    let dialCode: String
+    var callingCode: Int { Int(dialCode) ?? 0 }
+    static let china = BiliLoginCountry(id: 1, name: "中国大陆", dialCode: "86")
+}
+
 // MARK: - 1. 严格的 RFC3986 编码器
 
 extension String {
@@ -76,9 +98,180 @@ public class BiliAuthService {
     private let appSecret = "b5475a8825547a4fc26c7d518eaaa02e"
     private let config = BiliDeviceConfig.shared
 
-    public init() {}
+    private let session: URLSession
+    public init(session: URLSession? = nil) {
+        let configuration = URLSessionConfiguration.ephemeral
+        configuration.httpShouldSetCookies = false
+        configuration.httpCookieStorage = nil
+        configuration.urlCache = nil
+        self.session = session ?? URLSession(configuration: configuration)
+    }
+
+    func countries() async throws -> [BiliLoginCountry] {
+        let request = URLRequest(url: URL(string: "https://passport.bilibili.com/web/generic/country/list")!)
+        let json = try await authJSON(request)
+        guard json["code"] as? Int == 0, let payload = json["data"] as? [String: Any] else {
+            throw authError("获取地区列表失败")
+        }
+        let rows = (payload["common"] as? [[String: Any]] ?? []) + (payload["others"] as? [[String: Any]] ?? [])
+        var seen = Set<Int>()
+        return rows.compactMap { row in
+            guard let id = row["id"] as? Int, let name = row["cname"] as? String,
+                  let code = row["country_id"], seen.insert(id).inserted else { return nil }
+            return BiliLoginCountry(id: id, name: name, dialCode: String(describing: code))
+        }
+    }
+
+    func generateQRCode() async throws -> BiliQRCode {
+        let json = try await postAuth("/x/passport-tv-login/qrcode/auth_code", parameters:
+            ["local_id": "0", "platform": config.platform, "mobi_app": config.mobiApp], inQuery: true)
+        guard json["code"] as? Int == 0, let payload = json["data"] as? [String: Any],
+              let url = payload["url"] as? String, let code = payload["auth_code"] as? String,
+              URL(string: url)?.scheme == "https", !code.isEmpty else { throw authError("获取二维码失败") }
+        return BiliQRCode(url: url, authCode: code, expiresIn: min(max(payload["expires_in"] as? Int ?? 180, 1), 600))
+    }
+
+    func pollQRCode(_ authCode: String) async throws -> BiliQRPollStatus {
+        let json = try await postAuth("/x/passport-tv-login/qrcode/poll", parameters: ["auth_code": authCode, "local_id": "0"], inQuery: true)
+        switch json["code"] as? Int {
+        case 0: return .login(await loginStatus(json))
+        case 86038: return .expired
+        case 86039, 86090: return .waiting(json["message"] as? String ?? "等待扫码确认")
+        default: throw authError(json["message"] as? String ?? "扫码登录失败")
+        }
+    }
+
+    func sendLoginSMS(phone: String, countryID: Int,
+                      captcha: (result: GeetestValidateResult, token: String)? = nil) async throws -> BiliSMSSendStatus {
+        var params = deviceParameters()
+        params["tel"] = phone
+        params["cid"] = String(countryID)
+        let seed = config.buvid + String(Int(Date().timeIntervalSince1970 * 1000))
+        params["login_session_id"] = Insecure.MD5.hash(data: Data(seed.utf8)).map { String(format: "%02x", $0) }.joined()
+        if let captcha {
+            params["gee_challenge"] = captcha.result.challenge
+            params["gee_validate"] = captcha.result.validate
+            params["gee_seccode"] = captcha.result.seccode
+            params["recaptcha_token"] = captcha.token
+        }
+        let json = try await postAuth("/x/passport-login/sms/send", parameters: params)
+        let payload = json["data"] as? [String: Any] ?? [:]
+        let rawURL = payload["recaptcha_url"] as? String ?? ""
+        if json["code"] as? Int == 0, rawURL.isEmpty,
+           let key = payload["captcha_key"] as? String, !key.isEmpty { return .sent(key) }
+        if !rawURL.isEmpty || json["code"] as? Int == -105 {
+            let items = URLComponents(string: rawURL)?.queryItems ?? []
+            let token = items.first { $0.name == "recaptcha_token" }?.value ?? ""
+            let gt = items.first { $0.name == "gee_gt" }?.value ?? ""
+            let challenge = items.first { $0.name == "gee_challenge" }?.value ?? ""
+            if !token.isEmpty, !gt.isEmpty, !challenge.isEmpty {
+                return .captcha(BiliPreCaptchaData(recaptchaToken: token, gt: gt, challenge: challenge))
+            }
+            return .captcha(try await preCapture().get())
+        }
+        return .failed(json["message"] as? String ?? "短信发送失败")
+    }
+
+    func loginBySMS(phone: String, countryID: Int, code: String, captchaKey: String) async -> BiliLoginStatus {
+        do {
+            let key = try await fetchOAuth2Key()
+            var params = deviceParameters()
+            params.merge(["tel": phone, "cid": String(countryID), "code": code, "captcha_key": captchaKey,
+                "bili_local_id": config.deviceId, "device_id": config.deviceId, "device": config.device,
+                "device_name": config.deviceName, "device_platform": config.devicePlatform,
+                "dt": try rsaEncrypt(payload: generateRandomString(length: 16), publicKeyPEM: key.key).biliUrlEncoded(),
+                "from_pv": "main.my-information.my-login.0.click",
+                "from_url": "bilibili://user_center/mine".biliUrlEncoded()], uniquingKeysWith: { _, new in new })
+            let json = try await postAuth("/x/passport-login/login/sms", parameters: params)
+            return await loginStatus(json)
+        } catch { return .failed(code: -1, message: "短信登录请求失败，请重试") }
+    }
+
+    static func parseCookie(_ text: String) throws -> BiliAccount {
+        guard !text.contains("\r"), !text.contains("\n") else { throw AccountStorageError.invalidAccount }
+        var cookies: [String: String] = [:]
+        for part in text.split(separator: ";", omittingEmptySubsequences: true) {
+            let pair = part.split(separator: "=", maxSplits: 1, omittingEmptySubsequences: false)
+            guard pair.count == 2 else { throw AccountStorageError.invalidAccount }
+            let name = pair[0].trimmingCharacters(in: .whitespaces)
+            let value = pair[1].trimmingCharacters(in: .whitespaces)
+            guard !name.isEmpty, cookies[name] == nil else { throw AccountStorageError.invalidAccount }
+            cookies[name] = value
+        }
+        guard let uid = cookies["DedeUserID"] else { throw AccountStorageError.invalidAccount }
+        let payload: [String: Any] = [uid: ["cookies": cookies]]
+        return try LoginImportService.decode(JSONSerialization.data(withJSONObject: payload))[0]
+    }
+
+    func validateCookie(_ text: String) async throws -> BiliAccount {
+        var account = try Self.parseCookie(text)
+        account.username = try await fetchAccountName(account)
+        return account
+    }
+
+    func fetchAccountName(_ account: BiliAccount) async throws -> String {
+        var request = URLRequest(url: URL(string: "https://api.bilibili.com/x/web-interface/nav")!)
+        AccountRequest.apply(account, to: &request)
+        let json = try await authJSON(request)
+        guard json["code"] as? Int == 0, let payload = json["data"] as? [String: Any],
+              payload["isLogin"] as? Bool == true,
+              let mid = payload["mid"] as? NSNumber, mid.stringValue == account.id else {
+            throw authError("Cookie 已失效或 UID 不匹配")
+        }
+        guard let name = payload["uname"] as? String, !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            throw authError("无法获取账号用户名")
+        }
+        return name
+    }
+
+    private func deviceParameters() -> [String: String] {
+        ["build": config.build, "buvid": config.buvid, "local_id": config.buvid,
+         "c_locale": "zh_CN", "s_locale": "zh_CN", "channel": "master", "disable_rcmd": "0",
+         "mobi_app": config.mobiApp, "platform": config.platform, "statistics": config.statistics]
+    }
+    private func postAuth(_ path: String, parameters: [String: String], inQuery: Bool = false) async throws -> [String: Any] {
+        var params = parameters
+        params["appkey"] = appKey
+        params["ts"] = String(Int(Date().timeIntervalSince1970))
+        params["sign"] = generateSign(for: params)
+        let body = makeOrderedBodyString(from: params)
+        var request = URLRequest(url: URL(string: "https://passport.bilibili.com" + path + (inQuery ? "?" + body : ""))!)
+        request.httpMethod = "POST"
+        request.httpShouldHandleCookies = false
+        request.setValue("application/x-www-form-urlencoded; charset=utf-8", forHTTPHeaderField: "Content-Type")
+        request.setValue(config.userAgent, forHTTPHeaderField: "User-Agent")
+        request.setValue(config.buvid, forHTTPHeaderField: "buvid")
+        request.setValue("android_hd", forHTTPHeaderField: "app-key")
+        request.setValue("prod", forHTTPHeaderField: "env")
+        request.setValue(makeTraceId(), forHTTPHeaderField: "x-bili-trace-id")
+        request.setValue("cronet", forHTTPHeaderField: "bili-http-engine")
+        if !inQuery { request.httpBody = Data(body.utf8) }
+        return try await authJSON(request)
+    }
+    private func authJSON(_ request: URLRequest) async throws -> [String: Any] {
+        var request = request
+        request.httpShouldHandleCookies = false
+        let (data, response) = try await session.data(for: request)
+        guard let response = response as? HTTPURLResponse, (200...299).contains(response.statusCode),
+              let json = try JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+            throw authError("登录服务器响应无效")
+        }
+        return json
+    }
+    private func loginStatus(_ json: [String: Any]) async -> BiliLoginStatus {
+        let payload = json["data"] as? [String: Any] ?? [:]
+        guard json["code"] as? Int == 0 else {
+            return .failed(code: json["code"] as? Int ?? -1, message: json["message"] as? String ?? "登录失败")
+        }
+        if payload["status"] as? Int == 2 { return await makeNeedPhoneVerifyStatus(payload: payload, fallbackMessage: "需要安全验证") }
+        return .success(data: payload)
+    }
+    private func authError(_ message: String) -> NSError {
+        NSError(domain: "BiliAuth", code: -1, userInfo: [NSLocalizedDescriptionKey: message])
+    }
 
     @discardableResult
+    @MainActor
     public func persistLogin(data: [String: Any]) -> Bool {
         let accessToken = (data["access_token"] as? String)
             ?? ((data["token_info"] as? [String: Any])?["access_token"] as? String)
@@ -109,15 +302,17 @@ public class BiliAuthService {
             bili_jct: biliJct,
             DedeUserID: dedeUserID,
             sid: cookieDict["sid"],
-            buvid3: cookieDict["buvid3"] ?? BiliDeviceConfig.shared.buvid
+            buvid3: cookieDict["buvid3"] ?? BiliDeviceConfig.shared.buvid,
+            extraCookies: cookieDict
         )
 
-        LoginSession.shared.cookies = cookie
-        LoginSession.shared.accessKey = accessToken
-        LoginSession.shared.refresh = refreshToken
-        LoginSession.shared.type = nil
-        LoginSession.shared.isLogin = true
-        LoginImportService.saveToLocal(cookie)
+        do {
+            try LoginSession.shared.add([BiliAccount(cookies: cookie, accessKey: accessToken,
+                refresh: refreshToken, type: nil)])
+        } catch {
+            ErrorLogService.record(error, context: "保存登录信息")
+            return false
+        }
         return true
     }
 
@@ -198,7 +393,7 @@ public class BiliAuthService {
             let bodyString = makeOrderedBodyString(from: params)
             request.httpBody = bodyString.data(using: .utf8)
 
-            let (data, _) = try await URLSession.shared.data(for: request)
+            let (data, _) = try await session.data(for: request)
 
             // 8. 处理返回结果
             guard let json = try JSONSerialization.jsonObject(with: data) as? [String: Any] else {
@@ -258,7 +453,7 @@ public class BiliAuthService {
         request.setValue("application/x-www-form-urlencoded", forHTTPHeaderField: "Content-Type")
         request.httpBody = makeOrderedBodyString(from: params).data(using: .utf8)
 
-        let (data, _) = try await URLSession.shared.data(for: request)
+        let (data, _) = try await session.data(for: request)
         guard let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
               let code = json["code"] as? Int, code == 0,
               let resData = json["data"] as? [String: Any],
@@ -350,7 +545,7 @@ public class BiliAuthService {
         request.httpBody = makeOrderedBodyString(from: params).data(using: .utf8)
 
         do {
-            let (data, _) = try await URLSession.shared.data(for: request)
+            let (data, _) = try await session.data(for: request)
             guard let json = try JSONSerialization.jsonObject(with: data) as? [String: Any] else {
                 return .failure(NSError(domain: "Auth", code: -2001, userInfo: [NSLocalizedDescriptionKey: "preCapture 解析失败"]))
             }
@@ -399,7 +594,7 @@ public class BiliAuthService {
         request.httpBody = makeOrderedBodyString(from: params).data(using: .utf8)
 
         do {
-            let (data, _) = try await URLSession.shared.data(for: request)
+            let (data, _) = try await session.data(for: request)
             guard let json = try JSONSerialization.jsonObject(with: data) as? [String: Any] else {
                 return .failure(NSError(domain: "Auth", code: -2002, userInfo: [NSLocalizedDescriptionKey: "发送短信解析失败"]))
             }
@@ -445,7 +640,7 @@ public class BiliAuthService {
         request.httpBody = makeOrderedBodyString(from: params).data(using: .utf8)
 
         do {
-            let (data, _) = try await URLSession.shared.data(for: request)
+            let (data, _) = try await session.data(for: request)
             guard let json = try JSONSerialization.jsonObject(with: data) as? [String: Any] else {
                 return .failure(NSError(domain: "Auth", code: -2003, userInfo: [NSLocalizedDescriptionKey: "短信验证解析失败"]))
             }
@@ -488,16 +683,13 @@ public class BiliAuthService {
         request.setValue("android_hd", forHTTPHeaderField: "app-key")
         request.setValue(makeTraceId(), forHTTPHeaderField: "x-bili-trace-id")
         request.setValue("cronet", forHTTPHeaderField: "bili-http-engine")
-        print(makeOrderedBodyString(from: params))
         request.httpBody = makeOrderedBodyString(from: params).data(using: .utf8)
 
         do {
-            let (data, _) = try await URLSession.shared.data(for: request)
+            let (data, _) = try await session.data(for: request)
             guard let json = try JSONSerialization.jsonObject(with: data) as? [String: Any] else {
                 return .failed(code: -2004, message: "access_token 解析失败")
             }
-            print(String(data: data, encoding: .utf8))
-            print(json)
             let retCode = json["code"] as? Int ?? -2004
             let msg = json["message"] as? String ?? "未知错误"
             if retCode == 0 {
@@ -530,7 +722,7 @@ public class BiliAuthService {
         request.setValue(config.userAgent, forHTTPHeaderField: "User-Agent")
 
         do {
-            let (data, _) = try await URLSession.shared.data(for: request)
+            let (data, _) = try await session.data(for: request)
             guard let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
                   let code = json["code"] as? Int, code == 0,
                   let info = json["data"] as? [String: Any],

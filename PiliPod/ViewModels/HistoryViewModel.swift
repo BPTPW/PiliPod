@@ -8,6 +8,7 @@ final class HistoryViewModel: ObservableObject {
     @Published var errorMessage: String?
     @Published var hasMore = true
 
+    private var loadedAccountID: String?
     private var nextCursor: HistoryCursor?
     private var hasLoadedOnce = false
     private let pageSize = 20
@@ -30,12 +31,26 @@ final class HistoryViewModel: ObservableObject {
             await Task.yield()
         }
 
+        guard LoginSession.shared.account(for: .history) != nil else {
+            videos = []
+            nextCursor = nil
+            hasMore = false
+            errorMessage = "记录观看账号为匿名，请在账号与隐私设置中选择账号。"
+            return
+        }
+        let accountID = LoginSession.shared.selectedID(for: .history)
+        if loadedAccountID != accountID {
+            videos = []
+            nextCursor = nil
+        }
         isLoading = true
         errorMessage = nil
         defer { isLoading = false }
 
         do {
             let page = try await BiliAPI.shared.fetchHistoryList(type: type, ps: pageSize)
+            guard !Task.isCancelled, accountID == LoginSession.shared.selectedID(for: .history) else { return }
+            loadedAccountID = accountID
             let items = (page.list ?? []).filter { $0.history?.business == type }
             videos = items.map { VideoItem(from: $0) }
             nextCursor = page.cursor
@@ -61,6 +76,7 @@ final class HistoryViewModel: ObservableObject {
     }
 
     func loadMore() async {
+        let accountID = LoginSession.shared.selectedID(for: .history)
         guard !isLoading, hasMore, let cursor = nextCursor else { return }
         guard let max = cursor.max, let viewAt = cursor.viewAt else {
             hasMore = false
@@ -78,6 +94,8 @@ final class HistoryViewModel: ObservableObject {
                 type: type,
                 ps: pageSize
             )
+            guard !Task.isCancelled, accountID == LoginSession.shared.selectedID(for: .history) else { return }
+            loadedAccountID = accountID
             let items = (page.list ?? []).filter { $0.history?.business == type }
             let moreVideos = items.map { VideoItem(from: $0) }
 

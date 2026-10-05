@@ -846,10 +846,7 @@ struct SearchView: View {
     }
 
     private func recordSearchKeyword(_ keyword: String) {
-        var updatedHistory = searchHistory.filter { $0 != keyword }
-        updatedHistory.insert(keyword, at: 0)
-        searchHistory = Array(updatedHistory.prefix(SearchHistoryStore.maximumCount))
-        SearchHistoryStore.save(searchHistory)
+        searchHistory = SearchHistoryStore.record(keyword, in: searchHistory, incognito: LoginSession.shared.incognito)
     }
 
     private func deleteSearchHistoryItem(_ keyword: String) {
@@ -926,7 +923,13 @@ private struct SearchUserSpaceRoute: Identifiable, Hashable {
     var id: Int { mid }
 }
 
-private enum SearchHistoryStore {
+enum SearchHistoryStore {
+    static func record(_ keyword: String, in history: [String], incognito: Bool, defaults: UserDefaults = .standard) -> [String] {
+        guard !incognito else { return history }
+        let updated = Array(([keyword] + history.filter { $0 != keyword }).prefix(maximumCount))
+        defaults.set(updated, forKey: storageKey)
+        return updated
+    }
     static let maximumCount = 30
     private static let storageKey = "PiliPod.searchHistory"
 

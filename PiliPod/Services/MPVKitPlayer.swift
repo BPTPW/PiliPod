@@ -153,7 +153,7 @@ class MPVKitPlayer: NSObject {
 
     override init() {
         self.httpHeaders = [
-            "Cookie": LoginSession.shared.cookieString,
+            "Cookie": LoginSession.shared.account(for: .playback)?.cookieString ?? "",
             "User-Agent": "Mozilla/5.0 BiliIOS/1.0",
             "Referer": "https://www.bilibili.com/",
             "Origin": "https://www.bilibili.com"

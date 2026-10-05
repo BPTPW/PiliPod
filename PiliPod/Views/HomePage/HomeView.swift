@@ -162,21 +162,15 @@ struct HomeView: View {
                 SearchView()
             }
             .navigationDestination(isPresented: $isMessageViewPresented) {
-                MessageView(viewModel: viewModel)
+                MessageView(viewModel: viewModel).id(loginSession.selectedID(for: .main))
             }
         }
         .task {
             await viewModel.refreshUnreadMessageCountIfNeeded()
             await viewModel.loadInitialVideos()
         }
-        .onReceive(loginSession.$isLogin) { isLogin in
-            if isLogin {
-                Task {
-                    await viewModel.loadUnreadMessageCount(force: true)
-                }
-            } else {
-                viewModel.unreadMessageCount = 0
-            }
+        .onChange(of: loginSession.selectedID(for: .recommendation)) {
+            liveHomeViewModel = LiveHomeViewModel()
         }
         .onReceive(NotificationCenter.default.publisher(for: .manualPictureInPictureRestoreOnHome)) { notification in
             guard let route = notification.object as? ManualPictureInPictureRoute else { return }
@@ -235,6 +229,7 @@ struct HomeView: View {
     private func tabPage(for tab: HomeTab, videoCardWidth: CGFloat) -> some View {
         if tab == .live {
             LiveHomeView(cardWidth: videoCardWidth, viewModel: liveHomeViewModel)
+                .id(loginSession.selectedID(for: .recommendation))
         } else if tab == .popular {
             PopularVideosPage(
                 namespace: videoHeroNamespace,

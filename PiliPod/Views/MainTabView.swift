@@ -29,7 +29,7 @@ struct MainTabView: View {
                     Text("首页")
                 }
 
-            DynamicView()
+            DynamicView().id(loginSession.selectedID(for: .main))
                 .tag(MainTab.dynamic)
                 .tabItem {
                     Image("DynamicIcon")
@@ -45,8 +45,13 @@ struct MainTabView: View {
                 }
         }
         .toolbar(.visible, for: .tabBar)
-        .task {
+        .task(id: loginSession.selectedID(for: .main)) {
+            homeViewModel.userFace = nil
             await homeViewModel.loadUserIfNeeded()
+            await homeViewModel.loadUnreadMessageCount(force: true)
+        }
+        .task(id: loginSession.selectedID(for: .recommendation)) {
+            await homeViewModel.reloadForAccountChange()
         }
         .task(id: homeViewModel.userFace) {
             guard let face = homeViewModel.userFace,
@@ -58,16 +63,7 @@ struct MainTabView: View {
             }
             profileTabAvatar = tabBarAvatar(from: image)
         }
-        .onReceive(loginSession.$isLogin) { isLogin in
-            if isLogin {
-                Task {
-                    await homeViewModel.loadUserIfNeeded()
-                }
-            } else {
-                homeViewModel.userFace = nil
-                profileTabAvatar = nil
-            }
-        }
+
         .onChange(of: selectedTab) { newTab in
             guard newTab == .home else { return }
             Task {

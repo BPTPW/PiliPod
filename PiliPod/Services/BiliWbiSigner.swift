@@ -171,10 +171,8 @@ actor BiliWbiSigner {
             forHTTPHeaderField: "User-Agent"
         )
 
-        let cookie = LoginSession.shared.cookieString
-        if !cookie.isEmpty {
-            request.setValue(cookie, forHTTPHeaderField: "Cookie")
-        }
+        // WBI keys are public and must not borrow the main account's credentials.
+        request.httpShouldHandleCookies = false
 
         let (data, response) = try await session.data(for: request)
         guard let httpResponse = response as? HTTPURLResponse else {

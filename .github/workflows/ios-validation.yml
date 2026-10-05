@@ -1,0 +1,57 @@
+name: iOS Build and Tests
+on:
+  push:
+    branches: ['codex/**']
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: ios-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  verify:
+    runs-on: macos-26
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - name: Select Xcode
+        run: sudo xcode-select -s /Applications/Xcode_26.6.app/Contents/Developer
+      - name: Resolve dependencies
+        run: xcodebuild -resolvePackageDependencies -project PiliPod.xcodeproj -scheme PiliPod -clonedSourcePackagesDirPath build/Packages
+      - name: Build unsigned device app
+        run: |
+          set -o pipefail
+          xcodebuild build -project PiliPod.xcodeproj -scheme PiliPod -configuration Debug \
+            -destination 'generic/platform=iOS' -derivedDataPath build/Device \
+            -clonedSourcePackagesDirPath build/Packages CODE_SIGNING_ALLOWED=NO \
+            2>&1 | tee build/device-build.log | xcbeautify
+      - name: Select simulator
+        run: python3 .github/scripts/select-simulator.py
+      - name: Run unit tests
+        run: |
+          set -o pipefail
+          xcodebuild test -project PiliPod.xcodeproj -scheme PiliPod -configuration Debug \
+            -destination "platform=iOS Simulator,id=$SIMULATOR_ID" \
+            -derivedDataPath build/Simulator -clonedSourcePackagesDirPath build/Packages \
+            -resultBundlePath build/Tests.xcresult CODE_SIGNING_ALLOWED=NO \
+            2>&1 | tee build/tests.log | xcbeautify
+      - name: Upload diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-validation
+          path: |
+            build/*.log
+            build/Tests.xcresult
+          if-no-files-found: ignore
+      - name: Package unsigned IPA
+        run: |
+          mkdir -p build/Payload
+          cp -R build/Device/Build/Products/Debug-iphoneos/PiliPod.app build/Payload/
+          cd build
+          zip -qr PiliPod-unsigned.ipa Payload
+      - uses: actions/upload-artifact@v4
+        with:
+          name: PiliPod-unsigned
+          path: build/PiliPod-unsigned.ipa
