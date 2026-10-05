@@ -65,7 +65,15 @@ struct PiliPodApp: App {
 
     var body: some Scene {
         WindowGroup {
+#if DEBUG
+            if ProcessInfo.processInfo.arguments.contains("--uitest-video-detail-gestures") {
+                VideoDetailGestureTestRoot()
+            } else {
+                MainTabView()
+            }
+#else
             MainTabView()
+#endif
         }
     }
 }

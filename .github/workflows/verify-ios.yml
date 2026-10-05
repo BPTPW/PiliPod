@@ -1,0 +1,81 @@
+name: Verify iOS build
+
+on:
+  push:
+    branches: ['codex/video-detail-back-gesture']
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: '26.6'
+      - name: Test detail gestures on iOS Simulator
+        run: |
+          SIMULATOR_ID=$(xcrun simctl list devices available -j | python3 -c '
+          import json, sys
+          devices = json.load(sys.stdin)["devices"]
+          for runtime in sorted(devices, reverse=True):
+              if "iOS" in runtime:
+                  for device in devices[runtime]:
+                      if device["name"].startswith("iPhone"):
+                          print(device["udid"])
+                          sys.exit(0)
+          sys.exit("No available iPhone simulator")')
+          xcodebuild test \
+            -project PiliPod.xcodeproj \
+            -scheme PiliPod \
+            -configuration Debug \
+            -destination "platform=iOS Simulator,id=$SIMULATOR_ID" \
+            -only-testing:PiliPodUITests/VideoDetailGestureUITests \
+            -parallel-testing-enabled NO \
+            -resultBundlePath build/GestureTests.xcresult \
+            CODE_SIGNING_ALLOWED=NO
+      - name: Upload gesture test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Video-detail-gesture-test-results
+          path: build/GestureTests.xcresult
+          retention-days: 14
+
+  ipa:
+    if: github.ref == 'refs/heads/codex/video-detail-back-gesture'
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: '26.6'
+      - name: Archive unsigned iOS app
+        run: >-
+          xcodebuild archive
+          -project PiliPod.xcodeproj
+          -scheme PiliPod
+          -configuration Release
+          -destination 'generic/platform=iOS'
+          -archivePath build/PiliPod.xcarchive
+          CODE_SIGNING_ALLOWED=NO
+          CODE_SIGNING_REQUIRED=NO
+          CODE_SIGN_IDENTITY=""
+          PROVISIONING_PROFILE_SPECIFIER=""
+      - name: Package IPA
+        run: |
+          mkdir -p build/Payload
+          cp -R build/PiliPod.xcarchive/Products/Applications/PiliPod.app build/Payload/
+          cd build
+          zip -qr PiliPod-back-gesture.ipa Payload
+      - name: Upload IPA
+        uses: actions/upload-artifact@v4
+        with:
+          name: PiliPod-back-gesture-unsigned-IPA
+          path: build/PiliPod-back-gesture.ipa
+          retention-days: 14
+          if-no-files-found: error

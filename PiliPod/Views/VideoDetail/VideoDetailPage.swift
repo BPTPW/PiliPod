@@ -1987,7 +1987,7 @@ private struct TabPager<IntroContent: View, CommentsContent: View>: View {
     @ViewBuilder let introContent: () -> IntroContent
     @ViewBuilder let commentsContent: () -> CommentsContent
 
-    @GestureState private var dragTranslation: CGFloat = 0
+    @State private var dragTranslation: CGFloat = 0
 
     private var currentIndex: CGFloat {
         switch selectedTab {
@@ -2008,15 +2008,14 @@ private struct TabPager<IntroContent: View, CommentsContent: View>: View {
                 .frame(width: width)
                 .frame(maxHeight: .infinity, alignment: .top)
         }
+        .offset(x: -currentIndex * width + dragOffset)
         .frame(width: width, alignment: .leading)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-        .offset(x: -currentIndex * width + dragOffset)
         .animation(.interactiveSpring(response: 0.32, dampingFraction: 0.86), value: selectedTab)
         .contentShape(Rectangle())
-        // A transparent overlay here would intercept ScrollView and button
-        // touches. Keep the pager gesture simultaneous with the content
-        // instead, and leave the edge strip inert in the gesture callbacks.
-        .simultaneousGesture(pagerGesture)
+        // Reject unrelated pans before recognition, rather than ignoring their
+        // callbacks after a SwiftUI DragGesture has already claimed the touch.
+        .gesture(pagerGesture)
         .clipped()
     }
 
@@ -2025,27 +2024,21 @@ private struct TabPager<IntroContent: View, CommentsContent: View>: View {
         return dragTranslation
     }
 
-    private var pagerGesture: some Gesture {
-        DragGesture(minimumDistance: 12)
-            .updating($dragTranslation) { value, state, _ in
-                guard isSwipeEnabled else { return }
-                guard value.startLocation.x > leadingSwipeExclusionWidth else { return }
-                guard abs(value.translation.width) > abs(value.translation.height) else { return }
-
-                let translation = value.translation.width
+    private var pagerGesture: VideoDetailTabPanGesture {
+        VideoDetailTabPanGesture(
+            isEnabled: isSwipeEnabled,
+            isIntro: selectedTab == .intro,
+            leadingExclusionWidth: leadingSwipeExclusionWidth,
+            onChanged: { translation in
                 if selectedTab == .intro {
-                    state = max(-width, min(0, translation))
+                    dragTranslation = max(-width, min(0, translation))
                 } else {
-                    state = max(0, min(width, translation))
+                    dragTranslation = max(0, min(width, translation))
                 }
-            }
-            .onEnded { value in
-                guard isSwipeEnabled else { return }
-                guard value.startLocation.x > leadingSwipeExclusionWidth else { return }
-                let dx = value.translation.width
-                let dy = value.translation.height
-                guard abs(dx) > abs(dy) else { return }
-
+            },
+            onEnded: { dx in
+                defer { dragTranslation = 0 }
+                guard isSwipeEnabled, let dx else { return }
                 let threshold = width * 0.2
                 switch selectedTab {
                 case .intro:
@@ -2056,8 +2049,70 @@ private struct TabPager<IntroContent: View, CommentsContent: View>: View {
                     selectedTab = .intro
                 }
             }
+        )
     }
 }
+
+#if DEBUG
+/// Network-free UI test surface using the production pager and navigation setup.
+struct VideoDetailGestureTestRoot: View {
+    @State private var isPresented = false
+    @Namespace private var namespace
+
+    var body: some View {
+        NavigationStack {
+            Button("Open detail") { isPresented = true }
+                .accessibilityIdentifier("gesture.open")
+                .matchedTransitionSource(id: "gesture.detail", in: namespace)
+                .navigationDestination(isPresented: $isPresented) {
+                    VideoDetailGestureTestContent()
+                        .navigationTransition(.zoom(sourceID: "gesture.detail", in: namespace))
+                }
+        }
+    }
+}
+
+private struct VideoDetailGestureTestContent: View {
+    @State private var selectedTab: VideoDetailPage.VideoDetailTab = .intro
+
+    var body: some View {
+        GeometryReader { geometry in
+            VStack(spacing: 0) {
+                Color.black.frame(height: 160)
+                Text(selectedTab.rawValue)
+                    .accessibilityIdentifier(selectedTab == .intro ? "gesture.tab.intro" : "gesture.tab.comments")
+                    .frame(height: 44)
+                TabPager(
+                    selectedTab: $selectedTab,
+                    width: geometry.size.width,
+                    isSwipeEnabled: true,
+                    leadingSwipeExclusionWidth: 32,
+                    introContent: {
+                        ScrollView {
+                            VStack {
+                                ForEach(0..<80) { index in
+                                    Text("Intro row \(index)")
+                                        .frame(maxWidth: .infinity, minHeight: 48)
+                                        .accessibilityIdentifier("gesture.intro.\(index)")
+                                }
+                            }
+                        }
+                    },
+                    commentsContent: {
+                        List(0..<80, id: \.self) { index in
+                            Text("Comment row \(index)")
+                        }
+                        .listStyle(.plain)
+                    }
+                )
+            }
+        }
+        .background(NavigationPopGestureEnabler())
+        .navigationBarBackButtonHidden(true)
+        .toolbar(.hidden, for: .navigationBar)
+    }
+}
+#endif
 
 #if canImport(UIKit)
 struct SystemVolumeController {
@@ -2224,18 +2279,15 @@ struct VideoActionBar: View {
         let pressID = UUID()
         activeTriplePressID = pressID
         isTripleTouching = true
-        hasTripleChargeStarted = false
+        hasTripleCompleted = false
+        hasTripleChargeStarted = true
+        isTripleCharging = true
+        withAnimation(.easeIn(duration: 1.4)) {
+            tripleChargeProgress = 1
+        }
+        tripleChargeHaptics.start()
         triplePressTask = Task { @MainActor in
-            guard await waitForTriplePress(milliseconds: 500) else { return }
-            guard isTripleTouching, activeTriplePressID == pressID else { return }
-
-            hasTripleChargeStarted = true
-            isTripleCharging = true
-            withAnimation(.easeIn(duration: 1.4)) {
-                tripleChargeProgress = 1
-            }
-            tripleChargeHaptics.start()
-
+            // UIKit already recognized a stationary 0.5-second long press.
             guard await waitForTriplePress(milliseconds: 1_400) else { return }
             guard isTripleTouching, activeTriplePressID == pressID else { return }
 
@@ -2274,7 +2326,6 @@ struct VideoActionBar: View {
             return
         }
 
-        let shouldHandleAsTap = !hasTripleChargeStarted
         let shouldRestore = hasTripleChargeStarted && !hasTripleCompleted
 
         isTripleTouching = false
@@ -2296,10 +2347,6 @@ struct VideoActionBar: View {
                 tripleCompletionScale = 1
             }
         }
-
-        if shouldHandleAsTap {
-            onToggleLike()
-        }
     }
 
     private func cancelTriplePress() {
@@ -2308,6 +2355,12 @@ struct VideoActionBar: View {
         triplePressTask?.cancel()
         triplePressTask = nil
         tripleChargeHaptics.stop()
+        isTripleCharging = false
+        isTripleCompletionAnimating = false
+        hasTripleChargeStarted = false
+        hasTripleCompleted = false
+        tripleChargeProgress = 0
+        tripleCompletionScale = 1
     }
 
     private func requestTripleLike() {
@@ -2385,17 +2438,15 @@ private struct VideoTripleLikeButton: View {
                 completionScale: completionScale
             )
         )
-        .gesture(
-            DragGesture(minimumDistance: 0)
-                .onChanged { _ in
-                    guard !isDisabled else { return }
-                    onPressStarted()
-                }
-                .onEnded { _ in
-                    guard !isDisabled else { return }
-                    onPressEnded()
-                }
-        )
+        .onTapGesture {
+            guard !isDisabled else { return }
+            onTap()
+        }
+        .gesture(VideoTripleLikePressGesture(
+            isEnabled: !isDisabled,
+            onStarted: onPressStarted,
+            onFinished: onPressEnded
+        ))
         .opacity(isDisabled ? 0.6 : 1)
     }
 }
