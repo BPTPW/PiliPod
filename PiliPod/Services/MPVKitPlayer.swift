@@ -288,12 +288,12 @@ class MPVKitPlayer: NSObject {
         }
     }
 
-    func play(stream: DashStream) {
+    func play(stream: DashStream, initialSeekTime: TimeInterval? = nil) {
         if let avPlayerSession {
             pendingStream = nil
             pendingDirectVideoURL = nil
             playbackError = nil
-            avPlayerSession.play(stream: stream)
+            avPlayerSession.play(stream: stream, initialSeekTime: initialSeekTime)
             return
         }
         pendingStream = stream

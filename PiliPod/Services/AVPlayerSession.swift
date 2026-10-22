@@ -160,7 +160,7 @@ final class AVPlayerSession: NSObject, AVPictureInPictureControllerDelegate {
         }
     }
 
-    func play(stream: DashStream) {
+    func play(stream: DashStream, initialSeekTime: TimeInterval? = nil) {
         configureBackgroundPlayback(allowsPlayback: playbackSettings.allowsBackgroundPlayback)
         guard Self.supports(videoCodec: stream.videoCodec) else {
             fail(PlaybackError.unsupportedVideoCodec(stream.videoCodec)); return
@@ -190,7 +190,7 @@ final class AVPlayerSession: NSObject, AVPictureInPictureControllerDelegate {
             for index in 0 ..< max(stream.videoURLCandidates.count, stream.audioURLCandidates.count) {
                 guard let candidate = stream.fallbackStream(at: index) else { continue }
                 do {
-                    let bridge = try await LocalDASHHLSBridge.make(stream: candidate, headers: self.headers)
+                    let bridge = try await LocalDASHHLSBridge.make(stream: candidate, headers: self.headers, initialSeekTime: initialSeekTime)
                     guard !Task.isCancelled, requestGeneration == self.generation else { bridge.stop(); return }
                     self.bridge = bridge
                     self.startListenVideoAudioEnvelope(for: candidate)
@@ -657,7 +657,7 @@ private final class LocalDASHHLSBridge: @unchecked Sendable {
     func stop() { server.stop() }
     var diagnostics: HLSBridgeDiagnostics { server.diagnostics }
 
-    static func make(stream: DashStream, headers: [String: String]) async throws -> LocalDASHHLSBridge {
+    static func make(stream: DashStream, headers: [String: String], initialSeekTime: TimeInterval?) async throws -> LocalDASHHLSBridge {
         if stream.videoURL.isFileURL && stream.audioURL.isFileURL,
            stream.videoSegmentBase == nil, stream.audioSegmentBase == nil {
             let videoData = try Data(contentsOf: stream.videoURL)
@@ -667,8 +667,8 @@ private final class LocalDASHHLSBridge: @unchecked Sendable {
             let video = DASHRendition.local(data: videoData, duration: localDuration(url: stream.videoURL))
             let audio = DASHRendition.local(data: audioData, duration: localDuration(url: stream.audioURL))
             server.add(path: "/master.m3u8", route: .data(master(stream: stream, base: base)))
-            server.add(path: "/video.m3u8", route: .data(video.playlist(base: base, prefix: "v")))
-            server.add(path: "/audio.m3u8", route: .data(audio.playlist(base: base, prefix: "a")))
+            server.add(path: "/video.m3u8", route: .data(video.playlist(base: base, prefix: "v", initialSeekTime: initialSeekTime)))
+            server.add(path: "/audio.m3u8", route: .data(audio.playlist(base: base, prefix: "a", initialSeekTime: initialSeekTime)))
             video.register(prefix: "v", into: server)
             audio.register(prefix: "a", into: server)
             try await server.start()
@@ -681,8 +681,8 @@ private final class LocalDASHHLSBridge: @unchecked Sendable {
         let server = try LoopbackHTTPServer.make(headers: headers)
         let base = server.baseURL
         server.add(path: "/master.m3u8", route: .data(master(stream: stream, base: base)))
-        server.add(path: "/video.m3u8", route: .data(v.playlist(base: base, prefix: "v")))
-        server.add(path: "/audio.m3u8", route: .data(a.playlist(base: base, prefix: "a")))
+        server.add(path: "/video.m3u8", route: .data(v.playlist(base: base, prefix: "v", initialSeekTime: initialSeekTime)))
+        server.add(path: "/audio.m3u8", route: .data(a.playlist(base: base, prefix: "a", initialSeekTime: initialSeekTime)))
         v.register(prefix: "v", into: server)
         a.register(prefix: "a", into: server)
         try await server.start()
@@ -725,13 +725,27 @@ private final class LocalDASHHLSBridge: @unchecked Sendable {
 private struct DASHRendition {
     let url: URL?; let initialization: DASHByteRange?; let segments: [DASHSegment]; let localData: Data?; let duration: Double
     static func local(data: Data, duration: Double) -> DASHRendition { DASHRendition(url: nil, initialization: nil, segments: [], localData: data, duration: duration) }
-    func playlist(base: URL, prefix: String) -> Data {
+    func playlist(base: URL, prefix: String, initialSeekTime: TimeInterval?) -> Data {
+        let startOffset: TimeInterval?
+        if let initialSeekTime, initialSeekTime.isFinite, initialSeekTime > 0 {
+            let playlistDuration = localData != nil
+                ? duration
+                : segments.reduce(0) { $0 + $1.duration }
+            startOffset = playlistDuration > 0
+                ? min(initialSeekTime, max(playlistDuration - 0.05, 0))
+                : initialSeekTime
+        } else {
+            startOffset = nil
+        }
+        let startTag = startOffset.map {
+            "#EXT-X-START:TIME-OFFSET=\(String(format: "%.3f", $0)),PRECISE=YES\n"
+        } ?? ""
         if localData != nil {
-            return Data("#EXTM3U\n#EXT-X-VERSION:7\n#EXT-X-PLAYLIST-TYPE:VOD\n#EXT-X-TARGETDURATION:\(max(1, Int(ceil(duration))))\n#EXTINF:\(String(format: "%.6f", duration)),\n\(base.appendingPathComponent("media/\(prefix)/0.m4s").absoluteString)\n#EXT-X-ENDLIST\n".utf8)
+            return Data("#EXTM3U\n#EXT-X-VERSION:7\n#EXT-X-PLAYLIST-TYPE:VOD\n\(startTag)#EXT-X-TARGETDURATION:\(max(1, Int(ceil(duration))))\n#EXTINF:\(String(format: "%.6f", duration)),\n\(base.appendingPathComponent("media/\(prefix)/0.m4s").absoluteString)\n#EXT-X-ENDLIST\n".utf8)
         }
         let target = max(1, Int(ceil(segments.map(\.duration).max() ?? 1)))
         let lines = segments.enumerated().map { "#EXTINF:\(String(format: "%.6f", $0.element.duration)),\n\(base.appendingPathComponent("media/\(prefix)/\($0.offset).m4s").absoluteString)" }.joined(separator: "\n")
-        return Data("#EXTM3U\n#EXT-X-VERSION:7\n#EXT-X-PLAYLIST-TYPE:VOD\n#EXT-X-TARGETDURATION:\(target)\n#EXT-X-MAP:URI=\"\(base.appendingPathComponent("media/\(prefix)/init.mp4").absoluteString)\"\n\(lines)\n#EXT-X-ENDLIST\n".utf8)
+        return Data("#EXTM3U\n#EXT-X-VERSION:7\n#EXT-X-PLAYLIST-TYPE:VOD\n\(startTag)#EXT-X-TARGETDURATION:\(target)\n#EXT-X-MAP:URI=\"\(base.appendingPathComponent("media/\(prefix)/init.mp4").absoluteString)\"\n\(lines)\n#EXT-X-ENDLIST\n".utf8)
     }
     func register(prefix: String, into server: LoopbackHTTPServer) {
         if let localData { server.add(path: "/media/\(prefix)/0.m4s", route: .local(localData)); return }

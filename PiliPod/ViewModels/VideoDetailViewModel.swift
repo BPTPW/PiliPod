@@ -358,7 +358,7 @@ class VideoDetailViewModel {
                     self.isLoading = false
 
                     if let player = self.player {
-                        player.play(stream: cachedAsset.stream)
+                        player.play(stream: cachedAsset.stream, initialSeekTime: self.initialSeekTime)
                         player.setPlaybackRate(self.selectedPlaybackRate)
                     }
                 }
@@ -399,7 +399,7 @@ class VideoDetailViewModel {
                     self.isLoading = false
 
                     if let player = self.player {
-                        player.play(stream: self.dashStream!)
+                        player.play(stream: self.dashStream!, initialSeekTime: self.initialSeekTime)
                         player.setPlaybackRate(self.selectedPlaybackRate)
                     }
                 }
