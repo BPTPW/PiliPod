@@ -39,6 +39,7 @@ final class AVPlayerSession: NSObject, AVPictureInPictureControllerDelegate {
     private var pictureInPicturePossibleObservation: NSKeyValueObservation?
     private var pictureInPictureRetryWorkItem: DispatchWorkItem?
     private var isPictureInPictureStartRequested = false
+    private var restoresPictureInPictureOnForeground = false
     private var pictureInPictureStartAttempts = 0
     private var onPictureInPictureStarted: (() -> Void)?
     private var onPictureInPictureRestore: (() -> Void)?
@@ -73,6 +74,12 @@ final class AVPlayerSession: NSObject, AVPictureInPictureControllerDelegate {
         super.init()
         player.automaticallyWaitsToMinimizeStalling = true
         player.audiovisualBackgroundPlaybackPolicy = .automatic
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(sceneDidActivate(_:)),
+            name: UIScene.didActivateNotification,
+            object: nil
+        )
     }
 
     func attach(to view: UIView) {
@@ -89,6 +96,11 @@ final class AVPlayerSession: NSObject, AVPictureInPictureControllerDelegate {
     func layout(in bounds: CGRect) { layer?.frame = bounds }
 
     func startPictureInPicture() {
+        requestPictureInPictureStart(restoresOnForeground: true)
+    }
+
+    private func requestPictureInPictureStart(restoresOnForeground: Bool) {
+        restoresPictureInPictureOnForeground = restoresOnForeground
         isPictureInPictureStartRequested = true
         pictureInPictureStartAttempts = 0
         preparePictureInPictureController()
@@ -103,7 +115,18 @@ final class AVPlayerSession: NSObject, AVPictureInPictureControllerDelegate {
         onPictureInPictureStarted = onStarted
         onPictureInPictureRestore = onRestore
         onPictureInPictureStopped = onStopped
-        startPictureInPicture()
+        requestPictureInPictureStart(restoresOnForeground: false)
+    }
+
+    @objc private func sceneDidActivate(_ notification: Notification) {
+        guard restoresPictureInPictureOnForeground,
+              let scene = notification.object as? UIWindowScene,
+              scene === surface?.window?.windowScene
+        else { return }
+
+        // The session can outlive SwiftUI's lifecycle subscriptions. Stop on
+        // its own scene's activation as well as from the playback page.
+        stopPictureInPicture()
     }
 
     func stopPictureInPicture() {
@@ -596,6 +619,7 @@ final class AVPlayerSession: NSObject, AVPictureInPictureControllerDelegate {
         _: AVPictureInPictureController,
         failedToStartPictureInPictureWithError error: Error
     ) {
+        guard isPictureInPictureStartRequested else { return }
         if pictureInPictureStartAttempts < 10 {
             schedulePictureInPictureRetry()
             return
@@ -606,7 +630,13 @@ final class AVPlayerSession: NSObject, AVPictureInPictureControllerDelegate {
         publish()
     }
 
-    func pictureInPictureControllerDidStartPictureInPicture(_: AVPictureInPictureController) {
+    func pictureInPictureControllerDidStartPictureInPicture(_ controller: AVPictureInPictureController) {
+        // AVKit may finish starting after a foreground stop request. Stopping
+        // during startup alone does not guarantee that PiP stays closed.
+        guard isPictureInPictureStartRequested else {
+            controller.stopPictureInPicture()
+            return
+        }
         onPictureInPictureStarted?()
     }
 
@@ -637,6 +667,7 @@ final class AVPlayerSession: NSObject, AVPictureInPictureControllerDelegate {
     }
 
     deinit {
+        NotificationCenter.default.removeObserver(self)
         prepareTask?.cancel()
         pictureInPicturePossibleObservation = nil
         pictureInPictureRetryWorkItem?.cancel()

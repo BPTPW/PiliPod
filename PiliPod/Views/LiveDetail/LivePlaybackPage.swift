@@ -137,7 +137,7 @@ struct LivePlaybackPage: View {
             restoreFullscreenOrientationBeforeActivation()
         }
         .onReceive(NotificationCenter.default.publisher(
-            for: UIApplication.didBecomeActiveNotification
+            for: UIScene.didActivateNotification
         )) { _ in
             handleDidBecomeActive()
         }
@@ -635,6 +635,12 @@ struct LivePlaybackPage: View {
     }
 
     private func handleDidBecomeActive() {
+        // Return background PiP to the existing inline/fullscreen surface and
+        // cancel pending starts without changing the current playback state.
+        if !ManualPictureInPictureCoordinator.shared.isRetaining(player) {
+            player.stopPictureInPicture()
+        }
+
         guard shouldResumeAfterBackgroundPause else {
             return
         }

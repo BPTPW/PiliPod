@@ -964,7 +964,7 @@ struct VideoDetailPage: View {
                 restoreFullscreenOrientationBeforeActivation()
             }
             .onReceive(NotificationCenter.default.publisher(
-                for: UIApplication.didBecomeActiveNotification
+                for: UIScene.didActivateNotification
             )) { _ in
                 handleDidBecomeActive()
             }
@@ -1824,6 +1824,14 @@ struct VideoDetailPage: View {
     }
 
     private func handleDidBecomeActive() {
+        // Return background PiP to the existing inline/fullscreen surface and
+        // cancel pending starts without changing the current playback state.
+        if let player = viewModel.player,
+           !ManualPictureInPictureCoordinator.shared.isRetaining(player)
+        {
+            player.stopPictureInPicture()
+        }
+
         guard shouldResumeAfterBackgroundPause,
               let player = viewModel.player
         else {
