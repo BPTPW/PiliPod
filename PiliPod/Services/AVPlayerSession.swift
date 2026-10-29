@@ -56,6 +56,16 @@ final class AVPlayerSession: NSObject, AVPictureInPictureControllerDelegate {
     private var isListenVideoModeActive = false
     private var listenVideoAudioEnergyEnabled = false
     private var activeStream: DashStream?
+    // Live playback starts at the newest HLS segment once AVPlayer exposes
+    // the item's program timeline. This is intentionally independent of the
+    // optional catch-up logic kept on the live-sync branch.
+    private var isLivePlayback = false
+    private var livePlaylistTask: Task<Void, Never>?
+    private var livePlaylistBaseURL: URL?
+    private var livePlaylistSnapshot: HLSLivePlaylistSnapshot?
+    private var livePlaylistRequestInFlight = false
+    private var liveStartAligned = false
+    private var isSeekingToLive = false
     private var listenVideoAudioEnvelopeAnalyzer: AudioEnvelopeAnalyzer?
     private var listenVideoAudioEnvelope: [AudioEnvelopeFrame] = []
     private(set) var playbackRate = 1.0
@@ -240,10 +250,13 @@ final class AVPlayerSession: NSObject, AVPictureInPictureControllerDelegate {
         activeStream = nil
         wantsPlayback = true
         errorMessage = nil
+        isLivePlayback = true
+        livePlaylistBaseURL = liveURL
         let asset = AVURLAsset(url: liveURL, options: ["AVURLAssetHTTPHeaderFieldsKey": headers])
         let item = AVPlayerItem(asset: asset)
         install(item)
         player.playImmediately(atRate: Float(playbackRate))
+        startLivePlaylistPolling()
     }
 
     func resume() { wantsPlayback = true; player.playImmediately(atRate: Float(playbackRate)); publish() }
@@ -263,6 +276,7 @@ final class AVPlayerSession: NSObject, AVPictureInPictureControllerDelegate {
 
     private func install(_ item: AVPlayerItem) {
         resetAccessLogSpeedTracking()
+        item.canUseNetworkResourcesForLiveStreamingWhilePaused = true
         player.replaceCurrentItem(with: item)
         if isAmbientModeActive {
             attachAmbientVideoOutput(to: item)
@@ -347,6 +361,68 @@ final class AVPlayerSession: NSObject, AVPictureInPictureControllerDelegate {
         onSnapshot?(snapshot)
     }
 
+    private func startLivePlaylistPolling() {
+        livePlaylistTask?.cancel()
+        livePlaylistTask = Task { [weak self] in
+            while !Task.isCancelled {
+                await self?.pollLivePlaylist()
+                try? await Task.sleep(nanoseconds: 1_000_000_000)
+            }
+        }
+    }
+
+    private func pollLivePlaylist() async {
+        guard isLivePlayback, let url = livePlaylistBaseURL,
+              !livePlaylistRequestInFlight else { return }
+        livePlaylistRequestInFlight = true
+        defer { livePlaylistRequestInFlight = false }
+        var request = URLRequest(url: url, cachePolicy: .reloadIgnoringLocalAndRemoteCacheData, timeoutInterval: 3)
+        request.setValue("no-cache", forHTTPHeaderField: "Cache-Control")
+        headers.forEach { request.setValue($0.value, forHTTPHeaderField: $0.key) }
+        do {
+            let (data, response) = try await URLSession.shared.data(for: request)
+            guard let http = response as? HTTPURLResponse,
+                  (200 ... 299).contains(http.statusCode),
+                  let text = String(data: data, encoding: .utf8),
+                  let snapshot = HLSLivePlaylistSnapshot.parse(text: text) else { return }
+            livePlaylistSnapshot = snapshot
+            alignLivePlaybackIfNeeded()
+        } catch {
+            // AVPlayer continues to manage playback if an auxiliary playlist
+            // request fails; the next poll will retry.
+        }
+    }
+
+    private func alignLivePlaybackIfNeeded() {
+        guard isLivePlayback, !liveStartAligned, !isSeekingToLive,
+              wantsPlayback, let item = player.currentItem,
+              item.status == .readyToPlay,
+              let playbackDate = item.integratedTimeline.currentDate,
+              let segmentStart = livePlaylistSnapshot?.liveEdgeStartDate else { return }
+        let offset = segmentStart.timeIntervalSince(playbackDate)
+        guard offset > 0.5 else {
+            liveStartAligned = true
+            return
+        }
+        let target = player.currentTime().seconds + offset
+        guard target.isFinite else { return }
+        isSeekingToLive = true
+        let requestGeneration = generation
+        player.seek(to: CMTime(seconds: target, preferredTimescale: 600),
+                    toleranceBefore: .zero,
+                    toleranceAfter: .zero) { [weak self] completed in
+            Task { @MainActor in
+                guard let self, self.generation == requestGeneration else { return }
+                self.isSeekingToLive = false
+                if completed {
+                    self.liveStartAligned = true
+                    if self.wantsPlayback { self.player.playImmediately(atRate: Float(self.playbackRate)) }
+                }
+                self.publish()
+            }
+        }
+    }
+
     private func resetAccessLogSpeedTracking() {
         lastAccessLogBytes = 0
         lastAccessLogSampleUptime = nil
@@ -396,6 +472,14 @@ final class AVPlayerSession: NSObject, AVPictureInPictureControllerDelegate {
     }
 
     private func tearDownItem() {
+        livePlaylistTask?.cancel()
+        livePlaylistTask = nil
+        isLivePlayback = false
+        livePlaylistBaseURL = nil
+        livePlaylistSnapshot = nil
+        livePlaylistRequestInFlight = false
+        liveStartAligned = false
+        isSeekingToLive = false
         stopPictureInPicture()
         if let timeObserver { player.removeTimeObserver(timeObserver) }
         timeObserver = nil
@@ -969,6 +1053,28 @@ private final class RemoteRangeLoader: NSObject, URLSessionDataDelegate, @unchec
         } else {
             continuation?.resume(returning: payload)
         }
+    }
+}
+
+private struct HLSLivePlaylistSnapshot {
+    let liveEdgeStartDate: Date?
+
+    static func parse(text: String) -> Self? {
+        let formatter = ISO8601DateFormatter()
+        var pendingDate: Date?
+        var latestStart: Date?
+        var hasSegment = false
+        for line in text.split(whereSeparator: \.isNewline).map(String.init) {
+            if line.hasPrefix("#EXT-X-PROGRAM-DATE-TIME:") {
+                pendingDate = formatter.date(from: String(line.dropFirst("#EXT-X-PROGRAM-DATE-TIME:".count)))
+            } else if line.hasPrefix("#EXTINF:") {
+                hasSegment = true
+                if let pendingDate { latestStart = pendingDate }
+                pendingDate = nil
+            }
+        }
+        guard hasSegment else { return nil }
+        return Self(liveEdgeStartDate: latestStart)
     }
 }
 
