@@ -26,10 +26,11 @@ class BiliAPI {
 
     // MARK: - 创建带登录状态的http请求
 
-    private func makeRequest(url: URL) -> URLRequest {
+    private func makeRequest(account: BiliAccount? = LoginSession.shared.account(for: .main), url: URL) -> URLRequest {
         var request = URLRequest(url: url)
+        AccountRequest.apply(account, to: &request)
 
-        let cookie = LoginSession.shared.cookieString
+        let cookie = account?.cookieString ?? ""
         if !cookie.isEmpty {
             request.setValue(cookie, forHTTPHeaderField: "Cookie")
         }
@@ -40,12 +41,13 @@ class BiliAPI {
     // MARK: - 轻量表单 POST（不加签）
 
     private func makePostFormRequest(
+        account: BiliAccount? = LoginSession.shared.account(for: .main),
         urlString: String,
         parameters: [String: String]
     ) -> URLRequest? {
         guard let url = URL(string: urlString) else { return nil }
 
-        var request = makeRequest(url: url)
+        var request = makeRequest(account: account, url: url)
         request.httpMethod = "POST"
         request.setValue(
             "application/x-www-form-urlencoded",
@@ -57,11 +59,6 @@ class BiliAPI {
         )
         request.setValue("https://www.bilibili.com", forHTTPHeaderField: "Referer")
 
-        // cookie登录状态
-        let cookie = LoginSession.shared.cookieString
-        if !cookie.isEmpty {
-            request.setValue(cookie, forHTTPHeaderField: "Cookie")
-        }
 
         var components = URLComponents()
         components.queryItems = parameters.map {
@@ -73,7 +70,8 @@ class BiliAPI {
 
     // MARK: - 构建移动端 App 请求（加签 + 公共参数）
 
-    private func makeAppRequest(
+    func makeAppRequest(
+        account: BiliAccount? = LoginSession.shared.account(for: .main),
         baseURLString: String,
         method: String = "GET",
         parameters: [String: String] = [:]
@@ -82,13 +80,14 @@ class BiliAPI {
 
         // 合并业务参数与系统公共移动端参数
         var allParams = parameters
+        allParams.removeValue(forKey: "access_key")
         allParams["appkey"] = BiliAPI.appKey
         allParams["mobi_app"] = "android_hd"
         allParams["platform"] = "android"
         allParams["ts"] = String(Int(Date().timeIntervalSince1970))
 
         // 写入移动端凭证 accessKey
-        if let accessKey = LoginSession.shared.accessKey, !accessKey.isEmpty {
+        if let accessKey = account?.accessKey, !accessKey.isEmpty {
             allParams["access_key"] = accessKey
         }
 
@@ -98,6 +97,7 @@ class BiliAPI {
 
         // 组装真正的 URLRequest
         var request = URLRequest(url: baseURL)
+        AccountRequest.apply(account, to: &request)
         request.httpMethod = method
 
         // 伪造符合 iOS 移动端行为的公共 Header
@@ -105,7 +105,7 @@ class BiliAPI {
         request.setValue("application/x-www-form-urlencoded", forHTTPHeaderField: "Content-Type")
 
         // 移动端请求作为稳妥保障，一并带上 Cookie
-        let cookie = LoginSession.shared.cookieString
+        let cookie = account?.cookieString ?? ""
         if !cookie.isEmpty {
             request.setValue(cookie, forHTTPHeaderField: "Cookie")
         }
@@ -141,6 +141,7 @@ class BiliAPI {
     // MARK: - 私信
 
     func fetchPrivateMessageSessions() async throws -> [PrivateMessageSession] {
+        let account = LoginSession.shared.account(for: .main)
         var components = URLComponents(
             string: "https://api.vc.bilibili.com/session_svr/v1/session_svr/get_sessions"
         )
@@ -155,7 +156,7 @@ class BiliAPI {
         ]
         guard let url = components?.url else { throw APIError.invalidURL }
 
-        var request = makeRequest(url: url)
+        var request = makeRequest(account: account, url: url)
         request.setValue(
             "bili-universal/103300 (iPhone; iOS 18.2; Scale/3.00)",
             forHTTPHeaderField: "User-Agent"
@@ -197,6 +198,7 @@ class BiliAPI {
         beginSeqno: UInt64 = 0,
         size: Int32 = 50
     ) async throws -> [Bilibili_Im_Type_Msg] {
+        let account = LoginSession.shared.account(for: .main)
         var components = URLComponents(
             string: "https://api.vc.bilibili.com/svr_sync/v1/svr_sync/fetch_session_msgs"
         )
@@ -217,7 +219,7 @@ class BiliAPI {
         components?.queryItems = queryItems
         guard let url = components?.url else { throw APIError.invalidURL }
 
-        var request = makeRequest(url: url)
+        var request = makeRequest(account: account, url: url)
         request.setValue(
             "bili-universal/103300 (iPhone; iOS 18.2; Scale/3.00)",
             forHTTPHeaderField: "User-Agent"
@@ -238,6 +240,7 @@ class BiliAPI {
     }
 
     private func fetchPrivateMessageUserCards(mids: [UInt64]) async throws -> [PrivateMessageUserCard] {
+        let account = LoginSession.shared.account(for: .main)
         guard !mids.isEmpty else { return [] }
 
         var components = URLComponents(string: "https://api.vc.bilibili.com/account/v1/user/cards")
@@ -248,7 +251,7 @@ class BiliAPI {
         ]
         guard let url = components?.url else { throw APIError.invalidURL }
 
-        let (data, response) = try await URLSession.shared.data(for: makeRequest(url: url))
+        let (data, response) = try await URLSession.shared.data(for: makeRequest(account: account, url: url))
         guard let httpResponse = response as? HTTPURLResponse,
               (200 ... 299).contains(httpResponse.statusCode)
         else { throw APIError.requestFailed }
@@ -327,6 +330,7 @@ class BiliAPI {
     }
 
     private func sendGrpcUnary(path: String, body: Data) async throws -> Data {
+        let account = LoginSession.shared.account(for: .main)
         guard let url = URL(string: "https://grpc.biliapi.net\(path)") else {
             throw APIError.invalidURL
         }
@@ -339,6 +343,7 @@ class BiliAPI {
         grpcBody.append(body)
 
         var request = URLRequest(url: url)
+        AccountRequest.apply(account, to: &request)
         request.httpMethod = "POST"
         request.httpBody = grpcBody
         request.setValue("application/grpc", forHTTPHeaderField: "Content-Type")
@@ -350,11 +355,11 @@ class BiliAPI {
         )
         request.setValue("https://www.bilibili.com", forHTTPHeaderField: "Referer")
 
-        let cookie = LoginSession.shared.cookieString
+        let cookie = account?.cookieString ?? ""
         if !cookie.isEmpty {
             request.setValue(cookie, forHTTPHeaderField: "Cookie")
         }
-        if let accessKey = LoginSession.shared.accessKey, !accessKey.isEmpty {
+        if let accessKey = account?.accessKey, !accessKey.isEmpty {
             request.setValue("identify_v1 \(accessKey)", forHTTPHeaderField: "Authorization")
         }
 
@@ -444,8 +449,9 @@ class BiliAPI {
     }
 
     private func fetchMessageFeed<T: Codable>(urlString: String, type: T.Type) async throws -> T {
+        let account = LoginSession.shared.account(for: .main)
         guard let url = URL(string: urlString) else { throw APIError.invalidURL }
-        let (data, response) = try await URLSession.shared.data(for: makeRequest(url: url))
+        let (data, response) = try await URLSession.shared.data(for: makeRequest(account: account, url: url))
         guard let httpResponse = response as? HTTPURLResponse,
               (200 ... 299).contains(httpResponse.statusCode)
         else { throw APIError.requestFailed }
@@ -491,7 +497,8 @@ class BiliAPI {
     }
 
     private func requestUnreadMessageFeed(url: URL) async throws -> MessageFeedUnreadData {
-        let (data, response) = try await URLSession.shared.data(for: makeRequest(url: url))
+        let account = LoginSession.shared.account(for: .main)
+        let (data, response) = try await URLSession.shared.data(for: makeRequest(account: account, url: url))
         guard let httpResponse = response as? HTTPURLResponse,
               (200 ... 299).contains(httpResponse.statusCode)
         else {
@@ -512,7 +519,8 @@ class BiliAPI {
     }
 
     private func requestUnreadPrivateMessages(url: URL) async throws -> PrivateMessageUnreadData {
-        let (data, response) = try await URLSession.shared.data(for: makeRequest(url: url))
+        let account = LoginSession.shared.account(for: .main)
+        let (data, response) = try await URLSession.shared.data(for: makeRequest(account: account, url: url))
         guard let httpResponse = response as? HTTPURLResponse,
               (200 ... 299).contains(httpResponse.statusCode)
         else {
@@ -545,6 +553,7 @@ class BiliAPI {
         freshType: Int,
         brush: Int
     ) async throws -> [VideoItem] {
+        let account = LoginSession.shared.account(for: .recommendation)
         var components = URLComponents(
             string: "https://api.bilibili.com/x/web-interface/index/top/feed/rcmd"
         )
@@ -558,7 +567,7 @@ class BiliAPI {
             return []
         }
 
-        let request = makeRequest(url: url)
+        let request = makeRequest(account: account, url: url)
         let (data, _) = try await URLSession.shared.data(for: request)
 
         let response = try JSONDecoder().decode(
@@ -577,6 +586,7 @@ class BiliAPI {
         page: Int = 1,
         pageSize: Int = 20
     ) async throws -> (videos: [VideoItem], noMore: Bool) {
+        let account = LoginSession.shared.account(for: .main)
         var components = URLComponents(
             string: "https://api.bilibili.com/x/web-interface/popular"
         )
@@ -589,7 +599,7 @@ class BiliAPI {
             throw APIError.invalidURL
         }
 
-        let request = makeRequest(url: url)
+        let request = makeRequest(account: account, url: url)
         let (data, response) = try await URLSession.shared.data(for: request)
         guard let httpResponse = response as? HTTPURLResponse,
               (200 ... 299).contains(httpResponse.statusCode)
@@ -610,6 +620,7 @@ class BiliAPI {
     // MARK: - 获取首页直播 Feed
 
     func fetchLiveHomeFeed() async throws -> LiveHomeFeedPayload {
+        let account = LoginSession.shared.account(for: .recommendation)
         let urlString = "https://api.live.bilibili.com/xlive/app-interface/v2/index/feed"
         let params: [String: String] = [
             "channel": "master",
@@ -633,7 +644,7 @@ class BiliAPI {
             "statistics": #"{"appId":1,"platform":3,"version":"8.43.0","abtest":""}"#
         ]
 
-        guard let request = makeAppRequest(baseURLString: urlString, method: "GET", parameters: params) else {
+        guard let request = makeAppRequest(account: account, baseURLString: urlString, method: "GET", parameters: params) else {
             throw APIError.invalidURL
         }
 
@@ -694,10 +705,11 @@ class BiliAPI {
             rooms: rooms
         )
     }
-    
+
     // MARK: - 获取直播分区
 
     func fetchLiveAreaFeed(areaID: Int, parentAreaID: Int) async throws -> [LiveCardModel] {
+        let account = LoginSession.shared.account(for: .recommendation)
         let urlString = "https://api.live.bilibili.com/xlive/app-interface/v2/second/getList"
         let params: [String: String] = [
             "actionKey": "appkey",
@@ -726,7 +738,7 @@ class BiliAPI {
             "version": "8.43.0"
         ]
 
-        guard let request = makeAppRequest(baseURLString: urlString, method: "GET", parameters: params) else {
+        guard let request = makeAppRequest(account: account, baseURLString: urlString, method: "GET", parameters: params) else {
             throw APIError.invalidURL
         }
 
@@ -744,10 +756,11 @@ class BiliAPI {
 
         return (decoded.data?.list ?? []).map(mapLiveAreaRoom)
     }
-    
+
     // MARK: - 获取直播数据
 
     func fetchLivePlaybackInfo(roomID: String, qn: Int = 10000) async throws -> LivePlaybackInfo {
+        let account = LoginSession.shared.account(for: .playback)
         var components = URLComponents(
             string: "https://api.live.bilibili.com/xlive/web-room/v2/index/getRoomPlayInfo"
         )
@@ -768,7 +781,7 @@ class BiliAPI {
         }
 
         let signedURL = try await BiliWbiSigner.shared.sign(url: url)
-        let request = makeRequest(url: signedURL)
+        let request = makeRequest(account: account, url: signedURL)
         let (data, response) = try await URLSession.shared.data(for: request)
         guard let httpResponse = response as? HTTPURLResponse,
               (200 ... 299).contains(httpResponse.statusCode)
@@ -845,6 +858,7 @@ class BiliAPI {
     }
 
     func fetchLiveDanmakuInfo(roomID: Int) async throws -> LiveDanmakuInfo {
+        let account = LoginSession.shared.account(for: .main)
         var components = URLComponents(
             string: "https://api.live.bilibili.com/xlive/web-room/v1/index/getDanmuInfo"
         )
@@ -859,7 +873,7 @@ class BiliAPI {
         }
 
         let signedURL = try await BiliWbiSigner.shared.sign(url: url)
-        let request = makeRequest(url: signedURL)
+        let request = makeRequest(account: account, url: signedURL)
         let (data, response) = try await URLSession.shared.data(for: request)
         guard let httpResponse = response as? HTTPURLResponse,
               (200 ... 299).contains(httpResponse.statusCode)
@@ -882,6 +896,7 @@ class BiliAPI {
     }
 
     func fetchLiveDanmakuHistory(roomID: Int) async throws -> [LiveDanmakuMessage] {
+        let account = LoginSession.shared.account(for: .main)
         var components = URLComponents(
             string: "https://api.live.bilibili.com/xlive/web-room/v1/dM/gethistory"
         )
@@ -893,7 +908,7 @@ class BiliAPI {
             throw APIError.invalidURL
         }
 
-        let request = makeRequest(url: url)
+        let request = makeRequest(account: account, url: url)
         let (data, response) = try await URLSession.shared.data(for: request)
         guard let httpResponse = response as? HTTPURLResponse,
               (200 ... 299).contains(httpResponse.statusCode)
@@ -948,6 +963,7 @@ class BiliAPI {
     }
 
     func fetchLiveRoomInfo(roomID: String) async throws -> LiveRoomInfo {
+        let account = LoginSession.shared.account(for: .main)
         var components = URLComponents(
             string: "https://api.live.bilibili.com/xlive/web-room/v1/index/getH5InfoByRoom"
         )
@@ -959,7 +975,7 @@ class BiliAPI {
             throw APIError.invalidURL
         }
 
-        let request = makeRequest(url: url)
+        let request = makeRequest(account: account, url: url)
         let (data, response) = try await URLSession.shared.data(for: request)
         guard let httpResponse = response as? HTTPURLResponse,
               (200 ... 299).contains(httpResponse.statusCode)
@@ -999,6 +1015,7 @@ class BiliAPI {
     // MARK: - 获取视频相关推荐
 
     func fetchRelatedVideos(bvid: String, limit: Int = 40) async throws -> [VideoItem] {
+        let account = LoginSession.shared.account(for: .recommendation)
         var components = URLComponents(
             string: "https://api.bilibili.com/x/web-interface/archive/related"
         )
@@ -1010,7 +1027,7 @@ class BiliAPI {
             throw APIError.invalidURL
         }
 
-        let request = makeRequest(url: url)
+        let request = makeRequest(account: account, url: url)
         let (data, _) = try await URLSession.shared.data(for: request)
 
         let response = try JSONDecoder().decode(RelatedVideosResponse.self, from: data)
@@ -1029,6 +1046,7 @@ class BiliAPI {
     // MARK: - 获取App版推荐视频
 
     func fetchAppRecommendVideos(idx: Int, flush: Int) async throws -> Data {
+        let account = LoginSession.shared.account(for: .recommendation)
         // App 推荐数据的基准接口地址
         let appRcmdHost = "https://app.bilibili.com/x/v2/feed/index"
 
@@ -1042,7 +1060,7 @@ class BiliAPI {
         ]
 
         // 使用新封装的加签构造器创建请求
-        guard var request = makeAppRequest(baseURLString: appRcmdHost, method: "GET", parameters: businessParams) else {
+        guard var request = makeAppRequest(account: account, baseURLString: appRcmdHost, method: "GET", parameters: businessParams) else {
             throw APIError.invalidURL
         }
 
@@ -1058,7 +1076,6 @@ class BiliAPI {
         request.setValue("", forHTTPHeaderField: "x-bili-aurora-zone")
         request.setValue("cronet", forHTTPHeaderField: "bili-http-engine")
 
-        print(request.url)
 
         let (data, response) = try await URLSession.shared.data(for: request)
 
@@ -1082,6 +1099,7 @@ class BiliAPI {
     // MARK: - 获取个人空间信息（App）
 
     func fetchUserSpace(mid: Int, fromViewAid: Int?) async throws -> UserSpaceData {
+        let account = LoginSession.shared.account(for: .main)
         let urlString = "https://app.bilibili.com/x/v2/space"
         var params = makeSpaceCommonParameters(mid: mid)
 
@@ -1089,7 +1107,7 @@ class BiliAPI {
             params["from_view_aid"] = String(fromViewAid)
         }
 
-        guard let request = makeAppRequest(baseURLString: urlString, method: "GET", parameters: params) else {
+        guard let request = makeAppRequest(account: account, baseURLString: urlString, method: "GET", parameters: params) else {
             throw APIError.invalidURL
         }
 
@@ -1115,6 +1133,7 @@ class BiliAPI {
     // MARK: - 获取个人空间动态（Web）
 
     func fetchUserSpaceDynamics(mid: Int, offset: String? = nil) async throws -> UserSpaceDynamicPageResult {
+        let account = LoginSession.shared.account(for: .main)
         var components = URLComponents(string: "https://api.bilibili.com/x/polymer/web-dynamic/v1/feed/space")
         var queryItems = [
             URLQueryItem(name: "host_mid", value: String(mid)),
@@ -1126,7 +1145,7 @@ class BiliAPI {
         components?.queryItems = queryItems
         guard let url = components?.url else { throw APIError.invalidURL }
         let signedURL = try await BiliWbiSigner.shared.sign(url: url)
-        var request = makeRequest(url: signedURL)
+        var request = makeRequest(account: account, url: signedURL)
         request.setValue("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 Version/18.0 Safari/605.1.15", forHTTPHeaderField: "User-Agent")
         request.setValue("https://www.bilibili.com", forHTTPHeaderField: "Referer")
         request.setValue("web", forHTTPHeaderField: "Origin")
@@ -1143,6 +1162,7 @@ class BiliAPI {
     // MARK: - 获取全部动态（Web）
 
     func fetchAllDynamics(offset: String? = nil) async throws -> UserSpaceDynamicPageResult {
+        let account = LoginSession.shared.account(for: .main)
         var components = URLComponents(string: "https://api.bilibili.com/x/polymer/web-dynamic/v1/feed/all")
         var queryItems = [
             URLQueryItem(name: "platform", value: "web"),
@@ -1156,7 +1176,7 @@ class BiliAPI {
 
         guard let url = components?.url else { throw APIError.invalidURL }
         let signedURL = try await BiliWbiSigner.shared.sign(url: url)
-        var request = makeRequest(url: signedURL)
+        var request = makeRequest(account: account, url: signedURL)
         request.setValue("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 Version/18.0 Safari/605.1.15", forHTTPHeaderField: "User-Agent")
         request.setValue("https://www.bilibili.com", forHTTPHeaderField: "Referer")
         request.setValue("web", forHTTPHeaderField: "Origin")
@@ -1184,6 +1204,7 @@ class BiliAPI {
         ps: Int = 20,
         qn: Int = 80
     ) async throws -> SpaceArchiveData {
+        let account = LoginSession.shared.account(for: .main)
         let urlString = "https://app.biliapi.com/x/v2/space/archive/cursor"
         var params = makeSpaceCommonParameters(mid: mid)
         params["order"] = order.rawValue
@@ -1193,7 +1214,7 @@ class BiliAPI {
             params["aid"] = String(aid)
         }
 
-        guard let request = makeAppRequest(baseURLString: urlString, method: "GET", parameters: params) else {
+        guard let request = makeAppRequest(account: account, baseURLString: urlString, method: "GET", parameters: params) else {
             throw APIError.invalidURL
         }
 
@@ -1225,6 +1246,7 @@ class BiliAPI {
         type: String = "archive",
         ps: Int = 20
     ) async throws -> HistoryData {
+        let account = LoginSession.shared.account(for: .history)
         var components = URLComponents(string: "https://api.bilibili.com/x/web-interface/history/cursor")
         var queryItems: [URLQueryItem] = [
             URLQueryItem(name: "type", value: type),
@@ -1247,7 +1269,7 @@ class BiliAPI {
             throw APIError.invalidURL
         }
 
-        let request = makeRequest(url: url)
+        let request = makeRequest(account: account, url: url)
         let (data, response) = try await URLSession.shared.data(for: request)
 
         guard let httpResponse = response as? HTTPURLResponse,
@@ -1275,6 +1297,7 @@ class BiliAPI {
         ps: Int = 50,
         orderType: String? = nil
     ) async throws -> FollowingData {
+        let account = LoginSession.shared.account(for: .main)
         var components = URLComponents(string: "https://api.bilibili.com/x/relation/followings")
         var queryItems: [URLQueryItem] = [
             URLQueryItem(name: "vmid", value: String(vmid)),
@@ -1292,7 +1315,7 @@ class BiliAPI {
             throw APIError.invalidURL
         }
 
-        let request = makeRequest(url: url)
+        let request = makeRequest(account: account, url: url)
         let (data, response) = try await URLSession.shared.data(for: request)
 
         guard let httpResponse = response as? HTTPURLResponse,
@@ -1320,6 +1343,7 @@ class BiliAPI {
         pn: Int = 1,
         ps: Int = 50
     ) async throws -> FollowingData {
+        let account = LoginSession.shared.account(for: .main)
         var components = URLComponents(string: "https://api.bilibili.com/x/relation/followings/search")
         var queryItems: [URLQueryItem] = [
             URLQueryItem(name: "vmid", value: String(vmid)),
@@ -1334,7 +1358,7 @@ class BiliAPI {
             throw APIError.invalidURL
         }
 
-        let request = makeRequest(url: url)
+        let request = makeRequest(account: account, url: url)
         let (data, response) = try await URLSession.shared.data(for: request)
 
         guard let httpResponse = response as? HTTPURLResponse,
@@ -1357,6 +1381,7 @@ class BiliAPI {
     // MARK: - 获取搜索热榜
 
     func fetchSearchTrending(limit: Int = 10) async throws -> [SearchTrendingItem] {
+        let account = LoginSession.shared.account(for: .main)
         var components = URLComponents(string: "https://api.bilibili.com/x/v2/search/trending/ranking")
         components?.queryItems = [
             URLQueryItem(name: "limit", value: String(limit))
@@ -1366,7 +1391,7 @@ class BiliAPI {
             throw APIError.invalidURL
         }
 
-        let request = makeRequest(url: url)
+        let request = makeRequest(account: account, url: url)
         let (data, response) = try await URLSession.shared.data(for: request)
 
         guard let httpResponse = response as? HTTPURLResponse,
@@ -1386,6 +1411,7 @@ class BiliAPI {
     // MARK: - 获取搜索发现
 
     func fetchSearchRecommend() async throws -> [SearchRecommendItem] {
+        let account = LoginSession.shared.account(for: .recommendation)
         let urlString = "https://app.bilibili.com/x/v2/search/recommend"
 
         let params: [String: String] = [
@@ -1397,13 +1423,12 @@ class BiliAPI {
             "s_locale": "zh_CN"
         ]
 
-        guard let request = makeAppRequest(baseURLString: urlString, method: "GET", parameters: params) else {
+        guard let request = makeAppRequest(account: account, baseURLString: urlString, method: "GET", parameters: params) else {
             throw APIError.invalidURL
         }
 
         let (data, response) = try await URLSession.shared.data(for: request)
 
-        print(String(data: data, encoding: .utf8))
 
         guard let httpResponse = response as? HTTPURLResponse,
               (200 ... 299).contains(httpResponse.statusCode)
@@ -1422,6 +1447,7 @@ class BiliAPI {
     // MARK: - 获取搜索联想
 
     func fetchSearchSuggestions(term: String) async throws -> [SearchSuggestItem] {
+        let account = LoginSession.shared.account(for: .main)
         var components = URLComponents(string: "https://s.search.bilibili.com/main/suggest")
         components?.queryItems = [
             URLQueryItem(name: "term", value: term),
@@ -1433,7 +1459,7 @@ class BiliAPI {
             throw APIError.invalidURL
         }
 
-        var request = makeRequest(url: url)
+        var request = makeRequest(account: account, url: url)
         request.setValue("https://www.bilibili.com", forHTTPHeaderField: "Referer")
         request.setValue(
             "Mozilla/5.0 (iPhone; CPU iPhone OS 18_2 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.2 Mobile/15E148 Safari/604.1",
@@ -1459,6 +1485,7 @@ class BiliAPI {
     // MARK: - 综合搜索
 
     func fetchComprehensiveSearch(keyword: String) async throws -> [SearchComprehensiveModule] {
+        let account = LoginSession.shared.account(for: .main)
         var components = URLComponents(
             string: "https://api.bilibili.com/x/web-interface/wbi/search/all/v2"
         )
@@ -1471,7 +1498,7 @@ class BiliAPI {
         }
 
         let signedURL = try await BiliWbiSigner.shared.sign(url: url)
-        var request = makeRequest(url: signedURL)
+        var request = makeRequest(account: account, url: signedURL)
         request.setValue("https://www.bilibili.com", forHTTPHeaderField: "Referer")
         request.setValue(
             "Mozilla/5.0 (iPhone; CPU iPhone OS 18_2 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.2 Mobile/15E148 Safari/604.1",
@@ -1497,6 +1524,7 @@ class BiliAPI {
     // MARK: - 分类搜索
 
     func fetchTypedVideoSearch(keyword: String, page: Int = 1) async throws -> SearchTypedVideoData {
+        let account = LoginSession.shared.account(for: .main)
         var components = URLComponents(
             string: "https://api.bilibili.com/x/web-interface/wbi/search/type"
         )
@@ -1511,7 +1539,7 @@ class BiliAPI {
         }
 
         let signedURL = try await BiliWbiSigner.shared.sign(url: url)
-        var request = makeRequest(url: signedURL)
+        var request = makeRequest(account: account, url: signedURL)
         request.setValue("https://www.bilibili.com", forHTTPHeaderField: "Referer")
         request.setValue(
             "Mozilla/5.0 (iPhone; CPU iPhone OS 18_2 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.2 Mobile/15E148 Safari/604.1",
@@ -1535,6 +1563,7 @@ class BiliAPI {
     }
 
     func fetchTypedUserSearch(keyword: String, page: Int = 1) async throws -> SearchTypedUserData {
+        let account = LoginSession.shared.account(for: .main)
         var components = URLComponents(
             string: "https://api.bilibili.com/x/web-interface/wbi/search/type"
         )
@@ -1549,7 +1578,7 @@ class BiliAPI {
         }
 
         let signedURL = try await BiliWbiSigner.shared.sign(url: url)
-        var request = makeRequest(url: signedURL)
+        var request = makeRequest(account: account, url: signedURL)
         request.setValue("https://www.bilibili.com", forHTTPHeaderField: "Referer")
         request.setValue(
             "Mozilla/5.0 (iPhone; CPU iPhone OS 18_2 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.2 Mobile/15E148 Safari/604.1",
@@ -1594,10 +1623,11 @@ class BiliAPI {
         isCancel: Bool,
         type: Int = 1
     ) async throws {
-        guard LoginSession.shared.isLogin else {
+        let account = LoginSession.shared.account(for: .main)
+        guard account != nil else {
             throw APIError.responseError(-101)
         }
-        guard let accessKey = LoginSession.shared.accessKey, !accessKey.isEmpty else {
+        guard let accessKey = account?.accessKey, !accessKey.isEmpty else {
             throw APIError.responseError(-111)
         }
 
@@ -1609,7 +1639,7 @@ class BiliAPI {
             "action": isCancel ? "0" : "1",
             "access_key": accessKey
         ]
-        guard let request = makeAppRequest(baseURLString: urlString, method: "POST", parameters: params) else {
+        guard let request = makeAppRequest(account: account, baseURLString: urlString, method: "POST", parameters: params) else {
             throw APIError.invalidURL
         }
 
@@ -1632,10 +1662,11 @@ class BiliAPI {
         isCancel: Bool,
         type: Int = 1
     ) async throws {
-        guard LoginSession.shared.isLogin else {
+        let account = LoginSession.shared.account(for: .main)
+        guard account != nil else {
             throw APIError.responseError(-101)
         }
-        guard let accessKey = LoginSession.shared.accessKey, !accessKey.isEmpty else {
+        guard let accessKey = account?.accessKey, !accessKey.isEmpty else {
             throw APIError.responseError(-111)
         }
 
@@ -1647,7 +1678,7 @@ class BiliAPI {
             "action": isCancel ? "0" : "1",
             "access_key": accessKey
         ]
-        guard let request = makeAppRequest(baseURLString: urlString, method: "POST", parameters: params) else {
+        guard let request = makeAppRequest(account: account, baseURLString: urlString, method: "POST", parameters: params) else {
             throw APIError.invalidURL
         }
 
@@ -1667,10 +1698,11 @@ class BiliAPI {
     // MARK: - 发表评论 / 上传评论图片
 
     func uploadCommentImage(data: Data, fileName: String = "comment.jpg") async throws -> CommentImageUploadData {
-        guard LoginSession.shared.isLogin else {
+        let account = LoginSession.shared.account(for: .main)
+        guard account != nil else {
             throw APIError.responseError(-101)
         }
-        guard let csrf = LoginSession.shared.cookies?.bili_jct, !csrf.isEmpty else {
+        guard let csrf = account?.cookies.bili_jct, !csrf.isEmpty else {
             throw APIError.responseError(-111)
         }
 
@@ -1679,7 +1711,7 @@ class BiliAPI {
         }
 
         let boundary = "Boundary-\(UUID().uuidString)"
-        var request = makeRequest(url: url)
+        var request = makeRequest(account: account, url: url)
         request.httpMethod = "POST"
         request.setValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
         request.setValue("https://www.bilibili.com", forHTTPHeaderField: "Referer")
@@ -1713,10 +1745,11 @@ class BiliAPI {
         root: Int? = nil,
         parent: Int? = nil
     ) async throws -> CommentAddResponseData {
-        guard LoginSession.shared.isLogin else {
+        let account = LoginSession.shared.account(for: .main)
+        guard account != nil else {
             throw APIError.responseError(-101)
         }
-        guard let csrf = LoginSession.shared.cookies?.bili_jct, !csrf.isEmpty else {
+        guard let csrf = account?.cookies.bili_jct, !csrf.isEmpty else {
             throw APIError.responseError(-111)
         }
 
@@ -1740,7 +1773,7 @@ class BiliAPI {
             params["parent"] = String(parent)
         }
 
-        guard let request = makeAppRequest(baseURLString: urlString, method: "POST", parameters: params) else {
+        guard let request = makeAppRequest(account: account, baseURLString: urlString, method: "POST", parameters: params) else {
             throw APIError.invalidURL
         }
 
@@ -1787,6 +1820,7 @@ class BiliAPI {
     }
 
     func fetchUserReplyEmotePackages() async throws -> [ReplyEmotePackage] {
+        let account = LoginSession.shared.account(for: .main)
         var components = URLComponents(string: "https://api.bilibili.com/x/emote/user/panel/web")
         components?.queryItems = [
             URLQueryItem(name: "business", value: "reply")
@@ -1795,7 +1829,7 @@ class BiliAPI {
             throw APIError.invalidURL
         }
 
-        let request = makeRequest(url: url)
+        let request = makeRequest(account: account, url: url)
         let (data, response) = try await URLSession.shared.data(for: request)
         guard let httpResponse = response as? HTTPURLResponse,
               (200 ... 299).contains(httpResponse.statusCode)
@@ -1906,8 +1940,9 @@ class BiliAPI {
     // MARK: - 获取当前用户数据
 
     func fetchMyInfo() async throws -> UserCard {
+        let account = LoginSession.shared.account(for: .main)
         let url = URL(string: "https://api.bilibili.com/x/web-interface/nav")!
-        let request = makeRequest(url: url)
+        let request = makeRequest(account: account, url: url)
 
         let (data, _) = try await URLSession.shared.data(for: request)
 
@@ -1922,8 +1957,9 @@ class BiliAPI {
     // MARK: - 获取当前用户状态（动态/关注/粉丝）
 
     func fetchMyStat() async throws -> MyStat {
+        let account = LoginSession.shared.account(for: .main)
         let url = URL(string: "https://api.bilibili.com/x/web-interface/nav/stat")!
-        let request = makeRequest(url: url)
+        let request = makeRequest(account: account, url: url)
 
         let (data, _) = try await URLSession.shared.data(for: request)
 
@@ -1938,6 +1974,7 @@ class BiliAPI {
     // MARK: - 获取用户卡片
 
     func fetchUserCardStats(mid: Int) async throws -> UserCardStats {
+        let account = LoginSession.shared.account(for: .main)
         var components = URLComponents(string: "https://api.bilibili.com/x/web-interface/card")
         components?.queryItems = [
             URLQueryItem(name: "mid", value: String(mid))
@@ -1947,7 +1984,7 @@ class BiliAPI {
             throw APIError.invalidURL
         }
 
-        let request = makeRequest(url: url)
+        let request = makeRequest(account: account, url: url)
         let (data, _) = try await URLSession.shared.data(for: request)
 
         let response = try JSONDecoder().decode(
@@ -1969,6 +2006,7 @@ class BiliAPI {
     // MARK: - 视频详情
 
     func fetchVideoDetail(bvid: String) async throws -> VideoDetailData {
+        let account = LoginSession.shared.account(for: .main)
         var components = URLComponents(
             string: "https://api.bilibili.com/x/web-interface/view"
         )
@@ -1980,7 +2018,7 @@ class BiliAPI {
             throw APIError.invalidURL
         }
 
-        let request = makeRequest(url: url)
+        let request = makeRequest(account: account, url: url)
         let (data, _) = try await URLSession.shared.data(for: request)
 
         let response = try JSONDecoder().decode(
@@ -1998,6 +2036,7 @@ class BiliAPI {
     // MARK: - 视频实时在线人数
 
     func fetchVideoOnlineTotal(bvid: String, cid: Int) async throws -> String {
+        let account = LoginSession.shared.account(for: .main)
         var components = URLComponents(
             string: "https://api.bilibili.com/x/player/online/total"
         )
@@ -2010,7 +2049,7 @@ class BiliAPI {
             throw APIError.invalidURL
         }
 
-        let request = makeRequest(url: url)
+        let request = makeRequest(account: account, url: url)
         let (data, _) = try await URLSession.shared.data(for: request)
         let response = try JSONDecoder().decode(VideoOnlineTotalResponse.self, from: data)
 
@@ -2026,6 +2065,7 @@ class BiliAPI {
     // MARK: - 视频关系（点赞/点踩/投币/收藏状态）
 
     func fetchArchiveRelation(bvid: String) async throws -> ArchiveRelationData {
+        let account = LoginSession.shared.account(for: .main)
         var components = URLComponents(
             string: "https://api.bilibili.com/x/web-interface/archive/relation"
         )
@@ -2037,7 +2077,7 @@ class BiliAPI {
             throw APIError.invalidURL
         }
 
-        let request = makeRequest(url: url)
+        let request = makeRequest(account: account, url: url)
         let (data, _) = try await URLSession.shared.data(for: request)
 
         let response = try JSONDecoder().decode(
@@ -2059,6 +2099,7 @@ class BiliAPI {
     // MARK: - 视频分P列表
 
     func fetchVideoPageList(bvid: String) async throws -> [VideoPageListItem] {
+        let account = LoginSession.shared.account(for: .main)
         var components = URLComponents(
             string: "https://api.bilibili.com/x/player/pagelist"
         )
@@ -2070,7 +2111,7 @@ class BiliAPI {
             throw APIError.invalidURL
         }
 
-        let request = makeRequest(url: url)
+        let request = makeRequest(account: account, url: url)
         let (data, _) = try await URLSession.shared.data(for: request)
 
         let response = try JSONDecoder().decode(
@@ -2088,10 +2129,11 @@ class BiliAPI {
     // MARK: - 用户关系
 
     func modifyUserRelation(fid: Int, act: Int) async throws {
+        let account = LoginSession.shared.account(for: .main)
         guard act == 1 || act == 2 else {
             throw APIError.requestFailed
         }
-        guard let csrf = LoginSession.shared.cookies?.bili_jct, !csrf.isEmpty else {
+        guard let csrf = account?.cookies.bili_jct, !csrf.isEmpty else {
             throw APIError.responseError(-111)
         }
 
@@ -2101,7 +2143,7 @@ class BiliAPI {
             "csrf": csrf
         ]
 
-        guard let request = makePostFormRequest(
+        guard let request = makePostFormRequest(account: account,
             urlString: "https://api.bilibili.com/x/relation/modify",
             parameters: parameters
         ) else {
@@ -2119,7 +2161,8 @@ class BiliAPI {
     // MARK: - 点赞
 
     func likeVideo(aid: Int, isCancel: Bool) async throws {
-        guard let accessKey = LoginSession.shared.accessKey, !accessKey.isEmpty else {
+        let account = LoginSession.shared.account(for: .main)
+        guard let accessKey = account?.accessKey, !accessKey.isEmpty else {
             throw APIError.responseError(-101)
         }
 
@@ -2129,7 +2172,7 @@ class BiliAPI {
             "like": isCancel ? "1" : "0"
         ]
 
-        guard let request = makePostFormRequest(
+        guard let request = makePostFormRequest(account: account,
             urlString: "https://app.bilibili.com/x/v2/view/like",
             parameters: params
         ) else {
@@ -2149,7 +2192,8 @@ class BiliAPI {
     // MARK: - 点踩
 
     func dislikeVideo(aid: Int, isCancel: Bool) async throws {
-        guard let accessKey = LoginSession.shared.accessKey, !accessKey.isEmpty else {
+        let account = LoginSession.shared.account(for: .main)
+        guard let accessKey = account?.accessKey, !accessKey.isEmpty else {
             throw APIError.responseError(-101)
         }
 
@@ -2159,7 +2203,7 @@ class BiliAPI {
             "dislike": isCancel ? "1" : "0"
         ]
 
-        guard let request = makePostFormRequest(
+        guard let request = makePostFormRequest(account: account,
             urlString: "https://app.biliapi.net/x/v2/view/dislike",
             parameters: params
         ) else {
@@ -2179,7 +2223,8 @@ class BiliAPI {
     // MARK: - 一键三连
 
     func tripleLikeVideo(aid: Int) async throws -> TripleLikeData {
-        guard let accessKey = LoginSession.shared.accessKey, !accessKey.isEmpty else {
+        let account = LoginSession.shared.account(for: .main)
+        guard let accessKey = account?.accessKey, !accessKey.isEmpty else {
             throw APIError.responseError(-101)
         }
 
@@ -2188,7 +2233,7 @@ class BiliAPI {
             "aid": String(aid)
         ]
 
-        guard let request = makePostFormRequest(
+        guard let request = makePostFormRequest(account: account,
             urlString: "https://app.bilibili.com/x/v2/view/like/triple",
             parameters: parameters
         ) else {
@@ -2212,7 +2257,8 @@ class BiliAPI {
     // MARK: - 投币
 
     func coinVideo(aid: Int, multiply: Int) async throws {
-        guard let accessKey = LoginSession.shared.accessKey, !accessKey.isEmpty else {
+        let account = LoginSession.shared.account(for: .main)
+        guard let accessKey = account?.accessKey, !accessKey.isEmpty else {
             throw APIError.responseError(-101)
         }
 
@@ -2223,7 +2269,7 @@ class BiliAPI {
             "select_like": "0"
         ]
 
-        guard let request = makePostFormRequest(
+        guard let request = makePostFormRequest(account: account,
             urlString: "https://app.bilibili.com/x/v2/view/coin/add",
             parameters: params
         ) else {
@@ -2246,6 +2292,7 @@ class BiliAPI {
         upMid: Int64,
         rid: Int64
     ) async throws -> [FavoriteFolderItem] {
+        let account = LoginSession.shared.account(for: .main)
         var components = URLComponents(
             string: "https://api.bilibili.com/x/v3/fav/folder/created/list-all"
         )
@@ -2258,7 +2305,7 @@ class BiliAPI {
             throw APIError.invalidURL
         }
 
-        let request = makeRequest(url: url)
+        let request = makeRequest(account: account, url: url)
         let (data, _) = try await URLSession.shared.data(for: request)
 
         let response = try JSONDecoder().decode(
@@ -2280,10 +2327,11 @@ class BiliAPI {
         addMediaIds: [Int64],
         delMediaIds: [Int64]
     ) async throws {
-        guard let accessKey = LoginSession.shared.accessKey, !accessKey.isEmpty else {
+        let account = LoginSession.shared.account(for: .main)
+        guard let accessKey = account?.accessKey, !accessKey.isEmpty else {
             throw APIError.responseError(-101)
         }
-        guard let csrf = LoginSession.shared.cookies?.bili_jct, !csrf.isEmpty else {
+        guard let csrf = account?.cookies.bili_jct, !csrf.isEmpty else {
             throw APIError.responseError(-111)
         }
 
@@ -2300,7 +2348,7 @@ class BiliAPI {
             params["del_media_ids"] = delMediaIds.map(String.init).joined(separator: ",")
         }
 
-        guard let request = makePostFormRequest(
+        guard let request = makePostFormRequest(account: account,
             urlString: "https://api.bilibili.com/medialist/gateway/coll/resource/deal",
             parameters: params
         ) else {
@@ -2320,10 +2368,11 @@ class BiliAPI {
     // MARK: - 稍后再看（最多 100 个）
 
     func addToWatchLater(bvid: String) async throws {
-        guard let sessData = LoginSession.shared.cookies?.SESSDATA, !sessData.isEmpty else {
+        let account = LoginSession.shared.account(for: .main)
+        guard let sessData = account?.cookies.SESSDATA, !sessData.isEmpty else {
             throw APIError.responseError(-101)
         }
-        guard let csrf = LoginSession.shared.cookies?.bili_jct, !csrf.isEmpty else {
+        guard let csrf = account?.cookies.bili_jct, !csrf.isEmpty else {
             throw APIError.responseError(-111)
         }
 
@@ -2332,7 +2381,7 @@ class BiliAPI {
             "csrf": csrf
         ]
 
-        guard let request = makePostFormRequest(
+        guard let request = makePostFormRequest(account: account,
             urlString: "https://api.bilibili.com/x/v2/history/toview/add",
             parameters: params
         ) else {
@@ -2350,10 +2399,11 @@ class BiliAPI {
     }
 
     func removeFromWatchLater(aid: Int? = nil, bvid: String? = nil) async throws {
-        guard let sessData = LoginSession.shared.cookies?.SESSDATA, !sessData.isEmpty else {
+        let account = LoginSession.shared.account(for: .main)
+        guard let sessData = account?.cookies.SESSDATA, !sessData.isEmpty else {
             throw APIError.responseError(-101)
         }
-        guard let csrf = LoginSession.shared.cookies?.bili_jct, !csrf.isEmpty else {
+        guard let csrf = account?.cookies.bili_jct, !csrf.isEmpty else {
             throw APIError.responseError(-111)
         }
         let resolvedAid: Int?
@@ -2374,7 +2424,7 @@ class BiliAPI {
             "csrf": csrf
         ]
 
-        guard let request = makePostFormRequest(
+        guard let request = makePostFormRequest(account: account,
             urlString: "https://api.bilibili.com/x/v2/history/toview/del",
             parameters: params
         ) else {
@@ -2392,11 +2442,12 @@ class BiliAPI {
     }
 
     func fetchWatchLaterList() async throws -> WatchLaterData {
+        let account = LoginSession.shared.account(for: .main)
         guard let url = URL(string: "https://api.bilibili.com/x/v2/history/toview") else {
             throw APIError.invalidURL
         }
 
-        let request = makeRequest(url: url)
+        let request = makeRequest(account: account, url: url)
         let (data, response) = try await URLSession.shared.data(for: request)
 
         guard let httpResponse = response as? HTTPURLResponse,
@@ -2424,6 +2475,7 @@ class BiliAPI {
         fnval: Int = 4048,
         qn: Int = 127
     ) async throws -> PlayUrlResponse {
+        let account = LoginSession.shared.account(for: .playback)
         var components = URLComponents(
             string: "https://api.bilibili.com/x/player/wbi/playurl"
         )
@@ -2440,7 +2492,7 @@ class BiliAPI {
         }
 
         let signedURL = try await BiliWbiSigner.shared.sign(url: url)
-        let request = makeRequest(url: signedURL)
+        let request = makeRequest(account: account, url: signedURL)
         let (data, _) = try await URLSession.shared.data(for: request)
 
         let response = try JSONDecoder().decode(
@@ -2459,8 +2511,10 @@ class BiliAPI {
 
     func fetchPlayerWbiV2(
         bvid: String,
-        cid: Int
+        cid: Int,
+        role: AccountRole = .playback
     ) async throws -> PlayerWbiV2Response {
+        let account = LoginSession.shared.account(for: role)
         var components = URLComponents(
             string: "https://api.bilibili.com/x/player/wbi/v2"
         )
@@ -2474,7 +2528,7 @@ class BiliAPI {
         }
 
         let signedURL = try await BiliWbiSigner.shared.sign(url: url)
-        let request = makeRequest(url: signedURL)
+        let request = makeRequest(account: account, url: signedURL)
         let (data, _) = try await URLSession.shared.data(for: request)
 
         let response = try JSONDecoder().decode(
@@ -2495,6 +2549,7 @@ class BiliAPI {
         bvid: String,
         cid: Int
     ) async throws -> VideoShotPreviewMetadata {
+        let account = LoginSession.shared.account(for: .playback)
         var components = URLComponents(
             string: "https://api.bilibili.com/x/player/videoshot"
         )
@@ -2508,7 +2563,7 @@ class BiliAPI {
             throw APIError.invalidURL
         }
 
-        let request = makeRequest(url: url)
+        let request = makeRequest(account: account, url: url)
         let (data, response) = try await URLSession.shared.data(for: request)
         guard let httpResponse = response as? HTTPURLResponse,
               (200 ... 299).contains(httpResponse.statusCode)
@@ -2538,11 +2593,12 @@ class BiliAPI {
     }
 
     private func fetchVideoShotTimestamps(from rawURL: String) async throws -> [TimeInterval] {
+        let account = LoginSession.shared.account(for: .playback)
         guard let url = normalizeBilibiliURL(rawURL) else {
             throw APIError.invalidURL
         }
 
-        let request = makeRequest(url: url)
+        let request = makeRequest(account: account, url: url)
         let (data, response) = try await URLSession.shared.data(for: request)
         guard let httpResponse = response as? HTTPURLResponse,
               (200 ... 299).contains(httpResponse.statusCode)
@@ -2596,23 +2652,9 @@ class BiliAPI {
         cid: Int,
         progress: Int
     ) async throws {
-        var components = URLComponents(
-            string: "https://api.bilibili.com/x/v2/history/report"
-        )
-        components?.queryItems = [
-            URLQueryItem(name: "aid", value: String(aid)),
-            URLQueryItem(name: "cid", value: String(cid)),
-            URLQueryItem(name: "progress", value: String(progress)),
-            URLQueryItem(name: "platform", value: "web"),
-            URLQueryItem(name: "csrf", value: LoginSession.shared.cookies?.bili_jct ?? "")
-        ]
-
-        guard let url = components?.url else {
-            throw APIError.invalidURL
-        }
-
-        var request = makeRequest(url: url)
-        request.httpMethod = "POST"
+        guard let request = AccountRequest.historyRequest(
+            state: LoginSession.shared.snapshot, aid: aid, cid: cid, progress: progress
+        ) else { return }
 
         let (_, response) = try await URLSession.shared.data(for: request)
 
@@ -2640,6 +2682,7 @@ class BiliAPI {
         cid: Int,
         segmentIndex: Int = 1
     ) async throws -> Data {
+        let account = LoginSession.shared.account(for: .main)
         var components = URLComponents(
             string: "https://api.bilibili.com/x/v2/dm/web/seg.so"
         )
@@ -2653,7 +2696,7 @@ class BiliAPI {
             throw APIError.invalidURL
         }
 
-        var request = makeRequest(url: url)
+        var request = makeRequest(account: account, url: url)
         request.setValue("https://www.bilibili.com", forHTTPHeaderField: "Referer")
         request.setValue(
             "Mozilla/5.0 (iPhone; CPU iPhone OS 18_2 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.2 Mobile/15E148 Safari/604.1",

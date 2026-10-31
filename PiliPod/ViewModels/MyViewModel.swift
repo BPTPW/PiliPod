@@ -14,6 +14,7 @@ final class MyViewModel: ObservableObject {
     @Published var stat: MyStat?
 
     func loadUser() async {
+        let accountID = LoginSession.shared.selectedID(for: .main)
         guard LoginSession.shared.isLogin else {
             user = nil
             stat = nil
@@ -24,8 +25,11 @@ final class MyViewModel: ObservableObject {
             async let userInfo = BiliAPI.shared.fetchMyInfo()
             async let userStat = BiliAPI.shared.fetchMyStat()
 
-            user = try await userInfo
-            stat = try await userStat
+            let loadedUser = try await userInfo
+            let loadedStat = try await userStat
+            guard !Task.isCancelled, accountID == LoginSession.shared.selectedID(for: .main) else { return }
+            user = loadedUser
+            stat = loadedStat
         } catch {
             ErrorLogService.record(error, context: "加载我的资料")
             print(error)

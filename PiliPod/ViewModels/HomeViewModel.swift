@@ -69,10 +69,12 @@ class HomeViewModel {
     private var appNextIdx: Int = 0
 
     func loadUserIfNeeded() async {
+        let accountID = LoginSession.shared.selectedID(for: .main)
         guard LoginSession.shared.isLogin else { return }
 
         do {
             let user = try await BiliAPI.shared.fetchMyInfo()
+            guard !Task.isCancelled, accountID == LoginSession.shared.selectedID(for: .main) else { return }
             userFace = user.face
         } catch {
             ErrorLogService.record(error, context: "加载账号头像")
@@ -81,6 +83,7 @@ class HomeViewModel {
     }
 
     func loadUnreadMessageCount(force: Bool = false) async {
+        let accountID = LoginSession.shared.selectedID(for: .main)
         guard LoginSession.shared.isLogin else {
             unreadMessageCount = 0
             unreadReplyCount = 0
@@ -89,6 +92,16 @@ class HomeViewModel {
             return
         }
 
+        if force {
+            unreadMessageCount = 0
+            unreadReplyCount = 0
+            unreadAtCount = 0
+            unreadLikeCount = 0
+            while isLoadingUnreadMessageCount {
+                guard !Task.isCancelled else { return }
+                await Task.yield()
+            }
+        }
         guard !isLoadingUnreadMessageCount else { return }
         if !force,
            let lastRequest = lastUnreadMessageRequestAt,
@@ -101,6 +114,7 @@ class HomeViewModel {
         defer { isLoadingUnreadMessageCount = false }
         do {
             let counts = try await BiliAPI.shared.fetchUnreadMessageCounts()
+            guard !Task.isCancelled, accountID == LoginSession.shared.selectedID(for: .main) else { return }
             unreadMessageCount = counts.total
             unreadReplyCount = counts.reply
             unreadAtCount = counts.at
@@ -120,6 +134,19 @@ class HomeViewModel {
         await loadUnreadMessageCount()
     }
 
+    func reloadForAccountChange() async {
+        while isLoading {
+            guard !Task.isCancelled else { return }
+            await Task.yield()
+        }
+        guard !Task.isCancelled else { return }
+        sections = []
+        feedCards = []
+        refreshMarkerIndex = nil
+        hasLoaded = false
+        await loadInitialVideos()
+    }
+
     // MARK: - 统一推荐入口
 
     func loadInitialVideos() async {
@@ -135,6 +162,7 @@ class HomeViewModel {
     }
 
     func refreshVideos() async {
+        let accountID = LoginSession.shared.selectedID(for: .recommendation)
         if isLoading { return }
 
         let latestMode = RecommendSettingsStore.loadSource()
@@ -164,6 +192,7 @@ class HomeViewModel {
                 let newVideos = try await BiliAPI.shared.fetchRecommendVideos(
                     freshIdx: freshIdx, freshType: 3, brush: brush
                 )
+                guard !Task.isCancelled, accountID == LoginSession.shared.selectedID(for: .recommendation) else { return }
                 // 下拉刷新：将新视频作为独立 section 插入顶部，旧内容放在下方
                 let newSection = VideoSection(title: "上次看到这", videos: newVideos)
                 sections.insert(newSection, at: 0)
@@ -177,6 +206,7 @@ class HomeViewModel {
                 let (cards, nextIdx) = try await BiliAPI.shared.fetchAppRecommendFeed(
                     idx: 0, flush: 1
                 )
+                guard !Task.isCancelled, accountID == LoginSession.shared.selectedID(for: .recommendation) else { return }
                 // 下拉刷新：新内容插入到已有列表顶部
                 feedCards.insert(contentsOf: cards, at: 0)
                 refreshMarkerIndex = cards.count
@@ -189,6 +219,7 @@ class HomeViewModel {
     }
 
     func loadMoreVideos() async {
+        let accountID = LoginSession.shared.selectedID(for: .recommendation)
         if isLoading { return }
 
         isLoading = true
@@ -204,6 +235,7 @@ class HomeViewModel {
                 let moreVideos = try await BiliAPI.shared.fetchRecommendVideos(
                     freshIdx: freshIdx, freshType: 4, brush: brush
                 )
+                guard !Task.isCancelled, accountID == LoginSession.shared.selectedID(for: .recommendation) else { return }
                 if let lastIndex = sections.indices.last {
                     sections[lastIndex].videos.append(contentsOf: moreVideos)
                 }
@@ -217,6 +249,7 @@ class HomeViewModel {
                 let (cards, nextIdx) = try await BiliAPI.shared.fetchAppRecommendFeed(
                     idx: appNextIdx, flush: 0
                 )
+                guard !Task.isCancelled, accountID == LoginSession.shared.selectedID(for: .recommendation) else { return }
                 feedCards.append(contentsOf: cards)
                 appNextIdx = nextIdx
             } catch {
@@ -237,12 +270,14 @@ class HomeViewModel {
     }
 
     private func fetchInitialVideosForCurrentMode() async {
+        let accountID = LoginSession.shared.selectedID(for: .recommendation)
         switch apiMode {
         case .web:
             do {
                 let videos = try await BiliAPI.shared.fetchRecommendVideos(
                     freshIdx: freshIdx, freshType: 4, brush: brush
                 )
+                guard !Task.isCancelled, accountID == LoginSession.shared.selectedID(for: .recommendation) else { return }
                 sections = [VideoSection(title: nil, videos: videos)]
                 feedCards = []
             } catch {
@@ -255,6 +290,7 @@ class HomeViewModel {
                 let (cards, nextIdx) = try await BiliAPI.shared.fetchAppRecommendFeed(
                     idx: 0, flush: 1
                 )
+                guard !Task.isCancelled, accountID == LoginSession.shared.selectedID(for: .recommendation) else { return }
                 feedCards = cards
                 sections = []
                 appNextIdx = nextIdx

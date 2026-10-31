@@ -4146,10 +4146,7 @@ private actor VideoShotSpriteLoader {
             forHTTPHeaderField: "User-Agent"
         )
 
-        let cookie = LoginSession.shared.cookieString
-        if !cookie.isEmpty {
-            request.setValue(cookie, forHTTPHeaderField: "Cookie")
-        }
+        AccountRequest.apply(LoginSession.shared.account(for: .playback), to: &request)
 
         guard let (data, response) = try? await URLSession.shared.data(for: request),
               let httpResponse = response as? HTTPURLResponse,

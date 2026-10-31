@@ -21,6 +21,9 @@ struct MyView: View {
             VStack(spacing: 20) {
                 // 顶部按钮
                 HStack {
+                    NavigationLink { AccountSettingsView() } label: {
+                        Label(loginSession.incognito ? "无痕模式" : "账号", systemImage: loginSession.incognito ? "eye.slash" : "person.2")
+                    }
                     Spacer()
                     NavigationLink {
                         SettingsView()
@@ -43,21 +46,14 @@ struct MyView: View {
 
                 Spacer()
             }
-            .task {
+            .task(id: loginSession.selectedID(for: .main)) {
+                viewModel.user = nil
                 await viewModel.loadUser()
             }
             .fullScreenCover(isPresented: $showLoginSheet) {
                 LoginPageView()
             }
-            .onReceive(loginSession.$isLogin) { isLogin in
-                if isLogin {
-                    Task {
-                        await viewModel.loadUser()
-                    }
-                } else {
-                    viewModel.user = nil
-                }
-            }
+
             .navigationDestination(isPresented: $showHistory) {
                 HistoryView()
             }
@@ -65,7 +61,7 @@ struct MyView: View {
                 OfflineCacheView(initialPrefill: nil)
             }
             .navigationDestination(isPresented: $showWatchLater) {
-                WatchLaterView()
+                WatchLaterView().id(loginSession.selectedID(for: .main))
             }
             .navigationDestination(item: $followingRoute) { route in
                 FollowingListView(mid: route.mid)

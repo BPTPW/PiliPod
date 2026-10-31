@@ -52,7 +52,7 @@ final class SubtitleTrackLoader {
             var request = URLRequest(url: url)
             request.setValue("Mozilla/5.0 BiliIOS/1.0", forHTTPHeaderField: "User-Agent")
             request.setValue("https://www.bilibili.com/", forHTTPHeaderField: "Referer")
-            request.setValue(LoginSession.shared.cookieString, forHTTPHeaderField: "Cookie")
+            AccountRequest.apply(LoginSession.shared.account(for: .playback), to: &request)
             let (data, response) = try await URLSession.shared.data(for: request)
             guard loadingTrackID == trackID else { return }
             guard let httpResponse = response as? HTTPURLResponse,

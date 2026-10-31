@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct HistoryView: View {
+    @ObservedObject private var session = LoginSession.shared
     @StateObject private var viewModel = HistoryViewModel()
     @Namespace private var videoHeroNamespace
     @State private var selectedVideo: VideoItem?
@@ -69,8 +70,8 @@ struct HistoryView: View {
                 )
             }
         }
-        .task {
-            await viewModel.refresh()
+        .task(id: session.selectedID(for: .history)) {
+            await viewModel.refresh(force: true)
         }
     }
 }

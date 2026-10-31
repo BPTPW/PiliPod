@@ -127,6 +127,7 @@ final class LiveDanmakuService: NSObject {
 
             var request = URLRequest(url: url)
             request.timeoutInterval = 30
+            request.httpShouldHandleCookies = false
             let cookie = LoginSession.shared.cookieString
             if !cookie.isEmpty {
                 request.setValue(cookie, forHTTPHeaderField: "Cookie")

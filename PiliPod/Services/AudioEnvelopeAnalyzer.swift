@@ -190,6 +190,7 @@ final class AudioEnvelopeAnalyzer: @unchecked Sendable {
 
     private static func fetch(_ url: URL, range: ByteRange, headers: [String: String]) async throws -> Data {
         var request = URLRequest(url: url)
+        request.httpShouldHandleCookies = false
         request.setValue("bytes=\(range.start)-\(range.end)", forHTTPHeaderField: "Range")
         request.timeoutInterval = 20
         headers.forEach { request.setValue($0.value, forHTTPHeaderField: $0.key) }

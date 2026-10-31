@@ -1311,7 +1311,7 @@ final class OfflineCacheManager: ObservableObject {
 
     private func makeMediaRequest(url: URL) -> URLRequest {
         var request = URLRequest(url: url)
-        request.setValue(LoginSession.shared.cookieString, forHTTPHeaderField: "Cookie")
+        AccountRequest.apply(LoginSession.shared.account(for: .playback), to: &request)
         request.setValue("https://www.bilibili.com", forHTTPHeaderField: "Referer")
         request.setValue("Mozilla/5.0 BiliIOS/1.0", forHTTPHeaderField: "User-Agent")
         return request
