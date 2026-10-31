@@ -20,6 +20,8 @@ final class LoginViewModel: ObservableObject {
     @Published var phoneVerifyContext: PhoneVerifyContext?
     @Published var loginSucceeded = false
     @Published var phoneVerifyMessage: String?
+    /// 最后一次手机验证码发送流程的结果，true 表示短信已成功发出
+    @Published var phoneVerifySMSSent = false
 
     struct GeetestContext: Identifiable {
         let id = UUID()
@@ -118,19 +120,20 @@ final class LoginViewModel: ObservableObject {
         guard let context = phoneVerifyContext else { return }
         isLoading = true
         phoneVerifyMessage = nil
+        errorMessage = nil
+        phoneVerifySMSSent = false
         defer { isLoading = false }
 
         let preCaptureRes = await authService.preCapture()
         switch preCaptureRes {
         case .failure(let error):
-            phoneVerifyMessage = "获取极验参数失败：\(error.localizedDescription)"
+            errorMessage = "获取极验参数失败：\(error.localizedDescription)"
         case .success(let pre):
             geetestContext = GeetestContext(
                 recaptchaToken: pre.recaptchaToken,
                 gt: pre.gt,
                 challenge: pre.challenge
             )
-            phoneVerifyMessage = "请先完成人机验证后发送短信"
 
             // 记录短信发送所需上下文
             pendingSmsContext = (
@@ -144,6 +147,9 @@ final class LoginViewModel: ObservableObject {
     func submitPhoneVerifyGeetest(_ result: GeetestValidateResult) async {
         guard let pending = pendingSmsContext else { return }
         isLoading = true
+        phoneVerifyMessage = nil
+        errorMessage = nil
+        phoneVerifySMSSent = false
         defer { isLoading = false }
 
         let sendRes = await authService.safeCenterSmsCode(
@@ -158,28 +164,31 @@ final class LoginViewModel: ObservableObject {
         switch sendRes {
         case .success(let captchaKey):
             phoneVerifyMessage = "短信验证码已发送，请查收"
+            phoneVerifySMSSent = true
             if var context = phoneVerifyContext {
                 context.captchaKey = captchaKey
                 phoneVerifyContext = context
             }
         case .failure(let error):
-            phoneVerifyMessage = "发送短信验证码失败：\(error.localizedDescription)"
+            errorMessage = "发送短信验证码失败：\(error.localizedDescription)"
         }
     }
 
     func submitPhoneVerifyCode(_ code: String) async {
         guard let context = phoneVerifyContext else { return }
         guard !code.isEmpty else {
-            phoneVerifyMessage = "请输入短信验证码"
+            errorMessage = "请输入短信验证码"
             return
         }
         guard let captchaKey = context.captchaKey, !captchaKey.isEmpty else {
-            phoneVerifyMessage = "请先发送短信验证码"
+            errorMessage = "请先发送短信验证码"
             return
         }
 
         isLoading = true
         phoneVerifyMessage = nil
+        errorMessage = nil
+        phoneVerifySMSSent = false
         defer { isLoading = false }
 
         let verifyRes = await authService.safeCenterSmsVerify(

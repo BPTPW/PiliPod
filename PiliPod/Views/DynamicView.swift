@@ -11,12 +11,29 @@ struct DynamicView: View {
     var body: some View {
         NavigationStack {
             ScrollView {
-                content
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 12)
+                if !viewModel.isLoading && viewModel.errorMessage == nil && !viewModel.items.isEmpty {
+                    LazyVStack(spacing: 12) {
+                        ForEach(viewModel.items) { item in
+                            DynamicCardView(
+                                item: item,
+                                onVideoTap: openVideo,
+                                onLiveTap: openLive,
+                                onAuthorTap: { selectedAuthorMID = $0 },
+                                onCommentTap: { _ in selectedDynamic = item },
+                                onTapDetail: { selectedDynamic = item }
+                            )
+                            .onAppear { Task { await viewModel.loadMoreIfNeeded(current: item) } }
+                        }
+                        if viewModel.isLoading {
+                            ProgressView().padding(.vertical, 8)
+                        } else if !viewModel.hasMore {
+                            Text("没有更多动态").font(.caption).foregroundStyle(.secondary).padding(.vertical, 8)
+                        }
+                    }
+                }
             }
-            .background(Color(.systemGroupedBackground))
             .navigationTitle("动态")
+            .navigationBarTitleDisplayMode(.inline)
             .refreshable { await viewModel.refresh() }
             .task { await viewModel.refresh() }
             .navigationDestination(item: $selectedVideo) { video in
@@ -41,6 +58,22 @@ struct DynamicView: View {
                 )
             }
         }
+        .overlay {
+            if let error = viewModel.errorMessage, viewModel.items.isEmpty {
+                ContentUnavailableView {
+                    Label(error, systemImage: "exclamationmark.triangle")
+                } actions: {
+                    Button("重试") { Task { await viewModel.refresh() } }
+                        .buttonStyle(.borderless)
+                }
+            } else if !viewModel.isLoading && viewModel.errorMessage == nil && viewModel.items.isEmpty {
+                ContentUnavailableView {
+                    Label("暂无动态", image: "DynamicIcon")
+                }
+            } else if viewModel.isLoading && viewModel.items.isEmpty {
+                ProgressView()
+            }
+        }
     }
 
     @ViewBuilder
@@ -48,16 +81,9 @@ struct DynamicView: View {
         if viewModel.isLoading && viewModel.items.isEmpty {
             ProgressView("加载动态中…")
                 .frame(maxWidth: .infinity, minHeight: 240)
-        } else if let error = viewModel.errorMessage, viewModel.items.isEmpty {
-            VStack(spacing: 12) {
-                Text(error).font(.subheadline).foregroundStyle(.secondary).multilineTextAlignment(.center)
-                Button("重试") { Task { await viewModel.refresh() } }
-                    .buttonStyle(.borderedProminent)
-            }
-            .frame(maxWidth: .infinity, minHeight: 240)
-        } else if viewModel.items.isEmpty {
+        } else if viewModel.errorMessage == nil && viewModel.items.isEmpty {
             Text("暂无动态").foregroundStyle(.secondary).frame(maxWidth: .infinity, minHeight: 240)
-        } else {
+        } else if viewModel.errorMessage == nil && !viewModel.items.isEmpty {
             LazyVStack(spacing: 12) {
                 ForEach(viewModel.items) { item in
                     DynamicCardView(
