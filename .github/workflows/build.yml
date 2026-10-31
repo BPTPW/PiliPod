@@ -23,48 +23,17 @@ jobs:
             - name: Set up Xcode Version
               uses: maxim-lobanov/setup-xcode@v1
               with:
-                  xcode-version: '26.6' # 与本地开发环境保持一致，避免 CI 随 runner 漂移
+                  xcode-version: '26.6' # 与 PR 构建检查一致，避免 CI 随 runner 漂移
 
             - name: Generate Build Number & Build IPA
               id: build_ipa
+              env:
+                  TAG_NAME: ${{ inputs.tag_name }}
               run: |
-                  # 1. 获取 Git 总提交次数作为构建编号 (Build Number)
                   BUILD_NUMBER=$(git rev-list --count HEAD)
-                  echo "BUILD_NUMBER=$BUILD_NUMBER" >> $GITHUB_ENV
-
-                  TAG_NAME="${{ inputs.tag_name }}"
-                  IPA_NAME="PiliPod ${TAG_NAME}+${BUILD_NUMBER}.ipa"
-                  echo "IPA_NAME=$IPA_NAME" >> $GITHUB_ENV
-
-                  echo "开始打包，版本号: ${TAG_NAME}, 构建号: ${BUILD_NUMBER}"
-
-                  # 2. 自动检测是 Workspace 还是 Project
-                  if [ -d "PiliPod.xcworkspace" ]; then
-                    BUILD_CMD="-workspace PiliPod.xcworkspace"
-                  else
-                    BUILD_CMD="-project PiliPod.xcodeproj"
-                  fi
-
-                  # 3. 编译生成未签名的 Archive，并动态注入版本号
-                  xcodebuild archive \
-                    $BUILD_CMD \
-                    -scheme PiliPod \
-                    -configuration Release \
-                    -archivePath build/PiliPod.xcarchive \
-                    CODE_SIGNING_ALLOWED=NO \
-                    CODE_SIGNING_REQUIRED=NO \
-                    CODE_SIGN_IDENTITY="" \
-                    PROVISIONING_PROFILE_SPECIFIER="" \
-                    MARKETING_VERSION="${TAG_NAME}" \
-                    CURRENT_PROJECT_VERSION="${BUILD_NUMBER}"
-                    
-                  # 4. 将解包出的 .app 文件夹包装为未签名的 .ipa 文件
-                  mkdir -p build/Payload
-                  cp -R build/PiliPod.xcarchive/Products/Applications/PiliPod.app build/Payload/
-                  cd build
-                  zip -r "$IPA_NAME" Payload
-
-                  echo "IPA 导出成功: $IPA_NAME"
+                  Scripts/build-app.sh "$TAG_NAME" "$BUILD_NUMBER"
+                  printf 'BUILD_NUMBER=%s\nIPA_NAME=PiliPod %s+%s.ipa\n' \
+                    "$BUILD_NUMBER" "$TAG_NAME" "$BUILD_NUMBER" >> "$GITHUB_ENV"
 
             - name: Generate Custom Changelog
               id: changelog
