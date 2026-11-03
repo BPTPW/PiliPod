@@ -77,6 +77,12 @@ struct FavoriteVideoListView: View {
         }
         .toolbar {
             ToolbarItemGroup(placement: .topBarTrailing) {
+                Button {
+                    isSearchPresented = true
+                } label: {
+                    Image(systemName: "magnifyingglass")
+                }
+                
                 Menu {
                     ForEach(FavoriteVideoListViewModel.SortOption.allCases) { option in
                         Button {
@@ -91,12 +97,6 @@ struct FavoriteVideoListView: View {
                     }
                 } label: {
                     Image(systemName: "arrow.up.arrow.down")
-                }
-
-                Button {
-                    isSearchPresented = true
-                } label: {
-                    Image(systemName: "magnifyingglass")
                 }
             }
         }
