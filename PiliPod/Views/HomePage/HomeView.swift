@@ -307,6 +307,14 @@ struct HomeView: View {
                         }
                         .padding(.horizontal, horizontalPadding)
                     }
+                } else if viewModel.sections.isEmpty && !viewModel.hasLoaded {
+                    LazyVGrid(columns: columns, spacing: 18) {
+                        ForEach(0 ..< 16, id: \.self) { _ in
+                            VideoCardSkeletonView(thumbnailWidth: videoCardWidth)
+                        }
+                    }
+                    .padding(.horizontal, horizontalPadding)
+                    .transition(.opacity)
                 } else {
                     ForEach(viewModel.sections) { section in
                         if let title = section.title {
