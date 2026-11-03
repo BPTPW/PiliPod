@@ -2311,6 +2311,42 @@ class BiliAPI {
         return result
     }
 
+    // MARK: - 获取收藏夹内容明细
+
+    func fetchFavoriteResources(
+        mediaId: Int64,
+        pn: Int = 1,
+        ps: Int = 20
+    ) async throws -> FavoriteResourceListData {
+        var components = URLComponents(
+            string: "https://api.bilibili.com/x/v3/fav/resource/list"
+        )
+        components?.queryItems = [
+            URLQueryItem(name: "media_id", value: String(mediaId)),
+            URLQueryItem(name: "pn", value: String(pn)),
+            URLQueryItem(name: "ps", value: String(ps)),
+            URLQueryItem(name: "order", value: "mtime")
+        ]
+
+        guard let url = components?.url else {
+            throw APIError.invalidURL
+        }
+
+        let request = makeRequest(url: url)
+        let (data, _) = try await URLSession.shared.data(for: request)
+
+        let response = try JSONDecoder().decode(
+            FavoriteResourceListResponse.self,
+            from: data
+        )
+
+        if response.code != 0 {
+            throw APIError.responseError(response.code)
+        }
+
+        return response.data ?? FavoriteResourceListData(medias: nil, hasMore: false)
+    }
+
     // MARK: - 收藏资源变更
 
     func dealFavoriteResource(
