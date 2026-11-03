@@ -2273,6 +2273,44 @@ class BiliAPI {
         return response.data?.list ?? []
     }
 
+    // MARK: - 获取收藏夹列表（分页）
+
+    func fetchFavoriteFolderPage(
+        upMid: Int64,
+        pn: Int = 1,
+        ps: Int = 20
+    ) async throws -> FavoriteFolderListData {
+        var components = URLComponents(
+            string: "https://api.bilibili.com/x/v3/fav/folder/created/list"
+        )
+        components?.queryItems = [
+            URLQueryItem(name: "pn", value: String(pn)),
+            URLQueryItem(name: "ps", value: String(ps)),
+            URLQueryItem(name: "up_mid", value: String(upMid))
+        ]
+
+        guard let url = components?.url else {
+            throw APIError.invalidURL
+        }
+
+        let request = makeRequest(url: url)
+        let (data, _) = try await URLSession.shared.data(for: request)
+
+        let response = try JSONDecoder().decode(
+            FavoriteFolderListResponse.self,
+            from: data
+        )
+
+        if response.code != 0 {
+            throw APIError.responseError(response.code)
+        }
+
+        guard let result = response.data else {
+            throw APIError.requestFailed
+        }
+        return result
+    }
+
     // MARK: - 收藏资源变更
 
     func dealFavoriteResource(

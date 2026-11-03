@@ -17,6 +17,13 @@ struct FavoriteFolderListResponse: Codable {
 struct FavoriteFolderListData: Codable {
     let count: Int
     let list: [FavoriteFolderItem]?
+    let hasMore: Bool?
+
+    enum CodingKeys: String, CodingKey {
+        case count
+        case list
+        case hasMore = "has_more"
+    }
 }
 
 struct FavoriteFolderItem: Codable, Identifiable, Hashable {
@@ -27,6 +34,7 @@ struct FavoriteFolderItem: Codable, Identifiable, Hashable {
     let title: String
     let favState: Int
     let mediaCount: Int
+    let cover: String?
 
     var isPrivate: Bool { (attr & 1) == 1 }
     var isDefault: Bool { (attr & 2) == 2 }
@@ -40,5 +48,6 @@ struct FavoriteFolderItem: Codable, Identifiable, Hashable {
         case title
         case favState = "fav_state"
         case mediaCount = "media_count"
+        case cover
     }
 }

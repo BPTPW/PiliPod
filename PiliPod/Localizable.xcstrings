@@ -10,44 +10,6 @@
     " 在评论中@了我" : {
 
     },
-    "-%@" : {
-
-    },
-    "—粉丝  —视频" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "—Followers  —Videos"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "—フォロワー  —動画"
-          }
-        }
-      }
-    },
-    "(%@ 的生命)" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "(%@ of Life)"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "(%@の命)"
-          }
-        }
-      }
-    },
-    "@%@" : {
-
-    },
     "%@ · %@" : {
       "localizations" : {
         "en" : {
@@ -66,6 +28,28 @@
           "stringUnit" : {
             "state" : "new",
             "value" : "%1$@ · %2$@"
+          }
+        }
+      }
+    },
+    "%@/%@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@/%2$@"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@/%2$@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@/%2$@"
           }
         }
       }
@@ -120,28 +104,6 @@
           "stringUnit" : {
             "state" : "new",
             "value" : "%1$@: %2$@"
-          }
-        }
-      }
-    },
-    "%@/%@" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%1$@/%2$@"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%1$@/%2$@"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "%1$@/%2$@"
           }
         }
       }
@@ -240,11 +202,11 @@
     "%lld" : {
       "shouldTranslate" : false
     },
-    "%lld/1000" : {
-      "shouldTranslate" : false
-    },
     "%lld%%" : {
 
+    },
+    "%lld/1000" : {
+      "shouldTranslate" : false
     },
     "%llds" : {
       "localizations" : {
@@ -293,69 +255,24 @@
     "%lld级" : {
 
     },
-    "• 视频同步: mpv的--video-sync" : {
+    "(%@ 的生命)" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "• Video synchronisation: the --video-sync parameter in mpv"
+            "value" : "(%@ of Life)"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "• 映像同期: mpvの--video-sync"
+            "value" : "(%@の命)"
           }
         }
       }
     },
-    "• 私人ID可以自行设置，要求至少为30个字符长度的纯字符串，首次启动时会生成随机字符串。" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "• You can set your own private ID; it must be a string consisting solely of characters and at least 30 characters long. A random string will be generated when the application is launched for the first time."
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "• プライベートIDは自分で設定できます。30文字以上の純粋な文字列である必要があり、初回起動時にはランダムな文字列が生成されます。"
-          }
-        }
-      }
-    },
-    "• 私人ID应该被保密。如果他人获得了你的私人ID，他就可以冒充你。服务器不会保存任何私人ID，如果你不幸弄丢了私人ID，那就再也没办法找回了。" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "• Your private ID should be kept confidential. If someone else obtains your private ID, they will be able to impersonate you. The server does not store any private IDs, so if you are unfortunate enough to lose your private ID, there is no way to recover it."
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "• プライベートIDは秘密にしておく必要があります。他人があなたのプライベートIDを入手すると、あなたになりすますことができます。サーバーはプライベートIDを一切保存しないため、万が一プライベートIDを失くした場合、二度と取り戻すことはできません。"
-          }
-        }
-      }
-    },
-    "• 自动同步: mpv的--autosync" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "• Automatic synchronisation: the --autosync parameter in mpv"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "• 自動同期: mpvの--autosync"
-          }
-        }
-      }
+    "-%@" : {
+
     },
     "0" : {
       "shouldTranslate" : false
@@ -367,6 +284,9 @@
 
     },
     "50 条" : {
+
+    },
+    "@%@" : {
 
     },
     "Aa" : {
@@ -447,6 +367,127 @@
         }
       }
     },
+    "HLS Bridge" : {
+
+    },
+    "LIVE" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LIVE"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LIVE"
+          }
+        }
+      }
+    },
+    "Library/Caches" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Library/Caches"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Library/Caches"
+          }
+        }
+      }
+    },
+    "P%lld" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "P%lld"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "P%lld"
+          }
+        }
+      }
+    },
+    "PiliPod" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "PiliPod"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "PiliPod"
+          }
+        }
+      }
+    },
+    "UID: %@  IP属地: %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "UID: %1$@  IP location: %2$@"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "UID: %1$@  IP所在地: %2$@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "UID: %1$@  IP属地: %2$@"
+          }
+        }
+      }
+    },
+    "UP主觉得很赞" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Liked by the creator"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "投稿者がとても気に入っています"
+          }
+        }
+      }
+    },
+    "URL 响应缓存" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "URL response cache"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "URL レスポンスキャッシュ"
+          }
+        }
+      }
+    },
     "envelope loading" : {
 
     },
@@ -476,43 +517,8 @@
     "frames %lld" : {
 
     },
-    "HLS Bridge" : {
-
-    },
     "https://www.bsbsb.top" : {
       "shouldTranslate" : false
-    },
-    "Library/Caches" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Library/Caches"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Library/Caches"
-          }
-        }
-      }
-    },
-    "LIVE" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "LIVE"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "LIVE"
-          }
-        }
-      }
     },
     "my.followers" : {
       "extractionState" : "manual",
@@ -583,22 +589,6 @@
         }
       }
     },
-    "P%lld" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "P%lld"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "P%lld"
-          }
-        }
-      }
-    },
     "paused" : {
 
     },
@@ -644,22 +634,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "公开"
-          }
-        }
-      }
-    },
-    "PiliPod" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "PiliPod"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "PiliPod"
           }
         }
       }
@@ -771,60 +745,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "tmp 一時ディレクトリ"
-          }
-        }
-      }
-    },
-    "UID: %@  IP属地: %@" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "UID: %1$@  IP location: %2$@"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "UID: %1$@  IP所在地: %2$@"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "UID: %1$@  IP属地: %2$@"
-          }
-        }
-      }
-    },
-    "UP主觉得很赞" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Liked by the creator"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "投稿者がとても気に入っています"
-          }
-        }
-      }
-    },
-    "URL 响应缓存" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "URL response cache"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "URL レスポンスキャッシュ"
           }
         }
       }
@@ -963,6 +883,86 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "简介"
+          }
+        }
+      }
+    },
+    "—粉丝  —视频" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "—Followers  —Videos"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "—フォロワー  —動画"
+          }
+        }
+      }
+    },
+    "• 私人ID可以自行设置，要求至少为30个字符长度的纯字符串，首次启动时会生成随机字符串。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "• You can set your own private ID; it must be a string consisting solely of characters and at least 30 characters long. A random string will be generated when the application is launched for the first time."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "• プライベートIDは自分で設定できます。30文字以上の純粋な文字列である必要があり、初回起動時にはランダムな文字列が生成されます。"
+          }
+        }
+      }
+    },
+    "• 私人ID应该被保密。如果他人获得了你的私人ID，他就可以冒充你。服务器不会保存任何私人ID，如果你不幸弄丢了私人ID，那就再也没办法找回了。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "• Your private ID should be kept confidential. If someone else obtains your private ID, they will be able to impersonate you. The server does not store any private IDs, so if you are unfortunate enough to lose your private ID, there is no way to recover it."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "• プライベートIDは秘密にしておく必要があります。他人があなたのプライベートIDを入手すると、あなたになりすますことができます。サーバーはプライベートIDを一切保存しないため、万が一プライベートIDを失くした場合、二度と取り戻すことはできません。"
+          }
+        }
+      }
+    },
+    "• 自动同步: mpv的--autosync" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "• Automatic synchronisation: the --autosync parameter in mpv"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "• 自動同期: mpvの--autosync"
+          }
+        }
+      }
+    },
+    "• 视频同步: mpv的--video-sync" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "• Video synchronisation: the --video-sync parameter in mpv"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "• 映像同期: mpvの--video-sync"
           }
         }
       }
@@ -1378,25 +1378,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "その他の設定"
-          }
-        }
-      }
-    },
-    "最多保留" : {
-
-    },
-    "最多播放" : {
-
-    },
-    "最新发布" : {
-
-    },
-    "最终选择" : {
-      "localizations" : {
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "最終の選択"
           }
         }
       }
@@ -2460,6 +2441,9 @@
         }
       }
     },
+    "我的收藏" : {
+
+    },
     "房间号 %@" : {
       "localizations" : {
         "en" : {
@@ -2964,6 +2948,25 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "現在、人気動画はありません"
+          }
+        }
+      }
+    },
+    "最多保留" : {
+
+    },
+    "最多播放" : {
+
+    },
+    "最新发布" : {
+
+    },
+    "最终选择" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "最終の選択"
           }
         }
       }
@@ -3697,115 +3700,6 @@
         }
       }
     },
-    "视频" : {
-
-    },
-    "视频参数" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Video Parameters"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "動画パラメータ"
-          }
-        }
-      }
-    },
-    "视频同步" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Video Sync"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "動画同期"
-          }
-        }
-      }
-    },
-    "视频后台播放" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Background Video Playback"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "動画のバックグラウンド再生"
-          }
-        }
-      }
-    },
-    "视频小窗播放" : {
-      "localizations" : {
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "ビデオの小窓再生"
-          }
-        }
-      }
-    },
-    "视频流信息" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Video Stream Information"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "動画ストリーム情報"
-          }
-        }
-      }
-    },
-    "视频画质" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Video Quality"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "動画画質"
-          }
-        }
-      }
-    },
-    "视频选集" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Episode Selection"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "動画のエピソード選択"
-          }
-        }
-      }
-    },
     "离线缓存" : {
       "localizations" : {
         "en" : {
@@ -4039,22 +3933,6 @@
         }
       }
     },
-    "缓存视频" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Cached Video"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "キャッシュ動画"
-          }
-        }
-      }
-    },
     "缓存管理" : {
       "localizations" : {
         "en" : {
@@ -4067,6 +3945,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "キャッシュ管理"
+          }
+        }
+      }
+    },
+    "缓存视频" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cached Video"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "キャッシュ動画"
           }
         }
       }
@@ -4209,6 +4103,115 @@
         }
       }
     },
+    "视频" : {
+
+    },
+    "视频参数" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Video Parameters"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "動画パラメータ"
+          }
+        }
+      }
+    },
+    "视频同步" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Video Sync"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "動画同期"
+          }
+        }
+      }
+    },
+    "视频后台播放" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Background Video Playback"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "動画のバックグラウンド再生"
+          }
+        }
+      }
+    },
+    "视频小窗播放" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ビデオの小窓再生"
+          }
+        }
+      }
+    },
+    "视频流信息" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Video Stream Information"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "動画ストリーム情報"
+          }
+        }
+      }
+    },
+    "视频画质" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Video Quality"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "動画画質"
+          }
+        }
+      }
+    },
+    "视频选集" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Episode Selection"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "動画のエピソード選択"
+          }
+        }
+      }
+    },
     "解码器" : {
       "localizations" : {
         "en" : {
@@ -4340,22 +4343,6 @@
         }
       }
     },
-    "跳过：%@" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Skip: %@"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "スキップ：%@"
-          }
-        }
-      }
-    },
     "跳过提示" : {
       "localizations" : {
         "en" : {
@@ -4384,6 +4371,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "スキップ回数の統計追跡"
+          }
+        }
+      }
+    },
+    "跳过：%@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Skip: %@"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "スキップ：%@"
           }
         }
       }
@@ -4438,6 +4441,9 @@
           }
         }
       }
+    },
+    "还没有收藏夹" : {
+
     },
     "还没有观看记录" : {
       "localizations" : {
