@@ -7,6 +7,8 @@ struct FavoriteVideoListView: View {
     @StateObject private var viewModel: FavoriteVideoListViewModel
     @Namespace private var videoHeroNamespace
     @State private var selectedVideo: VideoItem?
+    @State private var searchText = ""
+    @State private var isSearchPresented = false
 
     init(folder: FavoriteFolderItem) {
         self.folder = folder
@@ -25,7 +27,7 @@ struct FavoriteVideoListView: View {
                         .foregroundStyle(.secondary)
                         .frame(maxWidth: .infinity, minHeight: 240)
                 } else if viewModel.videos.isEmpty {
-                    Text("收藏夹中还没有视频")
+                    Text(viewModel.keyword.isEmpty ? "收藏夹中还没有视频" : "没有找到相关内容")
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
                         .frame(maxWidth: .infinity, minHeight: 240)
@@ -58,6 +60,46 @@ struct FavoriteVideoListView: View {
         .navigationTitle(folder.title)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar(.hidden, for: .tabBar)
+        .searchable(
+            text: $searchText,
+            isPresented: $isSearchPresented,
+            placement: .navigationBarDrawer(displayMode: .automatic),
+            prompt: Text("搜索收藏夹内容")
+        )
+        .onSubmit(of: .search) {
+            Task { await viewModel.applyKeyword(searchText) }
+        }
+        .onChange(of: searchText) { _, newValue in
+            // 清除搜索框内容或点击取消时恢复完整列表
+            if newValue.isEmpty {
+                Task { await viewModel.applyKeyword("") }
+            }
+        }
+        .toolbar {
+            ToolbarItemGroup(placement: .topBarTrailing) {
+                Menu {
+                    ForEach(FavoriteVideoListViewModel.SortOption.allCases) { option in
+                        Button {
+                            Task { await viewModel.applySort(option) }
+                        } label: {
+                            if viewModel.sortOption == option {
+                                Label(option.title, systemImage: "checkmark")
+                            } else {
+                                Text(option.title)
+                            }
+                        }
+                    }
+                } label: {
+                    Image(systemName: "arrow.up.arrow.down")
+                }
+
+                Button {
+                    isSearchPresented = true
+                } label: {
+                    Image(systemName: "magnifyingglass")
+                }
+            }
+        }
         .navigationDestination(item: $selectedVideo) { video in
             if #available(iOS 18.0, *) {
                 VideoDetailPage(

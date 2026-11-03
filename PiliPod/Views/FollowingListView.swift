@@ -93,7 +93,7 @@ struct FollowingListView: View {
                         }
                     }
                 } label: {
-                    Image(systemName: "list.number")
+                    Image(systemName: "arrow.up.arrow.down")
                 }
             }
         }

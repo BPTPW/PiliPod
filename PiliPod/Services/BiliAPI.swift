@@ -2316,7 +2316,9 @@ class BiliAPI {
     func fetchFavoriteResources(
         mediaId: Int64,
         pn: Int = 1,
-        ps: Int = 20
+        ps: Int = 20,
+        keyword: String? = nil,
+        order: String = "mtime"
     ) async throws -> FavoriteResourceListData {
         var components = URLComponents(
             string: "https://api.bilibili.com/x/v3/fav/resource/list"
@@ -2325,8 +2327,11 @@ class BiliAPI {
             URLQueryItem(name: "media_id", value: String(mediaId)),
             URLQueryItem(name: "pn", value: String(pn)),
             URLQueryItem(name: "ps", value: String(ps)),
-            URLQueryItem(name: "order", value: "mtime")
+            URLQueryItem(name: "order", value: order)
         ]
+        if let keyword, !keyword.isEmpty {
+            components?.queryItems?.append(URLQueryItem(name: "keyword", value: keyword))
+        }
 
         guard let url = components?.url else {
             throw APIError.invalidURL
