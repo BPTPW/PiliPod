@@ -54,6 +54,14 @@ private struct PlayerSettingsView: View {
                 }
             }
             Section {
+                Toggle("直播进度同步", isOn: $settings.liveProgressSyncEnabled)
+                    .tint(Color("BiliPink"))
+            } header: {
+                Text("直播")
+            } footer: {
+                Text("直播延迟过大时，自动小幅加速播放以追上最新进度。仅支持 AVPlayer 内核。")
+            }
+            Section {
                 Toggle("氛围模式", isOn: $settings.ambientModeEnabled)
                     .tint(Color("BiliPink"))
                     .disabled(!supportsAmbientMode)
@@ -125,6 +133,7 @@ private struct PlayerSettingsView: View {
                     settings.allowsLiveBackgroundPlayback = defaultSettings.allowsLiveBackgroundPlayback
                     settings.allowsVideoPictureInPicture = defaultSettings.allowsVideoPictureInPicture
                     settings.allowsLivePictureInPicture = defaultSettings.allowsLivePictureInPicture
+                    settings.liveProgressSyncEnabled = defaultSettings.liveProgressSyncEnabled
                     settings.ambientModeEnabled = defaultSettings.ambientModeEnabled
                     settings.ambientSamplingRate = defaultSettings.ambientSamplingRate
                     settings.ambientGradientSpeed = defaultSettings.ambientGradientSpeed

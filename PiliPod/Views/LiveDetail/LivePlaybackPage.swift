@@ -36,6 +36,7 @@ struct LivePlaybackPage: View {
     @State private var fullscreenTrigger: FullscreenTrigger = .none
     @State private var mediaControlSyncTask: Task<Void, Never>?
     @State private var latencySync = LiveLatencySyncController()
+    @State private var isProgressSyncEnabled = AudioVideoSettingsStore.load().liveProgressSyncEnabled
     @State private var showStreamInfo = false
     @State private var liveStreamDiagnostics: LiveStreamDiagnostics?
     @State private var streamInfoRefreshTask: Task<Void, Never>?
@@ -82,6 +83,7 @@ struct LivePlaybackPage: View {
             UserSpaceView(mid: route.mid)
         }
         .onAppear {
+            isProgressSyncEnabled = AudioVideoSettingsStore.load().liveProgressSyncEnabled
             ManualPictureInPictureCoordinator.shared.stopIfNeeded()
 #if canImport(UIKit)
             setIdleTimerDisabled(playerUISnapshot.isPlaying)
@@ -492,7 +494,7 @@ struct LivePlaybackPage: View {
     /// Catches playback up to the live edge by briefly raising the rate; see
     /// `LiveLatencySyncController` for the policy.
     private func updateLatencySync(with snapshot: PlayerUIPlaybackSnapshot) {
-        guard player.usesAVPlayer, viewModel.streamURL != nil else { return }
+        guard isProgressSyncEnabled, player.usesAVPlayer, viewModel.streamURL != nil else { return }
         let rate = latencySync.update(
             currentTime: snapshot.currentTime,
             bufferedUntil: snapshot.bufferedUntil,

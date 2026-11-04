@@ -216,6 +216,7 @@ struct AudioVideoSettings: Codable, Equatable {
     var allowsLiveBackgroundPlayback = false
     var allowsVideoPictureInPicture = false
     var allowsLivePictureInPicture = false
+    var liveProgressSyncEnabled = true
     var ambientModeEnabled = false
     var ambientSamplingRate: AmbientSamplingRate = .fiveTimes
     var ambientGradientSpeed: AmbientGradientSpeed = .normal
@@ -245,6 +246,7 @@ struct AudioVideoSettings: Codable, Equatable {
         case allowsLiveBackgroundPlayback
         case allowsVideoPictureInPicture
         case allowsLivePictureInPicture
+        case liveProgressSyncEnabled
         case ambientModeEnabled
         case ambientSamplingRate
         case ambientGradientSpeed
@@ -293,6 +295,7 @@ struct AudioVideoSettings: Codable, Equatable {
         allowsLiveBackgroundPlayback = try container.decodeIfPresent(Bool.self, forKey: .allowsLiveBackgroundPlayback) ?? false
         allowsVideoPictureInPicture = try container.decodeIfPresent(Bool.self, forKey: .allowsVideoPictureInPicture) ?? false
         allowsLivePictureInPicture = try container.decodeIfPresent(Bool.self, forKey: .allowsLivePictureInPicture) ?? false
+        liveProgressSyncEnabled = try container.decodeIfPresent(Bool.self, forKey: .liveProgressSyncEnabled) ?? true
         ambientModeEnabled = try container.decodeIfPresent(Bool.self, forKey: .ambientModeEnabled) ?? false
         ambientSamplingRate = (try? container.decode(AmbientSamplingRate.self, forKey: .ambientSamplingRate)) ?? .fiveTimes
         ambientGradientSpeed = (try? container.decode(AmbientGradientSpeed.self, forKey: .ambientGradientSpeed)) ?? .normal

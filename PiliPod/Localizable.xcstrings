@@ -5429,6 +5429,54 @@
           }
         }
       }
+    },
+    "直播进度同步" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Live Progress Sync"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ライブ進行同期"
+          }
+        }
+      }
+    },
+    "直播" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Live"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ライブ"
+          }
+        }
+      }
+    },
+    "直播延迟过大时，自动小幅加速播放以追上最新进度。仅支持 AVPlayer 内核。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "When the live stream falls too far behind, playback speeds up slightly to catch up. AVPlayer core only."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ライブの遅延が大きい場合、わずかに速度を上げて最新に追いつきます。AVPlayer コアのみ対応。"
+          }
+        }
+      }
     }
   },
   "version" : "1.2"
