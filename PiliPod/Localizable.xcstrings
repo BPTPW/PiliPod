@@ -402,6 +402,9 @@
         }
       }
     },
+    "MEDIA-SEQUENCE" : {
+
+    },
     "P%lld" : {
       "localizations" : {
         "en" : {
@@ -433,6 +436,9 @@
           }
         }
       }
+    },
+    "TARGETDURATION" : {
+
     },
     "UID: %@  IP属地: %@" : {
       "localizations" : {
@@ -1015,6 +1021,22 @@
         }
       }
     },
+    "下载速度" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Download Speed"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ダウンロード速度"
+          }
+        }
+      }
+    },
     "不建议更改，除非你有自己的服务器。" : {
       "localizations" : {
         "en" : {
@@ -1049,6 +1071,22 @@
     },
     "不限" : {
 
+    },
+    "丢帧数" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dropped Frames"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ドロップフレーム数"
+          }
+        }
+      }
     },
     "为大家节省了 %@ 片段" : {
       "localizations" : {
@@ -1213,6 +1251,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "変更は次回ホームのおすすめ内容が更新される際に反映されます。"
+          }
+        }
+      }
+    },
+    "倍速调整次数" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rate Changes"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "速度変更回数"
           }
         }
       }
@@ -1449,6 +1503,22 @@
         }
       }
     },
+    "分辨率" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Resolution"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "解像度"
+          }
+        }
+      }
+    },
     "删除" : {
       "localizations" : {
         "en" : {
@@ -1672,6 +1742,22 @@
     "动态详情" : {
 
     },
+    "卡顿次数" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Stall Count"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "停止回数"
+          }
+        }
+      }
+    },
     "原动态不可用" : {
 
     },
@@ -1720,6 +1806,22 @@
     "可清理缓存总大小" : {
 
     },
+    "可跳转窗口余量" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Seekable Window Margin"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "シーク可能範囲の余裕"
+          }
+        }
+      }
+    },
     "同步" : {
       "localizations" : {
         "en" : {
@@ -1736,6 +1838,22 @@
         }
       }
     },
+    "同步状态" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sync State"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "同期状態"
+          }
+        }
+      }
+    },
     "后台播放" : {
       "localizations" : {
         "en" : {
@@ -1748,6 +1866,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "バックグラウンド再生"
+          }
+        }
+      }
+    },
+    "否" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "いいえ"
           }
         }
       }
@@ -1845,6 +1979,22 @@
         }
       }
     },
+    "声明码率" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Declared Bitrate"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "宣言ビットレート"
+          }
+        }
+      }
+    },
     "复制" : {
 
     },
@@ -1904,6 +2054,54 @@
     },
     "字幕设置" : {
 
+    },
+    "安全保持" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Safety Hold"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "安全保持"
+          }
+        }
+      }
+    },
+    "安全回退次数" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Safety Resets"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "安全リセット回数"
+          }
+        }
+      }
+    },
+    "实测码率" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Observed Bitrate"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "実測ビットレート"
+          }
+        }
+      }
     },
     "密码" : {
       "localizations" : {
@@ -2290,6 +2488,54 @@
         }
       }
     },
+    "已暂停" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Paused"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "一時停止中"
+          }
+        }
+      }
+    },
+    "帧率" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Frame Rate"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "フレームレート"
+          }
+        }
+      }
+    },
+    "平滑余量" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Smoothed Margin"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "平滑化した余裕"
+          }
+        }
+      }
+    },
     "弹幕" : {
       "localizations" : {
         "en" : {
@@ -2340,6 +2586,38 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "弾幕設定"
+          }
+        }
+      }
+    },
+    "当前倍速" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Current Rate"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "現在の再生速度"
+          }
+        }
+      }
+    },
+    "当前时间 currentTime" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Current Time (currentTime)"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "現在時刻 (currentTime)"
           }
         }
       }
@@ -2623,6 +2901,38 @@
     "播放" : {
 
     },
+    "播放中" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Playing"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "再生中"
+          }
+        }
+      }
+    },
+    "播放列表" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Playlist"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "プレイリスト"
+          }
+        }
+      }
+    },
     "播放器" : {
       "localizations" : {
         "en" : {
@@ -2661,6 +2971,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "プレーヤーの状態"
+          }
+        }
+      }
+    },
+    "播放状态" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Playback State"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "再生状態"
           }
         }
       }
@@ -2728,6 +3054,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "キャッシュタスクを追加"
+          }
+        }
+      }
+    },
+    "是" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Yes"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "はい"
           }
         }
       }
@@ -2964,6 +3306,22 @@
     "最多播放" : {
 
     },
+    "最新切片时长" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Newest Segment Duration"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "最新セグメント長"
+          }
+        }
+      }
+    },
     "最新发布" : {
 
     },
@@ -2973,6 +3331,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "最終の選択"
+          }
+        }
+      }
+    },
+    "最近请求切片" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Last Requested Segment"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "直近のセグメント"
           }
         }
       }
@@ -3021,6 +3395,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "サーバーの状態"
+          }
+        }
+      }
+    },
+    "未运行" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Inactive"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "停止中"
           }
         }
       }
@@ -3107,6 +3497,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "キャッシュを集計中"
+          }
+        }
+      }
+    },
+    "正常" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Normal"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "通常"
           }
         }
       }
@@ -3513,6 +3919,22 @@
         }
       }
     },
+    "目标倍速" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Target Rate"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "目標再生速度"
+          }
+        }
+      }
+    },
     "直播中" : {
       "localizations" : {
         "en" : {
@@ -3567,6 +3989,38 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "ライブの小窓再生"
+          }
+        }
+      }
+    },
+    "直播流" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Live Stream"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ライブストリーム"
+          }
+        }
+      }
+    },
+    "直播流信息" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Live Stream Information"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ライブストリーム情報"
           }
         }
       }
@@ -3820,6 +4274,22 @@
         }
       }
     },
+    "窗口切片数" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Segments in Window"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ウィンドウ内セグメント数"
+          }
+        }
+      }
+    },
     "粉丝" : {
       "localizations" : {
         "en" : {
@@ -3874,6 +4344,38 @@
         }
       }
     },
+    "缓冲中" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Buffering"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "バッファリング中"
+          }
+        }
+      }
+    },
+    "缓冲余量 ahead" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Buffer Margin (ahead)"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "バッファ余裕 (ahead)"
+          }
+        }
+      }
+    },
     "缓冲大小" : {
       "localizations" : {
         "en" : {
@@ -3886,6 +4388,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "バッファサイズ"
+          }
+        }
+      }
+    },
+    "缓冲末端 bufferedUntil" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Buffered Until (bufferedUntil)"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "バッファ終端 (bufferedUntil)"
           }
         }
       }
@@ -4173,6 +4691,22 @@
         }
       }
     },
+    "视频平均码率" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Average Video Bitrate"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "平均映像ビットレート"
+          }
+        }
+      }
+    },
     "视频流信息" : {
       "localizations" : {
         "en" : {
@@ -4348,6 +4882,38 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "アカウント"
+          }
+        }
+      }
+    },
+    "距上次调整" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Since Last Change"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "前回の変更から"
+          }
+        }
+      }
+    },
+    "距最新切片起点" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Behind Newest Segment Start"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "最新セグメント開始からの遅れ"
           }
         }
       }
@@ -4536,8 +5102,40 @@
         }
       }
     },
+    "进度同步" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Progress Sync"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "進行同期"
+          }
+        }
+      }
+    },
     "进度条样式" : {
 
+    },
+    "追赶中" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Catching Up"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "追いつき中"
+          }
+        }
+      }
     },
     "退出登录" : {
       "localizations" : {
@@ -4713,6 +5311,38 @@
     },
     "音频" : {
 
+    },
+    "音频平均码率" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Average Audio Bitrate"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "平均音声ビットレート"
+          }
+        }
+      }
+    },
+    "预热中" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Warming Up"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "準備中"
+          }
+        }
+      }
     },
     "首选编码格式" : {
       "localizations" : {

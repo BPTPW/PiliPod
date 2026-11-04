@@ -254,6 +254,7 @@ final class AVPlayerSession: NSObject, AVPictureInPictureControllerDelegate {
         livePlaylistBaseURL = liveURL
         let asset = AVURLAsset(url: liveURL, options: ["AVURLAssetHTTPHeaderFieldsKey": headers])
         let item = AVPlayerItem(asset: asset)
+        item.audioTimePitchAlgorithm = .spectral
         install(item)
         player.playImmediately(atRate: Float(playbackRate))
         startLivePlaylistPolling()
@@ -359,6 +360,43 @@ final class AVPlayerSession: NSObject, AVPictureInPictureControllerDelegate {
             hdrDiagnostics: hdrDiagnostics
         )
         onSnapshot?(snapshot)
+    }
+
+    func liveStreamDiagnostics() -> LiveStreamDiagnostics? {
+        guard isLivePlayback, let item = player.currentItem else { return nil }
+        var result = LiveStreamDiagnostics()
+        result.presentationSize = item.presentationSize
+        result.frameRate = item.tracks
+            .filter { $0.assetTrack?.mediaType == .video }
+            .map { Double($0.currentVideoFrameRate) }
+            .max() ?? 0
+        if let event = item.accessLog()?.events.last {
+            result.indicatedBitrate = max(event.indicatedBitrate, 0)
+            result.observedBitrate = max(event.observedBitrate, 0)
+            result.averageVideoBitrate = max(event.averageVideoBitrate, 0)
+            result.averageAudioBitrate = max(event.averageAudioBitrate, 0)
+            result.lastSegmentURI = event.uri ?? ""
+            result.droppedVideoFrames = max(event.numberOfDroppedVideoFrames, 0)
+            result.stallCount = max(event.numberOfStalls, 0)
+        }
+        let now = player.currentTime().seconds
+        if let end = item.seekableTimeRanges.map({ CMTimeRangeGetEnd($0.timeRangeValue).seconds }).max(),
+           end.isFinite, now.isFinite
+        {
+            result.seekableAhead = end - now
+        }
+        if let playlist = livePlaylistSnapshot {
+            result.playlistMediaSequence = playlist.mediaSequence
+            result.playlistTargetDuration = playlist.targetDuration
+            result.playlistSegmentCount = playlist.segmentCount
+            result.playlistLastSegmentDuration = playlist.lastSegmentDuration
+            if let playbackDate = item.integratedTimeline.currentDate,
+               let newest = playlist.liveEdgeStartDate
+            {
+                result.behindNewestSegmentStart = newest.timeIntervalSince(playbackDate)
+            }
+        }
+        return result
     }
 
     private func startLivePlaylistPolling() {
@@ -1058,24 +1096,64 @@ private final class RemoteRangeLoader: NSObject, URLSessionDataDelegate, @unchec
 
 private struct HLSLivePlaylistSnapshot {
     let liveEdgeStartDate: Date?
+    let mediaSequence: Int?
+    let targetDuration: TimeInterval?
+    let segmentCount: Int
+    let lastSegmentDuration: TimeInterval?
 
     static func parse(text: String) -> Self? {
         let formatter = ISO8601DateFormatter()
         var pendingDate: Date?
         var latestStart: Date?
-        var hasSegment = false
+        var mediaSequence: Int?
+        var targetDuration: TimeInterval?
+        var lastSegmentDuration: TimeInterval?
+        var segmentCount = 0
         for line in text.split(whereSeparator: \.isNewline).map(String.init) {
             if line.hasPrefix("#EXT-X-PROGRAM-DATE-TIME:") {
                 pendingDate = formatter.date(from: String(line.dropFirst("#EXT-X-PROGRAM-DATE-TIME:".count)))
+            } else if line.hasPrefix("#EXT-X-MEDIA-SEQUENCE:") {
+                mediaSequence = Int(line.dropFirst("#EXT-X-MEDIA-SEQUENCE:".count))
+            } else if line.hasPrefix("#EXT-X-TARGETDURATION:") {
+                targetDuration = TimeInterval(line.dropFirst("#EXT-X-TARGETDURATION:".count))
             } else if line.hasPrefix("#EXTINF:") {
-                hasSegment = true
+                segmentCount += 1
+                let value = line.dropFirst("#EXTINF:".count).split(separator: ",").first
+                lastSegmentDuration = value.flatMap { TimeInterval($0) }
                 if let pendingDate { latestStart = pendingDate }
                 pendingDate = nil
             }
         }
-        guard hasSegment else { return nil }
-        return Self(liveEdgeStartDate: latestStart)
+        guard segmentCount > 0 else { return nil }
+        return Self(
+            liveEdgeStartDate: latestStart,
+            mediaSequence: mediaSequence,
+            targetDuration: targetDuration,
+            segmentCount: segmentCount,
+            lastSegmentDuration: lastSegmentDuration
+        )
     }
+}
+
+/// Point-in-time facts about the live HLS item, for the stream info sheet.
+struct LiveStreamDiagnostics: Equatable {
+    var presentationSize: CGSize = .zero
+    var frameRate: Double = 0
+    var indicatedBitrate: Double = 0
+    var observedBitrate: Double = 0
+    var averageVideoBitrate: Double = 0
+    var averageAudioBitrate: Double = 0
+    var lastSegmentURI: String = ""
+    var droppedVideoFrames = 0
+    var stallCount = 0
+    /// Distance from the playhead to the end of the seekable window.
+    var seekableAhead: TimeInterval?
+    /// Playhead wall-clock vs. start of the newest playlist segment.
+    var behindNewestSegmentStart: TimeInterval?
+    var playlistMediaSequence: Int?
+    var playlistTargetDuration: TimeInterval?
+    var playlistSegmentCount = 0
+    var playlistLastSegmentDuration: TimeInterval?
 }
 
 private enum MP4Timeline {

@@ -341,6 +341,10 @@ class MPVKitPlayer: NSObject {
         refreshUISnapshot(includeDiagnostics: false)
     }
 
+    func liveStreamDiagnostics() -> LiveStreamDiagnostics? {
+        avPlayerSession?.liveStreamDiagnostics()
+    }
+
     func resume() {
         if let avPlayerSession { avPlayerSession.resume(); return }
         controller?.play()

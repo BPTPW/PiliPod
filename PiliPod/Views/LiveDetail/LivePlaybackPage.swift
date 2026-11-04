@@ -35,6 +35,10 @@ struct LivePlaybackPage: View {
     @State private var selectedUserSpaceRoute: UserSpaceRoute?
     @State private var fullscreenTrigger: FullscreenTrigger = .none
     @State private var mediaControlSyncTask: Task<Void, Never>?
+    @State private var latencySync = LiveLatencySyncController()
+    @State private var showStreamInfo = false
+    @State private var liveStreamDiagnostics: LiveStreamDiagnostics?
+    @State private var streamInfoRefreshTask: Task<Void, Never>?
 #if canImport(UIKit)
     @State private var preferredFullscreenOrientation: UIInterfaceOrientation = .landscapeRight
     @StateObject private var audioSessionManager = VideoPlaybackAudioSessionManager()
@@ -101,6 +105,8 @@ struct LivePlaybackPage: View {
             hideControlsTask?.cancel()
             mediaControlSyncTask?.cancel()
             mediaControlSyncTask = nil
+            stopStreamInfoRefresh()
+            resetLatencySync()
             let isRetainedForPictureInPicture = ManualPictureInPictureCoordinator.shared.isRetaining(player)
             if !isRetainedForPictureInPicture {
                 if player.usesAVPlayer {
@@ -148,6 +154,7 @@ struct LivePlaybackPage: View {
         }
 #endif
         .onChange(of: viewModel.streamURL) { _, newValue in
+            resetLatencySync()
 #if canImport(UIKit)
             guard newValue != nil else { return }
             Task { await syncSystemMediaControlWhenPlaybackStarts() }
@@ -165,6 +172,18 @@ struct LivePlaybackPage: View {
 #if canImport(UIKit)
             syncSystemMediaControl()
 #endif
+        }
+        .sheet(isPresented: $showStreamInfo, onDismiss: stopStreamInfoRefresh) {
+            LiveStreamInfoSheet(
+                streamURL: viewModel.streamURL,
+                qualityLabel: currentQualityLabel,
+                playerSnapshot: playerUISnapshot,
+                playbackRate: player.playbackRate,
+                streamDiagnostics: liveStreamDiagnostics,
+                latencySync: latencySync
+            )
+            .presentationDetents([.medium, .large])
+            .presentationDragIndicator(.visible)
         }
         .statusBarHidden(isFullscreen)
     }
@@ -227,6 +246,7 @@ struct LivePlaybackPage: View {
         }
         .onChange(of: player.uiSnapshot) { oldSnapshot, snapshot in
             playerUISnapshot = snapshot
+            updateLatencySync(with: snapshot)
             if !oldSnapshot.isPlaying && snapshot.isPlaying && controlsVisible {
                 refreshControlsAutoHideIfNeeded()
             } else if oldSnapshot.isPlaying && !snapshot.isPlaying {
@@ -377,12 +397,15 @@ struct LivePlaybackPage: View {
 
                     Spacer(minLength: 0)
 
-                    LiveMoreActionsMenu {
-                        ManualPictureInPictureCoordinator.shared.start(
-                            player: player,
-                            route: .live(room)
-                        )
-                    }
+                    LiveMoreActionsMenu(
+                        onStartPictureInPicture: {
+                            ManualPictureInPictureCoordinator.shared.start(
+                                player: player,
+                                route: .live(room)
+                            )
+                        },
+                        onShowStreamInfo: showStreamInfoSheet
+                    )
                 }
                 .padding(.top, isFullscreen ? max(geo.safeAreaInsets.top, 12) : 12)
                 .padding(.leading, horizontalLeadingPadding)
@@ -458,6 +481,56 @@ struct LivePlaybackPage: View {
             .frame(maxWidth: .infinity, alignment: .bottom)
         }
         .allowsHitTesting(false)
+    }
+
+    private var currentQualityLabel: String {
+        viewModel.qualityOptions
+            .first { $0.code == viewModel.selectedQualityCode }?
+            .label ?? ""
+    }
+
+    /// Catches playback up to the live edge by briefly raising the rate; see
+    /// `LiveLatencySyncController` for the policy.
+    private func updateLatencySync(with snapshot: PlayerUIPlaybackSnapshot) {
+        guard player.usesAVPlayer, viewModel.streamURL != nil else { return }
+        let rate = latencySync.update(
+            currentTime: snapshot.currentTime,
+            bufferedUntil: snapshot.bufferedUntil,
+            isPlaying: snapshot.isPlaying,
+            isBuffering: snapshot.isBuffering,
+            now: ProcessInfo.processInfo.systemUptime
+        )
+        if let rate {
+            player.setPlaybackRate(rate)
+        }
+    }
+
+    private func resetLatencySync() {
+        latencySync.reset()
+        if player.playbackRate != 1.0 {
+            player.setPlaybackRate(1.0)
+        }
+    }
+
+    private func showStreamInfoSheet() {
+        showStreamInfo = true
+        streamInfoRefreshTask?.cancel()
+        streamInfoRefreshTask = Task { @MainActor in
+            while !Task.isCancelled, showStreamInfo {
+                liveStreamDiagnostics = player.liveStreamDiagnostics()
+                playerUISnapshot = player.uiSnapshot
+                do {
+                    try await Task.sleep(nanoseconds: 250_000_000)
+                } catch {
+                    return
+                }
+            }
+        }
+    }
+
+    private func stopStreamInfoRefresh() {
+        streamInfoRefreshTask?.cancel()
+        streamInfoRefreshTask = nil
     }
 
     private func selectQuality(_ qn: Int) async {
@@ -594,6 +667,7 @@ struct LivePlaybackPage: View {
     }
 
     private func pausePlayback() {
+        resetLatencySync()
         player.pause()
         playerUISnapshot = player.uiSnapshot
         controlsVisible = true
@@ -741,6 +815,7 @@ struct LivePlaybackPage: View {
 
 #else
     private func pausePlayback() {
+        resetLatencySync()
         player.pause()
         playerUISnapshot = player.uiSnapshot
         controlsVisible = true
@@ -1283,11 +1358,16 @@ private struct LiveDanmakuFlowLayout: Layout {
 
 private struct LiveMoreActionsMenu: View {
     let onStartPictureInPicture: () -> Void
+    let onShowStreamInfo: () -> Void
 
     var body: some View {
         Menu {
             Button(action: onStartPictureInPicture) {
                 Label("小窗播放", systemImage: "pip.enter")
+            }
+
+            Button(action: onShowStreamInfo) {
+                Label("直播流信息", systemImage: "info.circle")
             }
         } label: {
             Image(systemName: "ellipsis")
