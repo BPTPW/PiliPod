@@ -5,13 +5,52 @@
       "shouldTranslate" : false
     },
     " 回复了你的%@" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : " replied to your %@"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "があなたの%@に返信しました"
+          }
+        }
+      }
     },
     " 在评论中@了我" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : " mentioned you in a comment"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "がコメントであなたをメンションしました"
+          }
+        }
+      }
     },
     "-%@" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "-%@"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "-%@"
+          }
+        }
+      }
     },
     "—粉丝  —视频" : {
       "localizations" : {
@@ -46,7 +85,20 @@
       }
     },
     "@%@" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "@%@"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "@%@"
+          }
+        }
+      }
     },
     "%@ · %@" : {
       "localizations" : {
@@ -170,6 +222,18 @@
     },
     "%@播放 · %@弹幕" : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ views · %2$@ danmaku"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@回視聴 · 弾幕%2$@件"
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "new",
@@ -235,7 +299,20 @@
       }
     },
     "%@级" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Level %@"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "レベル%@"
+          }
+        }
+      }
     },
     "%lld" : {
       "shouldTranslate" : false
@@ -244,10 +321,29 @@
       "shouldTranslate" : false
     },
     "%lld%%" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld%%"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld%%"
+          }
+        }
+      }
     },
     "%llds" : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%llds"
+          }
+        },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
@@ -291,7 +387,20 @@
       }
     },
     "%lld级" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Level %lld"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "レベル%lld"
+          }
+        }
+      }
     },
     "• 私人ID可以自行设置，要求至少为30个字符长度的纯字符串，首次启动时会生成随机字符串。" : {
       "localizations" : {
@@ -326,19 +435,71 @@
       }
     },
     "10 条" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "10 entries"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "10件"
+          }
+        }
+      }
     },
     "20 条" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "20 entries"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "20件"
+          }
+        }
+      }
     },
     "50 条" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "50 entries"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "50件"
+          }
+        }
+      }
     },
     "Aa" : {
       "shouldTranslate" : false
     },
     "Audio Energy" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Audio Energy"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "音声エネルギー"
+          }
+        }
+      }
     },
     "BPTPW/PiliPod" : {
       "shouldTranslate" : false
@@ -361,6 +522,12 @@
     },
     "CDN 线路" : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "CDN Route"
+          }
+        },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
@@ -371,6 +538,12 @@
     },
     "CDN 线路选择只会覆写媒体播放 URL 的 Host。" : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Selecting a CDN route only replaces the host in media playback URLs."
+          }
+        },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
@@ -395,25 +568,21 @@
         }
       }
     },
-    "DASH 流详情" : {
-      "extractionState" : "stale",
+    "envelope loading" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "DASH Stream Details"
+            "value" : "Loading audio envelope"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "DASH ストリーム詳細"
+            "value" : "音声エンベロープを読み込み中"
           }
         }
       }
-    },
-    "envelope loading" : {
-
     },
     "followinglist.search.placeholder" : {
       "extractionState" : "manual",
@@ -439,10 +608,48 @@
       }
     },
     "frames %lld" : {
-
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld frame"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld frames"
+                }
+              }
+            }
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lldフレーム"
+          }
+        }
+      }
     },
     "HLS Bridge" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "HLS Bridge"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "HLS ブリッジ"
+          }
+        }
+      }
     },
     "https://www.bsbsb.top" : {
       "shouldTranslate" : false
@@ -480,7 +687,20 @@
       }
     },
     "MEDIA-SEQUENCE" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "MEDIA-SEQUENCE"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "MEDIA-SEQUENCE"
+          }
+        }
+      }
     },
     "my.followers" : {
       "extractionState" : "manual",
@@ -568,7 +788,20 @@
       }
     },
     "paused" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Paused"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "一時停止中"
+          }
+        }
+      }
     },
     "permission.private" : {
       "extractionState" : "manual",
@@ -633,7 +866,20 @@
       }
     },
     "playing" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Playing"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "再生中"
+          }
+        }
+      }
     },
     "tab.live" : {
       "extractionState" : "manual",
@@ -728,7 +974,20 @@
       }
     },
     "TARGETDURATION" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "TARGETDURATION"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "TARGETDURATION"
+          }
+        }
+      }
     },
     "tmp 临时目录" : {
       "localizations" : {
@@ -1035,7 +1294,20 @@
       }
     },
     "不限" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Unlimited"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "無制限"
+          }
+        }
+      }
     },
     "丢帧数" : {
       "localizations" : {
@@ -1101,25 +1373,21 @@
         }
       }
     },
-    "会清理 URL 响应缓存、Library/Caches 和 tmp 临时文件。封面、头像、表情和预览图会在下次使用时重新建立缓存。" : {
-      "extractionState" : "stale",
+    "会清理 URL 响应缓存、Library/Caches（保留离线缓存视频）和 tmp 临时文件。封面、头像、表情和预览图会在下次使用时重新建立缓存。" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "This will clear the URL response cache, Library/Caches, and temporary files in tmp. Covers, avatars, emojis, and preview images will be cached again the next time they are used."
+            "value" : "This will clear the URL response cache, Library/Caches (except offline videos), and temporary files in tmp. Covers, avatars, emojis, and preview images will be cached again the next time they are used."
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "URLレスポンスキャッシュ、Library/Caches、tmp の一時ファイルが削除されます。カバー、アバター、絵文字、プレビュー画像のキャッシュは次回使用時に再作成されます。"
+            "value" : "URLレスポンスキャッシュ、Library/Caches（オフライン保存した動画を除く）、tmp の一時ファイルが削除されます。カバー、アバター、絵文字、プレビュー画像のキャッシュは次回使用時に再作成されます。"
           }
         }
       }
-    },
-    "会清理 URL 响应缓存、Library/Caches（保留离线缓存视频）和 tmp 临时文件。封面、头像、表情和预览图会在下次使用时重新建立缓存。" : {
-
     },
     "你提交了 %lld 片段" : {
       "localizations" : {
@@ -1166,7 +1434,20 @@
       }
     },
     "使用玻璃样式" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Use Glass Style"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ガラススタイルを使用"
+          }
+        }
+      }
     },
     "保存" : {
       "localizations" : {
@@ -1249,7 +1530,20 @@
       }
     },
     "全屏播放时，根据视频画面颜色动态填充视频周围空白区域，带来沉浸式体验。较高的采样率可能会导致更多的性能开销。" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "During full-screen playback, dynamically fill the space around the video with colors from the video for an immersive experience. Higher sampling rates may use more processing power."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "全画面再生時に、動画の色に合わせて周囲の余白を動的に彩り、没入感を高めます。サンプリング頻度を高くすると、処理負荷が増える場合があります。"
+          }
+        }
+      }
     },
     "全部按滚动弹幕显示" : {
       "localizations" : {
@@ -1268,7 +1562,32 @@
       }
     },
     "共 %lld 条回复" : {
-
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld reply in total"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld replies in total"
+                }
+              }
+            }
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "返信は全%lld件"
+          }
+        }
+      }
     },
     "共%lld集" : {
       "localizations" : {
@@ -1363,7 +1682,20 @@
       }
     },
     "关闭听视频" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Close Audio-Only Player"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "音声のみのプレーヤーを閉じる"
+          }
+        }
+      }
     },
     "其他设置" : {
       "localizations" : {
@@ -1382,10 +1714,36 @@
       }
     },
     "最多保留" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Maximum Entries"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "保存件数の上限"
+          }
+        }
+      }
     },
     "最多播放" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Most Viewed"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "再生数順"
+          }
+        }
+      }
     },
     "最新切片时长" : {
       "localizations" : {
@@ -1404,10 +1762,29 @@
       }
     },
     "最新发布" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Newest"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "新着順"
+          }
+        }
+      }
     },
     "最终选择" : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Selected Route"
+          }
+        },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
@@ -1433,7 +1810,20 @@
       }
     },
     "准备中" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Preparing"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "準備中"
+          }
+        }
+      }
     },
     "分享图片" : {
       "localizations" : {
@@ -1612,7 +2002,20 @@
       }
     },
     "加载动态中…" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Loading Posts…"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ポストを読み込み中…"
+          }
+        }
+      }
     },
     "加载历史记录中…" : {
       "localizations" : {
@@ -1695,7 +2098,20 @@
       }
     },
     "加载消息中…" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Loading Messages…"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "メッセージを読み込み中…"
+          }
+        }
+      }
     },
     "加载热门视频中…" : {
       "localizations" : {
@@ -1714,7 +2130,20 @@
       }
     },
     "加载私信中…" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Loading Direct Messages…"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ダイレクトメッセージを読み込み中…"
+          }
+        }
+      }
     },
     "加载表情中…" : {
       "localizations" : {
@@ -1733,10 +2162,36 @@
       }
     },
     "动态" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Posts"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ポスト"
+          }
+        }
+      }
     },
     "动态详情" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Post Details"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ポストの詳細"
+          }
+        }
+      }
     },
     "卡顿次数" : {
       "localizations" : {
@@ -1755,7 +2210,20 @@
       }
     },
     "原动态不可用" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Original Post Unavailable"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "元のポストを表示できません"
+          }
+        }
+      }
     },
     "发送验证码" : {
       "localizations" : {
@@ -1791,6 +2259,12 @@
     },
     "取消测速" : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cancel Speed Test"
+          }
+        },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
@@ -1800,7 +2274,20 @@
       }
     },
     "可清理缓存总大小" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Total Clearable Cache Size"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "削除可能なキャッシュの合計サイズ"
+          }
+        }
+      }
     },
     "可跳转窗口余量" : {
       "localizations" : {
@@ -1814,23 +2301,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "シーク可能範囲の余裕"
-          }
-        }
-      }
-    },
-    "同步" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Sync"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "同期"
           }
         }
       }
@@ -1884,10 +2354,29 @@
       }
     },
     "听视频" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Audio-Only Playback"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "音声のみ再生"
+          }
+        }
+      }
     },
     "响应情况" : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Response Results"
+          }
+        },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
@@ -1913,7 +2402,20 @@
       }
     },
     "在打开视频时自动显示第一个非AI生成的字幕（若有）" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Automatically show the first non-AI-generated subtitle track when opening a video, if available."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "動画を開くと、AI生成ではない最初の字幕があれば自動的に表示します。"
+          }
+        }
+      }
     },
     "在支持的设备上，为 HDR、杜比视界等高动态视频启用更明亮的高光和更宽的色域。关闭后会按普通SDR视频方式显示。" : {
       "localizations" : {
@@ -1933,6 +2435,12 @@
     },
     "在清除记录后，下次播放视频会重新测试最优线路。" : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "After clearing the record, the best route will be tested again the next time you play a video."
+          }
+        },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
@@ -1990,21 +2498,17 @@
       }
     },
     "复制" : {
-
-    },
-    "如果遇到播放异常请关闭。" : {
-      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "If you encounter playback issues, please turn this off."
+            "value" : "Copy"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "再生に異常が発生した場合はオフにしてください。"
+            "value" : "コピー"
           }
         }
       }
@@ -2042,13 +2546,52 @@
       }
     },
     "字幕" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Subtitles"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "字幕"
+          }
+        }
+      }
     },
     "字幕显示效果" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Subtitle Preview"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "字幕の表示プレビュー"
+          }
+        }
+      }
     },
     "字幕设置" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Subtitle Settings"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "字幕設定"
+          }
+        }
+      }
     },
     "安全保持" : {
       "localizations" : {
@@ -2243,7 +2786,20 @@
       }
     },
     "导出缓存文件包" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Export Cache Archive"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "キャッシュをアーカイブとしてエクスポート"
+          }
+        }
+      }
     },
     "导出设置数据" : {
       "localizations" : {
@@ -2263,6 +2819,12 @@
     },
     "将使用当前已拿到的真实播放 URL（保留原路径和签名）进行并行测速。" : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Speed tests will run in parallel using the currently available playback URLs, preserving their original paths and signatures."
+          }
+        },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
@@ -2272,7 +2834,20 @@
       }
     },
     "小窗播放" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Picture in Picture"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ピクチャ・イン・ピクチャ"
+          }
+        }
+      }
     },
     "屏蔽" : {
       "localizations" : {
@@ -2435,10 +3010,29 @@
       }
     },
     "展开" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Expand"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "展開"
+          }
+        }
+      }
     },
     "展开搜索历史" : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Show More Search History"
+          }
+        },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
@@ -2465,6 +3059,12 @@
     },
     "已关闭" : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Off"
+          }
+        },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
@@ -2475,6 +3075,12 @@
     },
     "已开启" : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "On"
+          }
+        },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
@@ -2548,10 +3154,36 @@
       }
     },
     "弹幕列表" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Danmaku List"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "弾幕一覧"
+          }
+        }
+      }
     },
     "弹幕加载失败" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Failed to Load Danmaku"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "弾幕の読み込みに失敗しました"
+          }
+        }
+      }
     },
     "弹幕行高" : {
       "localizations" : {
@@ -2617,8 +3249,7 @@
         }
       }
     },
-    "当前未登录" : {
-      "extractionState" : "stale",
+    "当前未登录账号" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -2629,16 +3260,19 @@
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "現在ログインしていません"
+            "value" : "ログインしていません"
           }
         }
       }
     },
-    "当前未登录账号" : {
-
-    },
     "当前没有可用的真实播放 URL，将使用 Host 连通性参考请求，403/959 仅代表 CDN 拒绝裸探测，不代表播放失败。" : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No playback URLs are currently available. Host connectivity will be checked using reference requests. A 403/959 response only means the CDN rejected a direct probe; it does not indicate playback failure."
+          }
+        },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
@@ -2664,7 +3298,20 @@
       }
     },
     "当记录到错误时将会显示在这里。" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Errors will appear here when they are recorded."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "エラーが記録されると、ここに表示されます。"
+          }
+        }
+      }
     },
     "恢复默认" : {
       "localizations" : {
@@ -2715,7 +3362,20 @@
       }
     },
     "我的收藏" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "My Favorites"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "お気に入り"
+          }
+        }
+      }
     },
     "房间号 %@" : {
       "localizations" : {
@@ -2798,7 +3458,20 @@
       }
     },
     "排序方式" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sort By"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "並べ替え"
+          }
+        }
+      }
     },
     "推荐来源" : {
       "localizations" : {
@@ -2866,6 +3539,12 @@
     },
     "搜索历史" : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Search History"
+          }
+        },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
@@ -2875,7 +3554,20 @@
       }
     },
     "搜索收藏夹内容" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Search This Favorites Folder"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "お気に入りフォルダ内を検索"
+          }
+        }
+      }
     },
     "搜索视频" : {
       "localizations" : {
@@ -2894,7 +3586,20 @@
       }
     },
     "播放" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Play"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "再生"
+          }
+        }
+      }
     },
     "播放中" : {
       "localizations" : {
@@ -2977,13 +3682,45 @@
       }
     },
     "收藏夹中还没有视频" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No Videos in This Favorites Folder Yet"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "このお気に入りフォルダにはまだ動画がありません"
+          }
+        }
+      }
     },
     "收起" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Collapse"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "折りたたむ"
+          }
+        }
+      }
     },
     "收起搜索历史" : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Show Less Search History"
+          }
+        },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
@@ -3009,7 +3746,20 @@
       }
     },
     "文本颜色" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Text Color"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "文字色"
+          }
+        }
+      }
     },
     "新增片段" : {
       "localizations" : {
@@ -3108,16 +3858,68 @@
       }
     },
     "显示效果" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Visual Effects"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "視覚効果"
+          }
+        }
+      }
     },
     "显示调试信息" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Show Debug Information"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "デバッグ情報を表示"
+          }
+        }
+      }
     },
     "暂停" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pause"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "一時停止"
+          }
+        }
+      }
     },
     "暂无动态" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No Posts"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ポストはありません"
+          }
+        }
+      }
     },
     "暂无可用表情包" : {
       "localizations" : {
@@ -3136,7 +3938,20 @@
       }
     },
     "暂无弹幕" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No Danmaku"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "弾幕はありません"
+          }
+        }
+      }
     },
     "暂无收藏夹" : {
       "localizations" : {
@@ -3171,7 +3986,20 @@
       }
     },
     "暂无消息" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No Messages"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "メッセージはありません"
+          }
+        }
+      }
     },
     "暂无片段" : {
       "localizations" : {
@@ -3190,7 +4018,20 @@
       }
     },
     "暂无私信" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No Direct Messages"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ダイレクトメッセージはありません"
+          }
+        }
+      }
     },
     "暂无稍后再看的内容" : {
       "localizations" : {
@@ -3226,6 +4067,12 @@
     },
     "暂无自动测试记录" : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No Automatic Test Record"
+          }
+        },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
@@ -3251,7 +4098,20 @@
       }
     },
     "暂无错误记录" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No Errors Recorded"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "エラーの記録はありません"
+          }
+        }
+      }
     },
     "暂时没有可显示的搜索发现内容" : {
       "localizations" : {
@@ -3350,10 +4210,36 @@
       }
     },
     "杜比全景声" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dolby Atmos"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dolby Atmos"
+          }
+        }
+      }
     },
     "样式" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Style"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "スタイル"
+          }
+        }
+      }
     },
     "正在加载" : {
       "localizations" : {
@@ -3453,6 +4339,18 @@
     },
     "步骤 %lld/%lld" : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Step %1$lld/%2$lld"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ステップ %1$lld/%2$lld"
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "new",
@@ -3462,10 +4360,36 @@
       }
     },
     "每秒采样频率" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Samples per Second"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1秒あたりのサンプリング回数"
+          }
+        }
+      }
     },
     "氛围模式" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ambient Mode"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "アンビエントモード"
+          }
+        }
+      }
     },
     "没有找到匹配的用户" : {
       "localizations" : {
@@ -3484,7 +4408,20 @@
       }
     },
     "没有找到相关内容" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No Results Found"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "該当する内容が見つかりません"
+          }
+        }
+      }
     },
     "没有找到相关结果" : {
       "localizations" : {
@@ -3503,7 +4440,20 @@
       }
     },
     "没有更多动态" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No More Posts"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "これ以上ポストはありません"
+          }
+        }
+      }
     },
     "流地址" : {
       "localizations" : {
@@ -3523,6 +4473,12 @@
     },
     "测试时间" : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Test Time"
+          }
+        },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
@@ -3533,6 +4489,12 @@
     },
     "测试视频 URL" : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Test Video URL"
+          }
+        },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
@@ -3543,6 +4505,12 @@
     },
     "测试间隔" : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Test Interval"
+          }
+        },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
@@ -3553,6 +4521,12 @@
     },
     "测速" : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Speed Test"
+          }
+        },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
@@ -3578,10 +4552,36 @@
       }
     },
     "消息" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Messages"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "メッセージ"
+          }
+        }
+      }
     },
     "消息加载失败" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Failed to Load Messages"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "メッセージの読み込みに失敗しました"
+          }
+        }
+      }
     },
     "添加任务" : {
       "localizations" : {
@@ -3665,6 +4665,12 @@
     },
     "清空" : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Clear"
+          }
+        },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
@@ -3674,10 +4680,29 @@
       }
     },
     "清空所有错误记录？" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Clear All Error Records?"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "エラーの記録をすべて消去しますか？"
+          }
+        }
+      }
     },
     "清空搜索历史" : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Clear Search History"
+          }
+        },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
@@ -3688,6 +4713,12 @@
     },
     "清除记录" : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Clear Record"
+          }
+        },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
@@ -3697,7 +4728,20 @@
       }
     },
     "渐变速度" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Color Transition Speed"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "色の変化速度"
+          }
+        }
+      }
     },
     "源代码仓库" : {
       "localizations" : {
@@ -3732,7 +4776,20 @@
       }
     },
     "点击登录" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tap to Log In"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "タップしてログイン"
+          }
+        }
+      }
     },
     "片段处理方式" : {
       "localizations" : {
@@ -3784,6 +4841,12 @@
     },
     "画中画" : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Picture in Picture"
+          }
+        },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
@@ -3922,6 +4985,12 @@
     },
     "直播小窗播放" : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Live Picture in Picture"
+          }
+        },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
@@ -3931,7 +5000,20 @@
       }
     },
     "直播延迟过大时，自动小幅加速播放以追上最新进度。" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "When a live stream falls too far behind, slightly increase playback speed automatically to catch up."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ライブの遅延が大きくなった場合、再生速度を自動的に少し上げて最新の位置に追いつきます。"
+          }
+        }
+      }
     },
     "直播流" : {
       "localizations" : {
@@ -4079,6 +5161,12 @@
     },
     "确定要清空全部搜索历史吗" : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Are you sure you want to clear all search history?"
+          }
+        },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
@@ -4104,7 +5192,20 @@
       }
     },
     "视频" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Video"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "動画"
+          }
+        }
+      }
     },
     "视频参数" : {
       "localizations" : {
@@ -4118,23 +5219,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "動画パラメータ"
-          }
-        }
-      }
-    },
-    "视频同步" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Video Sync"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "動画同期"
           }
         }
       }
@@ -4157,6 +5241,12 @@
     },
     "视频小窗播放" : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Video Picture in Picture"
+          }
+        },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
@@ -4246,19 +5336,84 @@
       }
     },
     "离线缓存视频" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Offline Videos"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "オフライン保存した動画"
+          }
+        }
+      }
     },
     "离线缓存视频不会清理操作删除，需要管理或删除时请前往离线缓存页面。" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Clearing the cache will not delete offline videos. To manage or delete them, go to the Offline Cache page."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "キャッシュを削除しても、オフライン保存した動画は削除されません。管理や削除を行うには、オフライン保存のページを開いてください。"
+          }
+        }
+      }
     },
     "离线缓存视频不会被清除；如需管理，请前往离线缓存页面。页面里的封面、头像、预览图下次会重新加载。" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Offline videos will not be deleted. To manage them, go to the Offline Cache page. Covers, avatars, and preview images on pages will be reloaded next time."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "オフライン保存した動画は削除されません。管理するには、オフライン保存のページを開いてください。ページ内のカバー画像、アバター、プレビュー画像は次回再読み込みされます。"
+          }
+        }
+      }
     },
     "私信" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Direct Messages"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ダイレクトメッセージ"
+          }
+        }
+      }
     },
     "私信加载失败" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Failed to Load Direct Messages"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ダイレクトメッセージの読み込みに失敗しました"
+          }
+        }
+      }
     },
     "移动网络默认画质" : {
       "localizations" : {
@@ -4475,21 +5630,17 @@
       }
     },
     "缓冲状态" : {
-
-    },
-    "缓存总大小" : {
-      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Total Cache Size"
+            "value" : "Buffer Status"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "キャッシュ総サイズ"
+            "value" : "バッファ状態"
           }
         }
       }
@@ -4591,36 +5742,77 @@
       }
     },
     "背景圆角大小" : {
-
-    },
-    "背景透明度" : {
-
-    },
-    "背景随音乐闪烁" : {
-
-    },
-    "背景颜色" : {
-
-    },
-    "自动同步" : {
-      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Auto Sync"
+            "value" : "Background Corner Radius"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "自動同期"
+            "value" : "背景の角丸の半径"
+          }
+        }
+      }
+    },
+    "背景透明度" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Background Opacity"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "背景の不透明度"
+          }
+        }
+      }
+    },
+    "背景随音乐闪烁" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pulse Background to Music"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "音楽に合わせて背景を明滅"
+          }
+        }
+      }
+    },
+    "背景颜色" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Background Color"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "背景色"
           }
         }
       }
     },
     "自动测试" : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Automatic Testing"
+          }
+        },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
@@ -4631,6 +5823,12 @@
     },
     "自动测试记录" : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Automatic Test Record"
+          }
+        },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
@@ -4689,27 +5887,16 @@
     },
     "观看记录上报间隔" : {
       "localizations" : {
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "履歴の送信間隔"
-          }
-        }
-      }
-    },
-    "解码器" : {
-      "extractionState" : "stale",
-      "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Decoder"
+            "value" : "Watch History Update Interval"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "デコーダ"
+            "value" : "履歴の送信間隔"
           }
         }
       }
@@ -4747,7 +5934,20 @@
       }
     },
     "评论" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Comments"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "コメント"
+          }
+        }
+      }
     },
     "评论加载中…" : {
       "localizations" : {
@@ -4830,7 +6030,20 @@
       }
     },
     "超大将请求以前向缓冲覆盖点播视频总时长；系统仍可能因内存压力缩短实际缓存。" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Extra-Large requests a forward buffer covering the entire on-demand video. The system may still reduce the actual buffer under memory pressure."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "「超大」では、オンデマンド動画全体を先読みバッファに収めるよう要求します。ただし、メモリの負荷により、システムが実際のバッファを縮小する場合があります。"
+          }
+        }
+      }
     },
     "距上次调整" : {
       "localizations" : {
@@ -4945,7 +6158,20 @@
       }
     },
     "还没有动态" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No Posts Yet"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "まだポストはありません"
+          }
+        }
+      }
     },
     "还没有投稿内容" : {
       "localizations" : {
@@ -4964,7 +6190,20 @@
       }
     },
     "还没有收藏夹" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No Favorites Folders Yet"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "まだお気に入りフォルダはありません"
+          }
+        }
+      }
     },
     "还没有观看记录" : {
       "localizations" : {
@@ -4978,23 +6217,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "まだ履歴はありません"
-          }
-        }
-      }
-    },
-    "这不会影响登录状态和设置，但页面里的封面、头像、预览图下次会重新加载。" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "This will not affect your login status or settings, but covers, avatars, and preview images on pages will be reloaded next time."
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "これはログイン状態や設定には影響しませんが、ページ内のカバー画像、アバター、プレビュー画像は次回再読み込みされます。"
           }
         }
       }
@@ -5031,23 +6253,6 @@
         }
       }
     },
-    "这里显示的是可直接清理的缓存空间。系统里看到的“文稿与数据”还可能包含 Cookie、数据库、偏好设置等其他持久化内容。" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "This shows the cache space that can be cleared directly. “Documents & Data” shown by the system may also include other persistent content such as cookies, databases, and preferences."
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "ここに表示されるのは直接削除できるキャッシュ容量です。システム上に表示される「書類とデータ」には、Cookie、データベース、環境設定など、ほかの永続化された内容が含まれている場合もあります。"
-          }
-        }
-      }
-    },
     "进度同步" : {
       "localizations" : {
         "en" : {
@@ -5065,7 +6270,20 @@
       }
     },
     "进度条样式" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Progress Bar Style"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "進行状況バーのスタイル"
+          }
+        }
+      }
     },
     "追赶中" : {
       "localizations" : {
@@ -5164,7 +6382,20 @@
       }
     },
     "重试" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Retry"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "再試行"
+          }
+        }
+      }
     },
     "重载视频" : {
       "localizations" : {
@@ -5183,13 +6414,52 @@
       }
     },
     "错误日志" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Error Log"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "エラーログ"
+          }
+        }
+      }
     },
     "错误记录" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Error Records"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "エラーの記録"
+          }
+        }
+      }
     },
     "错误详情" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Error Details"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "エラーの詳細"
+          }
+        }
+      }
     },
     "随机" : {
       "localizations" : {
@@ -5256,7 +6526,20 @@
       }
     },
     "音频" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Audio"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "音声"
+          }
+        }
+      }
     },
     "音频平均码率" : {
       "localizations" : {
@@ -5355,10 +6638,36 @@
       }
     },
     "默认打开杜比全景声" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enable Dolby Atmos by Default"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dolby Atmos をデフォルトで有効にする"
+          }
+        }
+      }
     },
     "默认显示字幕" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Show Subtitles by Default"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "字幕をデフォルトで表示"
+          }
+        }
+      }
     },
     "默认画质" : {
       "localizations" : {
