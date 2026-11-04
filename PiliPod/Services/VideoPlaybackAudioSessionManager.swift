@@ -387,7 +387,7 @@ final class VideoPlaybackAudioSessionManager: ObservableObject {
             guard !Task.isCancelled, self.currentArtworkURL == url else { return }
 
             self.currentArtworkImage = image
-            print("[AudioSession] Artwork \(image == nil ? "load failed" : "loaded") for \(url.absoluteString)")
+            print("[AudioSession] Artwork \(image == nil ? "load failed" : "loaded")")
 
             if let playbackInfo = self.lastPlaybackInfo {
                 self.publishNowPlaying(info: playbackInfo, artwork: image)

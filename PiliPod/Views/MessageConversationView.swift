@@ -447,7 +447,7 @@ private struct MessageCardCoverView: View {
 
         #if canImport(UIKit)
         guard let loadedImage = await SharedRemoteImageStore.shared.image(for: url) else {
-            print("[MessageCardCover] load failed: \(url.absoluteString)")
+            print("[MessageCardCover] load failed")
             didFail = true
             return
         }

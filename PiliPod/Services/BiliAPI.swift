@@ -968,7 +968,6 @@ class BiliAPI {
         }
 
         let decoded = try JSONDecoder().decode(LiveRoomInfoResponse.self, from: data)
-        print("decoded\(decoded)")
         guard decoded.code == 0 else {
             throw APIError.businessError(code: decoded.code, message: decoded.message)
         }
@@ -1057,8 +1056,6 @@ class BiliAPI {
         request.setValue("", forHTTPHeaderField: "x-bili-aurora-eid")
         request.setValue("", forHTTPHeaderField: "x-bili-aurora-zone")
         request.setValue("cronet", forHTTPHeaderField: "bili-http-engine")
-
-        print(request.url)
 
         let (data, response) = try await URLSession.shared.data(for: request)
 
@@ -1402,8 +1399,6 @@ class BiliAPI {
         }
 
         let (data, response) = try await URLSession.shared.data(for: request)
-
-        print(String(data: data, encoding: .utf8))
 
         guard let httpResponse = response as? HTTPURLResponse,
               (200 ... 299).contains(httpResponse.statusCode)
