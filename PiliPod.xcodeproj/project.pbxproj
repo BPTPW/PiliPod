@@ -8,7 +8,6 @@
 
 /* Begin PBXBuildFile section */
 		C31A86E82FC467D40064DFDC /* SwiftProtobuf in Frameworks */ = {isa = PBXBuildFile; productRef = C31A86E72FC467D40064DFDC /* SwiftProtobuf */; };
-		C38E5EE02FBFF03C00899168 /* MPVKit in Frameworks */ = {isa = PBXBuildFile; productRef = C38E5EDF2FBFF03C00899168 /* MPVKit */; };
 		C3B9223D30084A4A00A1F2C1 /* ZIPFoundation in Frameworks */ = {isa = PBXBuildFile; productRef = C3B9223C30084A4A00A1F2C1 /* ZIPFoundation */; };
 /* End PBXBuildFile section */
 
@@ -84,7 +83,6 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				C38E5EE02FBFF03C00899168 /* MPVKit in Frameworks */,
 				C31A86E82FC467D40064DFDC /* SwiftProtobuf in Frameworks */,
 				C3B9223D30084A4A00A1F2C1 /* ZIPFoundation in Frameworks */,
 			);
@@ -156,7 +154,6 @@
 			);
 			name = PiliPod;
 			packageProductDependencies = (
-				C38E5EDF2FBFF03C00899168 /* MPVKit */,
 				C31A86E72FC467D40064DFDC /* SwiftProtobuf */,
 				C3B9223C30084A4A00A1F2C1 /* ZIPFoundation */,
 			);
@@ -245,7 +242,6 @@
 			mainGroup = C3E76F752FBED5AF00DD7377;
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
-				C38E5EDE2FBFF03C00899168 /* XCRemoteSwiftPackageReference "MPVKit" */,
 				C38E61B32FC466FD00899168 /* XCRemoteSwiftPackageReference "swift-protobuf" */,
 				C3B9223B30084A4A00A1F2C1 /* XCRemoteSwiftPackageReference "ZIPFoundation" */,
 			);
@@ -717,14 +713,6 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
-		C38E5EDE2FBFF03C00899168 /* XCRemoteSwiftPackageReference "MPVKit" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/mpvkit/MPVKit.git";
-			requirement = {
-				kind = upToNextMajorVersion;
-				minimumVersion = 0.41.0;
-			};
-		};
 		C38E61B32FC466FD00899168 /* XCRemoteSwiftPackageReference "swift-protobuf" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/apple/swift-protobuf.git";
@@ -748,11 +736,6 @@
 			isa = XCSwiftPackageProductDependency;
 			package = C38E61B32FC466FD00899168 /* XCRemoteSwiftPackageReference "swift-protobuf" */;
 			productName = SwiftProtobuf;
-		};
-		C38E5EDF2FBFF03C00899168 /* MPVKit */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = C38E5EDE2FBFF03C00899168 /* XCRemoteSwiftPackageReference "MPVKit" */;
-			productName = MPVKit;
 		};
 		C3B9223C30084A4A00A1F2C1 /* ZIPFoundation */ = {
 			isa = XCSwiftPackageProductDependency;

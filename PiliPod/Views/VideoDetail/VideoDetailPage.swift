@@ -881,11 +881,7 @@ struct VideoDetailPage: View {
                     bindableViewModel.stopHistoryReporting(with: player)
                 }
                 if !isRetainedForPictureInPicture {
-                    if player.usesAVPlayer {
-                        player.stop()
-                    } else {
-                        player.pause()
-                    }
+                    player.stop()
                 }
             }
 #if canImport(UIKit)
@@ -1379,7 +1375,7 @@ struct VideoDetailPage: View {
         }
     }
 
-    private func handleSponsorSegmentPlayback(currentTime: TimeInterval, player: MPVKitPlayer) {
+    private func handleSponsorSegmentPlayback(currentTime: TimeInterval, player: PlaybackSession) {
         if let previewDraftSegment {
             if previewDraftSegment.actionType == .skip,
                currentTime >= previewDraftSegment.start,
@@ -1470,7 +1466,7 @@ struct VideoDetailPage: View {
     }
 #endif
 
-    private func performAutoSponsorSkip(for segment: PlaybackSponsorSegment, player: MPVKitPlayer) {
+    private func performAutoSponsorSkip(for segment: PlaybackSponsorSegment, player: PlaybackSession) {
         skippedSponsorSegmentIDs.insert(segment.id)
         hiddenManualSponsorSegmentIDs.insert(segment.id)
         manualSkipSegment = nil
@@ -1484,7 +1480,7 @@ struct VideoDetailPage: View {
         }
     }
 
-    private func performManualSponsorSkip(for segment: PlaybackSponsorSegment, player: MPVKitPlayer) {
+    private func performManualSponsorSkip(for segment: PlaybackSponsorSegment, player: PlaybackSession) {
         skippedSponsorSegmentIDs.insert(segment.id)
         hiddenManualSponsorSegmentIDs.insert(segment.id)
         manualSkipSegment = nil
@@ -1507,7 +1503,7 @@ struct VideoDetailPage: View {
         return SponsorBlockCategory(rawValue: segment.category)
     }
 
-    private func skipToSponsorSegmentEnd(_ segment: SkipSegment, player: MPVKitPlayer) {
+    private func skipToSponsorSegmentEnd(_ segment: SkipSegment, player: PlaybackSession) {
         guard segment.segment.count >= 2 else { return }
         let target = segment.segment[1]
         player.seek(to: target)
@@ -1621,7 +1617,7 @@ struct VideoDetailPage: View {
         }
     }
 
-    private func previewSponsorDraftSegment(id: SponsorBlockDraftSegment.ID, player: MPVKitPlayer) {
+    private func previewSponsorDraftSegment(id: SponsorBlockDraftSegment.ID, player: PlaybackSession) {
         guard let draft = sponsorDraftSegments.first(where: { $0.id == id }) else { return }
         previewDraftSegmentID = id
         seekPlayback(to: max(0, draft.start - 3), player: player, shouldPreloadDanmaku: false)
@@ -1692,7 +1688,7 @@ struct VideoDetailPage: View {
     }
 
 #if canImport(UIKit)
-    private func togglePlayback(player: MPVKitPlayer) {
+    private func togglePlayback(player: PlaybackSession) {
         if player.isPlaying {
             pausePlayback(player: player)
         } else {
@@ -1700,17 +1696,17 @@ struct VideoDetailPage: View {
         }
     }
 
-    private func pausePlayback(player: MPVKitPlayer) {
+    private func pausePlayback(player: PlaybackSession) {
         player.pause()
     }
 
-    private func resumePlayback(player: MPVKitPlayer) {
+    private func resumePlayback(player: PlaybackSession) {
         player.resume()
     }
 
     private func seekPlayback(
         to time: TimeInterval,
-        player: MPVKitPlayer,
+        player: PlaybackSession,
         shouldPreloadDanmaku: Bool = true
     ) {
         player.seek(to: time)
@@ -1774,7 +1770,7 @@ struct VideoDetailPage: View {
         )
     }
 
-    private func syncSystemMediaControlWhenPlaybackStarts(player: MPVKitPlayer) async {
+    private func syncSystemMediaControlWhenPlaybackStarts(player: PlaybackSession) async {
         for _ in 0..<20 {
             let snapshot = player.uiSnapshot
             if snapshot.isPlaying {
@@ -4262,7 +4258,7 @@ func normalizedProgress(_ value: TimeInterval, duration: TimeInterval) -> Double
 
 struct DashStreamInfoSheet: View {
     let stream: DashStream
-    let player: MPVKitPlayer?
+    let player: PlaybackSession?
     let playerSnapshot: PlayerUIPlaybackSnapshot
     let selectedQualityCode: Int?
 
@@ -4315,7 +4311,7 @@ struct DashStreamInfoSheet: View {
                             URIRow("音频", stream.audioURL.absoluteString)
                         }
 
-                        if let player = player {
+                        if player != nil {
                             Divider()
 
                             VStack(alignment: .leading, spacing: 8) {
@@ -4325,47 +4321,30 @@ struct DashStreamInfoSheet: View {
                                 InfoRow("总时长", formatTime(playerSnapshot.duration))
                             }
 
-                            if player.usesAVPlayer {
-                                Divider()
+                            Divider()
 
-                                bridgeInfo(playerSnapshot.hlsBridgeDiagnostics)
-                            } else {
-                                Divider()
+                            bridgeInfo(playerSnapshot.hlsBridgeDiagnostics)
 
-                                VStack(alignment: .leading, spacing: 8) {
-                                    Text("解码器").font(.subheadline).fontWeight(.semibold).foregroundColor(.secondary)
-                                    InfoRow("硬件解码", player.hwdecCurrent.isEmpty ? "—" : player.hwdecCurrent)
-                                    InfoRow("视频解码器", player.videoCodec.isEmpty ? "—" : player.videoCodec)
-                                    InfoRow("音频解码器", player.audioCodec.isEmpty ? "—" : player.audioCodec)
-                                }
+                            Divider()
 
-                                Divider()
-
-                                VStack(alignment: .leading, spacing: 8) {
-                                    Text("高动态视频").font(.subheadline).fontWeight(.semibold).foregroundColor(.secondary)
-                                    InfoRow("显示增强", playerSnapshot.hdrDiagnostics.isEnabledInSettings ? "已开启" : "已关闭")
-                                    InfoRow("视频类型", dynamicRangeSourceLabel(for: playerSnapshot.hdrDiagnostics))
-                                    InfoRow("高动态显示请求", playerSnapshot.hdrDiagnostics.requestsExtendedRange ? "已开启" : "未开启")
-                                    InfoRow("高动态显示状态", playerSnapshot.hdrDiagnostics.extendedRangeActive ? "生效中" : "未生效")
-                                    InfoRow(
-                                        "当前 / 最大高光余量",
-                                        String(
-                                            format: "%.2f / %.2f",
-                                            playerSnapshot.hdrDiagnostics.currentEDRHeadroom,
-                                            playerSnapshot.hdrDiagnostics.potentialEDRHeadroom
-                                        )
+                            VStack(alignment: .leading, spacing: 8) {
+                                Text("高动态视频").font(.subheadline).fontWeight(.semibold).foregroundColor(.secondary)
+                                InfoRow("显示增强", playerSnapshot.hdrDiagnostics.isEnabledInSettings ? "已开启" : "已关闭")
+                                InfoRow("视频类型", dynamicRangeSourceLabel(for: playerSnapshot.hdrDiagnostics))
+                                InfoRow("高动态显示请求", playerSnapshot.hdrDiagnostics.requestsExtendedRange ? "已开启" : "未开启")
+                                InfoRow("高动态显示状态", playerSnapshot.hdrDiagnostics.extendedRangeActive ? "生效中" : "未生效")
+                                InfoRow(
+                                    "当前 / 最大高光余量",
+                                    String(
+                                        format: "%.2f / %.2f",
+                                        playerSnapshot.hdrDiagnostics.currentEDRHeadroom,
+                                        playerSnapshot.hdrDiagnostics.potentialEDRHeadroom
                                     )
-                                    InfoRow("显示色域", fallback(playerSnapshot.hdrDiagnostics.displayGamut))
-                                    InfoRow("显示空间", fallback(playerSnapshot.hdrDiagnostics.displayColorSpace))
-                                    InfoRow("亮度映射", fallback(playerSnapshot.hdrDiagnostics.toneMapping))
-                                    InfoRow("视频色域", fallback(playerSnapshot.hdrDiagnostics.videoPrimaries))
-                                    InfoRow("亮度曲线", fallback(playerSnapshot.hdrDiagnostics.videoGamma))
-                                    InfoRow("色阶范围", fallback(playerSnapshot.hdrDiagnostics.videoColorLevels))
-                                    InfoRow("色彩矩阵", fallback(playerSnapshot.hdrDiagnostics.videoColorMatrix))
-                                    InfoRow("解码像素格式", fallback(playerSnapshot.hdrDiagnostics.videoPixelFormat))
-                                    InfoRow("硬件像素格式", fallback(playerSnapshot.hdrDiagnostics.videoHardwarePixelFormat))
-                                    InfoRow("峰值亮度估计", fallback(playerSnapshot.hdrDiagnostics.videoSignalPeak))
-                                }
+                                )
+                                InfoRow("显示色域", fallback(playerSnapshot.hdrDiagnostics.displayGamut))
+                                InfoRow("显示空间", fallback(playerSnapshot.hdrDiagnostics.displayColorSpace))
+                                InfoRow("视频色域", fallback(playerSnapshot.hdrDiagnostics.videoPrimaries))
+                                InfoRow("亮度曲线", fallback(playerSnapshot.hdrDiagnostics.videoGamma))
                             }
                         }
                     }

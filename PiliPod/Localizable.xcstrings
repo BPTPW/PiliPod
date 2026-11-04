@@ -10,6 +10,44 @@
     " 在评论中@了我" : {
 
     },
+    "-%@" : {
+
+    },
+    "—粉丝  —视频" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "—Followers  —Videos"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "—フォロワー  —動画"
+          }
+        }
+      }
+    },
+    "(%@ 的生命)" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "(%@ of Life)"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "(%@の命)"
+          }
+        }
+      }
+    },
+    "@%@" : {
+
+    },
     "%@ · %@" : {
       "localizations" : {
         "en" : {
@@ -28,28 +66,6 @@
           "stringUnit" : {
             "state" : "new",
             "value" : "%1$@ · %2$@"
-          }
-        }
-      }
-    },
-    "%@/%@" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%1$@/%2$@"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%1$@/%2$@"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "%1$@/%2$@"
           }
         }
       }
@@ -104,6 +120,28 @@
           "stringUnit" : {
             "state" : "new",
             "value" : "%1$@: %2$@"
+          }
+        }
+      }
+    },
+    "%@/%@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@/%2$@"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@/%2$@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@/%2$@"
           }
         }
       }
@@ -202,11 +240,11 @@
     "%lld" : {
       "shouldTranslate" : false
     },
-    "%lld%%" : {
-
-    },
     "%lld/1000" : {
       "shouldTranslate" : false
+    },
+    "%lld%%" : {
+
     },
     "%llds" : {
       "localizations" : {
@@ -255,27 +293,37 @@
     "%lld级" : {
 
     },
-    "(%@ 的生命)" : {
+    "• 私人ID可以自行设置，要求至少为30个字符长度的纯字符串，首次启动时会生成随机字符串。" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "(%@ of Life)"
+            "value" : "• You can set your own private ID; it must be a string consisting solely of characters and at least 30 characters long. A random string will be generated when the application is launched for the first time."
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "(%@の命)"
+            "value" : "• プライベートIDは自分で設定できます。30文字以上の純粋な文字列である必要があり、初回起動時にはランダムな文字列が生成されます。"
           }
         }
       }
     },
-    "-%@" : {
-
-    },
-    "0" : {
-      "shouldTranslate" : false
+    "• 私人ID应该被保密。如果他人获得了你的私人ID，他就可以冒充你。服务器不会保存任何私人ID，如果你不幸弄丢了私人ID，那就再也没办法找回了。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "• Your private ID should be kept confidential. If someone else obtains your private ID, they will be able to impersonate you. The server does not store any private IDs, so if you are unfortunate enough to lose your private ID, there is no way to recover it."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "• プライベートIDは秘密にしておく必要があります。他人があなたのプライベートIDを入手すると、あなたになりすますことができます。サーバーはプライベートIDを一切保存しないため、万が一プライベートIDを失くした場合、二度と取り戻すことはできません。"
+          }
+        }
+      }
     },
     "10 条" : {
 
@@ -284,9 +332,6 @@
 
     },
     "50 条" : {
-
-    },
-    "@%@" : {
 
     },
     "Aa" : {
@@ -367,133 +412,6 @@
         }
       }
     },
-    "HLS Bridge" : {
-
-    },
-    "LIVE" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "LIVE"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "LIVE"
-          }
-        }
-      }
-    },
-    "Library/Caches" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Library/Caches"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Library/Caches"
-          }
-        }
-      }
-    },
-    "MEDIA-SEQUENCE" : {
-
-    },
-    "P%lld" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "P%lld"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "P%lld"
-          }
-        }
-      }
-    },
-    "PiliPod" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "PiliPod"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "PiliPod"
-          }
-        }
-      }
-    },
-    "TARGETDURATION" : {
-
-    },
-    "UID: %@  IP属地: %@" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "UID: %1$@  IP location: %2$@"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "UID: %1$@  IP所在地: %2$@"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "UID: %1$@  IP属地: %2$@"
-          }
-        }
-      }
-    },
-    "UP主觉得很赞" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Liked by the creator"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "投稿者がとても気に入っています"
-          }
-        }
-      }
-    },
-    "URL 响应缓存" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "URL response cache"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "URL レスポンスキャッシュ"
-          }
-        }
-      }
-    },
     "envelope loading" : {
 
     },
@@ -523,8 +441,46 @@
     "frames %lld" : {
 
     },
+    "HLS Bridge" : {
+
+    },
     "https://www.bsbsb.top" : {
       "shouldTranslate" : false
+    },
+    "Library/Caches" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Library/Caches"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Library/Caches"
+          }
+        }
+      }
+    },
+    "LIVE" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LIVE"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LIVE"
+          }
+        }
+      }
+    },
+    "MEDIA-SEQUENCE" : {
+
     },
     "my.followers" : {
       "extractionState" : "manual",
@@ -595,6 +551,22 @@
         }
       }
     },
+    "P%lld" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "P%lld"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "P%lld"
+          }
+        }
+      }
+    },
     "paused" : {
 
     },
@@ -640,6 +612,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "公开"
+          }
+        }
+      }
+    },
+    "PiliPod" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "PiliPod"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "PiliPod"
           }
         }
       }
@@ -739,6 +727,9 @@
         }
       }
     },
+    "TARGETDURATION" : {
+
+    },
     "tmp 临时目录" : {
       "localizations" : {
         "en" : {
@@ -751,6 +742,60 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "tmp 一時ディレクトリ"
+          }
+        }
+      }
+    },
+    "UID: %@  IP属地: %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "UID: %1$@  IP location: %2$@"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "UID: %1$@  IP所在地: %2$@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "UID: %1$@  IP属地: %2$@"
+          }
+        }
+      }
+    },
+    "UP主觉得很赞" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Liked by the creator"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "投稿者がとても気に入っています"
+          }
+        }
+      }
+    },
+    "URL 响应缓存" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "URL response cache"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "URL レスポンスキャッシュ"
           }
         }
       }
@@ -889,86 +934,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "简介"
-          }
-        }
-      }
-    },
-    "—粉丝  —视频" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "—Followers  —Videos"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "—フォロワー  —動画"
-          }
-        }
-      }
-    },
-    "• 私人ID可以自行设置，要求至少为30个字符长度的纯字符串，首次启动时会生成随机字符串。" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "• You can set your own private ID; it must be a string consisting solely of characters and at least 30 characters long. A random string will be generated when the application is launched for the first time."
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "• プライベートIDは自分で設定できます。30文字以上の純粋な文字列である必要があり、初回起動時にはランダムな文字列が生成されます。"
-          }
-        }
-      }
-    },
-    "• 私人ID应该被保密。如果他人获得了你的私人ID，他就可以冒充你。服务器不会保存任何私人ID，如果你不幸弄丢了私人ID，那就再也没办法找回了。" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "• Your private ID should be kept confidential. If someone else obtains your private ID, they will be able to impersonate you. The server does not store any private IDs, so if you are unfortunate enough to lose your private ID, there is no way to recover it."
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "• プライベートIDは秘密にしておく必要があります。他人があなたのプライベートIDを入手すると、あなたになりすますことができます。サーバーはプライベートIDを一切保存しないため、万が一プライベートIDを失くした場合、二度と取り戻すことはできません。"
-          }
-        }
-      }
-    },
-    "• 自动同步: mpv的--autosync" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "• Automatic synchronisation: the --autosync parameter in mpv"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "• 自動同期: mpvの--autosync"
-          }
-        }
-      }
-    },
-    "• 视频同步: mpv的--video-sync" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "• Video synchronisation: the --video-sync parameter in mpv"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "• 映像同期: mpvの--video-sync"
           }
         }
       }
@@ -1132,26 +1097,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "CAPTCHA認証"
-          }
-        }
-      }
-    },
-    "仅在MPVKit内核下支持设置。" : {
-      "localizations" : {
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "MPVKit コアでのみ設定が可能です。"
-          }
-        }
-      }
-    },
-    "仅在MPVKit内核下支持设置。AVPlayer支持HDR与杜比视界。" : {
-      "localizations" : {
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "MPVKit コアでのみ設定が可能です。AVPlayerはHDRおよびDolby Visionに対応しています。"
           }
         }
       }
@@ -1432,6 +1377,57 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "その他の設定"
+          }
+        }
+      }
+    },
+    "最多保留" : {
+
+    },
+    "最多播放" : {
+
+    },
+    "最新切片时长" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Newest Segment Duration"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "最新セグメント長"
+          }
+        }
+      }
+    },
+    "最新发布" : {
+
+    },
+    "最终选择" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "最終の選択"
+          }
+        }
+      }
+    },
+    "最近请求切片" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Last Requested Segment"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "直近のセグメント"
           }
         }
       }
@@ -1823,6 +1819,7 @@
       }
     },
     "同步" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -1887,9 +1884,6 @@
       }
     },
     "听视频" : {
-
-    },
-    "听视频背景效果仅支持 AVPlayer 内核。" : {
 
     },
     "响应情况" : {
@@ -1999,6 +1993,7 @@
 
     },
     "如果遇到播放异常请关闭。" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -2949,16 +2944,6 @@
         }
       }
     },
-    "播放器内核" : {
-      "localizations" : {
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "プレーヤーのコア"
-          }
-        }
-      }
-    },
     "播放器状态" : {
       "localizations" : {
         "en" : {
@@ -3300,57 +3285,6 @@
         }
       }
     },
-    "最多保留" : {
-
-    },
-    "最多播放" : {
-
-    },
-    "最新切片时长" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Newest Segment Duration"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "最新セグメント長"
-          }
-        }
-      }
-    },
-    "最新发布" : {
-
-    },
-    "最终选择" : {
-      "localizations" : {
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "最終の選択"
-          }
-        }
-      }
-    },
-    "最近请求切片" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Last Requested Segment"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "直近のセグメント"
-          }
-        }
-      }
-    },
     "服务器" : {
       "localizations" : {
         "en" : {
@@ -3531,9 +3465,6 @@
 
     },
     "氛围模式" : {
-
-    },
-    "氛围模式仅支持 AVPlayer 内核。" : {
 
     },
     "没有找到匹配的用户" : {
@@ -3861,16 +3792,6 @@
         }
       }
     },
-    "画中画仅支持 AVPlayer 内核。" : {
-      "localizations" : {
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "小窓の機能は、AVPlayer コアのみに対応しています。"
-          }
-        }
-      }
-    },
     "画质" : {
       "localizations" : {
         "en" : {
@@ -3935,6 +3856,22 @@
         }
       }
     },
+    "直播" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Live"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ライブ"
+          }
+        }
+      }
+    },
     "直播中" : {
       "localizations" : {
         "en" : {
@@ -3993,6 +3930,9 @@
         }
       }
     },
+    "直播延迟过大时，自动小幅加速播放以追上最新进度。" : {
+
+    },
     "直播流" : {
       "localizations" : {
         "en" : {
@@ -4041,6 +3981,22 @@
         }
       }
     },
+    "直播进度同步" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Live Progress Sync"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ライブ進行同期"
+          }
+        }
+      }
+    },
     "直播默认画质" : {
       "localizations" : {
         "en" : {
@@ -4085,22 +4041,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "ビットレート"
-          }
-        }
-      }
-    },
-    "硬件解码" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Hardware Decoding"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "ハードウェアデコード"
           }
         }
       }
@@ -4159,6 +4099,132 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "超大バッファを使用することを確認"
+          }
+        }
+      }
+    },
+    "视频" : {
+
+    },
+    "视频参数" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Video Parameters"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "動画パラメータ"
+          }
+        }
+      }
+    },
+    "视频同步" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Video Sync"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "動画同期"
+          }
+        }
+      }
+    },
+    "视频后台播放" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Background Video Playback"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "動画のバックグラウンド再生"
+          }
+        }
+      }
+    },
+    "视频小窗播放" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ビデオの小窓再生"
+          }
+        }
+      }
+    },
+    "视频平均码率" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Average Video Bitrate"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "平均映像ビットレート"
+          }
+        }
+      }
+    },
+    "视频流信息" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Video Stream Information"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "動画ストリーム情報"
+          }
+        }
+      }
+    },
+    "视频画质" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Video Quality"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "動画画質"
+          }
+        }
+      }
+    },
+    "视频选集" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Episode Selection"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "動画のエピソード選択"
           }
         }
       }
@@ -4460,22 +4526,6 @@
         }
       }
     },
-    "缓存管理" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Cache Management"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "キャッシュ管理"
-          }
-        }
-      }
-    },
     "缓存视频" : {
       "localizations" : {
         "en" : {
@@ -4488,6 +4538,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "キャッシュ動画"
+          }
+        }
+      }
+    },
+    "缓存管理" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cache Management"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "キャッシュ管理"
           }
         }
       }
@@ -4537,6 +4603,7 @@
 
     },
     "自动同步" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -4630,132 +4697,8 @@
         }
       }
     },
-    "视频" : {
-
-    },
-    "视频参数" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Video Parameters"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "動画パラメータ"
-          }
-        }
-      }
-    },
-    "视频同步" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Video Sync"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "動画同期"
-          }
-        }
-      }
-    },
-    "视频后台播放" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Background Video Playback"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "動画のバックグラウンド再生"
-          }
-        }
-      }
-    },
-    "视频小窗播放" : {
-      "localizations" : {
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "ビデオの小窓再生"
-          }
-        }
-      }
-    },
-    "视频平均码率" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Average Video Bitrate"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "平均映像ビットレート"
-          }
-        }
-      }
-    },
-    "视频流信息" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Video Stream Information"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "動画ストリーム情報"
-          }
-        }
-      }
-    },
-    "视频画质" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Video Quality"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "動画画質"
-          }
-        }
-      }
-    },
-    "视频选集" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Episode Selection"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "動画のエピソード選択"
-          }
-        }
-      }
-    },
     "解码器" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -4886,6 +4829,9 @@
         }
       }
     },
+    "超大将请求以前向缓冲覆盖点播视频总时长；系统仍可能因内存压力缩短实际缓存。" : {
+
+    },
     "距上次调整" : {
       "localizations" : {
         "en" : {
@@ -4918,6 +4864,22 @@
         }
       }
     },
+    "跳过：%@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Skip: %@"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "スキップ：%@"
+          }
+        }
+      }
+    },
     "跳过提示" : {
       "localizations" : {
         "en" : {
@@ -4946,22 +4908,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "スキップ回数の統計追跡"
-          }
-        }
-      }
-    },
-    "跳过：%@" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Skip: %@"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "スキップ：%@"
           }
         }
       }
@@ -5426,54 +5372,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "デフォルト画質"
-          }
-        }
-      }
-    },
-    "直播进度同步" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Live Progress Sync"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "ライブ進行同期"
-          }
-        }
-      }
-    },
-    "直播" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Live"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "ライブ"
-          }
-        }
-      }
-    },
-    "直播延迟过大时，自动小幅加速播放以追上最新进度。仅支持 AVPlayer 内核。" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "When the live stream falls too far behind, playback speeds up slightly to catch up. AVPlayer core only."
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "ライブの遅延が大きい場合、わずかに速度を上げて最新に追いつきます。AVPlayer コアのみ対応。"
           }
         }
       }

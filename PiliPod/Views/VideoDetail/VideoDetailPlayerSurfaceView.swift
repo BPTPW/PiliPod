@@ -20,7 +20,7 @@ struct VideoDetailPlayerSurfaceView: View {
     }
 
     let stream: DashStream
-    let player: MPVKitPlayer
+    let player: PlaybackSession
     let playerViewID: String
     let containerSize: CGSize
     let safeAreaInsets: EdgeInsets
@@ -156,14 +156,8 @@ struct VideoDetailPlayerSurfaceView: View {
                 Color.black
             }
 
-            Group {
-                if player.usesAVPlayer {
-                    AVPlayerSurfaceView(player: player)
-                } else {
-                    MPVKitPlayerView(player: player)
-                }
-            }
-            .id(playerViewID)
+            AVPlayerSurfaceView(player: player)
+                .id(playerViewID)
             // Keep the renderer at the video's fitted size so the fullscreen
             // canvas can expose the ambient background around it.
             .frame(width: videoRenderSize.width, height: videoRenderSize.height, alignment: .center)

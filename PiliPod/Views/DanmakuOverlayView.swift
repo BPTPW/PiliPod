@@ -464,7 +464,7 @@ final class DanmakuUIKitOverlay: UIView {
     required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
     deinit { displayLink?.invalidate() }
 
-    func configure(player: MPVKitPlayer, elements: [Bilibili_Community_Service_Dm_V1_DanmakuElem], config: DanmakuEngineConfig, isFullscreen: Bool) {
+    func configure(player: PlaybackSession, elements: [Bilibili_Community_Service_Dm_V1_DanmakuElem], config: DanmakuEngineConfig, isFullscreen: Bool) {
         timeProvider = { player.currentTime }; isPlayingProvider = { player.isPlaying }; rateProvider = { player.playbackRate }; seekRevisionProvider = { player.playbackSeekRevision }
         let requiresRebuild = appliedConfig != config.clamped() || self.isFullscreen != isFullscreen
         self.isFullscreen = isFullscreen
@@ -497,8 +497,7 @@ final class DanmakuUIKitOverlay: UIView {
 
     @objc private func step(_ link: CADisplayLink) {
         guard let time = timeProvider?(), let playing = isPlayingProvider?(), let rate = rateProvider?(), let seekRevision = seekRevisionProvider?() else { return }
-        // MPV reports time at a different cadence than CADisplayLink. Existing
-        // animations intentionally ignore that ordinary correction; a seek is the
+        // Animations intentionally ignore ordinary clock corrections; a seek is the
         // only clock event that reconstructs their screen position.
         let didSeek = seekRevision != lastSeekRevision
         if didSeek || abs(rate - lastRate) > 0.001 { rebuild(at: time) }
@@ -674,7 +673,7 @@ final class DanmakuUIKitOverlay: UIView {
 }
 
 struct DanmakuOverlayView: UIViewRepresentable {
-    let player: MPVKitPlayer
+    let player: PlaybackSession
     let elements: [Bilibili_Community_Service_Dm_V1_DanmakuElem]
     let config: DanmakuEngineConfig
     let isFullscreen: Bool

@@ -10,8 +10,8 @@
   types, `ViewModels/` for screen state and workflows, `Views/` for SwiftUI
   screens, `Components/` for reusable UI, and `Services/` for networking,
   playback, caching, and system integrations.
-- The app uses SwiftUI with UIKit/AVFoundation integration where needed. MPVKit
-  is the alternate playback engine and is pinned through Swift Package Manager.
+- The app uses SwiftUI with UIKit/AVFoundation integration where needed. AVPlayer
+  is used for video and live playback.
 
 ## Working conventions
 
@@ -33,7 +33,7 @@
 
 - Swift Package Manager dependencies are recorded in
   `PiliPod.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved`:
-  MPVKit, Swift Protobuf, and ZIPFoundation.
+  Swift Protobuf and ZIPFoundation.
 - Update package dependencies through Xcode/Swift Package Manager and keep the
   resolved file in sync. Do not hand-edit generated Xcode project sections unless
   the change is specifically about project configuration.

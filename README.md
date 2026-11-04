@@ -60,7 +60,6 @@ iOS 26+ (测试平台为iOS27)
 - [PiliPlus](https://github.com/bggRGjQaUbCoE/PiliPlus/)
 - [cilicili](https://github.com/Rone89/cilicili)
 - [bilibili-API-collect](https://github.com/SocialSisterYi/bilibili-API-collect)
-- [MPVKit](https://github.com/mpvkit/MPVKit)
 
 ## Star History
 

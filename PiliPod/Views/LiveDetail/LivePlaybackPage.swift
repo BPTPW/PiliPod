@@ -26,7 +26,7 @@ struct LivePlaybackPage: View {
     let room: LiveCardModel
     @Environment(\.dismiss) private var dismiss
     @State private var viewModel: LivePlaybackViewModel
-    @State private var player = MPVKitPlayer()
+    @State private var player = PlaybackSession()
     @State private var playerUISnapshot = PlayerUIPlaybackSnapshot()
     @State private var shouldResumeAfterBackgroundPause = false
     @State private var controlsVisible = true
@@ -111,11 +111,7 @@ struct LivePlaybackPage: View {
             resetLatencySync()
             let isRetainedForPictureInPicture = ManualPictureInPictureCoordinator.shared.isRetaining(player)
             if !isRetainedForPictureInPicture {
-                if player.usesAVPlayer {
-                    player.stop()
-                } else {
-                    player.pause()
-                }
+                player.stop()
             }
 #if canImport(UIKit)
             if !isRetainedForPictureInPicture {
@@ -494,7 +490,7 @@ struct LivePlaybackPage: View {
     /// Catches playback up to the live edge by briefly raising the rate; see
     /// `LiveLatencySyncController` for the policy.
     private func updateLatencySync(with snapshot: PlayerUIPlaybackSnapshot) {
-        guard isProgressSyncEnabled, player.usesAVPlayer, viewModel.streamURL != nil else { return }
+        guard isProgressSyncEnabled, viewModel.streamURL != nil else { return }
         let rate = latencySync.update(
             currentTime: snapshot.currentTime,
             bufferedUntil: snapshot.bufferedUntil,

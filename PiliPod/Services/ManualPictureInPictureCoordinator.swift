@@ -22,13 +22,12 @@ extension Notification.Name {
 final class ManualPictureInPictureCoordinator {
     static let shared = ManualPictureInPictureCoordinator()
 
-    private var retainedPlayer: MPVKitPlayer?
+    private var retainedPlayer: PlaybackSession?
     private var route: ManualPictureInPictureRoute?
 
     private init() {}
 
-    func start(player: MPVKitPlayer, route: ManualPictureInPictureRoute) {
-        guard player.usesAVPlayer else { return }
+    func start(player: PlaybackSession, route: ManualPictureInPictureRoute) {
         stopIfNeeded(except: player)
         retainedPlayer = player
         self.route = route
@@ -52,11 +51,11 @@ final class ManualPictureInPictureCoordinator {
         )
     }
 
-    func isRetaining(_ player: MPVKitPlayer) -> Bool {
+    func isRetaining(_ player: PlaybackSession) -> Bool {
         retainedPlayer === player
     }
 
-    func stopIfNeeded(except player: MPVKitPlayer? = nil) {
+    func stopIfNeeded(except player: PlaybackSession? = nil) {
         guard let retainedPlayer, retainedPlayer !== player else { return }
         self.retainedPlayer = nil
         route = nil

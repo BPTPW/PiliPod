@@ -12,7 +12,7 @@ import Observation
 class VideoDetailViewModel {
     var videoDetail: VideoDetailData?
     var dashStream: DashStream?
-    var player: MPVKitPlayer?
+    var player: PlaybackSession?
     var isLoading = false
     var error: String?
     var playerInfo: PlayerWbiV2Data?
@@ -121,7 +121,7 @@ class VideoDetailViewModel {
         self.title = title
         self.cover = cover
         self.requestedInitialSeekTime = initialSeekTime
-        self.player = MPVKitPlayer()
+        self.player = PlaybackSession()
     }
 
     // MARK: - Load Video Data
@@ -749,7 +749,7 @@ class VideoDetailViewModel {
 
         oldPlayer.pause()
 
-        let newPlayer = MPVKitPlayer()
+        let newPlayer = PlaybackSession()
         player = newPlayer
         playerRebuildToken = UUID()
 
@@ -767,7 +767,7 @@ class VideoDetailViewModel {
 
     @MainActor
     private func restorePlaybackState(
-        on player: MPVKitPlayer,
+        on player: PlaybackSession,
         time: Double,
         rate: Double,
         shouldResume: Bool
@@ -1357,7 +1357,7 @@ class VideoDetailViewModel {
 	        }
 	    }
 
-    private func reportHistoryIfNeeded(with player: MPVKitPlayer) {
+    private func reportHistoryIfNeeded(with player: PlaybackSession) {
         guard !isPlayingOfflineCache else { return }
         let currentProgress = Int(player.currentTime)
 
@@ -1375,7 +1375,7 @@ class VideoDetailViewModel {
         }
     }
 
-    func stopHistoryReporting(with player: MPVKitPlayer) {
+    func stopHistoryReporting(with player: PlaybackSession) {
         historyReportStartTask?.cancel()
         historyReportStartTask = nil
         historyReportTimer?.invalidate()

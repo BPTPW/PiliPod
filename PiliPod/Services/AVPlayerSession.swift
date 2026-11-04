@@ -17,10 +17,10 @@ final class AVPlayerSession: NSObject, AVPictureInPictureControllerDelegate {
 
         var errorDescription: String? {
             switch self {
-            case let .unsupportedVideoCodec(codec): "AVPlayer 不支持当前视频编码（\(codec)），请切换 MPVKit。"
-            case let .unsupportedAudioCodec(codec): "AVPlayer 不支持当前音频编码（\(codec)），请切换 MPVKit。"
+            case let .unsupportedVideoCodec(codec): "AVPlayer 不支持当前视频编码（\(codec)）。"
+            case let .unsupportedAudioCodec(codec): "AVPlayer 不支持当前音频编码（\(codec)）。"
             case .missingSegmentIndex: "该 DASH 流不含可用的 SegmentBase/SIDX 索引，无法使用 AVPlayer。"
-            case .preparationFailed: "AVPlayer 本地 HLS 准备失败，请切换 MPVKit 重试。"
+            case .preparationFailed: "AVPlayer 本地 HLS 准备失败，请重试。"
             }
         }
     }
