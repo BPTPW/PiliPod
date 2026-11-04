@@ -293,22 +293,6 @@
     "%lld级" : {
 
     },
-    "• 视频同步: mpv的--video-sync" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "• Video synchronisation: the --video-sync parameter in mpv"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "• 映像同期: mpvの--video-sync"
-          }
-        }
-      }
-    },
     "• 私人ID可以自行设置，要求至少为30个字符长度的纯字符串，首次启动时会生成随机字符串。" : {
       "localizations" : {
         "en" : {
@@ -340,25 +324,6 @@
           }
         }
       }
-    },
-    "• 自动同步: mpv的--autosync" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "• Automatic synchronisation: the --autosync parameter in mpv"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "• 自動同期: mpvの--autosync"
-          }
-        }
-      }
-    },
-    "0" : {
-      "shouldTranslate" : false
     },
     "10 条" : {
 
@@ -513,6 +478,9 @@
           }
         }
       }
+    },
+    "MEDIA-SEQUENCE" : {
+
     },
     "my.followers" : {
       "extractionState" : "manual",
@@ -758,6 +726,9 @@
           }
         }
       }
+    },
+    "TARGETDURATION" : {
+
     },
     "tmp 临时目录" : {
       "localizations" : {
@@ -1015,6 +986,22 @@
         }
       }
     },
+    "下载速度" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Download Speed"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ダウンロード速度"
+          }
+        }
+      }
+    },
     "不建议更改，除非你有自己的服务器。" : {
       "localizations" : {
         "en" : {
@@ -1049,6 +1036,22 @@
     },
     "不限" : {
 
+    },
+    "丢帧数" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dropped Frames"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ドロップフレーム数"
+          }
+        }
+      }
     },
     "为大家节省了 %@ 片段" : {
       "localizations" : {
@@ -1094,26 +1097,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "CAPTCHA認証"
-          }
-        }
-      }
-    },
-    "仅在MPVKit内核下支持设置。" : {
-      "localizations" : {
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "MPVKit コアでのみ設定が可能です。"
-          }
-        }
-      }
-    },
-    "仅在MPVKit内核下支持设置。AVPlayer支持HDR与杜比视界。" : {
-      "localizations" : {
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "MPVKit コアでのみ設定が可能です。AVPlayerはHDRおよびDolby Visionに対応しています。"
           }
         }
       }
@@ -1213,6 +1196,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "変更は次回ホームのおすすめ内容が更新される際に反映されます。"
+          }
+        }
+      }
+    },
+    "倍速调整次数" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rate Changes"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "速度変更回数"
           }
         }
       }
@@ -1388,6 +1387,22 @@
     "最多播放" : {
 
     },
+    "最新切片时长" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Newest Segment Duration"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "最新セグメント長"
+          }
+        }
+      }
+    },
     "最新发布" : {
 
     },
@@ -1397,6 +1412,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "最終の選択"
+          }
+        }
+      }
+    },
+    "最近请求切片" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Last Requested Segment"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "直近のセグメント"
           }
         }
       }
@@ -1464,6 +1495,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "カテゴリ"
+          }
+        }
+      }
+    },
+    "分辨率" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Resolution"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "解像度"
           }
         }
       }
@@ -1691,6 +1738,22 @@
     "动态详情" : {
 
     },
+    "卡顿次数" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Stall Count"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "停止回数"
+          }
+        }
+      }
+    },
     "原动态不可用" : {
 
     },
@@ -1739,7 +1802,24 @@
     "可清理缓存总大小" : {
 
     },
+    "可跳转窗口余量" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Seekable Window Margin"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "シーク可能範囲の余裕"
+          }
+        }
+      }
+    },
     "同步" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -1751,6 +1831,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "同期"
+          }
+        }
+      }
+    },
+    "同步状态" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sync State"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "同期状態"
           }
         }
       }
@@ -1771,10 +1867,23 @@
         }
       }
     },
-    "听视频" : {
-
+    "否" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "いいえ"
+          }
+        }
+      }
     },
-    "听视频背景效果仅支持 AVPlayer 内核。" : {
+    "听视频" : {
 
     },
     "响应情况" : {
@@ -1864,10 +1973,27 @@
         }
       }
     },
+    "声明码率" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Declared Bitrate"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "宣言ビットレート"
+          }
+        }
+      }
+    },
     "复制" : {
 
     },
     "如果遇到播放异常请关闭。" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -1923,6 +2049,54 @@
     },
     "字幕设置" : {
 
+    },
+    "安全保持" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Safety Hold"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "安全保持"
+          }
+        }
+      }
+    },
+    "安全回退次数" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Safety Resets"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "安全リセット回数"
+          }
+        }
+      }
+    },
+    "实测码率" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Observed Bitrate"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "実測ビットレート"
+          }
+        }
+      }
     },
     "密码" : {
       "localizations" : {
@@ -2309,6 +2483,54 @@
         }
       }
     },
+    "已暂停" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Paused"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "一時停止中"
+          }
+        }
+      }
+    },
+    "帧率" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Frame Rate"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "フレームレート"
+          }
+        }
+      }
+    },
+    "平滑余量" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Smoothed Margin"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "平滑化した余裕"
+          }
+        }
+      }
+    },
     "弹幕" : {
       "localizations" : {
         "en" : {
@@ -2359,6 +2581,38 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "弾幕設定"
+          }
+        }
+      }
+    },
+    "当前倍速" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Current Rate"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "現在の再生速度"
+          }
+        }
+      }
+    },
+    "当前时间 currentTime" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Current Time (currentTime)"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "現在時刻 (currentTime)"
           }
         }
       }
@@ -2459,6 +2713,9 @@
           }
         }
       }
+    },
+    "我的收藏" : {
+
     },
     "房间号 %@" : {
       "localizations" : {
@@ -2617,6 +2874,9 @@
         }
       }
     },
+    "搜索收藏夹内容" : {
+
+    },
     "搜索视频" : {
       "localizations" : {
         "en" : {
@@ -2636,6 +2896,38 @@
     "播放" : {
 
     },
+    "播放中" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Playing"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "再生中"
+          }
+        }
+      }
+    },
+    "播放列表" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Playlist"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "プレイリスト"
+          }
+        }
+      }
+    },
     "播放器" : {
       "localizations" : {
         "en" : {
@@ -2648,16 +2940,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "プレーヤー"
-          }
-        }
-      }
-    },
-    "播放器内核" : {
-      "localizations" : {
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "プレーヤーのコア"
           }
         }
       }
@@ -2677,6 +2959,25 @@
           }
         }
       }
+    },
+    "播放状态" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Playback State"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "再生状態"
+          }
+        }
+      }
+    },
+    "收藏夹中还没有视频" : {
+
     },
     "收起" : {
 
@@ -2738,6 +3039,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "キャッシュタスクを追加"
+          }
+        }
+      }
+    },
+    "是" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Yes"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "はい"
           }
         }
       }
@@ -3016,6 +3333,22 @@
         }
       }
     },
+    "未运行" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Inactive"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "停止中"
+          }
+        }
+      }
+    },
     "杜比全景声" : {
 
     },
@@ -3102,6 +3435,22 @@
         }
       }
     },
+    "正常" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Normal"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "通常"
+          }
+        }
+      }
+    },
     "步骤 %lld/%lld" : {
       "localizations" : {
         "zh-Hans" : {
@@ -3116,9 +3465,6 @@
 
     },
     "氛围模式" : {
-
-    },
-    "氛围模式仅支持 AVPlayer 内核。" : {
 
     },
     "没有找到匹配的用户" : {
@@ -3136,6 +3482,9 @@
           }
         }
       }
+    },
+    "没有找到相关内容" : {
+
     },
     "没有找到相关结果" : {
       "localizations" : {
@@ -3443,16 +3792,6 @@
         }
       }
     },
-    "画中画仅支持 AVPlayer 内核。" : {
-      "localizations" : {
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "小窓の機能は、AVPlayer コアのみに対応しています。"
-          }
-        }
-      }
-    },
     "画质" : {
       "localizations" : {
         "en" : {
@@ -3497,6 +3836,38 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "ログインデータ"
+          }
+        }
+      }
+    },
+    "目标倍速" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Target Rate"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "目標再生速度"
+          }
+        }
+      }
+    },
+    "直播" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Live"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ライブ"
           }
         }
       }
@@ -3559,6 +3930,41 @@
         }
       }
     },
+    "直播延迟过大时，自动小幅加速播放以追上最新进度。" : {
+
+    },
+    "直播流" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Live Stream"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ライブストリーム"
+          }
+        }
+      }
+    },
+    "直播流信息" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Live Stream Information"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ライブストリーム情報"
+          }
+        }
+      }
+    },
     "直播画质" : {
       "localizations" : {
         "en" : {
@@ -3571,6 +3977,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "ライブ画質"
+          }
+        }
+      }
+    },
+    "直播进度同步" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Live Progress Sync"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ライブ進行同期"
           }
         }
       }
@@ -3619,22 +4041,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "ビットレート"
-          }
-        }
-      }
-    },
-    "硬件解码" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Hardware Decoding"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "ハードウェアデコード"
           }
         }
       }
@@ -3717,6 +4123,7 @@
       }
     },
     "视频同步" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -3754,6 +4161,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "ビデオの小窓再生"
+          }
+        }
+      }
+    },
+    "视频平均码率" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Average Video Bitrate"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "平均映像ビットレート"
           }
         }
       }
@@ -3917,6 +4340,22 @@
         }
       }
     },
+    "窗口切片数" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Segments in Window"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ウィンドウ内セグメント数"
+          }
+        }
+      }
+    },
     "粉丝" : {
       "localizations" : {
         "en" : {
@@ -3971,6 +4410,38 @@
         }
       }
     },
+    "缓冲中" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Buffering"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "バッファリング中"
+          }
+        }
+      }
+    },
+    "缓冲余量 ahead" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Buffer Margin (ahead)"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "バッファ余裕 (ahead)"
+          }
+        }
+      }
+    },
     "缓冲大小" : {
       "localizations" : {
         "en" : {
@@ -3983,6 +4454,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "バッファサイズ"
+          }
+        }
+      }
+    },
+    "缓冲末端 bufferedUntil" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Buffered Until (bufferedUntil)"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "バッファ終端 (bufferedUntil)"
           }
         }
       }
@@ -4116,6 +4603,7 @@
 
     },
     "自动同步" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -4210,6 +4698,7 @@
       }
     },
     "解码器" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -4340,6 +4829,41 @@
         }
       }
     },
+    "超大将请求以前向缓冲覆盖点播视频总时长；系统仍可能因内存压力缩短实际缓存。" : {
+
+    },
+    "距上次调整" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Since Last Change"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "前回の変更から"
+          }
+        }
+      }
+    },
+    "距最新切片起点" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Behind Newest Segment Start"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "最新セグメント開始からの遅れ"
+          }
+        }
+      }
+    },
     "跳过：%@" : {
       "localizations" : {
         "en" : {
@@ -4439,6 +4963,9 @@
         }
       }
     },
+    "还没有收藏夹" : {
+
+    },
     "还没有观看记录" : {
       "localizations" : {
         "en" : {
@@ -4521,8 +5048,40 @@
         }
       }
     },
+    "进度同步" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Progress Sync"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "進行同期"
+          }
+        }
+      }
+    },
     "进度条样式" : {
 
+    },
+    "追赶中" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Catching Up"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "追いつき中"
+          }
+        }
+      }
     },
     "退出登录" : {
       "localizations" : {
@@ -4698,6 +5257,38 @@
     },
     "音频" : {
 
+    },
+    "音频平均码率" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Average Audio Bitrate"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "平均音声ビットレート"
+          }
+        }
+      }
+    },
+    "预热中" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Warming Up"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "準備中"
+          }
+        }
+      }
     },
     "首选编码格式" : {
       "localizations" : {

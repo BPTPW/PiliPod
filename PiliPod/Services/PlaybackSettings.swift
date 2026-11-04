@@ -80,20 +80,6 @@ enum VideoBufferSizeOption: String, CaseIterable, Codable, Hashable {
         }
     }
 
-    var mpvByteString: String? {
-        switch self {
-        case .auto: nil
-        case .huge: "2048MiB"
-        case .mb64: "64MiB"
-        case .mb32: "32MiB"
-        case .mb16: "16MiB"
-        case .mb8: "8MiB"
-        case .mb4: "4MiB"
-        case .mb2: "2MiB"
-        case .mb1: "1MiB"
-        }
-    }
-
     var avPlayerTitle: String {
         switch self {
         case .auto: "自动"
@@ -119,18 +105,6 @@ enum PreferredCodecOption: String, CaseIterable, Codable, Hashable {
         case .hevc: "HEVC"
         case .avc: "AVC"
         case .av1: "AV1"
-        }
-    }
-}
-
-enum PlayerCore: String, CaseIterable, Codable, Hashable {
-    case avPlayer
-    case mpvKit
-
-    var title: String {
-        switch self {
-            case .avPlayer: "AVPlayer"
-            case .mpvKit: "MPVKit (已弃用)"
         }
     }
 }
@@ -166,22 +140,6 @@ enum AmbientGradientSpeed: String, CaseIterable, Codable, Hashable {
     }
 }
 
-enum MPVVideoSyncOption: String, CaseIterable, Codable, Hashable {
-    case audio
-    case displayResample = "display-resample"
-    case displayTempo = "display-tempo"
-    case displayTempoOSD = "display-tempo-osd"
-
-    var title: String {
-        switch self {
-        case .audio: "audio"
-        case .displayResample: "display-resample"
-        case .displayTempo: "display-tempo"
-        case .displayTempoOSD: "display-tempo-osd"
-        }
-    }
-}
-
 enum HDRToneMappingOption: String, CaseIterable, Codable, Hashable {
     case auto
     case bt2390 = "bt.2390"
@@ -209,13 +167,12 @@ enum HDRToneMappingOption: String, CaseIterable, Codable, Hashable {
 struct AudioVideoSettings: Codable, Equatable {
     static let supportedHistoryReportIntervals = [5, 10, 20, 30]
 
-    var playerCore: PlayerCore = .avPlayer
     var historyReportInterval = 10
-    var hardwareDecodingEnabled = true
     var allowsBackgroundPlayback = false
     var allowsLiveBackgroundPlayback = false
     var allowsVideoPictureInPicture = false
     var allowsLivePictureInPicture = false
+    var liveProgressSyncEnabled = true
     var ambientModeEnabled = false
     var ambientSamplingRate: AmbientSamplingRate = .fiveTimes
     var ambientGradientSpeed: AmbientGradientSpeed = .normal
@@ -230,21 +187,18 @@ struct AudioVideoSettings: Codable, Equatable {
     var preferredCodec: PreferredCodecOption = .hevc
     var playbackCDNRoute: PlaybackCDNRoute = .automatic
     var cdnConnectivityTestValidity: CDNConnectivityTestValidity = .hour1
-    var autosync: Int = 0
-    var videoSync: MPVVideoSyncOption = .audio
     var highDynamicRangeEnabled = true
     var prefersEDROutput = true
     var hdrToneMapping: HDRToneMappingOption = .auto
     var videoProgressBarStyle: VideoProgressBarStyle = .system
 
     private enum CodingKeys: String, CodingKey {
-        case hardwareDecodingEnabled
-        case playerCore
         case historyReportInterval
         case allowsBackgroundPlayback
         case allowsLiveBackgroundPlayback
         case allowsVideoPictureInPicture
         case allowsLivePictureInPicture
+        case liveProgressSyncEnabled
         case ambientModeEnabled
         case ambientSamplingRate
         case ambientGradientSpeed
@@ -259,8 +213,6 @@ struct AudioVideoSettings: Codable, Equatable {
         case preferredCodec
         case playbackCDNRoute
         case cdnConnectivityTestValidity
-        case autosync
-        case videoSync
         case highDynamicRangeEnabled
         case prefersEDROutput
         case hdrToneMapping
@@ -272,7 +224,6 @@ struct AudioVideoSettings: Codable, Equatable {
         if !Self.supportedHistoryReportIntervals.contains(settings.historyReportInterval) {
             settings.historyReportInterval = 10
         }
-        settings.autosync = min(max(settings.autosync, 0), 10000)
         if settings.highDynamicRangeEnabled {
             settings.prefersEDROutput = true
             if settings.hdrToneMapping == .clip {
@@ -286,13 +237,12 @@ struct AudioVideoSettings: Codable, Equatable {
 
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
-        hardwareDecodingEnabled = try container.decodeIfPresent(Bool.self, forKey: .hardwareDecodingEnabled) ?? true
-        playerCore = try container.decodeIfPresent(PlayerCore.self, forKey: .playerCore) ?? .avPlayer
         historyReportInterval = try container.decodeIfPresent(Int.self, forKey: .historyReportInterval) ?? 10
         allowsBackgroundPlayback = try container.decodeIfPresent(Bool.self, forKey: .allowsBackgroundPlayback) ?? false
         allowsLiveBackgroundPlayback = try container.decodeIfPresent(Bool.self, forKey: .allowsLiveBackgroundPlayback) ?? false
         allowsVideoPictureInPicture = try container.decodeIfPresent(Bool.self, forKey: .allowsVideoPictureInPicture) ?? false
         allowsLivePictureInPicture = try container.decodeIfPresent(Bool.self, forKey: .allowsLivePictureInPicture) ?? false
+        liveProgressSyncEnabled = try container.decodeIfPresent(Bool.self, forKey: .liveProgressSyncEnabled) ?? true
         ambientModeEnabled = try container.decodeIfPresent(Bool.self, forKey: .ambientModeEnabled) ?? false
         ambientSamplingRate = (try? container.decode(AmbientSamplingRate.self, forKey: .ambientSamplingRate)) ?? .fiveTimes
         ambientGradientSpeed = (try? container.decode(AmbientGradientSpeed.self, forKey: .ambientGradientSpeed)) ?? .normal
@@ -307,8 +257,6 @@ struct AudioVideoSettings: Codable, Equatable {
         preferredCodec = try container.decodeIfPresent(PreferredCodecOption.self, forKey: .preferredCodec) ?? .hevc
         playbackCDNRoute = try container.decodeIfPresent(PlaybackCDNRoute.self, forKey: .playbackCDNRoute) ?? .automatic
         cdnConnectivityTestValidity = try container.decodeIfPresent(CDNConnectivityTestValidity.self, forKey: .cdnConnectivityTestValidity) ?? .hour1
-        autosync = try container.decodeIfPresent(Int.self, forKey: .autosync) ?? 0
-        videoSync = try container.decodeIfPresent(MPVVideoSyncOption.self, forKey: .videoSync) ?? .audio
         highDynamicRangeEnabled = try container.decodeIfPresent(Bool.self, forKey: .highDynamicRangeEnabled) ?? true
         prefersEDROutput = try container.decodeIfPresent(Bool.self, forKey: .prefersEDROutput) ?? true
         hdrToneMapping = try container.decodeIfPresent(HDRToneMappingOption.self, forKey: .hdrToneMapping) ?? .auto

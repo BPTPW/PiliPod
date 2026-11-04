@@ -52,7 +52,7 @@ class HomeViewModel {
     var unreadLikeCount = 0
     private var lastUnreadMessageRequestAt: Date?
     private var isLoadingUnreadMessageCount = false
-    private var hasLoaded = false
+    private(set) var hasLoaded = false
 
     /// 下拉刷新时，新内容插入顶部后，此值标记了新卡片数量；
     /// HomeView 据此在"新 / 旧"内容之间绘制 DividerWithText

@@ -5,7 +5,7 @@ import UIKit
 
 /// A music-detail presentation backed by the video's existing player session.
 struct ListenVideoPlayerSheet: View {
-    let player: MPVKitPlayer
+    let player: PlaybackSession
     let coverURL: URL?
     let title: String
     let artist: String
@@ -157,8 +157,7 @@ struct ListenVideoPlayerSheet: View {
             volume = systemVolume.currentVolume
         }
         .task(id: coverURL) {
-            guard player.usesAVPlayer,
-                  let coverURL,
+            guard let coverURL,
                   let image = await SharedRemoteImageStore.shared.image(for: coverURL),
                   let palette = ArtworkPaletteAnalyzer.palette(from: image)
             else {
@@ -178,15 +177,11 @@ struct ListenVideoPlayerSheet: View {
 
     @ViewBuilder
     private var background: some View {
-        if player.usesAVPlayer {
-            ListenVideoDynamicBackground(
-                palette: artworkPalette,
-                audioEnergy: player.listenVideoAudioEnergy,
-                isPlaying: snapshot.isPlaying
-            )
-        } else {
-            Self.presentationBackground
-        }
+        ListenVideoDynamicBackground(
+            palette: artworkPalette,
+            audioEnergy: player.listenVideoAudioEnergy,
+            isPlaying: snapshot.isPlaying
+        )
     }
 
     private func dismissGesture(height: CGFloat) -> some Gesture {

@@ -164,7 +164,7 @@ private struct GeetestWebView: UIViewRepresentable {
                 ?? ""
 
             guard !validate.isEmpty, !challenge.isEmpty, !seccode.isEmpty else {
-                print("Geetest success payload missing fields: \(payload)")
+                print("Geetest success payload missing required fields")
                 return
             }
 

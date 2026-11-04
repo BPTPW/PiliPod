@@ -11,6 +11,17 @@ import Testing
 
 struct PiliPodTests {
 
+    @Test func errorLogRedactsCredentialsAndURLQueryValues() {
+        let input = #"request failed: https://example.com/video.m4s?deadline=123&sign=abc access_token=token-value "refresh_token":"refresh-value"#
+        let redacted = ErrorLogService.redactSensitiveData(in: input)
+
+        #expect(!redacted.contains("123"))
+        #expect(!redacted.contains("abc"))
+        #expect(!redacted.contains("token-value"))
+        #expect(!redacted.contains("refresh-value"))
+        #expect(redacted.contains("access_token=<redacted>"))
+    }
+
     @Test func manualCDNRewritePreservesMediaPathAndSignature() throws {
         let source = try #require(URL(string: "https://upos-sz-mirrorcos.bilivideo.com/upgcxcode/12/34/56/video.m4s?deadline=123&sign=abc%2Fdef"))
 

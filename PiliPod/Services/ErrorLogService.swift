@@ -59,12 +59,10 @@ final class ErrorLogService: ObservableObject {
         guard shouldRecord(error) else { return }
         let failureReason = nsError.localizedFailureReason
         let recoverySuggestion = nsError.localizedRecoverySuggestion
-        let debugDescription = String(reflecting: error)
         let details = [
             "描述：\(error.localizedDescription)",
             failureReason.map { "失败原因：\($0)" },
-            recoverySuggestion.map { "恢复建议：\($0)" },
-            "调试描述：\(debugDescription)"
+            recoverySuggestion.map { "恢复建议：\($0)" }
         ]
         .compactMap { $0 }
         .joined(separator: "\n")
@@ -102,7 +100,7 @@ final class ErrorLogService: ObservableObject {
         let entry = ErrorLogEntry(
             context: "未捕获异常",
             message: redactSensitiveData(in: exception.reason ?? exception.description),
-            details: exception.callStackSymbols.joined(separator: "\n"),
+            details: redactSensitiveData(in: exception.callStackSymbols.joined(separator: "\n")),
             domain: exception.name.rawValue,
             source: exception.callStackSymbols.prefix(12).joined(separator: "\\n")
         )
@@ -185,13 +183,19 @@ final class ErrorLogService: ObservableObject {
         return entries.sorted { $0.timestamp > $1.timestamp }
     }
 
-    private static func redactSensitiveData(in text: String) -> String {
+    static func redactSensitiveData(in text: String) -> String {
         let patterns = [
-            "(?i)(SESSDATA|bili_jct|access_key|authorization|cookie)\\s*[=:]\\s*[^,\\s;]+",
-            "(?i)(SESSDATA|bili_jct|access_key)=([^&\\s]+)"
+            (
+                "(?i)([\\\"']?)(SESSDATA|bili_jct|access_key|access_token|refresh_token|refresh-token|recaptcha_token|recaptchaToken|challenge|seccode|validate|authorization|cookie)([\\\"']?\\s*[=:]\\s*[\\\"']?)[^\\\"'&,\\s;}]+",
+                "$1$2$3<redacted>"
+            ),
+            (
+                "(?i)([?&][^=&#\\s]+)=([^&#\\s]*)",
+                "$1=<redacted>"
+            )
         ]
-        return patterns.reduce(text) { result, pattern in
-            result.replacingOccurrences(of: pattern, with: "$1=<redacted>", options: .regularExpression)
+        return patterns.reduce(text) { result, item in
+            result.replacingOccurrences(of: item.0, with: item.1, options: .regularExpression)
         }
     }
 }

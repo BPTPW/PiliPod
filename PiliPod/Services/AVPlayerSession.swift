@@ -17,10 +17,10 @@ final class AVPlayerSession: NSObject, AVPictureInPictureControllerDelegate {
 
         var errorDescription: String? {
             switch self {
-            case let .unsupportedVideoCodec(codec): "AVPlayer 不支持当前视频编码（\(codec)），请切换 MPVKit。"
-            case let .unsupportedAudioCodec(codec): "AVPlayer 不支持当前音频编码（\(codec)），请切换 MPVKit。"
+            case let .unsupportedVideoCodec(codec): "AVPlayer 不支持当前视频编码（\(codec)）。"
+            case let .unsupportedAudioCodec(codec): "AVPlayer 不支持当前音频编码（\(codec)）。"
             case .missingSegmentIndex: "该 DASH 流不含可用的 SegmentBase/SIDX 索引，无法使用 AVPlayer。"
-            case .preparationFailed: "AVPlayer 本地 HLS 准备失败，请切换 MPVKit 重试。"
+            case .preparationFailed: "AVPlayer 本地 HLS 准备失败，请重试。"
             }
         }
     }
@@ -39,6 +39,7 @@ final class AVPlayerSession: NSObject, AVPictureInPictureControllerDelegate {
     private var pictureInPicturePossibleObservation: NSKeyValueObservation?
     private var pictureInPictureRetryWorkItem: DispatchWorkItem?
     private var isPictureInPictureStartRequested = false
+    private var restoresPictureInPictureOnForeground = false
     private var pictureInPictureStartAttempts = 0
     private var onPictureInPictureStarted: (() -> Void)?
     private var onPictureInPictureRestore: (() -> Void)?
@@ -55,6 +56,16 @@ final class AVPlayerSession: NSObject, AVPictureInPictureControllerDelegate {
     private var isListenVideoModeActive = false
     private var listenVideoAudioEnergyEnabled = false
     private var activeStream: DashStream?
+    // Live playback starts at the newest HLS segment once AVPlayer exposes
+    // the item's program timeline. This is intentionally independent of the
+    // optional catch-up logic kept on the live-sync branch.
+    private var isLivePlayback = false
+    private var livePlaylistTask: Task<Void, Never>?
+    private var livePlaylistBaseURL: URL?
+    private var livePlaylistSnapshot: HLSLivePlaylistSnapshot?
+    private var livePlaylistRequestInFlight = false
+    private var liveStartAligned = false
+    private var isSeekingToLive = false
     private var listenVideoAudioEnvelopeAnalyzer: AudioEnvelopeAnalyzer?
     private var listenVideoAudioEnvelope: [AudioEnvelopeFrame] = []
     private(set) var playbackRate = 1.0
@@ -73,6 +84,12 @@ final class AVPlayerSession: NSObject, AVPictureInPictureControllerDelegate {
         super.init()
         player.automaticallyWaitsToMinimizeStalling = true
         player.audiovisualBackgroundPlaybackPolicy = .automatic
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(sceneDidActivate(_:)),
+            name: UIScene.didActivateNotification,
+            object: nil
+        )
     }
 
     func attach(to view: UIView) {
@@ -89,6 +106,11 @@ final class AVPlayerSession: NSObject, AVPictureInPictureControllerDelegate {
     func layout(in bounds: CGRect) { layer?.frame = bounds }
 
     func startPictureInPicture() {
+        requestPictureInPictureStart(restoresOnForeground: true)
+    }
+
+    private func requestPictureInPictureStart(restoresOnForeground: Bool) {
+        restoresPictureInPictureOnForeground = restoresOnForeground
         isPictureInPictureStartRequested = true
         pictureInPictureStartAttempts = 0
         preparePictureInPictureController()
@@ -103,7 +125,18 @@ final class AVPlayerSession: NSObject, AVPictureInPictureControllerDelegate {
         onPictureInPictureStarted = onStarted
         onPictureInPictureRestore = onRestore
         onPictureInPictureStopped = onStopped
-        startPictureInPicture()
+        requestPictureInPictureStart(restoresOnForeground: false)
+    }
+
+    @objc private func sceneDidActivate(_ notification: Notification) {
+        guard restoresPictureInPictureOnForeground,
+              let scene = notification.object as? UIWindowScene,
+              scene === surface?.window?.windowScene
+        else { return }
+
+        // The session can outlive SwiftUI's lifecycle subscriptions. Stop on
+        // its own scene's activation as well as from the playback page.
+        stopPictureInPicture()
     }
 
     func stopPictureInPicture() {
@@ -160,7 +193,7 @@ final class AVPlayerSession: NSObject, AVPictureInPictureControllerDelegate {
         }
     }
 
-    func play(stream: DashStream) {
+    func play(stream: DashStream, initialSeekTime: TimeInterval? = nil) {
         configureBackgroundPlayback(allowsPlayback: playbackSettings.allowsBackgroundPlayback)
         guard Self.supports(videoCodec: stream.videoCodec) else {
             fail(PlaybackError.unsupportedVideoCodec(stream.videoCodec)); return
@@ -190,7 +223,7 @@ final class AVPlayerSession: NSObject, AVPictureInPictureControllerDelegate {
             for index in 0 ..< max(stream.videoURLCandidates.count, stream.audioURLCandidates.count) {
                 guard let candidate = stream.fallbackStream(at: index) else { continue }
                 do {
-                    let bridge = try await LocalDASHHLSBridge.make(stream: candidate, headers: self.headers)
+                    let bridge = try await LocalDASHHLSBridge.make(stream: candidate, headers: self.headers, initialSeekTime: initialSeekTime)
                     guard !Task.isCancelled, requestGeneration == self.generation else { bridge.stop(); return }
                     self.bridge = bridge
                     self.startListenVideoAudioEnvelope(for: candidate)
@@ -217,10 +250,14 @@ final class AVPlayerSession: NSObject, AVPictureInPictureControllerDelegate {
         activeStream = nil
         wantsPlayback = true
         errorMessage = nil
+        isLivePlayback = true
+        livePlaylistBaseURL = liveURL
         let asset = AVURLAsset(url: liveURL, options: ["AVURLAssetHTTPHeaderFieldsKey": headers])
         let item = AVPlayerItem(asset: asset)
+        item.audioTimePitchAlgorithm = .spectral
         install(item)
         player.playImmediately(atRate: Float(playbackRate))
+        startLivePlaylistPolling()
     }
 
     func resume() { wantsPlayback = true; player.playImmediately(atRate: Float(playbackRate)); publish() }
@@ -240,6 +277,7 @@ final class AVPlayerSession: NSObject, AVPictureInPictureControllerDelegate {
 
     private func install(_ item: AVPlayerItem) {
         resetAccessLogSpeedTracking()
+        item.canUseNetworkResourcesForLiveStreamingWhilePaused = true
         player.replaceCurrentItem(with: item)
         if isAmbientModeActive {
             attachAmbientVideoOutput(to: item)
@@ -324,6 +362,105 @@ final class AVPlayerSession: NSObject, AVPictureInPictureControllerDelegate {
         onSnapshot?(snapshot)
     }
 
+    func liveStreamDiagnostics() -> LiveStreamDiagnostics? {
+        guard isLivePlayback, let item = player.currentItem else { return nil }
+        var result = LiveStreamDiagnostics()
+        result.presentationSize = item.presentationSize
+        result.frameRate = item.tracks
+            .filter { $0.assetTrack?.mediaType == .video }
+            .map { Double($0.currentVideoFrameRate) }
+            .max() ?? 0
+        if let event = item.accessLog()?.events.last {
+            result.indicatedBitrate = max(event.indicatedBitrate, 0)
+            result.observedBitrate = max(event.observedBitrate, 0)
+            result.averageVideoBitrate = max(event.averageVideoBitrate, 0)
+            result.averageAudioBitrate = max(event.averageAudioBitrate, 0)
+            result.lastSegmentURI = event.uri ?? ""
+            result.droppedVideoFrames = max(event.numberOfDroppedVideoFrames, 0)
+            result.stallCount = max(event.numberOfStalls, 0)
+        }
+        let now = player.currentTime().seconds
+        if let end = item.seekableTimeRanges.map({ CMTimeRangeGetEnd($0.timeRangeValue).seconds }).max(),
+           end.isFinite, now.isFinite
+        {
+            result.seekableAhead = end - now
+        }
+        if let playlist = livePlaylistSnapshot {
+            result.playlistMediaSequence = playlist.mediaSequence
+            result.playlistTargetDuration = playlist.targetDuration
+            result.playlistSegmentCount = playlist.segmentCount
+            result.playlistLastSegmentDuration = playlist.lastSegmentDuration
+            if let playbackDate = item.integratedTimeline.currentDate,
+               let newest = playlist.liveEdgeStartDate
+            {
+                result.behindNewestSegmentStart = newest.timeIntervalSince(playbackDate)
+            }
+        }
+        return result
+    }
+
+    private func startLivePlaylistPolling() {
+        livePlaylistTask?.cancel()
+        livePlaylistTask = Task { [weak self] in
+            while !Task.isCancelled {
+                await self?.pollLivePlaylist()
+                try? await Task.sleep(nanoseconds: 1_000_000_000)
+            }
+        }
+    }
+
+    private func pollLivePlaylist() async {
+        guard isLivePlayback, let url = livePlaylistBaseURL,
+              !livePlaylistRequestInFlight else { return }
+        livePlaylistRequestInFlight = true
+        defer { livePlaylistRequestInFlight = false }
+        var request = URLRequest(url: url, cachePolicy: .reloadIgnoringLocalAndRemoteCacheData, timeoutInterval: 3)
+        request.setValue("no-cache", forHTTPHeaderField: "Cache-Control")
+        headers.forEach { request.setValue($0.value, forHTTPHeaderField: $0.key) }
+        do {
+            let (data, response) = try await URLSession.shared.data(for: request)
+            guard let http = response as? HTTPURLResponse,
+                  (200 ... 299).contains(http.statusCode),
+                  let text = String(data: data, encoding: .utf8),
+                  let snapshot = HLSLivePlaylistSnapshot.parse(text: text) else { return }
+            livePlaylistSnapshot = snapshot
+            alignLivePlaybackIfNeeded()
+        } catch {
+            // AVPlayer continues to manage playback if an auxiliary playlist
+            // request fails; the next poll will retry.
+        }
+    }
+
+    private func alignLivePlaybackIfNeeded() {
+        guard isLivePlayback, !liveStartAligned, !isSeekingToLive,
+              wantsPlayback, let item = player.currentItem,
+              item.status == .readyToPlay,
+              let playbackDate = item.integratedTimeline.currentDate,
+              let segmentStart = livePlaylistSnapshot?.liveEdgeStartDate else { return }
+        let offset = segmentStart.timeIntervalSince(playbackDate)
+        guard offset > 0.5 else {
+            liveStartAligned = true
+            return
+        }
+        let target = player.currentTime().seconds + offset
+        guard target.isFinite else { return }
+        isSeekingToLive = true
+        let requestGeneration = generation
+        player.seek(to: CMTime(seconds: target, preferredTimescale: 600),
+                    toleranceBefore: .zero,
+                    toleranceAfter: .zero) { [weak self] completed in
+            Task { @MainActor in
+                guard let self, self.generation == requestGeneration else { return }
+                self.isSeekingToLive = false
+                if completed {
+                    self.liveStartAligned = true
+                    if self.wantsPlayback { self.player.playImmediately(atRate: Float(self.playbackRate)) }
+                }
+                self.publish()
+            }
+        }
+    }
+
     private func resetAccessLogSpeedTracking() {
         lastAccessLogBytes = 0
         lastAccessLogSampleUptime = nil
@@ -373,6 +510,14 @@ final class AVPlayerSession: NSObject, AVPictureInPictureControllerDelegate {
     }
 
     private func tearDownItem() {
+        livePlaylistTask?.cancel()
+        livePlaylistTask = nil
+        isLivePlayback = false
+        livePlaylistBaseURL = nil
+        livePlaylistSnapshot = nil
+        livePlaylistRequestInFlight = false
+        liveStartAligned = false
+        isSeekingToLive = false
         stopPictureInPicture()
         if let timeObserver { player.removeTimeObserver(timeObserver) }
         timeObserver = nil
@@ -596,6 +741,7 @@ final class AVPlayerSession: NSObject, AVPictureInPictureControllerDelegate {
         _: AVPictureInPictureController,
         failedToStartPictureInPictureWithError error: Error
     ) {
+        guard isPictureInPictureStartRequested else { return }
         if pictureInPictureStartAttempts < 10 {
             schedulePictureInPictureRetry()
             return
@@ -606,7 +752,13 @@ final class AVPlayerSession: NSObject, AVPictureInPictureControllerDelegate {
         publish()
     }
 
-    func pictureInPictureControllerDidStartPictureInPicture(_: AVPictureInPictureController) {
+    func pictureInPictureControllerDidStartPictureInPicture(_ controller: AVPictureInPictureController) {
+        // AVKit may finish starting after a foreground stop request. Stopping
+        // during startup alone does not guarantee that PiP stays closed.
+        guard isPictureInPictureStartRequested else {
+            controller.stopPictureInPicture()
+            return
+        }
         onPictureInPictureStarted?()
     }
 
@@ -637,6 +789,7 @@ final class AVPlayerSession: NSObject, AVPictureInPictureControllerDelegate {
     }
 
     deinit {
+        NotificationCenter.default.removeObserver(self)
         prepareTask?.cancel()
         pictureInPicturePossibleObservation = nil
         pictureInPictureRetryWorkItem?.cancel()
@@ -657,7 +810,7 @@ private final class LocalDASHHLSBridge: @unchecked Sendable {
     func stop() { server.stop() }
     var diagnostics: HLSBridgeDiagnostics { server.diagnostics }
 
-    static func make(stream: DashStream, headers: [String: String]) async throws -> LocalDASHHLSBridge {
+    static func make(stream: DashStream, headers: [String: String], initialSeekTime: TimeInterval?) async throws -> LocalDASHHLSBridge {
         if stream.videoURL.isFileURL && stream.audioURL.isFileURL,
            stream.videoSegmentBase == nil, stream.audioSegmentBase == nil {
             let videoData = try Data(contentsOf: stream.videoURL)
@@ -667,8 +820,8 @@ private final class LocalDASHHLSBridge: @unchecked Sendable {
             let video = DASHRendition.local(data: videoData, duration: localDuration(url: stream.videoURL))
             let audio = DASHRendition.local(data: audioData, duration: localDuration(url: stream.audioURL))
             server.add(path: "/master.m3u8", route: .data(master(stream: stream, base: base)))
-            server.add(path: "/video.m3u8", route: .data(video.playlist(base: base, prefix: "v")))
-            server.add(path: "/audio.m3u8", route: .data(audio.playlist(base: base, prefix: "a")))
+            server.add(path: "/video.m3u8", route: .data(video.playlist(base: base, prefix: "v", initialSeekTime: initialSeekTime)))
+            server.add(path: "/audio.m3u8", route: .data(audio.playlist(base: base, prefix: "a", initialSeekTime: initialSeekTime)))
             video.register(prefix: "v", into: server)
             audio.register(prefix: "a", into: server)
             try await server.start()
@@ -681,8 +834,8 @@ private final class LocalDASHHLSBridge: @unchecked Sendable {
         let server = try LoopbackHTTPServer.make(headers: headers)
         let base = server.baseURL
         server.add(path: "/master.m3u8", route: .data(master(stream: stream, base: base)))
-        server.add(path: "/video.m3u8", route: .data(v.playlist(base: base, prefix: "v")))
-        server.add(path: "/audio.m3u8", route: .data(a.playlist(base: base, prefix: "a")))
+        server.add(path: "/video.m3u8", route: .data(v.playlist(base: base, prefix: "v", initialSeekTime: initialSeekTime)))
+        server.add(path: "/audio.m3u8", route: .data(a.playlist(base: base, prefix: "a", initialSeekTime: initialSeekTime)))
         v.register(prefix: "v", into: server)
         a.register(prefix: "a", into: server)
         try await server.start()
@@ -725,13 +878,27 @@ private final class LocalDASHHLSBridge: @unchecked Sendable {
 private struct DASHRendition {
     let url: URL?; let initialization: DASHByteRange?; let segments: [DASHSegment]; let localData: Data?; let duration: Double
     static func local(data: Data, duration: Double) -> DASHRendition { DASHRendition(url: nil, initialization: nil, segments: [], localData: data, duration: duration) }
-    func playlist(base: URL, prefix: String) -> Data {
+    func playlist(base: URL, prefix: String, initialSeekTime: TimeInterval?) -> Data {
+        let startOffset: TimeInterval?
+        if let initialSeekTime, initialSeekTime.isFinite, initialSeekTime > 0 {
+            let playlistDuration = localData != nil
+                ? duration
+                : segments.reduce(0) { $0 + $1.duration }
+            startOffset = playlistDuration > 0
+                ? min(initialSeekTime, max(playlistDuration - 0.05, 0))
+                : initialSeekTime
+        } else {
+            startOffset = nil
+        }
+        let startTag = startOffset.map {
+            "#EXT-X-START:TIME-OFFSET=\(String(format: "%.3f", $0)),PRECISE=YES\n"
+        } ?? ""
         if localData != nil {
-            return Data("#EXTM3U\n#EXT-X-VERSION:7\n#EXT-X-PLAYLIST-TYPE:VOD\n#EXT-X-TARGETDURATION:\(max(1, Int(ceil(duration))))\n#EXTINF:\(String(format: "%.6f", duration)),\n\(base.appendingPathComponent("media/\(prefix)/0.m4s").absoluteString)\n#EXT-X-ENDLIST\n".utf8)
+            return Data("#EXTM3U\n#EXT-X-VERSION:7\n#EXT-X-PLAYLIST-TYPE:VOD\n\(startTag)#EXT-X-TARGETDURATION:\(max(1, Int(ceil(duration))))\n#EXTINF:\(String(format: "%.6f", duration)),\n\(base.appendingPathComponent("media/\(prefix)/0.m4s").absoluteString)\n#EXT-X-ENDLIST\n".utf8)
         }
         let target = max(1, Int(ceil(segments.map(\.duration).max() ?? 1)))
         let lines = segments.enumerated().map { "#EXTINF:\(String(format: "%.6f", $0.element.duration)),\n\(base.appendingPathComponent("media/\(prefix)/\($0.offset).m4s").absoluteString)" }.joined(separator: "\n")
-        return Data("#EXTM3U\n#EXT-X-VERSION:7\n#EXT-X-PLAYLIST-TYPE:VOD\n#EXT-X-TARGETDURATION:\(target)\n#EXT-X-MAP:URI=\"\(base.appendingPathComponent("media/\(prefix)/init.mp4").absoluteString)\"\n\(lines)\n#EXT-X-ENDLIST\n".utf8)
+        return Data("#EXTM3U\n#EXT-X-VERSION:7\n#EXT-X-PLAYLIST-TYPE:VOD\n\(startTag)#EXT-X-TARGETDURATION:\(target)\n#EXT-X-MAP:URI=\"\(base.appendingPathComponent("media/\(prefix)/init.mp4").absoluteString)\"\n\(lines)\n#EXT-X-ENDLIST\n".utf8)
     }
     func register(prefix: String, into server: LoopbackHTTPServer) {
         if let localData { server.add(path: "/media/\(prefix)/0.m4s", route: .local(localData)); return }
@@ -925,6 +1092,68 @@ private final class RemoteRangeLoader: NSObject, URLSessionDataDelegate, @unchec
             continuation?.resume(returning: payload)
         }
     }
+}
+
+private struct HLSLivePlaylistSnapshot {
+    let liveEdgeStartDate: Date?
+    let mediaSequence: Int?
+    let targetDuration: TimeInterval?
+    let segmentCount: Int
+    let lastSegmentDuration: TimeInterval?
+
+    static func parse(text: String) -> Self? {
+        let formatter = ISO8601DateFormatter()
+        var pendingDate: Date?
+        var latestStart: Date?
+        var mediaSequence: Int?
+        var targetDuration: TimeInterval?
+        var lastSegmentDuration: TimeInterval?
+        var segmentCount = 0
+        for line in text.split(whereSeparator: \.isNewline).map(String.init) {
+            if line.hasPrefix("#EXT-X-PROGRAM-DATE-TIME:") {
+                pendingDate = formatter.date(from: String(line.dropFirst("#EXT-X-PROGRAM-DATE-TIME:".count)))
+            } else if line.hasPrefix("#EXT-X-MEDIA-SEQUENCE:") {
+                mediaSequence = Int(line.dropFirst("#EXT-X-MEDIA-SEQUENCE:".count))
+            } else if line.hasPrefix("#EXT-X-TARGETDURATION:") {
+                targetDuration = TimeInterval(line.dropFirst("#EXT-X-TARGETDURATION:".count))
+            } else if line.hasPrefix("#EXTINF:") {
+                segmentCount += 1
+                let value = line.dropFirst("#EXTINF:".count).split(separator: ",").first
+                lastSegmentDuration = value.flatMap { TimeInterval($0) }
+                if let pendingDate { latestStart = pendingDate }
+                pendingDate = nil
+            }
+        }
+        guard segmentCount > 0 else { return nil }
+        return Self(
+            liveEdgeStartDate: latestStart,
+            mediaSequence: mediaSequence,
+            targetDuration: targetDuration,
+            segmentCount: segmentCount,
+            lastSegmentDuration: lastSegmentDuration
+        )
+    }
+}
+
+/// Point-in-time facts about the live HLS item, for the stream info sheet.
+struct LiveStreamDiagnostics: Equatable {
+    var presentationSize: CGSize = .zero
+    var frameRate: Double = 0
+    var indicatedBitrate: Double = 0
+    var observedBitrate: Double = 0
+    var averageVideoBitrate: Double = 0
+    var averageAudioBitrate: Double = 0
+    var lastSegmentURI: String = ""
+    var droppedVideoFrames = 0
+    var stallCount = 0
+    /// Distance from the playhead to the end of the seekable window.
+    var seekableAhead: TimeInterval?
+    /// Playhead wall-clock vs. start of the newest playlist segment.
+    var behindNewestSegmentStart: TimeInterval?
+    var playlistMediaSequence: Int?
+    var playlistTargetDuration: TimeInterval?
+    var playlistSegmentCount = 0
+    var playlistLastSegmentDuration: TimeInterval?
 }
 
 private enum MP4Timeline {

@@ -1,29 +1,13 @@
 //
-//  MPVKitPlayerView.swift
+//  AVPlayerSurfaceView.swift
 //  PiliPod
-//
-//  Created by co on 2026/5/22.
 //
 
 import AVFoundation
 import SwiftUI
 
-struct MPVKitPlayerView: UIViewControllerRepresentable {
-    let player: MPVKitPlayer
-
-    func makeUIViewController(context: Context) -> MPVKitMetalViewController {
-        let controller = MPVKitMetalViewController()
-        player.attach(controller)
-        return controller
-    }
-
-    func updateUIViewController(_ uiViewController: MPVKitMetalViewController, context: Context) {
-        uiViewController.invalidateVideoLayout()
-    }
-}
-
 struct AVPlayerSurfaceView: UIViewRepresentable {
-    let player: MPVKitPlayer
+    let player: PlaybackSession
 
     func makeUIView(context: Context) -> AVPlayerSurfaceHostView {
         AVPlayerSurfaceHostView(player: player)
@@ -41,7 +25,7 @@ struct AVPlayerSurfaceView: UIViewRepresentable {
 }
 
 final class AVPlayerSurfaceHostView: UIView {
-    weak var player: MPVKitPlayer? {
+    weak var player: PlaybackSession? {
         didSet {
             guard oldValue !== player else { return }
             player?.attachAVPlayer(to: self)
@@ -49,7 +33,7 @@ final class AVPlayerSurfaceHostView: UIView {
         }
     }
 
-    init(player: MPVKitPlayer) {
+    init(player: PlaybackSession) {
         self.player = player
         super.init(frame: .zero)
         backgroundColor = .black
@@ -62,9 +46,4 @@ final class AVPlayerSurfaceHostView: UIView {
         super.layoutSubviews()
         player?.layoutAVPlayer(in: bounds)
     }
-}
-
-#Preview {
-    MPVKitPlayerView(player: MPVKitPlayer())
-        .frame(height: 300)
 }

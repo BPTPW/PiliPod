@@ -61,14 +61,11 @@ final class LoginViewModel: ObservableObject {
                 print("登录成功并已保存登录状态")
             } else {
                 errorMessage = "登录成功，但解析登录凭证失败"
-                print("登录成功但保存失败：\(data)")
+                print("登录成功但保存失败")
             }
 
         case .needGeetest(let recaptchaToken, let gt, let challenge):
             print("触发人机验证风控！")
-            print("recaptchaToken: \(recaptchaToken)")
-            print("gt: \(gt)")
-            print("challenge: \(challenge)")
             geetestContext = GeetestContext(
                 recaptchaToken: recaptchaToken,
                 gt: gt,

@@ -15,6 +15,8 @@ struct MyView: View {
     @State private var showWatchLater = false
     @State private var showOfflineCache = false
     @State private var followingRoute: MyFollowingRoute?
+    @State private var showFavoriteList = false
+    @State private var selectedFavoriteFolder: FavoriteFolderItem?
 
     var body: some View {
         NavigationStack {
@@ -41,6 +43,12 @@ struct MyView: View {
                 quickActionRow
                     .padding(.horizontal, 30)
 
+                FavoriteFolderCardView(
+                    onOpenList: { showFavoriteList = true },
+                    onSelectFolder: { selectedFavoriteFolder = $0 }
+                )
+                .padding(.horizontal, 30)
+
                 Spacer()
             }
             .task {
@@ -66,6 +74,12 @@ struct MyView: View {
             }
             .navigationDestination(isPresented: $showWatchLater) {
                 WatchLaterView()
+            }
+            .navigationDestination(isPresented: $showFavoriteList) {
+                FavoriteFolderListView()
+            }
+            .navigationDestination(item: $selectedFavoriteFolder) { folder in
+                FavoriteVideoListView(folder: folder)
             }
             .navigationDestination(item: $followingRoute) { route in
                 FollowingListView(mid: route.mid)

@@ -19,18 +19,9 @@ struct PlayerSettingsContainerView: View {
 private struct PlayerSettingsView: View {
     @Binding var settings: AudioVideoSettings
     private let defaultSettings = AudioVideoSettings()
-    private var supportsPictureInPicture: Bool { settings.playerCore == .avPlayer }
-    private var supportsAmbientMode: Bool { settings.playerCore == .avPlayer }
 
     var body: some View {
         Form {
-            Section {
-                Picker("播放器内核", selection: $settings.playerCore) {
-                    ForEach(PlayerCore.allCases, id: \.self) { core in
-                        Text(core.title).tag(core)
-                    }
-                }
-            }
             Section {
                 Toggle("视频后台播放", isOn: $settings.allowsBackgroundPlayback)
                     .tint(Color("BiliPink"))
@@ -42,55 +33,46 @@ private struct PlayerSettingsView: View {
             Section {
                 Toggle("视频小窗播放", isOn: $settings.allowsVideoPictureInPicture)
                     .tint(Color("BiliPink"))
-                    .disabled(!supportsPictureInPicture)
                 Toggle("直播小窗播放", isOn: $settings.allowsLivePictureInPicture)
                     .tint(Color("BiliPink"))
-                    .disabled(!supportsPictureInPicture)
             } header: {
                 Text("画中画")
+            }
+            Section {
+                Toggle("直播进度同步", isOn: $settings.liveProgressSyncEnabled)
+                    .tint(Color("BiliPink"))
+            } header: {
+                Text("直播")
             } footer: {
-                if !supportsPictureInPicture {
-                    Text("画中画仅支持 AVPlayer 内核。")
-                }
+                Text("直播延迟过大时，自动小幅加速播放以追上最新进度。")
             }
             Section {
                 Toggle("氛围模式", isOn: $settings.ambientModeEnabled)
                     .tint(Color("BiliPink"))
-                    .disabled(!supportsAmbientMode)
                 Picker("每秒采样频率", selection: $settings.ambientSamplingRate) {
                     ForEach(AmbientSamplingRate.allCases, id: \.self) { rate in
                         Text(rate.title).tag(rate)
                     }
                 }
-                .disabled(!supportsAmbientMode || !settings.ambientModeEnabled)
+                .disabled(!settings.ambientModeEnabled)
                 Picker("渐变速度", selection: $settings.ambientGradientSpeed) {
                     ForEach(AmbientGradientSpeed.allCases, id: \.self) { speed in
                         Text(speed.title).tag(speed)
                     }
                 }
-                .disabled(!supportsAmbientMode || !settings.ambientModeEnabled)
+                .disabled(!settings.ambientModeEnabled)
             } header: {
                 Text("显示效果")
             } footer: {
-                if supportsAmbientMode {
-                    Text("全屏播放时，根据视频画面颜色动态填充视频周围空白区域，带来沉浸式体验。较高的采样率可能会导致更多的性能开销。")
-                } else {
-                    Text("氛围模式仅支持 AVPlayer 内核。")
-                }
+                Text("全屏播放时，根据视频画面颜色动态填充视频周围空白区域，带来沉浸式体验。较高的采样率可能会导致更多的性能开销。")
             }
             Section {
                 Toggle("背景随音乐闪烁", isOn: $settings.listenVideoAudioEnergyEnabled)
                     .tint(Color("BiliPink"))
-                    .disabled(!supportsAmbientMode)
                 Toggle("显示调试信息", isOn: $settings.listenVideoAudioDebugEnabled)
                     .tint(Color("BiliPink"))
-                    .disabled(!supportsAmbientMode)
             } header: {
                 Text("听视频")
-            } footer: {
-                if !supportsAmbientMode {
-                    Text("听视频背景效果仅支持 AVPlayer 内核。")
-                }
             }
             Section {
                 Picker("进度条样式", selection: $settings.videoProgressBarStyle) {
@@ -119,12 +101,12 @@ private struct PlayerSettingsView: View {
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Button("恢复默认") {
-                    settings.playerCore = defaultSettings.playerCore
                     settings.historyReportInterval = defaultSettings.historyReportInterval
                     settings.allowsBackgroundPlayback = defaultSettings.allowsBackgroundPlayback
                     settings.allowsLiveBackgroundPlayback = defaultSettings.allowsLiveBackgroundPlayback
                     settings.allowsVideoPictureInPicture = defaultSettings.allowsVideoPictureInPicture
                     settings.allowsLivePictureInPicture = defaultSettings.allowsLivePictureInPicture
+                    settings.liveProgressSyncEnabled = defaultSettings.liveProgressSyncEnabled
                     settings.ambientModeEnabled = defaultSettings.ambientModeEnabled
                     settings.ambientSamplingRate = defaultSettings.ambientSamplingRate
                     settings.ambientGradientSpeed = defaultSettings.ambientGradientSpeed

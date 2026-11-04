@@ -22,7 +22,7 @@ struct LivePlayerView: View {
     let roomId: String
     let streamURL: URL?
     let statusText: String
-    let player: MPVKitPlayer
+    let player: PlaybackSession
     let isFullscreen: Bool
     let aspectRatio: CGFloat
     let safeAreaInsets: EdgeInsets
@@ -66,13 +66,7 @@ struct LivePlayerView: View {
 
                 Group {
                     if let streamURL {
-                        Group {
-                            if player.usesAVPlayer {
-                                AVPlayerSurfaceView(player: player)
-                            } else {
-                                MPVKitOpenGLPlayerView(player: player)
-                            }
-                        }
+                        AVPlayerSurfaceView(player: player)
                             .task(id: streamURL.absoluteString) {
                                 player.play(videoURL: streamURL)
                             }
@@ -244,7 +238,7 @@ struct LivePlayerView: View {
         roomId: "226000",
         streamURL: nil,
         statusText: "room id: 226000",
-        player: MPVKitPlayer(),
+        player: PlaybackSession(),
         isFullscreen: false,
         aspectRatio: 16.0 / 9.0,
         safeAreaInsets: EdgeInsets()

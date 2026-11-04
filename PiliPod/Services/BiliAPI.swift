@@ -968,7 +968,6 @@ class BiliAPI {
         }
 
         let decoded = try JSONDecoder().decode(LiveRoomInfoResponse.self, from: data)
-        print("decoded\(decoded)")
         guard decoded.code == 0 else {
             throw APIError.businessError(code: decoded.code, message: decoded.message)
         }
@@ -1057,8 +1056,6 @@ class BiliAPI {
         request.setValue("", forHTTPHeaderField: "x-bili-aurora-eid")
         request.setValue("", forHTTPHeaderField: "x-bili-aurora-zone")
         request.setValue("cronet", forHTTPHeaderField: "bili-http-engine")
-
-        print(request.url)
 
         let (data, response) = try await URLSession.shared.data(for: request)
 
@@ -1402,8 +1399,6 @@ class BiliAPI {
         }
 
         let (data, response) = try await URLSession.shared.data(for: request)
-
-        print(String(data: data, encoding: .utf8))
 
         guard let httpResponse = response as? HTTPURLResponse,
               (200 ... 299).contains(httpResponse.statusCode)
@@ -2271,6 +2266,85 @@ class BiliAPI {
         }
 
         return response.data?.list ?? []
+    }
+
+    // MARK: - 获取收藏夹列表（分页）
+
+    func fetchFavoriteFolderPage(
+        upMid: Int64,
+        pn: Int = 1,
+        ps: Int = 20
+    ) async throws -> FavoriteFolderListData {
+        var components = URLComponents(
+            string: "https://api.bilibili.com/x/v3/fav/folder/created/list"
+        )
+        components?.queryItems = [
+            URLQueryItem(name: "pn", value: String(pn)),
+            URLQueryItem(name: "ps", value: String(ps)),
+            URLQueryItem(name: "up_mid", value: String(upMid))
+        ]
+
+        guard let url = components?.url else {
+            throw APIError.invalidURL
+        }
+
+        let request = makeRequest(url: url)
+        let (data, _) = try await URLSession.shared.data(for: request)
+
+        let response = try JSONDecoder().decode(
+            FavoriteFolderListResponse.self,
+            from: data
+        )
+
+        if response.code != 0 {
+            throw APIError.responseError(response.code)
+        }
+
+        guard let result = response.data else {
+            throw APIError.requestFailed
+        }
+        return result
+    }
+
+    // MARK: - 获取收藏夹内容明细
+
+    func fetchFavoriteResources(
+        mediaId: Int64,
+        pn: Int = 1,
+        ps: Int = 20,
+        keyword: String? = nil,
+        order: String = "mtime"
+    ) async throws -> FavoriteResourceListData {
+        var components = URLComponents(
+            string: "https://api.bilibili.com/x/v3/fav/resource/list"
+        )
+        components?.queryItems = [
+            URLQueryItem(name: "media_id", value: String(mediaId)),
+            URLQueryItem(name: "pn", value: String(pn)),
+            URLQueryItem(name: "ps", value: String(ps)),
+            URLQueryItem(name: "order", value: order)
+        ]
+        if let keyword, !keyword.isEmpty {
+            components?.queryItems?.append(URLQueryItem(name: "keyword", value: keyword))
+        }
+
+        guard let url = components?.url else {
+            throw APIError.invalidURL
+        }
+
+        let request = makeRequest(url: url)
+        let (data, _) = try await URLSession.shared.data(for: request)
+
+        let response = try JSONDecoder().decode(
+            FavoriteResourceListResponse.self,
+            from: data
+        )
+
+        if response.code != 0 {
+            throw APIError.responseError(response.code)
+        }
+
+        return response.data ?? FavoriteResourceListData(medias: nil, hasMore: false)
     }
 
     // MARK: - 收藏资源变更
