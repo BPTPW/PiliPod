@@ -1,0 +1,56 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+if [[ $# -gt 1 ]]; then
+  printf '用法: %s [iOS 模拟器 UDID]\n' "$0" >&2
+  exit 2
+fi
+
+project_root=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
+build_dir="$project_root/build"
+
+selection=$(xcrun simctl list devices available --json | /usr/bin/python3 -c '
+import json
+import sys
+
+requested = sys.argv[1]
+devices = [
+    device
+    for runtime, entries in json.load(sys.stdin)["devices"].items()
+    if runtime.startswith("com.apple.CoreSimulator.SimRuntime.iOS-")
+    for device in entries
+]
+if requested:
+    selected = next((device for device in devices if device["udid"] == requested), None)
+else:
+    selected = next((device for device in devices if device["state"] == "Booted"), None)
+    if selected is None:
+        selected = next((device for device in devices if device["name"].startswith("iPhone")), None)
+    if selected is None:
+        selected = next(iter(devices), None)
+if selected is None:
+    sys.exit("没有找到可用的 iOS 模拟器")
+print(selected["udid"], selected["state"])
+' "${1:-}")
+read -r simulator_id simulator_state <<< "$selection"
+
+if [[ $simulator_state != Booted ]]; then
+  xcrun simctl boot "$simulator_id"
+fi
+xcrun simctl bootstatus "$simulator_id" -b
+
+xcodebuild -quiet build \
+  -project "$project_root/PiliPod.xcodeproj" \
+  -scheme PiliPod \
+  -configuration Debug \
+  -sdk iphonesimulator \
+  -destination "platform=iOS Simulator,id=$simulator_id" \
+  -derivedDataPath "$build_dir/DerivedData" \
+  -clonedSourcePackagesDirPath "$build_dir/SourcePackages" \
+  CODE_SIGNING_ALLOWED=NO
+
+app_path="$build_dir/DerivedData/Build/Products/Debug-iphonesimulator/PiliPod.app"
+bundle_id=$(plutil -extract CFBundleIdentifier raw -o - "$app_path/Info.plist")
+xcrun simctl install "$simulator_id" "$app_path"
+open -a Simulator --args -CurrentDeviceUDID "$simulator_id"
+xcrun simctl launch "$simulator_id" "$bundle_id"
