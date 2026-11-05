@@ -4161,10 +4161,15 @@ private struct VideoShotSpriteTileView: View {
 #if canImport(UIKit)
     @MainActor
     private func loadSpriteSheetIfNeeded() async {
-        if image != nil || isLoading { return }
+        // The view is reused when seeking into another sprite sheet.
+        // Always load the current URL, even if the previous sheet is still loading.
+        image = nil
         isLoading = true
-        defer { isLoading = false }
-        image = await VideoShotSpriteLoader.shared.loadImage(from: frame.sheetURL)
+        let loadedImage = await VideoShotSpriteLoader.shared.loadImage(from: frame.sheetURL)
+        // A URL change cancels the old task; it must not overwrite the new sheet.
+        guard !Task.isCancelled else { return }
+        image = loadedImage
+        isLoading = false
     }
 #endif
 }
