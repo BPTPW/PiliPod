@@ -1386,6 +1386,8 @@ class BiliAPI {
         let urlString = "https://app.bilibili.com/x/v2/search/recommend"
 
         let params: [String: String] = [
+            "build": "8430300",
+            "version": "8.43.0",
             "from": "2",
             "channel": "master",
             "c_locale": "zh_CN",
