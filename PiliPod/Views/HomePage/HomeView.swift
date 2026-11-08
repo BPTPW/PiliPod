@@ -35,6 +35,8 @@ struct HomeView: View {
     @State private var selectedVideo: VideoItem?
     @State private var isSearchViewPresented = false
     @State private var isMessageViewPresented = false
+    @State private var isHomeVisible = false
+    @Environment(\.scenePhase) private var scenePhase
     @State private var liveHomeViewModel = LiveHomeViewModel()
     @Namespace private var videoHeroNamespace
     @Bindable var viewModel: HomeViewModel
@@ -67,8 +69,10 @@ struct HomeView: View {
                                 Image(systemName: "magnifyingglass")
                                     .foregroundStyle(.secondary)
 
-                                Text("搜索视频")
+                                Text(viewModel.defaultSearch?.placeholder ?? L10n.string("搜索视频"))
                                     .foregroundStyle(.secondary)
+                                    .lineLimit(1)
+                                    .truncationMode(.tail)
 
                                 Spacer(minLength: 0)
                             }
@@ -77,6 +81,7 @@ struct HomeView: View {
                             .contentShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
                         }
                         .buttonStyle(.plain)
+                        .accessibilityIdentifier("home.search")
                         .glassEffect(
                             .regular.interactive(),
                             in: RoundedRectangle(cornerRadius: 22, style: .continuous)
@@ -140,6 +145,13 @@ struct HomeView: View {
                 .ignoresSafeArea(edges: .bottom)
             }
             .navigationBarHidden(true)
+            .onAppear {
+                isHomeVisible = true
+                Task { await viewModel.refreshDefaultSearchIfNeeded() }
+            }
+            .onDisappear {
+                isHomeVisible = false
+            }
             .navigationDestination(item: $selectedVideo) { video in
                 if #available(iOS 18.0, *) {
                     VideoDetailPage(
@@ -159,7 +171,7 @@ struct HomeView: View {
                 }
             }
             .navigationDestination(isPresented: $isSearchViewPresented) {
-                SearchView()
+                SearchView(defaultSearch: viewModel.defaultSearch)
             }
             .navigationDestination(isPresented: $isMessageViewPresented) {
                 MessageView(viewModel: viewModel)
@@ -168,6 +180,10 @@ struct HomeView: View {
         .task {
             await viewModel.refreshUnreadMessageCountIfNeeded()
             await viewModel.loadInitialVideos()
+        }
+        .onChange(of: scenePhase) { _, phase in
+            guard phase == .active, isHomeVisible else { return }
+            Task { await viewModel.refreshDefaultSearchIfNeeded() }
         }
         .onReceive(loginSession.$isLogin) { isLogin in
             if isLogin {

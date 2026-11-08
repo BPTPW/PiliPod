@@ -11,6 +11,26 @@ import Testing
 
 struct PiliPodTests {
 
+    @Test func defaultSearchUsesNameInsteadOfDisplayTextOrURL() throws {
+        let payload = Data(#"{"code":0,"data":{"show_name":"推荐展示文字","name":" 实际关键词 ","url":"https://www.bilibili.com/video/av1","goto_type":1}}"#.utf8)
+        let response = try JSONDecoder().decode(SearchDefaultResponse.self, from: payload)
+        let item = try #require(response.data)
+
+        #expect(item.placeholder == "推荐展示文字")
+        #expect(item.keyword(for: "") == "实际关键词")
+        #expect(item.keyword(for: " \n ") == "实际关键词")
+        #expect(item.keyword(for: " 用户输入 ") == "用户输入")
+    }
+
+    @Test func defaultSearchDoesNotReplaceAnEmptyNameWithDisplayText() throws {
+        for nameField in [#", "name":"""#, #", "name":null"#, ""] {
+            let payload = Data((#"{"show_name":"推荐展示文字""# + nameField + "}").utf8)
+            let item = try JSONDecoder().decode(SearchDefaultItem.self, from: payload)
+            #expect(item.keyword(for: "") == "")
+            #expect(item.keyword(for: "用户输入") == "用户输入")
+        }
+    }
+
     @Test func errorLogRedactsCredentialsAndURLQueryValues() {
         let input = #"request failed: https://example.com/video.m4s?deadline=123&sign=abc access_token=token-value "refresh_token":"refresh-value"#
         let redacted = ErrorLogService.redactSensitiveData(in: input)

@@ -34,6 +34,27 @@ final class PiliPodUITests: XCTestCase {
     }
 
     @MainActor
+    func testSearchPlaceholderMatchesHomeInBothOrientations() throws {
+        let app = XCUIApplication()
+        app.launch()
+        defer { XCUIDevice.shared.orientation = .portrait }
+
+        for orientation in [UIDeviceOrientation.portrait, .landscapeLeft] {
+            XCUIDevice.shared.orientation = orientation
+            let searchButton = app.buttons["home.search"]
+            XCTAssertTrue(searchButton.waitForExistence(timeout: 10))
+            let placeholder = searchButton.staticTexts.firstMatch.label
+            XCTAssertFalse(placeholder.isEmpty)
+            searchButton.tap()
+
+            let searchField = app.textFields.firstMatch
+            XCTAssertTrue(searchField.waitForExistence(timeout: 5))
+            XCTAssertEqual(searchField.placeholderValue, placeholder)
+            app.buttons["search.back"].tap()
+        }
+    }
+
+    @MainActor
     func testLaunchPerformance() throws {
         // This measures how long it takes to launch your application.
         measure(metrics: [XCTApplicationLaunchMetric()]) {

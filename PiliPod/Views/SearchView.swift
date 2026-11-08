@@ -9,6 +9,7 @@ import SwiftUI
 import UIKit
 
 struct SearchView: View {
+    var defaultSearch: SearchDefaultItem? = nil
     private let searchResultsTopID = "searchResultsTop"
     private let suggestionHighlightClass = "suggest_high_light"
 
@@ -67,6 +68,7 @@ struct SearchView: View {
                 }
                 .foregroundStyle(.primary)
                 .glassEffect(.regular.interactive(), in: .circle)
+                .accessibilityIdentifier("search.back")
 
                 HStack(spacing: 8) {
                     Image(systemName: "magnifyingglass")
@@ -75,6 +77,7 @@ struct SearchView: View {
                     SearchTextField(
                         text: $searchText,
                         isFocused: $isSearchFieldFocused,
+                        placeholder: defaultSearch?.placeholder ?? L10n.string("搜索视频"),
                         onSubmit: { _ in submitSearch() }
                     )
                     .frame(maxWidth: .infinity)
@@ -625,12 +628,15 @@ struct SearchView: View {
     }
 
     private func submitSearch() {
-        let keyword = trimmedSearchText
+        let keyword = defaultSearch?.keyword(for: searchText) ?? trimmedSearchText
         guard !keyword.isEmpty else {
             clearSearch()
             return
         }
 
+        if trimmedSearchText.isEmpty {
+            searchText = keyword
+        }
         recordSearchKeyword(keyword)
         activeSearchKeyword = keyword
         selectedTab = .comprehensive
@@ -955,6 +961,7 @@ private enum SearchHistoryStore {
 private struct SearchTextField: UIViewRepresentable {
     @Binding var text: String
     @Binding var isFocused: Bool
+    let placeholder: String
     let onSubmit: (String) -> Void
 
     func makeUIView(context: Context) -> UITextField {
@@ -962,7 +969,7 @@ private struct SearchTextField: UIViewRepresentable {
         textField.delegate = context.coordinator
         textField.borderStyle = .none
         textField.backgroundColor = .clear
-        textField.placeholder = "搜索视频"
+        textField.placeholder = placeholder
         textField.font = .preferredFont(forTextStyle: .body)
         textField.textColor = .label
         textField.autocapitalizationType = .none
@@ -978,6 +985,8 @@ private struct SearchTextField: UIViewRepresentable {
     }
 
     func updateUIView(_ textField: UITextField, context: Context) {
+        context.coordinator.update(parent: self)
+        textField.placeholder = placeholder
         if textField.text != text, textField.markedTextRange == nil {
             textField.text = text
         }
@@ -1000,6 +1009,10 @@ private struct SearchTextField: UIViewRepresentable {
             self.parent = parent
         }
 
+        func update(parent: SearchTextField) {
+            self.parent = parent
+        }
+
         @objc func textDidChange(_ textField: UITextField) {
             parent.text = textField.text ?? ""
         }
@@ -1012,6 +1025,7 @@ private struct SearchTextField: UIViewRepresentable {
             let submittedText = textField.text ?? ""
             parent.text = submittedText
             parent.onSubmit(submittedText)
+            textField.text = parent.text
             parent.isFocused = false
             textField.resignFirstResponder()
             return false

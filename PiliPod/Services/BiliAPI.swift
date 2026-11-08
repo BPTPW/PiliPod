@@ -1351,6 +1351,38 @@ class BiliAPI {
         return followingData
     }
 
+    // MARK: - 获取默认搜索内容
+
+    func fetchSearchDefault() async throws -> SearchDefaultItem {
+        guard let url = URL(string: "https://api.bilibili.com/x/web-interface/wbi/search/default") else {
+            throw APIError.invalidURL
+        }
+
+        let signedURL = try await BiliWbiSigner.shared.sign(url: url)
+        var request = makeRequest(url: signedURL)
+        request.setValue("https://www.bilibili.com", forHTTPHeaderField: "Referer")
+        request.setValue(
+            "Mozilla/5.0 (iPhone; CPU iPhone OS 18_2 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.2 Mobile/15E148 Safari/604.1",
+            forHTTPHeaderField: "User-Agent"
+        )
+
+        let (data, response) = try await URLSession.shared.data(for: request)
+        guard let httpResponse = response as? HTTPURLResponse,
+              (200 ... 299).contains(httpResponse.statusCode)
+        else {
+            throw APIError.requestFailed
+        }
+
+        let decoded = try JSONDecoder().decode(SearchDefaultResponse.self, from: data)
+        guard decoded.code == 0 else {
+            throw APIError.businessError(code: decoded.code, message: decoded.message)
+        }
+        guard let item = decoded.data else {
+            throw APIError.requestFailed
+        }
+        return item
+    }
+
     // MARK: - 获取搜索热榜
 
     func fetchSearchTrending(limit: Int = 10) async throws -> [SearchTrendingItem] {

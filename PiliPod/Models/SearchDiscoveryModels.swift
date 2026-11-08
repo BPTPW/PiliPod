@@ -1,5 +1,33 @@
 import Foundation
 
+struct SearchDefaultResponse: Decodable {
+    let code: Int
+    let message: String?
+    let data: SearchDefaultItem?
+}
+
+struct SearchDefaultItem: Decodable {
+    let showName: String
+    let name: String?
+
+    var placeholder: String? {
+        let value = showName.trimmingCharacters(in: .whitespacesAndNewlines)
+        return value.isEmpty ? nil : value
+    }
+
+    func keyword(for text: String) -> String {
+        let keyword = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        return keyword.isEmpty
+            ? (name ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+            : keyword
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case showName = "show_name"
+        case name
+    }
+}
+
 struct SearchTrendingResponse: Codable {
     let code: Int
     let message: String?

@@ -3570,6 +3570,7 @@
       }
     },
     "搜索视频" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {

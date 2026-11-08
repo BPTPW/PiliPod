@@ -50,6 +50,9 @@ class HomeViewModel {
     var unreadReplyCount = 0
     var unreadAtCount = 0
     var unreadLikeCount = 0
+    private(set) var defaultSearch: SearchDefaultItem?
+    private var lastDefaultSearchRequestAt: Date?
+    private var isLoadingDefaultSearch = false
     private var lastUnreadMessageRequestAt: Date?
     private var isLoadingUnreadMessageCount = false
     private(set) var hasLoaded = false
@@ -67,6 +70,28 @@ class HomeViewModel {
 
     // App 推荐流状态
     private var appNextIdx: Int = 0
+
+    func refreshDefaultSearchIfNeeded() async {
+        guard !isLoadingDefaultSearch else { return }
+        if let lastRequest = lastDefaultSearchRequestAt,
+           Date().timeIntervalSince(lastRequest) < 2 * 60
+        {
+            return
+        }
+
+        isLoadingDefaultSearch = true
+        lastDefaultSearchRequestAt = Date()
+        defer { isLoadingDefaultSearch = false }
+        do {
+            let item = try await BiliAPI.shared.fetchSearchDefault()
+            try Task.checkCancellation()
+            defaultSearch = item
+        } catch is CancellationError {
+            lastDefaultSearchRequestAt = nil
+        } catch {
+            ErrorLogService.record(error, context: "加载默认搜索内容")
+        }
+    }
 
     func loadUserIfNeeded() async {
         guard LoginSession.shared.isLogin else { return }
