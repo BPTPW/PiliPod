@@ -13,6 +13,7 @@ struct LiveStreamInfoSheet: View {
     let playerSnapshot: PlayerUIPlaybackSnapshot
     let playbackRate: Double
     let streamDiagnostics: LiveStreamDiagnostics?
+    let startup: LiveStartupDiagnostics
     let latencySync: LiveLatencySyncController
 
     var body: some View {
@@ -22,6 +23,8 @@ struct LiveStreamInfoSheet: View {
                     videoSection
                     Divider()
                     bitrateSection
+                    Divider()
+                    startupSection
                     Divider()
                     syncSection
                     Divider()
@@ -42,9 +45,34 @@ struct LiveStreamInfoSheet: View {
         let size = streamDiagnostics?.presentationSize ?? .zero
         return section("视频参数") {
             LiveInfoRow("画质", qualityLabel.isEmpty ? "—" : qualityLabel)
+            LiveInfoRow("封装格式", startup.streamFormat ?? "—")
             LiveInfoRow("分辨率", size.width > 0 ? "\(Int(size.width))×\(Int(size.height))" : "—")
             LiveInfoRow("帧率", positive(streamDiagnostics?.frameRate, format: "%.1f fps"))
         }
+    }
+
+    private var startupSection: some View {
+        section("首屏加载时间线") {
+            LiveInfoRow("首帧总耗时", startup.firstFrameTime.map(milliseconds) ?? String(localized: "等待首帧"))
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+            ForEach(startup.events) { event in
+                HStack(alignment: .center, spacing: 3) {
+                    Text(String(localized: String.LocalizationValue(event.label)))
+                        .font(.caption)
+                    Spacer()
+                    Text(verbatim: "\(milliseconds(event.elapsed))  (+\(milliseconds(event.duration)))")
+                        .font(.system(.caption, design: .monospaced))
+                        .foregroundStyle(.secondary)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
+        }
+    }
+
+    private func milliseconds(_ value: TimeInterval) -> String {
+        String(format: "%.0f ms", value * 1000)
     }
 
     private var bitrateSection: some View {
@@ -146,6 +174,36 @@ struct LiveStreamInfoSheet: View {
         let kilobytes = max(speed, 0) / 1024
         if kilobytes < 1024 { return String(format: "%.2f KB/s", kilobytes) }
         return String(format: "%.2f MB/s", kilobytes / 1024)
+    }
+}
+
+#Preview("Portrait") {
+    LiveStreamInfoPreview()
+}
+
+#Preview("Landscape", traits: .landscapeLeft) {
+    LiveStreamInfoPreview()
+}
+
+private struct LiveStreamInfoPreview: View {
+    private let startup: LiveStartupDiagnostics = {
+        let result = LiveStartupDiagnostics()
+        result.selectFormat("fmp4")
+        result.mark("开始获取播放链接")
+        result.mark("播放请求签名完成")
+        result.mark("播放接口响应完成")
+        result.mark("播放列表下载及关键帧解析完成")
+        result.mark("播放器准备完成")
+        result.recordFirstFrame()
+        return result
+    }()
+
+    var body: some View {
+        LiveStreamInfoSheet(
+            streamURL: nil, qualityLabel: "", playerSnapshot: PlayerUIPlaybackSnapshot(),
+            playbackRate: 1, streamDiagnostics: nil, startup: startup,
+            latencySync: LiveLatencySyncController()
+        )
     }
 }
 

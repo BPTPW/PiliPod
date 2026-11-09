@@ -171,7 +171,8 @@ final class PlaybackSession: NSObject {
     func stopPictureInPicture() { avPlayerSession.stopPictureInPicture() }
     func setListenVideoModeActive(_ active: Bool) { avPlayerSession.setListenVideoModeActive(active) }
     func play(stream: DashStream, initialSeekTime: TimeInterval? = nil) { avPlayerSession.play(stream: stream, initialSeekTime: initialSeekTime) }
-    func play(videoURL: URL) { avPlayerSession.play(liveURL: videoURL) }
+    @MainActor
+    func play(videoURL: URL, startup: LiveStartupDiagnostics? = nil) { avPlayerSession.play(liveURL: videoURL, startup: startup) }
     func liveStreamDiagnostics() -> LiveStreamDiagnostics? { avPlayerSession.liveStreamDiagnostics() }
     func resume() { avPlayerSession.resume() }
     func pause() { avPlayerSession.pause() }

@@ -20,6 +20,7 @@ struct LivePlayerView: View {
     }
 
     let roomId: String
+    var startup: LiveStartupDiagnostics? = nil
     let streamURL: URL?
     let statusText: String
     let player: PlaybackSession
@@ -68,7 +69,7 @@ struct LivePlayerView: View {
                     if let streamURL {
                         AVPlayerSurfaceView(player: player)
                             .task(id: streamURL.absoluteString) {
-                                player.play(videoURL: streamURL)
+                                player.play(videoURL: streamURL, startup: startup)
                             }
                     } else {
                         ZStack {

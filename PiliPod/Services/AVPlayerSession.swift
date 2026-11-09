@@ -35,6 +35,8 @@ final class AVPlayerSession: NSObject, AVPictureInPictureControllerDelegate {
     private var generation = 0
     private weak var surface: UIView?
     private var layer: AVPlayerLayer?
+    private var liveStartup: LiveStartupDiagnostics?
+    private var firstFrameObservation: NSKeyValueObservation?
     private var pictureInPictureController: AVPictureInPictureController?
     private var pictureInPicturePossibleObservation: NSKeyValueObservation?
     private var pictureInPictureRetryWorkItem: DispatchWorkItem?
@@ -102,6 +104,21 @@ final class AVPlayerSession: NSObject, AVPictureInPictureControllerDelegate {
         view.layer.insertSublayer(layer, at: 0)
         self.layer?.removeFromSuperlayer()
         self.layer = layer
+        observeLiveFirstFrame()
+    }
+
+    private func observeLiveFirstFrame() {
+        firstFrameObservation = nil
+        guard isLivePlayback, let layer, let item = player.currentItem else { return }
+        let startup = liveStartup
+        firstFrameObservation = layer.observe(\.isReadyForDisplay, options: [.initial, .new]) { [weak self] layer, _ in
+            guard layer.isReadyForDisplay else { return }
+            Task { @MainActor in
+                guard let self, self.player.currentItem === item, self.layer === layer,
+                      item.status == .readyToPlay, layer.isReadyForDisplay else { return }
+                startup?.recordFirstFrame()
+            }
+        }
     }
 
     func layout(in bounds: CGRect) { layer?.frame = bounds }
@@ -243,7 +260,8 @@ final class AVPlayerSession: NSObject, AVPictureInPictureControllerDelegate {
         }
     }
 
-    func play(liveURL: URL) {
+    @MainActor
+    func play(liveURL: URL, startup: LiveStartupDiagnostics? = nil) {
         configureBackgroundPlayback(allowsPlayback: playbackSettings.allowsLiveBackgroundPlayback)
         generation &+= 1
         prepareTask?.cancel()
@@ -252,16 +270,20 @@ final class AVPlayerSession: NSObject, AVPictureInPictureControllerDelegate {
         wantsPlayback = true
         errorMessage = nil
         isLivePlayback = true
+        liveStartup = startup
+        startup?.mark("播放器接收链接")
         livePlaylistBaseURL = liveURL
         let requestGeneration = generation
         prepareTask = Task { [weak self] in
             guard let self else { return }
             var playbackURL = liveURL
+            startup?.mark("开始准备首屏播放列表")
             // Prepare the start position before installing the item, so an older
             // segment cannot appear briefly before a corrective seek.
             if let source = try? await LiveHLSPlaylistSource.make(url: liveURL, headers: self.headers),
                !Task.isCancelled, self.generation == requestGeneration {
                 do {
+                    startup?.mark("播放列表下载及关键帧解析完成")
                     let server = try LoopbackHTTPServer.make(headers: self.headers)
                     server.add(path: "/live.m3u8", route: .playlist { try await source.load() })
                     try await server.start()
@@ -271,16 +293,21 @@ final class AVPlayerSession: NSObject, AVPictureInPictureControllerDelegate {
                     }
                     self.livePlaylistServer = server
                     self.liveStartAligned = true
+                    startup?.mark("本地播放列表服务就绪")
                     playbackURL = server.baseURL.appendingPathComponent("live.m3u8")
                 } catch {
+                    startup?.mark("播放列表服务失败，回退原流")
                     // Keep direct HLS playback available if preparation fails.
                 }
             }
             guard !Task.isCancelled, self.generation == requestGeneration else { return }
+            if self.livePlaylistServer == nil { startup?.mark("使用原始播放列表") }
             let asset = AVURLAsset(url: playbackURL, options: ["AVURLAssetHTTPHeaderFieldsKey": self.headers])
             let item = AVPlayerItem(asset: asset)
             item.audioTimePitchAlgorithm = .spectral
             self.install(item)
+            startup?.mark("播放项目已安装")
+            self.observeLiveFirstFrame()
             if self.wantsPlayback { self.player.play() }
             self.startLivePlaylistPolling()
         }
@@ -315,6 +342,10 @@ final class AVPlayerSession: NSObject, AVPictureInPictureControllerDelegate {
                     if item.status == .failed {
                         self.fail(item.error ?? PlaybackError.preparationFailed)
                     } else if item.status == .readyToPlay {
+                        if self.isLivePlayback {
+                            self.liveStartup?.mark("播放器准备完成")
+                            self.observeLiveFirstFrame()
+                        }
                         self.applyBufferPreference(to: item)
                         self.applyPendingSeekAndPlayback()
                     } else {
@@ -540,6 +571,8 @@ final class AVPlayerSession: NSObject, AVPictureInPictureControllerDelegate {
     }
 
     private func tearDownItem() {
+        firstFrameObservation = nil
+        liveStartup = nil
         livePlaylistTask?.cancel()
         livePlaylistTask = nil
         isLivePlayback = false

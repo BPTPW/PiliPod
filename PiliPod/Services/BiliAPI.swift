@@ -747,7 +747,7 @@ class BiliAPI {
     
     // MARK: - 获取直播数据
 
-    func fetchLivePlaybackInfo(roomID: String, qn: Int = 10000) async throws -> LivePlaybackInfo {
+    func fetchLivePlaybackInfo(roomID: String, qn: Int = 10000, startup: LiveStartupDiagnostics? = nil) async throws -> LivePlaybackInfo {
         var components = URLComponents(
             string: "https://api.live.bilibili.com/xlive/web-room/v2/index/getRoomPlayInfo"
         )
@@ -767,9 +767,12 @@ class BiliAPI {
             throw APIError.invalidURL
         }
 
+        await startup?.mark("开始签名播放请求")
         let signedURL = try await BiliWbiSigner.shared.sign(url: url)
+        await startup?.mark("播放请求签名完成")
         let request = makeRequest(url: signedURL)
         let (data, response) = try await URLSession.shared.data(for: request)
+        await startup?.mark("播放接口响应完成")
         guard let httpResponse = response as? HTTPURLResponse,
               (200 ... 299).contains(httpResponse.statusCode)
         else {
@@ -786,11 +789,11 @@ class BiliAPI {
         let playurl = payload.playurlInfo.playurl
 
         guard
-            let selectedCodec = liveAVCCodec(from: playurl),
-            let urlInfo = selectedCodec.urlInfo.first,
+            let selection = liveAVCCodec(from: playurl),
+            let urlInfo = selection.codec.urlInfo.first,
             let streamURL = buildLiveStreamURL(
                 host: urlInfo.host,
-                baseURL: selectedCodec.baseURL,
+                baseURL: selection.codec.baseURL,
                 extra: urlInfo.extra,
                 qn: qn
             )
@@ -799,7 +802,7 @@ class BiliAPI {
         }
 
         let aspectRatio: CGFloat = payload.isPortrait ? (9.0 / 16.0) : (16.0 / 9.0)
-        let acceptedQualityCodes = Set(selectedCodec.acceptQn)
+        let acceptedQualityCodes = Set(selection.codec.acceptQn)
         let qualityOptions = playurl.gQnDesc
             .filter { acceptedQualityCodes.contains($0.qn) }
             .map { quality in
@@ -811,6 +814,8 @@ class BiliAPI {
             }
             .sorted { $0.code < $1.code }
 
+        await startup?.selectFormat(selection.format)
+        await startup?.mark("播放链接解析完成")
         return LivePlaybackInfo(
             roomID: String(payload.roomID),
             streamURL: streamURL,
@@ -820,14 +825,14 @@ class BiliAPI {
         )
     }
 
-    private func liveAVCCodec(from playurl: LiveRoomPlayurl) -> LiveRoomCodec? {
+    private func liveAVCCodec(from playurl: LiveRoomPlayurl) -> (format: String, codec: LiveRoomCodec)? {
         for formatName in ["fmp4", "ts"] {
             for stream in playurl.stream where stream.protocolName == "http_hls" {
                 for format in stream.format where format.formatName == formatName {
                     if let codec = format.codec.first(where: {
                         ["avc", "h264"].contains($0.codecName.lowercased()) && !$0.urlInfo.isEmpty
                     }) {
-                        return codec
+                        return (formatName, codec)
                     }
                 }
             }

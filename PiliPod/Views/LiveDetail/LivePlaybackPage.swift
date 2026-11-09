@@ -178,6 +178,7 @@ struct LivePlaybackPage: View {
                 playerSnapshot: playerUISnapshot,
                 playbackRate: player.playbackRate,
                 streamDiagnostics: liveStreamDiagnostics,
+                startup: viewModel.startupDiagnostics,
                 latencySync: latencySync
             )
             .presentationDetents([.medium, .large])
@@ -202,6 +203,7 @@ struct LivePlaybackPage: View {
         ZStack {
             LivePlayerView(
                 roomId: room.roomId,
+                startup: viewModel.startupDiagnostics,
                 streamURL: viewModel.streamURL,
                 statusText: viewModel.playerStatusText,
                 player: player,
@@ -837,6 +839,7 @@ private final class LivePlaybackViewModel {
     let room: LiveCardModel
 
     var roomInfo: LiveRoomInfo?
+    var startupDiagnostics = LiveStartupDiagnostics()
     var streamURL: URL?
     var aspectRatio: CGFloat = 16.0 / 9.0
     var messages: [LiveDanmakuMessage] = []
@@ -950,15 +953,18 @@ private final class LivePlaybackViewModel {
             streamURL = nil
         }
         isLoading = true
+        let startup = LiveStartupDiagnostics()
+        startupDiagnostics = startup
+        startup.mark("开始获取播放链接")
         defer { isLoading = false }
 
         do {
             let requestedQn = force ? currentQn : Self.preferredInitialLiveQualityCode()
             let playback = try await BiliAPI.shared.fetchLivePlaybackInfo(
                 roomID: room.roomId,
-                qn: requestedQn
+                qn: requestedQn,
+                startup: startup
             )
-            streamURL = playback.streamURL
             aspectRatio = playback.aspectRatio
             qualityOptions = playback.qualityOptions
             currentQn = Self.resolveInitialLiveQualityCode(
@@ -968,17 +974,22 @@ private final class LivePlaybackViewModel {
                 isUserSelected: force
             )
 
+            var selectedURL = playback.streamURL
             if !force, currentQn != playback.currentQn {
                 let resolvedPlayback = try await BiliAPI.shared.fetchLivePlaybackInfo(
                     roomID: room.roomId,
-                    qn: currentQn
+                    qn: currentQn,
+                    startup: startup
                 )
-                streamURL = resolvedPlayback.streamURL
+                selectedURL = resolvedPlayback.streamURL
                 aspectRatio = resolvedPlayback.aspectRatio
                 qualityOptions = resolvedPlayback.qualityOptions
             }
+            startup.mark("播放链接就绪")
+            streamURL = selectedURL
         } catch {
             let nsError = error as NSError
+            startup.mark("获取播放链接失败")
             print("Live playback stream request failed: domain=\(nsError.domain), code=\(nsError.code)")
         }
     }
