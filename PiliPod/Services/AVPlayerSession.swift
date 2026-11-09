@@ -56,12 +56,13 @@ final class AVPlayerSession: NSObject, AVPictureInPictureControllerDelegate {
     private var isListenVideoModeActive = false
     private var listenVideoAudioEnergyEnabled = false
     private var activeStream: DashStream?
-    // Live playback starts at the newest HLS segment once AVPlayer exposes
-    // the item's program timeline. This is intentionally independent of the
-    // optional catch-up logic kept on the live-sync branch.
+    // Bilibili K markers select the first frame through a local playlist.
+    // Other HLS layouts retain the program-timeline alignment fallback.
+    // Both are independent of the optional rate-based catch-up policy.
     private var isLivePlayback = false
     private var livePlaylistTask: Task<Void, Never>?
     private var livePlaylistBaseURL: URL?
+    private var livePlaylistServer: LoopbackHTTPServer?
     private var livePlaylistSnapshot: HLSLivePlaylistSnapshot?
     private var livePlaylistRequestInFlight = false
     private var liveStartAligned = false
@@ -252,12 +253,37 @@ final class AVPlayerSession: NSObject, AVPictureInPictureControllerDelegate {
         errorMessage = nil
         isLivePlayback = true
         livePlaylistBaseURL = liveURL
-        let asset = AVURLAsset(url: liveURL, options: ["AVURLAssetHTTPHeaderFieldsKey": headers])
-        let item = AVPlayerItem(asset: asset)
-        item.audioTimePitchAlgorithm = .spectral
-        install(item)
-        player.playImmediately(atRate: Float(playbackRate))
-        startLivePlaylistPolling()
+        let requestGeneration = generation
+        prepareTask = Task { [weak self] in
+            guard let self else { return }
+            var playbackURL = liveURL
+            // Prepare the start position before installing the item, so an older
+            // segment cannot appear briefly before a corrective seek.
+            if let source = try? await LiveHLSPlaylistSource.make(url: liveURL, headers: self.headers),
+               !Task.isCancelled, self.generation == requestGeneration {
+                do {
+                    let server = try LoopbackHTTPServer.make(headers: self.headers)
+                    server.add(path: "/live.m3u8", route: .playlist { try await source.load() })
+                    try await server.start()
+                    guard !Task.isCancelled, self.generation == requestGeneration else {
+                        server.stop()
+                        return
+                    }
+                    self.livePlaylistServer = server
+                    self.liveStartAligned = true
+                    playbackURL = server.baseURL.appendingPathComponent("live.m3u8")
+                } catch {
+                    // Keep direct HLS playback available if preparation fails.
+                }
+            }
+            guard !Task.isCancelled, self.generation == requestGeneration else { return }
+            let asset = AVURLAsset(url: playbackURL, options: ["AVURLAssetHTTPHeaderFieldsKey": self.headers])
+            let item = AVPlayerItem(asset: asset)
+            item.audioTimePitchAlgorithm = .spectral
+            self.install(item)
+            if self.wantsPlayback { self.player.play() }
+            self.startLivePlaylistPolling()
+        }
     }
 
     func resume() { wantsPlayback = true; player.playImmediately(atRate: Float(playbackRate)); publish() }
@@ -323,7 +349,11 @@ final class AVPlayerSession: NSObject, AVPictureInPictureControllerDelegate {
     private func applyPendingSeekAndPlayback() {
         let startPlayback = { [weak self] in
             guard let self, self.wantsPlayback else { return }
-            self.player.playImmediately(atRate: Float(self.playbackRate))
+            if self.isLivePlayback {
+                self.player.play()
+            } else {
+                self.player.playImmediately(atRate: Float(self.playbackRate))
+            }
         }
         if let pendingSeekTime {
             self.pendingSeekTime = nil
@@ -514,6 +544,8 @@ final class AVPlayerSession: NSObject, AVPictureInPictureControllerDelegate {
         livePlaylistTask = nil
         isLivePlayback = false
         livePlaylistBaseURL = nil
+        livePlaylistServer?.stop()
+        livePlaylistServer = nil
         livePlaylistSnapshot = nil
         livePlaylistRequestInFlight = false
         liveStartAligned = false
@@ -927,7 +959,7 @@ private enum SIDX {
 }
 
 private final class LoopbackHTTPServer: @unchecked Sendable {
-    enum Route { case data(Data); case local(Data); case remote(URL, DASHByteRange, UInt64) }
+    enum Route { case data(Data); case local(Data); case remote(URL, DASHByteRange, UInt64); case playlist(@Sendable () async throws -> Data) }
     let baseURL: URL
     private let listener: NWListener; private let queue = DispatchQueue(label: "pilipod.avplayer.hls"); private let headers: [String: String]
     private let metrics: HLSBridgeMetrics
@@ -954,8 +986,51 @@ private final class LoopbackHTTPServer: @unchecked Sendable {
     func start() async throws { try await withCheckedThrowingContinuation { continuation in var resumed = false; listener.stateUpdateHandler = { state in if resumed { return }; switch state { case .ready: resumed = true; continuation.resume(); case let .failed(error): resumed = true; continuation.resume(throwing: error); default: break } }; listener.newConnectionHandler = { [weak self] in self?.accept($0) }; listener.start(queue: queue) } }
     func stop() { listener.cancel(); connections.values.forEach { $0.cancel() }; connections.removeAll() }
     private func accept(_ connection: NWConnection) { guard case let .hostPort(host, _) = connection.endpoint, host == .ipv4(IPv4Address("127.0.0.1")!) || host == .ipv6(IPv6Address("::1")!) else { connection.cancel(); return }; let id = ObjectIdentifier(connection); connections[id] = connection; connection.start(queue: queue); connection.receive(minimumIncompleteLength: 1, maximumLength: 16384) { [weak self] data, _, _, _ in self?.respond(connection, data ?? Data(), id: id) } }
-    private func respond(_ c: NWConnection, _ data: Data, id: ObjectIdentifier) { defer { connections[id] = nil }; guard let line = String(data: data, encoding: .utf8)?.split(separator: "\n").first else { return send(c, status: "400 Bad Request", data: Data(), type: "text/plain") }; let pieces = line.split(separator: " "); guard pieces.count > 1, let route = routes[String(pieces[1])] else { return send(c, status: "404 Not Found", data: Data(), type: "text/plain") }; switch route { case let .data(payload): send(c, status: "200 OK", data: payload, type: "application/vnd.apple.mpegurl"); case let .local(payload): send(c, status: "200 OK", data: payload, type: "video/iso.segment"); case let .remote(url, range, timeOffset): Task { [headers, metrics] in do { var request = URLRequest(url: url); request.setValue(range.header, forHTTPHeaderField: "Range"); headers.forEach { request.setValue($0.value, forHTTPHeaderField: $0.key) }; metrics.beginRequest(); let payload = try await RemoteRangeLoader { metrics.record(bytes: $0) }.load(request); metrics.finishRequest(success: true); self.queue.async { self.send(c, status: "200 OK", data: MP4Timeline.normalize(payload, subtracting: timeOffset), type: "video/iso.segment") } } catch { metrics.finishRequest(success: false); self.queue.async { self.send(c, status: "502 Bad Gateway", data: Data(), type: "text/plain") } } } } }
-    private func send(_ c: NWConnection, status: String, data: Data, type: String) { let head = "HTTP/1.1 \(status)\r\nContent-Type: \(type)\r\nContent-Length: \(data.count)\r\nConnection: close\r\n\r\n"; var response = Data(head.utf8); response.append(data); c.send(content: response, completion: .contentProcessed { _ in c.cancel() }) }
+    private func respond(_ c: NWConnection, _ data: Data, id: ObjectIdentifier) {
+        defer { connections[id] = nil }
+        guard let line = String(data: data, encoding: .utf8)?.split(separator: "\n").first else {
+            return send(c, status: "400 Bad Request", data: Data(), type: "text/plain")
+        }
+        let pieces = line.split(separator: " ")
+        guard pieces.count > 1, let route = routes[String(pieces[1])] else {
+            return send(c, status: "404 Not Found", data: Data(), type: "text/plain")
+        }
+        switch route {
+        case let .playlist(load):
+            Task {
+                do {
+                    let payload = try await load()
+                    self.queue.async {
+                        self.send(c, status: "200 OK", data: payload, type: "application/vnd.apple.mpegurl")
+                    }
+                } catch {
+                    self.queue.async { self.send(c, status: "502 Bad Gateway", data: Data(), type: "text/plain") }
+                }
+            }
+        case let .data(payload):
+            send(c, status: "200 OK", data: payload, type: "application/vnd.apple.mpegurl")
+        case let .local(payload):
+            send(c, status: "200 OK", data: payload, type: "video/iso.segment")
+        case let .remote(url, range, timeOffset):
+            Task { [headers, metrics] in
+                do {
+                    var request = URLRequest(url: url)
+                    request.setValue(range.header, forHTTPHeaderField: "Range")
+                    headers.forEach { request.setValue($0.value, forHTTPHeaderField: $0.key) }
+                    metrics.beginRequest()
+                    let payload = try await RemoteRangeLoader { metrics.record(bytes: $0) }.load(request)
+                    metrics.finishRequest(success: true)
+                    self.queue.async {
+                        self.send(c, status: "200 OK", data: MP4Timeline.normalize(payload, subtracting: timeOffset), type: "video/iso.segment")
+                    }
+                } catch {
+                    metrics.finishRequest(success: false)
+                    self.queue.async { self.send(c, status: "502 Bad Gateway", data: Data(), type: "text/plain") }
+                }
+            }
+        }
+    }
+    private func send(_ c: NWConnection, status: String, data: Data, type: String) { let head = "HTTP/1.1 \(status)\r\nContent-Type: \(type)\r\nCache-Control: no-store\r\nContent-Length: \(data.count)\r\nConnection: close\r\n\r\n"; var response = Data(head.utf8); response.append(data); c.send(content: response, completion: .contentProcessed { _ in c.cancel() }) }
     deinit { stop() }
 }
 

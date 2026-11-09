@@ -61,25 +61,40 @@ struct LiveLatencySyncControllerTests {
 
     @Test func lowInstantMarginReturnsToNormalImmediately() {
         let controller = LiveLatencySyncController()
-        _ = drive(controller, ahead: { _ in 8 }, duration: 6)
-        let rate = controller.update(
+        _ = drive(controller, ahead: { _ in 8 }, duration: 5)
+        _ = controller.update(
             currentTime: currentTime,
-            bufferedUntil: currentTime + 0.4,
+            bufferedUntil: currentTime + 8,
             isPlaying: true,
             isBuffering: false,
-            now: 6.2
+            now: 6
+        )
+        let rate = controller.update(
+            currentTime: currentTime,
+            bufferedUntil: currentTime + 2.99,
+            isPlaying: true,
+            isBuffering: false,
+            now: 6.01
         )
         #expect(rate == 1.0)
         #expect(controller.diagnostics.safetyResetCount == 1)
         #expect(controller.diagnostics.phase == .safetyHold)
+        #expect((controller.diagnostics.smoothedAhead ?? 0) > 4)
+    }
+
+    @Test func catchUpStartsOnlyAboveFourSmoothedSeconds() {
+        let controller = LiveLatencySyncController()
+        #expect(drive(controller, ahead: { _ in 4 }, duration: 10).isEmpty)
+        let changes = drive(controller, ahead: { _ in 4.2 }, from: 10.1, duration: 10)
+        #expect(changes.map(\.rate) == [1.1])
     }
 
     @Test func marginInsideHysteresisBandKeepsRate() {
         let controller = LiveLatencySyncController()
         _ = drive(controller, ahead: { _ in 5.6 }, duration: 6)
         #expect(controller.diagnostics.targetRate == 1.1)
-        // 4.2s is below the engage threshold but above the disengage threshold.
-        let changes = drive(controller, ahead: { _ in 4.2 }, from: 6.1, duration: 30)
+        // 3.8s is below the engage threshold but above the disengage threshold.
+        let changes = drive(controller, ahead: { _ in 3.8 }, from: 6.1, duration: 30)
         #expect(changes.isEmpty)
         #expect(controller.diagnostics.targetRate == 1.1)
     }

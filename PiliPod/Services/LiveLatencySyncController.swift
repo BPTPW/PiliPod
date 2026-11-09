@@ -17,12 +17,12 @@ struct LiveLatencySyncConfiguration: Equatable {
     /// Samples (post reset) required before the controller may speed up.
     var warmUpDuration: TimeInterval = 3
     /// Catch-up starts once the smoothed buffer margin exceeds this.
-    var engageAhead: TimeInterval = 5
+    var engageAhead: TimeInterval = 4
     /// Catch-up ends once the smoothed margin falls to this. Must be below
     /// `engageAhead`; the gap is the hysteresis band.
     var disengageAhead: TimeInterval = 3.5
     /// If the instantaneous margin drops below this, return to 1.0x at once.
-    var safetyFloorAhead: TimeInterval = 1.0
+    var safetyFloorAhead: TimeInterval = 3.0
     /// A rate is only used if the margin predicted after `lookahead` seconds at
     /// that rate stays above this value.
     var projectedFloorAhead: TimeInterval = 2.0
@@ -33,7 +33,7 @@ struct LiveLatencySyncConfiguration: Equatable {
     /// Ascending ladder of rates; the first entry is normal speed.
     var rateLadder: [Double] = [1.0, 1.1, 1.25]
     /// Smoothed margin at which each ladder step above 1.0x becomes eligible.
-    var rateThresholds: [TimeInterval] = [5, 7]
+    var rateThresholds: [TimeInterval] = [4, 7]
 }
 
 struct LiveLatencySyncDiagnostics: Equatable {
@@ -104,6 +104,17 @@ final class LiveLatencySyncController {
             return holdAtNormalSpeed(phase: .inactive, now: now)
         }
 
+        // Safety is checked on every snapshot, before throttling or smoothing.
+        let rawAhead = bufferedUntil - currentTime
+        diagnostics.rawAhead = rawAhead
+        if rawAhead < configuration.safetyFloorAhead {
+            let changed = currentRate != 1.0
+            if changed { diagnostics.safetyResetCount += 1 }
+            lastRateChangeUptime = now
+            diagnostics.phase = .safetyHold
+            return applyRate(1.0, now: now, changed: changed)
+        }
+
         if let lastSampleUptime, now - lastSampleUptime < configuration.sampleInterval {
             return nil
         }
@@ -111,7 +122,6 @@ final class LiveLatencySyncController {
         lastSampleUptime = now
         if activeSince == nil { activeSince = now }
 
-        let rawAhead = bufferedUntil - currentTime
         let smoothed: TimeInterval
         if let previous = smoothedAhead {
             let alpha = 1 - exp(-elapsed / configuration.smoothingTimeConstant)
@@ -122,14 +132,6 @@ final class LiveLatencySyncController {
         smoothedAhead = smoothed
         diagnostics.rawAhead = rawAhead
         diagnostics.smoothedAhead = smoothed
-
-        if rawAhead < configuration.safetyFloorAhead {
-            let changed = currentRate != 1.0
-            if changed { diagnostics.safetyResetCount += 1 }
-            lastRateChangeUptime = now
-            diagnostics.phase = .safetyHold
-            return applyRate(1.0, now: now, changed: changed)
-        }
 
         guard now - (activeSince ?? now) >= configuration.warmUpDuration else {
             diagnostics.phase = .warmingUp

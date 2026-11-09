@@ -821,13 +821,18 @@ class BiliAPI {
     }
 
     private func liveAVCCodec(from playurl: LiveRoomPlayurl) -> LiveRoomCodec? {
-        playurl.stream
-            .first(where: { $0.protocolName == "http_hls" })?
-            .format.first(where: { $0.formatName == "fmp4" || $0.formatName == "ts" })?
-            .codec.first(where: { codec in
-                let normalized = codec.codecName.lowercased()
-                return normalized == "avc" || normalized == "h264"
-            })
+        for formatName in ["fmp4", "ts"] {
+            for stream in playurl.stream where stream.protocolName == "http_hls" {
+                for format in stream.format where format.formatName == formatName {
+                    if let codec = format.codec.first(where: {
+                        ["avc", "h264"].contains($0.codecName.lowercased()) && !$0.urlInfo.isEmpty
+                    }) {
+                        return codec
+                    }
+                }
+            }
+        }
+        return nil
     }
 
     private func liveQualityLabel(for code: Int, fallback: String?) -> String {
