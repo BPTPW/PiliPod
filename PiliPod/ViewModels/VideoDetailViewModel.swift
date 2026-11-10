@@ -129,6 +129,11 @@ class VideoDetailViewModel {
     func loadVideoData() async {
         guard videoDetail == nil, !isLoading else { return }
         isLoading = true
+        let startup = await MainActor.run {
+            let diagnostics = PlaybackStartupDiagnostics()
+            diagnostics.mark("开始加载视频")
+            return diagnostics
+        }
         error = nil
         playerInfo = nil
         initialSeekTime = requestedInitialSeekTime
@@ -183,6 +188,8 @@ class VideoDetailViewModel {
             cid: cid > 0 ? cid : nil
         )
 
+        await startup.mark("离线缓存检查完成")
+
         do {
             // 获取视频详情
             let detail: VideoDetailData
@@ -191,6 +198,7 @@ class VideoDetailViewModel {
             } else {
                 detail = try await BiliAPI.shared.fetchVideoDetail(bvid: bvid)
             }
+            await startup.mark("视频详情加载完成")
             await MainActor.run {
                 self.videoDetail = detail
                 self.aid = detail.aid
@@ -222,6 +230,7 @@ class VideoDetailViewModel {
             var playerInitialSeekTime: Double?
             var playerHistoryCID: Int?
             if preferredCachedAsset == nil {
+                await startup.mark("开始获取播放器信息")
                 do {
                     let playerInfoResponse = try await BiliAPI.shared.fetchPlayerWbiV2(
                         bvid: bvid,
@@ -256,10 +265,12 @@ class VideoDetailViewModel {
                     }
                     playerInitialSeekTime = resolvedInitialSeekTime
                 } catch {
+                    await startup.mark("播放器信息获取失败，继续播放")
                     print("获取播放器信息失败: \(error)")
                 }
             }
 
+            await startup.mark("播放进度解析完成")
             let resolvedPlaybackCID = playbackCid
             // When the API supplies a page-specific history cid, its time must
             // travel with that cid. Otherwise retain the progress supplied by
@@ -343,6 +354,7 @@ class VideoDetailViewModel {
 
             if let cachedAsset = OfflineCacheStorage.loadPlayableAsset(bvid: bvid, cid: playbackCid) ?? preferredCachedAsset {
                 await MainActor.run {
+                    startup.mark("使用离线缓存播放链接")
                     self.playUrlData = nil
                     self.qualityOptions = [
                         VideoQualityOption(
@@ -358,15 +370,17 @@ class VideoDetailViewModel {
                     self.isLoading = false
 
                     if let player = self.player {
-                        player.play(stream: cachedAsset.stream, initialSeekTime: self.initialSeekTime)
+                        player.play(stream: cachedAsset.stream, initialSeekTime: self.initialSeekTime, startup: startup)
                         player.setPlaybackRate(self.selectedPlaybackRate)
                     }
                 }
             } else {
+                await startup.mark("开始获取播放链接")
                 // 获取播放地址
                 let playUrlResponse = try await BiliAPI.shared.fetchPlayUrl(
                     bvid: bvid,
-                    cid: resolvedPlaybackCID
+                    cid: resolvedPlaybackCID,
+                    startup: startup
                 )
                 let options = DashStreamSelector.qualityOptions(from: playUrlResponse)
                 let availableQualityCodes = options.map(\.code)
@@ -388,6 +402,7 @@ class VideoDetailViewModel {
                     throw APIError.noVideoOrAudio
                 }
 
+                await startup.mark("DASH 流选择完成")
                 await MainActor.run {
                     let useDefaultDolby = playbackSettings.defaultDolbyAudioEnabled && stream.supportsDolby
                     self.playUrlData = playUrlResponse
@@ -399,7 +414,7 @@ class VideoDetailViewModel {
                     self.isLoading = false
 
                     if let player = self.player {
-                        player.play(stream: self.dashStream!, initialSeekTime: self.initialSeekTime)
+                        player.play(stream: self.dashStream!, initialSeekTime: self.initialSeekTime, startup: startup)
                         player.setPlaybackRate(self.selectedPlaybackRate)
                     }
                 }
@@ -419,6 +434,7 @@ class VideoDetailViewModel {
                 )
             }
         } catch {
+            await startup.mark("视频加载失败")
             print("视频加载出现错误: ")
             print(error)
             await MainActor.run {
@@ -517,9 +533,12 @@ class VideoDetailViewModel {
         isReloadingCurrentVideo = true
         defer { isReloadingCurrentVideo = false }
 
+        let startup = PlaybackStartupDiagnostics()
+        startup.mark("开始获取播放链接")
         let playUrlResponse = try await BiliAPI.shared.fetchPlayUrl(
             bvid: bvid,
-            cid: targetCID
+            cid: targetCID,
+            startup: startup
         )
         let options = DashStreamSelector.qualityOptions(from: playUrlResponse)
         let availableQualityCodes = options.map(\.code)
@@ -542,6 +561,7 @@ class VideoDetailViewModel {
             throw APIError.noVideoOrAudio
         }
 
+        startup.mark("DASH 流选择完成")
         let resolvedStream = stream.applying(dolbyEnabled: isDolbyEnabled)
         playUrlData = playUrlResponse
         qualityOptions = options
@@ -551,7 +571,7 @@ class VideoDetailViewModel {
         error = nil
 
         guard let currentPlayer else { return }
-        currentPlayer.play(stream: resolvedStream)
+        currentPlayer.play(stream: resolvedStream, startup: startup)
         currentPlayer.setPlaybackRate(resumeRate)
 
         await restorePlaybackState(
@@ -597,8 +617,11 @@ class VideoDetailViewModel {
         let playbackSettings = AudioVideoSettingsStore.load()
         let preferredCodec = playbackSettings.preferredCodec
 
+        let startup = PlaybackStartupDiagnostics()
+        startup.mark("开始加载视频")
         do {
             if let cachedAsset = OfflineCacheStorage.loadPlayableAsset(bvid: bvid, cid: page.cid) {
+                startup.mark("使用离线缓存播放链接")
                 cid = page.cid
                 initialSeekTime = nil
                 playUrlData = nil
@@ -626,7 +649,7 @@ class VideoDetailViewModel {
                 isDolbyEnabled = false
 
                 if let player {
-                    player.play(stream: cachedAsset.stream)
+                    player.play(stream: cachedAsset.stream, startup: startup)
                     player.setPlaybackRate(selectedPlaybackRate)
                     if previousIsPlaying {
                         player.resume()
@@ -646,13 +669,17 @@ class VideoDetailViewModel {
                 return
             }
 
+            startup.mark("开始获取播放器信息")
             let playerInfoResponse = try? await BiliAPI.shared.fetchPlayerWbiV2(
                 bvid: bvid,
                 cid: page.cid
             )
+            startup.mark("播放进度解析完成")
+            startup.mark("开始获取播放链接")
             let playUrlResponse = try await BiliAPI.shared.fetchPlayUrl(
                 bvid: bvid,
-                cid: page.cid
+                cid: page.cid,
+                startup: startup
             )
             let options = DashStreamSelector.qualityOptions(from: playUrlResponse)
             let availableQualityCodes = options.map(\.code)
@@ -671,6 +698,7 @@ class VideoDetailViewModel {
                 throw APIError.noVideoOrAudio
             }
 
+            startup.mark("DASH 流选择完成")
             cid = page.cid
             playerInfo = playerInfoResponse?.data
             initialSeekTime = nil
@@ -696,7 +724,7 @@ class VideoDetailViewModel {
             isPlayingOfflineCache = false
 
             if let player {
-                player.play(stream: dashStream!)
+                player.play(stream: dashStream!, startup: startup)
                 player.setPlaybackRate(selectedPlaybackRate)
                 if previousIsPlaying {
                     player.resume()

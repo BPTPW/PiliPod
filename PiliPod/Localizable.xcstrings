@@ -1,6 +1,227 @@
 {
   "sourceLanguage" : "zh-Hans",
   "strings" : {
+    "开始加载视频" : {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Starting video loading"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "動画の読み込み開始"
+          }
+        }
+      }
+    },
+    "离线缓存检查完成" : {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Offline cache check completed"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "オフラインキャッシュ確認完了"
+          }
+        }
+      }
+    },
+    "视频详情加载完成" : {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Video details loaded"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "動画詳細の読み込み完了"
+          }
+        }
+      }
+    },
+    "开始获取播放器信息" : {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Requesting player information"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "プレイヤー情報の取得開始"
+          }
+        }
+      }
+    },
+    "播放器信息获取失败，继续播放" : {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Player information unavailable; continuing playback"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "プレイヤー情報の取得失敗、再生を続行"
+          }
+        }
+      }
+    },
+    "播放进度解析完成" : {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Playback position resolved"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "再生位置の解析完了"
+          }
+        }
+      }
+    },
+    "使用离线缓存播放链接" : {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Using offline playback URLs"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "オフライン再生URLを使用"
+          }
+        }
+      }
+    },
+    "DASH 流选择完成" : {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "DASH streams selected"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "DASHストリーム選択完了"
+          }
+        }
+      }
+    },
+    "视频加载失败" : {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Video loading failed"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "動画の読み込み失敗"
+          }
+        }
+      }
+    },
+    "开始准备 DASH 桥接" : {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Preparing DASH bridge"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "DASHブリッジの準備開始"
+          }
+        }
+      }
+    },
+    "切换备用播放链接" : {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Trying fallback playback URLs"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "予備の再生URLに切り替え"
+          }
+        }
+      }
+    },
+    "离线音视频读取完成" : {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Offline media read completed"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "オフラインメディアの読み込み完了"
+          }
+        }
+      }
+    },
+    "音视频索引下载及解析完成" : {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Audio/video indexes downloaded and parsed"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "音声・映像インデックスのダウンロードと解析完了"
+          }
+        }
+      }
+    },
     "从获取播放链接开始计时；每行显示累计时间和距上一阶段的耗时。" : {
       "localizations" : {
         "en" : {
@@ -6975,22 +7196,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "認証してログイン"
-          }
-        }
-      }
-    },
-    "高动态视频" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "HDR Video"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "HDR動画"
           }
         }
       }

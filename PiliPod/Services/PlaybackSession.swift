@@ -15,7 +15,6 @@ struct PlayerUIPlaybackSnapshot: Equatable {
     var isBuffering = false
     var loadingSpeedBytesPerSecond: Double = 0
     var hlsBridgeDiagnostics = HLSBridgeDiagnostics()
-    var hdrDiagnostics = HDRPlaybackDiagnostics()
 }
 
 struct HLSBridgeDiagnostics: Equatable {
@@ -26,37 +25,6 @@ struct HLSBridgeDiagnostics: Equatable {
     var completedRequestCount = 0
     var totalBytesTransferred: Int64 = 0
     var loadingSpeedBytesPerSecond: Double = 0
-}
-
-struct HDRPlaybackDiagnostics: Equatable {
-    var isEnabledInSettings = false
-    var prefersEDROutput = false
-    var requestsExtendedRange = false
-    var currentEDRHeadroom: CGFloat = 1.0
-    var potentialEDRHeadroom: CGFloat = 1.0
-    var displayGamut = ""
-    var displayColorSpace = ""
-    var toneMapping = ""
-    var videoPrimaries = ""
-    var videoGamma = ""
-    var videoPixelFormat = ""
-    var videoHardwarePixelFormat = ""
-    var videoColorLevels = ""
-    var videoColorMatrix = ""
-    var videoSignalPeak = ""
-
-    var likelyHDRSource: Bool {
-        let gamma = videoGamma.lowercased()
-        let primaries = videoPrimaries.lowercased()
-        return gamma.contains("pq")
-            || gamma.contains("hlg")
-            || primaries.contains("bt.2020")
-            || primaries.contains("bt2020")
-    }
-
-    var extendedRangeActive: Bool {
-        requestsExtendedRange && currentEDRHeadroom > 1.0
-    }
 }
 
 @Observable
@@ -74,8 +42,8 @@ final class PlaybackSession: NSObject {
     private(set) var bufferedUntil: TimeInterval = 0
     private(set) var isBuffering = false
     private(set) var loadingSpeedBytesPerSecond: Double = 0
-    private(set) var hdrDiagnostics = HDRPlaybackDiagnostics()
     private(set) var uiSnapshot = PlayerUIPlaybackSnapshot()
+    private(set) var startupDiagnostics: PlaybackStartupDiagnostics?
     private(set) var playbackError: String?
     private(set) var ambientPalette = AmbientPalette.fallback
     private(set) var isAmbientModeEnabled: Bool
@@ -113,7 +81,6 @@ final class PlaybackSession: NSObject {
             self.loadingSpeedBytesPerSecond = snapshot.loadingSpeedBytesPerSecond
             self.uiSnapshot = snapshot
             self.playbackError = self.avPlayerSession.errorMessage
-            self.hdrDiagnostics = snapshot.hdrDiagnostics
         }
         avPlayerSession.onAmbientPalette = { [weak self] palette in
             guard let self, self.isAmbientModeEnabled else { return }
@@ -126,8 +93,6 @@ final class PlaybackSession: NSObject {
             self?.listenVideoAudioEnvelopeTime = frameTime
             self?.listenVideoAudioEnvelopeFrameCount = frameCount
         }
-        hdrDiagnostics.isEnabledInSettings = settings.highDynamicRangeEnabled
-        hdrDiagnostics.prefersEDROutput = settings.prefersEDROutput
         settingsObserver = NotificationCenter.default.addObserver(
             forName: .audioVideoSettingsDidChange,
             object: nil,
@@ -170,7 +135,12 @@ final class PlaybackSession: NSObject {
 
     func stopPictureInPicture() { avPlayerSession.stopPictureInPicture() }
     func setListenVideoModeActive(_ active: Bool) { avPlayerSession.setListenVideoModeActive(active) }
-    func play(stream: DashStream, initialSeekTime: TimeInterval? = nil) { avPlayerSession.play(stream: stream, initialSeekTime: initialSeekTime) }
+    @MainActor
+    func play(stream: DashStream, initialSeekTime: TimeInterval? = nil, startup: PlaybackStartupDiagnostics? = nil) {
+        let diagnostics = startup ?? PlaybackStartupDiagnostics()
+        startupDiagnostics = diagnostics
+        avPlayerSession.play(stream: stream, initialSeekTime: initialSeekTime, startup: diagnostics)
+    }
     @MainActor
     func play(videoURL: URL, startup: LiveStartupDiagnostics? = nil) { avPlayerSession.play(liveURL: videoURL, startup: startup) }
     func liveStreamDiagnostics() -> LiveStreamDiagnostics? { avPlayerSession.liveStreamDiagnostics() }
@@ -191,7 +161,6 @@ final class PlaybackSession: NSObject {
 
     func refreshDebugSnapshot() {
         uiSnapshot = avPlayerSession.snapshot
-        hdrDiagnostics = avPlayerSession.snapshot.hdrDiagnostics
     }
 
     deinit {

@@ -2540,7 +2540,8 @@ class BiliAPI {
         bvid: String,
         cid: Int,
         fnval: Int = 4048,
-        qn: Int = 127
+        qn: Int = 127,
+        startup: PlaybackStartupDiagnostics? = nil
     ) async throws -> PlayUrlResponse {
         var components = URLComponents(
             string: "https://api.bilibili.com/x/player/wbi/playurl"
@@ -2557,9 +2558,12 @@ class BiliAPI {
             throw APIError.invalidURL
         }
 
+        await startup?.mark("开始签名播放请求")
         let signedURL = try await BiliWbiSigner.shared.sign(url: url)
+        await startup?.mark("播放请求签名完成")
         let request = makeRequest(url: signedURL)
         let (data, _) = try await URLSession.shared.data(for: request)
+        await startup?.mark("播放接口响应完成")
 
         let response = try JSONDecoder().decode(
             PlayUrlResponse.self,
@@ -2570,6 +2574,7 @@ class BiliAPI {
             throw APIError.responseError(response.code)
         }
 
+        await startup?.mark("播放链接解析完成")
         return response
     }
 

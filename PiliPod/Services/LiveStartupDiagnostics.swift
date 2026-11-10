@@ -1,10 +1,10 @@
 import Foundation
 import Observation
 
-/// One attempt, measured with a monotonic clock from the playback-link request.
+/// One playback attempt, measured with a monotonic clock until its first visible frame.
 @Observable
 @MainActor
-final class LiveStartupDiagnostics {
+final class PlaybackStartupDiagnostics {
     struct Event: Identifiable, Equatable {
         let id: Int
         let label: String
@@ -34,3 +34,6 @@ final class LiveStartupDiagnostics {
         firstFrameTime = events.last?.elapsed
     }
 }
+
+// Keep the live playback API compatible while sharing the recorder with video.
+typealias LiveStartupDiagnostics = PlaybackStartupDiagnostics

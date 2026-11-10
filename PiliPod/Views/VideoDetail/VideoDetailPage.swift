@@ -4354,6 +4354,11 @@ struct DashStreamInfoSheet: View {
 
                         Divider()
 
+                        if let startup = player?.startupDiagnostics {
+                            startupSection(startup)
+                            Divider()
+                        }
+
                         VStack(alignment: .leading, spacing: 8) {
                             Text("缓冲状态").font(.subheadline).fontWeight(.semibold).foregroundColor(.secondary)
                             InfoRow("缓冲速度", formatBytesPerSecond(playerSnapshot.loadingSpeedBytesPerSecond))
@@ -4381,27 +4386,6 @@ struct DashStreamInfoSheet: View {
 
                             bridgeInfo(playerSnapshot.hlsBridgeDiagnostics)
 
-                            Divider()
-
-                            VStack(alignment: .leading, spacing: 8) {
-                                Text("高动态视频").font(.subheadline).fontWeight(.semibold).foregroundColor(.secondary)
-                                InfoRow("显示增强", playerSnapshot.hdrDiagnostics.isEnabledInSettings ? "已开启" : "已关闭")
-                                InfoRow("视频类型", dynamicRangeSourceLabel(for: playerSnapshot.hdrDiagnostics))
-                                InfoRow("高动态显示请求", playerSnapshot.hdrDiagnostics.requestsExtendedRange ? "已开启" : "未开启")
-                                InfoRow("高动态显示状态", playerSnapshot.hdrDiagnostics.extendedRangeActive ? "生效中" : "未生效")
-                                InfoRow(
-                                    "当前 / 最大高光余量",
-                                    String(
-                                        format: "%.2f / %.2f",
-                                        playerSnapshot.hdrDiagnostics.currentEDRHeadroom,
-                                        playerSnapshot.hdrDiagnostics.potentialEDRHeadroom
-                                    )
-                                )
-                                InfoRow("显示色域", fallback(playerSnapshot.hdrDiagnostics.displayGamut))
-                                InfoRow("显示空间", fallback(playerSnapshot.hdrDiagnostics.displayColorSpace))
-                                InfoRow("视频色域", fallback(playerSnapshot.hdrDiagnostics.videoPrimaries))
-                                InfoRow("亮度曲线", fallback(playerSnapshot.hdrDiagnostics.videoGamma))
-                            }
                         }
                     }
                 }
@@ -4410,6 +4394,37 @@ struct DashStreamInfoSheet: View {
             .navigationTitle("视频流信息")
             .navigationBarTitleDisplayMode(.inline)
         }
+    }
+
+    private func startupSection(_ startup: PlaybackStartupDiagnostics) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("首屏加载时间线")
+                .font(.subheadline).fontWeight(.semibold).foregroundStyle(.secondary)
+            HStack {
+                Text("首帧总耗时")
+                Spacer()
+                Text(startup.firstFrameTime.map(milliseconds) ?? String(localized: "等待首帧"))
+                    .monospacedDigit()
+            }
+            .font(.caption)
+            .foregroundStyle(.secondary)
+            ForEach(startup.events) { event in
+                HStack(alignment: .top, spacing: 8) {
+                    Text(String(localized: String.LocalizationValue(event.label)))
+                        .fixedSize(horizontal: false, vertical: true)
+                    Spacer(minLength: 4)
+                    Text(verbatim: "\(milliseconds(event.elapsed))  (+\(milliseconds(event.duration)))")
+                        .font(.system(.caption, design: .monospaced))
+                        .foregroundStyle(.secondary)
+                        .fixedSize()
+                }
+                .font(.caption)
+            }
+        }
+    }
+
+    private func milliseconds(_ value: TimeInterval) -> String {
+        String(format: "%.0f ms", value * 1000)
     }
 
     // MARK: - 格式化比特率
@@ -4450,13 +4465,7 @@ struct DashStreamInfoSheet: View {
         return String(format: "%d:%02d", mins, secs)
     }
 
-    private func dynamicRangeSourceLabel(for diagnostics: HDRPlaybackDiagnostics) -> String {
-        diagnostics.likelyHDRSource ? "HDR / 杜比视界" : "标准动态范围"
-    }
 
-    private func fallback(_ value: String) -> String {
-        value.isEmpty ? "—" : value
-    }
 }
 
 struct InfoRow: View {

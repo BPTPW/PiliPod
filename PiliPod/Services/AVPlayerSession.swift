@@ -35,7 +35,7 @@ final class AVPlayerSession: NSObject, AVPictureInPictureControllerDelegate {
     private var generation = 0
     private weak var surface: UIView?
     private var layer: AVPlayerLayer?
-    private var liveStartup: LiveStartupDiagnostics?
+    private var startupDiagnostics: PlaybackStartupDiagnostics?
     private var firstFrameObservation: NSKeyValueObservation?
     private var pictureInPictureController: AVPictureInPictureController?
     private var pictureInPicturePossibleObservation: NSKeyValueObservation?
@@ -104,13 +104,13 @@ final class AVPlayerSession: NSObject, AVPictureInPictureControllerDelegate {
         view.layer.insertSublayer(layer, at: 0)
         self.layer?.removeFromSuperlayer()
         self.layer = layer
-        observeLiveFirstFrame()
+        observeFirstFrame()
     }
 
-    private func observeLiveFirstFrame() {
+    private func observeFirstFrame() {
         firstFrameObservation = nil
-        guard isLivePlayback, let layer, let item = player.currentItem else { return }
-        let startup = liveStartup
+        guard startupDiagnostics != nil, let layer, let item = player.currentItem else { return }
+        let startup = startupDiagnostics
         firstFrameObservation = layer.observe(\.isReadyForDisplay, options: [.initial, .new]) { [weak self] layer, _ in
             guard layer.isReadyForDisplay else { return }
             Task { @MainActor in
@@ -211,7 +211,9 @@ final class AVPlayerSession: NSObject, AVPictureInPictureControllerDelegate {
         }
     }
 
-    func play(stream: DashStream, initialSeekTime: TimeInterval? = nil) {
+    @MainActor
+    func play(stream: DashStream, initialSeekTime: TimeInterval? = nil, startup: PlaybackStartupDiagnostics? = nil) {
+        startup?.mark("播放器接收链接")
         configureBackgroundPlayback(allowsPlayback: playbackSettings.allowsBackgroundPlayback)
         guard Self.supports(videoCodec: stream.videoCodec) else {
             fail(PlaybackError.unsupportedVideoCodec(stream.videoCodec)); return
@@ -232,6 +234,7 @@ final class AVPlayerSession: NSObject, AVPictureInPictureControllerDelegate {
         let requestGeneration = generation
         prepareTask?.cancel()
         tearDownItem()
+        startupDiagnostics = startup
         activeStream = stream
         wantsPlayback = true
         errorMessage = nil
@@ -241,13 +244,16 @@ final class AVPlayerSession: NSObject, AVPictureInPictureControllerDelegate {
             for index in 0 ..< max(stream.videoURLCandidates.count, stream.audioURLCandidates.count) {
                 guard let candidate = stream.fallbackStream(at: index) else { continue }
                 do {
-                    let bridge = try await LocalDASHHLSBridge.make(stream: candidate, headers: self.headers, initialSeekTime: initialSeekTime)
+                    startup?.mark(index == 0 ? "开始准备 DASH 桥接" : "切换备用播放链接")
+                    let bridge = try await LocalDASHHLSBridge.make(stream: candidate, headers: self.headers, initialSeekTime: initialSeekTime, startup: startup)
                     guard !Task.isCancelled, requestGeneration == self.generation else { bridge.stop(); return }
                     self.bridge = bridge
                     self.startListenVideoAudioEnvelope(for: candidate)
                     let asset = AVURLAsset(url: bridge.masterPlaylistURL)
                     let item = AVPlayerItem(asset: asset)
                     self.install(item)
+                    startup?.mark("播放项目已安装")
+                    self.observeFirstFrame()
                     return
                 } catch is CancellationError {
                     return
@@ -270,7 +276,7 @@ final class AVPlayerSession: NSObject, AVPictureInPictureControllerDelegate {
         wantsPlayback = true
         errorMessage = nil
         isLivePlayback = true
-        liveStartup = startup
+        startupDiagnostics = startup
         startup?.mark("播放器接收链接")
         livePlaylistBaseURL = liveURL
         let requestGeneration = generation
@@ -307,7 +313,7 @@ final class AVPlayerSession: NSObject, AVPictureInPictureControllerDelegate {
             item.audioTimePitchAlgorithm = .spectral
             self.install(item)
             startup?.mark("播放项目已安装")
-            self.observeLiveFirstFrame()
+            self.observeFirstFrame()
             if self.wantsPlayback { self.player.play() }
             self.startLivePlaylistPolling()
         }
@@ -342,10 +348,8 @@ final class AVPlayerSession: NSObject, AVPictureInPictureControllerDelegate {
                     if item.status == .failed {
                         self.fail(item.error ?? PlaybackError.preparationFailed)
                     } else if item.status == .readyToPlay {
-                        if self.isLivePlayback {
-                            self.liveStartup?.mark("播放器准备完成")
-                            self.observeLiveFirstFrame()
-                        }
+                        self.startupDiagnostics?.mark("播放器准备完成")
+                        self.observeFirstFrame()
                         self.applyBufferPreference(to: item)
                         self.applyPendingSeekAndPlayback()
                     } else {
@@ -402,10 +406,6 @@ final class AVPlayerSession: NSObject, AVPictureInPictureControllerDelegate {
             let r = range.timeRangeValue
             return CMTimeRangeGetEnd(r).seconds
         }.max() ?? 0
-        var hdrDiagnostics = HDRPlaybackDiagnostics()
-        hdrDiagnostics.isEnabledInSettings = playbackSettings.highDynamicRangeEnabled
-        hdrDiagnostics.prefersEDROutput = playbackSettings.prefersEDROutput
-        hdrDiagnostics.requestsExtendedRange = layer?.wantsExtendedDynamicRangeContent ?? false
         let bridgeDiagnostics = bridge?.diagnostics ?? HLSBridgeDiagnostics()
         let loadingSpeed = bridgeDiagnostics.isActive
             ? bridgeDiagnostics.loadingSpeedBytesPerSecond
@@ -417,8 +417,7 @@ final class AVPlayerSession: NSObject, AVPictureInPictureControllerDelegate {
             isPlaying: wantsPlayback && player.timeControlStatus != .paused,
             isBuffering: wantsPlayback && player.timeControlStatus == .waitingToPlayAtSpecifiedRate,
             loadingSpeedBytesPerSecond: loadingSpeed,
-            hlsBridgeDiagnostics: bridgeDiagnostics,
-            hdrDiagnostics: hdrDiagnostics
+            hlsBridgeDiagnostics: bridgeDiagnostics
         )
         onSnapshot?(snapshot)
     }
@@ -572,7 +571,7 @@ final class AVPlayerSession: NSObject, AVPictureInPictureControllerDelegate {
 
     private func tearDownItem() {
         firstFrameObservation = nil
-        liveStartup = nil
+        startupDiagnostics = nil
         livePlaylistTask?.cancel()
         livePlaylistTask = nil
         isLivePlayback = false
@@ -875,11 +874,12 @@ private final class LocalDASHHLSBridge: @unchecked Sendable {
     func stop() { server.stop() }
     var diagnostics: HLSBridgeDiagnostics { server.diagnostics }
 
-    static func make(stream: DashStream, headers: [String: String], initialSeekTime: TimeInterval?) async throws -> LocalDASHHLSBridge {
+    static func make(stream: DashStream, headers: [String: String], initialSeekTime: TimeInterval?, startup: PlaybackStartupDiagnostics? = nil) async throws -> LocalDASHHLSBridge {
         if stream.videoURL.isFileURL && stream.audioURL.isFileURL,
            stream.videoSegmentBase == nil, stream.audioSegmentBase == nil {
             let videoData = try Data(contentsOf: stream.videoURL)
             let audioData = try Data(contentsOf: stream.audioURL)
+            await startup?.mark("离线音视频读取完成")
             let server = try LoopbackHTTPServer.make(headers: headers)
             let base = server.baseURL
             let video = DASHRendition.local(data: videoData, duration: localDuration(url: stream.videoURL))
@@ -890,12 +890,14 @@ private final class LocalDASHHLSBridge: @unchecked Sendable {
             video.register(prefix: "v", into: server)
             audio.register(prefix: "a", into: server)
             try await server.start()
+            await startup?.mark("本地播放列表服务就绪")
             return LocalDASHHLSBridge(server: server, masterPlaylistURL: base.appendingPathComponent("master.m3u8"))
         }
         guard let videoBase = stream.videoSegmentBase, let audioBase = stream.audioSegmentBase else { throw DASHBridgeError.unsupported }
         async let video = rendition(url: stream.videoURL, base: videoBase, headers: headers)
         async let audio = rendition(url: stream.audioURL, base: audioBase, headers: headers)
         let (v, a) = try await (video, audio)
+        await startup?.mark("音视频索引下载及解析完成")
         let server = try LoopbackHTTPServer.make(headers: headers)
         let base = server.baseURL
         server.add(path: "/master.m3u8", route: .data(master(stream: stream, base: base)))
@@ -904,6 +906,7 @@ private final class LocalDASHHLSBridge: @unchecked Sendable {
         v.register(prefix: "v", into: server)
         a.register(prefix: "a", into: server)
         try await server.start()
+        await startup?.mark("本地播放列表服务就绪")
         return LocalDASHHLSBridge(server: server, masterPlaylistURL: base.appendingPathComponent("master.m3u8"))
     }
 
