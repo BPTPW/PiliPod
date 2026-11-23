@@ -80,7 +80,7 @@ struct SearchView: View {
                         placeholder: defaultSearch?.placeholder ?? L10n.string("搜索视频"),
                         onSubmit: { _ in submitSearch() }
                     )
-                    .frame(maxWidth: .infinity)
+                    .frame(minWidth: 0, maxWidth: .infinity)
 
                     if !searchText.isEmpty {
                         Button {
@@ -996,6 +996,11 @@ private struct SearchTextField: UIViewRepresentable {
         } else if !isFocused, textField.isFirstResponder {
             textField.resignFirstResponder()
         }
+    }
+
+    func sizeThatFits(_ proposal: ProposedViewSize, uiView: UITextField, context: Context) -> CGSize? {
+        guard let width = proposal.width, width.isFinite else { return nil }
+        return CGSize(width: width, height: proposal.height ?? uiView.intrinsicContentSize.height)
     }
 
     func makeCoordinator() -> Coordinator {

@@ -73,8 +73,7 @@ struct HomeView: View {
                                     .foregroundStyle(.secondary)
                                     .lineLimit(1)
                                     .truncationMode(.tail)
-
-                                Spacer(minLength: 0)
+                                    .frame(minWidth: 0, maxWidth: .infinity, alignment: .leading)
                             }
                             .padding(.horizontal, 14)
                             .frame(height: 40)

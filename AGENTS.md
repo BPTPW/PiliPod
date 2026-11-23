@@ -64,7 +64,5 @@ Before finishing a code change:
 
 1. Check the diff for accidental changes to generated files, `xcuserdata/`, or
    local-only settings.
-2. Build or run the most relevant test target using the verification rules above.
-3. For UI changes, verify both portrait and landscape behavior where the affected
-   screen supports both orientations.
-4. Summarize changed files, verification performed, and any remaining limitation.
+2. Summarize changed files, verification performed, and any remaining limitation.
+3. There is no need to run simulator tests or other tests; if you feel it is necessary to carry out tests to verify feasibility, please seek the user’s opinion first to determine whether the user should carry out the tests or you should.
