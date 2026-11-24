@@ -65,6 +65,7 @@ class VideoDetailViewModel {
     private var danmakuListCID: Int = 0
     private var nextDanmakuListSegmentIndex = 1
     private var danmakuListSegmentCount = 0
+    private var danmakuListLoadTask: Task<Void, Never>?
     private var skipSegmentsCID: Int = 0
     private var videoShotCID: Int = 0
 
@@ -151,6 +152,8 @@ class VideoDetailViewModel {
         danmakuIsLoading = false
         danmakuError = nil
         danmakuListElements = []
+        danmakuListLoadTask?.cancel()
+        danmakuListLoadTask = nil
         danmakuListIsLoading = false
         danmakuListError = nil
         hasMoreDanmakuListSegments = false
@@ -925,11 +928,8 @@ class VideoDetailViewModel {
 
         let segmentCount = max(1, Int(ceil(max(duration, 1) / 360.0)))
         if danmakuListCID != targetCID {
+            resetDanmakuListState()
             danmakuListCID = targetCID
-            danmakuListElements = []
-            danmakuListIsLoading = false
-            danmakuListError = nil
-            nextDanmakuListSegmentIndex = 1
             danmakuListSegmentCount = segmentCount
             hasMoreDanmakuListSegments = true
         } else {
@@ -942,10 +942,15 @@ class VideoDetailViewModel {
 
     @MainActor
     func loadNextDanmakuListSegment() async {
+        if let task = danmakuListLoadTask {
+            await task.value
+            return
+        }
+
         let targetCID = danmakuListCID
         guard targetCID > 0,
               !isPlayingOfflineCache,
-              !danmakuListIsLoading,
+              !Task.isCancelled,
               nextDanmakuListSegmentIndex <= danmakuListSegmentCount
         else { return }
 
@@ -953,12 +958,24 @@ class VideoDetailViewModel {
         danmakuListIsLoading = true
         danmakuListError = nil
 
+        let task = Task { @MainActor in
+            await self.loadDanmakuListSegment(cid: targetCID, segmentIndex: segmentIndex)
+            guard !Task.isCancelled, self.danmakuListCID == targetCID else { return }
+            self.danmakuListLoadTask = nil
+            self.danmakuListIsLoading = false
+        }
+        danmakuListLoadTask = task
+        await task.value
+    }
+
+    @MainActor
+    private func loadDanmakuListSegment(cid targetCID: Int, segmentIndex: Int) async {
         do {
             let reply = try await BiliAPI.shared.fetchDanmakuSegment(
                 cid: targetCID,
                 segmentIndex: segmentIndex
             )
-            guard danmakuListCID == targetCID else { return }
+            guard !Task.isCancelled, danmakuListCID == targetCID else { return }
 
             var itemByID: [Int64: Bilibili_Community_Service_Dm_V1_DanmakuElem] = [:]
             for element in danmakuListElements {
@@ -973,16 +990,47 @@ class VideoDetailViewModel {
             nextDanmakuListSegmentIndex = segmentIndex + 1
             hasMoreDanmakuListSegments = nextDanmakuListSegmentIndex <= danmakuListSegmentCount
         } catch {
-            guard danmakuListCID == targetCID else { return }
+            guard !Task.isCancelled, danmakuListCID == targetCID else { return }
             danmakuListError = error.localizedDescription
-        }
-
-        if danmakuListCID == targetCID {
-            danmakuListIsLoading = false
         }
     }
 
+    /// Keeps the list contiguous while loading up to the requested playback time.
+    @MainActor
+    func loadDanmakuList(through time: TimeInterval, duration: TimeInterval) async -> Bool {
+        guard time.isFinite, !Task.isCancelled else { return false }
+        let targetCID = cid
+        let needsInitialLoad = danmakuListCID != targetCID || danmakuListElements.isEmpty
+        await openDanmakuList(duration: duration)
+        guard !Task.isCancelled, cid == targetCID, danmakuListCID == targetCID else { return false }
+        if needsInitialLoad, danmakuListError != nil { return false }
+        if isPlayingOfflineCache { return true }
+
+        let targetSegment = Int(min(
+            floor(max(time, 0) / 360.0) + 1,
+            Double(danmakuListSegmentCount)
+        ))
+        while nextDanmakuListSegmentIndex <= targetSegment {
+            guard !Task.isCancelled, cid == targetCID, danmakuListCID == targetCID else { return false }
+            let previousIndex = nextDanmakuListSegmentIndex
+            await loadNextDanmakuListSegment()
+            guard !Task.isCancelled, cid == targetCID, danmakuListCID == targetCID,
+                  danmakuListError == nil,
+                  nextDanmakuListSegmentIndex > previousIndex else { return false }
+        }
+        return true
+    }
+
+    func isOwnDanmaku(_ element: Bilibili_Community_Service_Dm_V1_DanmakuElem) -> Bool {
+        guard let loginMid = playerInfo?.loginMid, loginMid > 0,
+              let midHash = playerInfo?.loginMidHash, !midHash.isEmpty,
+              !element.midHash.isEmpty else { return false }
+        return element.midHash.caseInsensitiveCompare(midHash) == .orderedSame
+    }
+
     private func resetDanmakuListState() {
+        danmakuListLoadTask?.cancel()
+        danmakuListLoadTask = nil
         danmakuListElements = []
         danmakuListIsLoading = false
         danmakuListError = nil

@@ -2780,71 +2780,134 @@ private struct DanmakuListSheet: View {
     @Binding var blockLevel: Int
     let onClose: () -> Void
 
+    @State private var jumpRequestID: UUID?
+    @State private var scrollTargetID: Int64?
+    @State private var scrollRequestID = UUID()
+
     private var visibleElements: [Bilibili_Community_Service_Dm_V1_DanmakuElem] {
         viewModel.danmakuListElements.filter { $0.weight >= Int32(blockLevel) }
     }
 
     var body: some View {
         NavigationStack {
-            List {
-                ForEach(visibleElements, id: \.id) { element in
-                    DanmakuListRow(element: element)
-                }
-
-                if let error = viewModel.danmakuListError {
-                    ContentUnavailableView(
-                        "弹幕加载失败",
-                        systemImage: "exclamationmark.triangle",
-                        description: Text(error)
-                    )
-                    .listRowBackground(Color.clear)
-                }
-
-                if viewModel.danmakuListIsLoading {
-                    HStack {
-                        Spacer()
-                        ProgressView()
-                        Spacer()
+            ScrollViewReader { proxy in
+                danmakuList
+                    .listStyle(.plain)
+                    .navigationTitle("弹幕列表")
+                    .toolbar {
+                        ToolbarItem(placement: .topBarLeading) {
+                            Button(action: onClose) {
+                                Image(systemName: "xmark")
+                            }
+                            .accessibilityLabel("关闭")
+                        }
+                        ToolbarItem(placement: .topBarTrailing) {
+                            Button {
+                                jumpRequestID = UUID()
+                            } label: {
+                                if jumpRequestID != nil {
+                                    ProgressView()
+                                } else {
+                                    Label(
+                                        "跳转到播放时间",
+                                        systemImage: "clock.arrow.trianglehead.clockwise.rotate.90.path.dotted"
+                                    )
+                                    .labelStyle(.iconOnly)
+                                }
+                            }
+                            .disabled(jumpRequestID != nil || viewModel.player == nil)
+                            .accessibilityLabel("跳转到播放时间")
+                            .help("跳转到播放时间")
+                        }
+                        ToolbarItem(placement: .topBarTrailing) {
+                            Menu {
+                                ForEach(0 ... 10, id: \.self) { level in
+                                    Button("\(level)级") {
+                                        blockLevel = level
+                                    }
+                                }
+                            } label: {
+                                Text("\(blockLevel)级")
+                            }
+                            .buttonStyle(.plain)
+                        }
                     }
+                    .task {
+                        await viewModel.openDanmakuList(duration: videoDuration)
+                    }
+                    .task(id: jumpRequestID) {
+                        guard let requestID = jumpRequestID else { return }
+                        let targetCID = viewModel.cid
+                        let playbackTime = viewModel.player?.currentTime ?? 0
+                        defer {
+                            if jumpRequestID == requestID {
+                                jumpRequestID = nil
+                            }
+                        }
+
+                        guard await viewModel.loadDanmakuList(through: playbackTime, duration: videoDuration),
+                              !Task.isCancelled, viewModel.cid == targetCID else { return }
+                        guard let target = visibleElements.min(by: {
+                            abs(Double($0.progress) / 1_000 - playbackTime)
+                                < abs(Double($1.progress) / 1_000 - playbackTime)
+                        }) else { return }
+
+                        scrollTargetID = target.id
+                        scrollRequestID = UUID()
+                    }
+                    .onChange(of: scrollRequestID) { _, _ in
+                        guard let scrollTargetID else { return }
+                        withAnimation {
+                            proxy.scrollTo(scrollTargetID, anchor: .center)
+                        }
+                    }
+                    .onChange(of: viewModel.cid) { _, _ in
+                        jumpRequestID = nil
+                        scrollTargetID = nil
+                    }
+                    .onDisappear {
+                        jumpRequestID = nil
+                    }
+            }
+        }
+    }
+
+    private var danmakuList: some View {
+        List {
+            ForEach(visibleElements, id: \.id) { element in
+                DanmakuListRow(element: element, isOwn: viewModel.isOwnDanmaku(element))
+                    .id(element.id)
+            }
+
+            if let error = viewModel.danmakuListError {
+                ContentUnavailableView(
+                    "弹幕加载失败",
+                    systemImage: "exclamationmark.triangle",
+                    description: Text(error)
+                )
+                .listRowBackground(Color.clear)
+            }
+
+            if viewModel.danmakuListIsLoading {
+                HStack {
+                    Spacer()
+                    ProgressView()
+                    Spacer()
+                }
+                .listRowSeparator(.hidden)
+            } else if viewModel.hasMoreDanmakuListSegments {
+                Color.clear
+                    .frame(height: 1)
                     .listRowSeparator(.hidden)
-                } else if viewModel.hasMoreDanmakuListSegments {
-                    Color.clear
-                        .frame(height: 1)
-                        .listRowSeparator(.hidden)
-                        .onAppear {
-                            Task {
-                                await viewModel.loadNextDanmakuListSegment()
-                            }
+                    .onAppear {
+                        guard viewModel.danmakuListError == nil else { return }
+                        Task {
+                            await viewModel.loadNextDanmakuListSegment()
                         }
-                } else if visibleElements.isEmpty, viewModel.danmakuListError == nil {
-                    ContentUnavailableView("暂无弹幕", systemImage: "text.bubble")
-                        .listRowBackground(Color.clear)
-                }
-            }
-            .listStyle(.plain)
-            .navigationTitle("弹幕列表")
-            .toolbar {
-                ToolbarItem(placement: .topBarLeading) {
-                    Button(action: onClose) {
-                        Image(systemName: "xmark")
                     }
-                    .accessibilityLabel("关闭")
-                }
-                ToolbarItem(placement: .topBarTrailing) {
-                    Menu {
-                        ForEach(0 ... 10, id: \.self) { level in
-                            Button("\(level)级") {
-                                blockLevel = level
-                            }
-                        }
-                    } label: {
-                        Text("\(blockLevel)级")
-                    }
-                    .buttonStyle(.plain)
-                }
-            }
-            .task {
-                await viewModel.openDanmakuList(duration: videoDuration)
+            } else if visibleElements.isEmpty, viewModel.danmakuListError == nil {
+                ContentUnavailableView("暂无弹幕", systemImage: "text.bubble")
+                    .listRowBackground(Color.clear)
             }
         }
     }
@@ -2852,6 +2915,7 @@ private struct DanmakuListSheet: View {
 
 private struct DanmakuListRow: View {
     let element: Bilibili_Community_Service_Dm_V1_DanmakuElem
+    let isOwn: Bool
 
     private var colorHex: String {
         String(format: "#%06X", element.color & 0x00FF_FFFF)
@@ -2868,9 +2932,17 @@ private struct DanmakuListRow: View {
 
     var body: some View {
         HStack(alignment: .top, spacing: 12) {
-            Text(element.content)
-                .foregroundStyle(.primary)
-                .fixedSize(horizontal: false, vertical: true)
+            VStack(alignment: .leading, spacing: 4) {
+                Text(element.content)
+                    .foregroundStyle(.primary)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                if isOwn {
+                    Text("我发送的")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            }
 
             Spacer(minLength: 8)
 

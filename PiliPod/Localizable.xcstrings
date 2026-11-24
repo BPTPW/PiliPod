@@ -3907,6 +3907,22 @@
         }
       }
     },
+    "我发送的" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sent by me"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "自分が送信"
+          }
+        }
+      }
+    },
     "我的" : {
       "localizations" : {
         "en" : {
@@ -6652,6 +6668,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "最新セグメント開始からの遅れ"
+          }
+        }
+      }
+    },
+    "跳转到播放时间" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Jump to Playback Time"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "再生時刻に移動"
           }
         }
       }
