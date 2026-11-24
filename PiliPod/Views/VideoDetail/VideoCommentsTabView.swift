@@ -46,45 +46,12 @@ struct VideoCommentsTabView: View {
 
     var body: some View {
         ZStack(alignment: .bottomTrailing) {
-            Group {
-                if isLoading {
-                    VStack(spacing: 10) {
-                        ProgressView()
-                        Text("评论加载中…")
-                            .font(.footnote)
-                            .foregroundStyle(.secondary)
-                    }
-                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-                    .padding(.top, 24)
-                } else if let errorText {
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("评论加载失败")
-                            .font(.subheadline.weight(.semibold))
-                        Text(errorText)
-                            .font(.footnote)
-                            .foregroundStyle(.secondary)
-                    }
-                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-                    .padding(16)
-                } else if isInDetailMode, let root = detailRootComment {
-                    detailListView(root: root)
-                } else if comments.isEmpty {
-                    Text("暂无评论")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-                        .padding(16)
-                } else {
-                    if isEmbedded {
-                        LazyVStack(spacing: 0) { mainCommentRows }
-                    } else {
-                        List {
-                            mainCommentRows
-                                .listRowInsets(.horizontal, 16)
-                        }
-                        .listStyle(.plain)
-                    }
-                }
+            if let root = detailRootComment {
+                detailListView(root: root)
+            } else if isEmbedded {
+                mainContent
+            } else {
+                VideoDetailScrollView { mainContent }
             }
 
             if allowsPosting { Button {
@@ -136,8 +103,36 @@ struct VideoCommentsTabView: View {
         }
     }
 
-    private var isInDetailMode: Bool {
-        detailRootComment != nil
+    @ViewBuilder
+    private var mainContent: some View {
+        if isLoading {
+            VStack(spacing: 10) {
+                ProgressView()
+                Text("评论加载中…")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+            .padding(.top, 24)
+        } else if let errorText {
+            VStack(alignment: .leading, spacing: 8) {
+                Text("评论加载失败")
+                    .font(.subheadline.weight(.semibold))
+                Text(errorText)
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+            .padding(16)
+        } else if comments.isEmpty {
+            Text("暂无评论")
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                .padding(16)
+        } else {
+            LazyVStack(spacing: 0) { mainCommentRows }
+        }
     }
 
     @ViewBuilder
@@ -157,7 +152,10 @@ struct VideoCommentsTabView: View {
                     Task { @MainActor in await toggleDislike(for: tapped) }
                 }
             )
-            .padding(.horizontal, isEmbedded ? 16 : 0)
+            .padding(.horizontal, 16)
+            .overlay(alignment: .bottom) {
+                if !isEmbedded { Divider().padding(.leading, 16) }
+            }
         }
         if hasMore {
             HStack(spacing: 8) {
@@ -238,7 +236,7 @@ struct VideoCommentsTabView: View {
                     replyCount: 0
                 )
 
-                List {
+                detailScrollContainer {
                     CommentCardView(
                         comment: rootOnly,
                         onTapAvatar: onOpenUserSpace,
@@ -306,7 +304,20 @@ struct VideoCommentsTabView: View {
                         }
                     }
                 }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func detailScrollContainer<Rows: View>(@ViewBuilder rows: () -> Rows) -> some View {
+        let content = rows()
+        if isEmbedded {
+            List { content }
                 .listStyle(.plain)
+        } else {
+            VideoDetailScrollView {
+                LazyVStack(spacing: 0) { content }
+                    .padding(.horizontal, 16)
             }
         }
     }

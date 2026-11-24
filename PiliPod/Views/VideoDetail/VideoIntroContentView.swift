@@ -89,7 +89,7 @@ struct IntroTabContentView: View, Equatable {
     }
 
     var body: some View {
-        ScrollView {
+        VideoDetailScrollView {
             VStack(alignment: .leading, spacing: 12) {
                 HStack(spacing: 12) {
                     HStack(spacing: 12) {

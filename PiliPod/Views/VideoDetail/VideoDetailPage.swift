@@ -163,6 +163,7 @@ struct VideoDetailPage: View {
     @State private var isFullscreen = false
     @State private var fullscreenTrigger: FullscreenTrigger = .none
     @State private var selectedTab: VideoDetailTab = .intro
+    @State private var playerCollapseFraction: CGFloat = 0
     @State private var isDraggingVideoPageStrip = false
     @State private var toastMessage: String?
     @State private var activeSharePayload: SharePayload?
@@ -320,8 +321,9 @@ struct VideoDetailPage: View {
         return viewModel.videoPages.first
     }
 
-    private func nonFullscreenPlayerHeight(for size: CGSize) -> CGFloat {
-        let aspectRatio = viewModel.dashStream?.aspectRatio ?? (16.0 / 9.0)
+    private func expandedPlayerHeight(for size: CGSize) -> CGFloat {
+        let aspectRatio = viewModel.player == nil ? nil : viewModel.dashStream?.aspectRatio
+        guard let aspectRatio, aspectRatio.isFinite, aspectRatio > 0 else { return size.width * 9 / 16 }
         return min(size.width / aspectRatio, size.width * (4.0 / 3.0))
     }
 
@@ -341,6 +343,9 @@ struct VideoDetailPage: View {
     var body: some View {
         @Bindable var bindableViewModel = viewModel
         GeometryReader { geo in
+            let expandedHeight = expandedPlayerHeight(for: geo.size)
+            let collapseRange = max(0, expandedHeight - geo.size.width * 3 / 4)
+            let inlineHeight = expandedHeight - playerCollapseFraction * collapseRange
             ZStack {
                 VStack(spacing: 0) {
                     // DASH 播放器
@@ -352,6 +357,7 @@ struct VideoDetailPage: View {
                             player: player,
                             playerViewID: bindableViewModel.currentPlayerViewID,
                             containerSize: geo.size,
+                            inlineHeight: inlineHeight,
                             safeAreaInsets: geo.safeAreaInsets,
                             nonFullscreenBackSwipeReservedWidth: nonFullscreenBackSwipeReservedWidth,
                             maxHorizontalSeekOffset: maxHorizontalSeekOffset,
@@ -501,7 +507,7 @@ struct VideoDetailPage: View {
                             width: geo.size.width,
                             height: isFullscreen
                                 ? geo.size.height + geo.safeAreaInsets.top + geo.safeAreaInsets.bottom
-                                : min(geo.size.width / (16.0 / 9.0), geo.size.width * (4.0 / 3.0)),
+                                : inlineHeight,
                             alignment: .center
                         )
                         .clipped()
@@ -511,13 +517,13 @@ struct VideoDetailPage: View {
                     if !isFullscreen {
                         let bottomContentHeight = max(
                             0,
-                            geo.size.height + geo.safeAreaInsets.bottom - nonFullscreenPlayerHeight(for: geo.size)
+                            geo.size.height + geo.safeAreaInsets.bottom - inlineHeight
                         )
 
                         ZStack(alignment: .bottom) {
                             VStack(spacing: 0) {
                                 tabBar
-                                tabContent(width: geo.size.width)
+                                tabContent(width: geo.size.width, collapseRange: collapseRange)
                                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
                             }
                             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
@@ -1214,7 +1220,7 @@ struct VideoDetailPage: View {
         }
     }
 
-    private func tabContent(width: CGFloat) -> some View {
+    private func tabContent(width: CGFloat, collapseRange: CGFloat) -> some View {
         TabPager(
             selectedTab: $selectedTab,
             width: width,
@@ -1222,6 +1228,7 @@ struct VideoDetailPage: View {
             leadingSwipeExclusionWidth: nonFullscreenBackSwipeReservedWidth,
             introContent: {
                 introTabContent
+                    .environment(\.videoDetailScrollLayout, scrollLayout(for: .intro, range: collapseRange))
             },
             commentsContent: {
                 VideoCommentsTabView(
@@ -1235,10 +1242,15 @@ struct VideoDetailPage: View {
                         )
                     }
                 )
+                .environment(\.videoDetailScrollLayout, scrollLayout(for: .comments, range: collapseRange))
                 .contentMargins(.horizontal, 0, for: .scrollContent)
                 .background(Color(.systemBackground))
             }
         )
+    }
+
+    private func scrollLayout(for tab: VideoDetailTab, range: CGFloat) -> VideoDetailScrollLayout {
+        VideoDetailScrollLayout(range: range, fraction: $playerCollapseFraction, isActive: selectedTab == tab)
     }
 
     private var introTabDisplayModel: IntroTabDisplayModel? {

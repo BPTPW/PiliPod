@@ -23,6 +23,7 @@ struct VideoDetailPlayerSurfaceView: View {
     let player: PlaybackSession
     let playerViewID: String
     let containerSize: CGSize
+    let inlineHeight: CGFloat
     let safeAreaInsets: EdgeInsets
     let nonFullscreenBackSwipeReservedWidth: CGFloat
     let maxHorizontalSeekOffset: TimeInterval
@@ -100,7 +101,7 @@ struct VideoDetailPlayerSurfaceView: View {
     private var playerHeight: CGFloat {
         isFullscreen
             ? containerSize.height + safeAreaInsets.top + safeAreaInsets.bottom
-            : min(containerSize.width / stream.aspectRatio, containerSize.width * (4.0 / 3.0))
+            : inlineHeight
     }
 
     /// GeometryReader is laid out inside the safe area. The playback canvas must
