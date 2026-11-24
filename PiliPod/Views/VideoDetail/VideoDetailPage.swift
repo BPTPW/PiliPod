@@ -2875,8 +2875,23 @@ private struct DanmakuListRow: View {
             Spacer(minLength: 8)
 
             Text(colorHex)
-                .font(.system(.caption, design: .monospaced, weight: .bold))
                 .foregroundStyle(danmakuColor)
+                .background {
+                    let outline = Text(colorHex).foregroundStyle(.primary)
+                    ZStack {
+                        outline.offset(x: -0.5, y: -0.5)
+                        outline.offset(y: -0.5)
+                        outline.offset(x: 0.5, y: -0.5)
+                        outline.offset(x: -0.5)
+                        outline.offset(x: 0.5)
+                        outline.offset(x: -0.5, y: 0.5)
+                        outline.offset(y: 0.5)
+                        outline.offset(x: 0.5, y: 0.5)
+                    }
+                    .accessibilityHidden(true)
+                    .allowsHitTesting(false)
+                }
+                .font(.system(.caption, design: .monospaced, weight: .bold))
 
             Text(formatSegmentTime(Double(element.progress) / 1_000))
                 .font(.system(.body, design: .monospaced))
