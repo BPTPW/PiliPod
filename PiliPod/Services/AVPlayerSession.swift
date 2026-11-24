@@ -121,7 +121,14 @@ final class AVPlayerSession: NSObject, AVPictureInPictureControllerDelegate {
         }
     }
 
-    func layout(in bounds: CGRect) { layer?.frame = bounds }
+    func layout(in bounds: CGRect) {
+        guard let layer, layer.frame != bounds else { return }
+        // The host already tracks the drag. Apply its geometry without a second animation.
+        CATransaction.begin()
+        CATransaction.setDisableActions(true)
+        layer.frame = bounds
+        CATransaction.commit()
+    }
 
     func startPictureInPicture() {
         requestPictureInPictureStart(restoresOnForeground: true)
