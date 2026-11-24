@@ -7,7 +7,7 @@ struct VideoDetailTabPanGesture: UIGestureRecognizerRepresentable {
     let isIntro: Bool
     let leadingExclusionWidth: CGFloat
     let onChanged: (CGFloat) -> Void
-    let onEnded: (CGFloat?) -> Void
+    let onEnded: (_ translation: CGFloat?, _ velocity: CGFloat) -> Void
 
     func makeCoordinator(converter: CoordinateSpaceConverter) -> Coordinator {
         Coordinator(gesture: self, converter: converter)
@@ -32,9 +32,9 @@ struct VideoDetailTabPanGesture: UIGestureRecognizerRepresentable {
         case .began, .changed:
             onChanged(translation)
         case .ended:
-            onEnded(translation)
+            onEnded(translation, recognizer.velocity(in: recognizer.view).x)
         case .cancelled, .failed:
-            onEnded(nil)
+            onEnded(nil, 0)
         default:
             break
         }

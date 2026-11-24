@@ -1235,6 +1235,7 @@ struct VideoDetailPage: View {
                         )
                     }
                 )
+                .contentMargins(.horizontal, 0, for: .scrollContent)
                 .background(Color(.systemBackground))
             }
         )
@@ -2040,17 +2041,18 @@ private struct TabPager<IntroContent: View, CommentsContent: View>: View {
                     dragTranslation = max(0, min(width, translation))
                 }
             },
-            onEnded: { dx in
-                defer { dragTranslation = 0 }
-                guard isSwipeEnabled, let dx else { return }
-                let threshold = width * 0.2
-                switch selectedTab {
-                case .intro:
-                    guard dx < -threshold else { return }
-                    selectedTab = .comments
-                case .comments:
-                    guard dx > threshold else { return }
-                    selectedTab = .intro
+            onEnded: { translation, velocity in
+                withAnimation(.interactiveSpring(response: 0.32, dampingFraction: 0.86)) {
+                    dragTranslation = 0
+                    guard isSwipeEnabled, let translation, width > 0 else { return }
+
+                    let direction: CGFloat = selectedTab == .intro ? -1 : 1
+                    let forwardSpeed = max(0, direction * velocity)
+                    // Credit up to 10% of a page for momentum at release.
+                    let threshold = width * 0.15 - min(width * 0.1, forwardSpeed * 0.06)
+                    if direction * translation > threshold {
+                        selectedTab = selectedTab == .intro ? .comments : .intro
+                    }
                 }
             }
         )

@@ -78,8 +78,11 @@ struct VideoCommentsTabView: View {
                     if isEmbedded {
                         LazyVStack(spacing: 0) { mainCommentRows }
                     } else {
-                        List { mainCommentRows }
-                            .listStyle(.plain)
+                        List {
+                            mainCommentRows
+                                .listRowInsets(.horizontal, 16)
+                        }
+                        .listStyle(.plain)
                     }
                 }
             }
@@ -251,6 +254,7 @@ struct VideoCommentsTabView: View {
                             }
                         }
                     )
+                    .listRowInsets(.horizontal, 16)
 
                     Text("相关评论")
                         .font(.subheadline.weight(.semibold))
@@ -281,6 +285,7 @@ struct VideoCommentsTabView: View {
                             }
                         )
                     }
+                    .listRowInsets(.horizontal, 16)
 
                     if detailHasMore {
                         HStack(spacing: 8) {
