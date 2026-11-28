@@ -1,0 +1,36 @@
+name: Validate Pull Request
+
+on:
+    pull_request:
+
+permissions:
+    contents: read
+
+jobs:
+    build:
+        runs-on: macos-26
+
+        steps:
+            - name: Checkout Code
+              uses: actions/checkout@v4
+              with:
+                  persist-credentials: false
+
+            - name: Set up Xcode 26.6
+              uses: maxim-lobanov/setup-xcode@v1
+              with:
+                  xcode-version: '26.6'
+
+            - name: Build unsigned IPA (Release)
+              run: Scripts/build-app.sh 1.0.0 1
+
+            - name: Compile for iOS Simulator (Debug)
+              run: |
+                  xcodebuild -quiet build \
+                    -project PiliPod.xcodeproj \
+                    -scheme PiliPod \
+                    -configuration Debug \
+                    -destination 'generic/platform=iOS Simulator' \
+                    -derivedDataPath build/DerivedData \
+                    -clonedSourcePackagesDirPath build/SourcePackages \
+                    CODE_SIGNING_ALLOWED=NO
